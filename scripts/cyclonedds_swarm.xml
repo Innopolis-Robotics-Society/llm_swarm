@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CycloneDDS xmlns="https://cdds.io/config">
+  <Domain Id="any">
+    <General>
+      <!-- Мультикаст только для discovery, остальное — unicast -->
+      <AllowMulticast>spdp</AllowMulticast>
+      <MaxMessageSize>65500B</MaxMessageSize>
+    </General>
+    <Discovery>
+      <!-- Отключаем topic discovery — экономит трафик с 20 роботами -->
+      <EnableTopicDiscoveryEndpoints>false</EnableTopicDiscoveryEndpoints>
+    </Discovery>
+    <Internal>
+      <!-- КРИТИЧНО: объединяет DDS participants в один на процесс -->
+      <SquashParticipants>true</SquashParticipants>
+      <BuiltinEndpointSet>minimal</BuiltinEndpointSet>
+      <Watermarks>
+        <WhcHigh>500kB</WhcHigh>
+      </Watermarks>
+    </Internal>
+  </Domain>
+</CycloneDDS>

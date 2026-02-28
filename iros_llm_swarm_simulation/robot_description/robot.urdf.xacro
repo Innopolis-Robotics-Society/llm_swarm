@@ -1,0 +1,382 @@
+<?xml version="1.0"?>
+<robot name="swarm_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       Parameters
+       ═══════════════════════════════════════════════════════════ -->
+  <xacro:arg name="robot_name"       default="robot_0"/>
+  <!-- ros_namespace is robot_0, robot_1, ... -->
+  <xacro:arg name="ros_namespace"    default="robot_0"/>
+  <!-- Absolute path to the per-robot controllers YAML, written by the launch file -->
+  <xacro:arg name="controllers_yaml" default=""/>
+
+  <xacro:property name="rname"     value="$(arg robot_name)"/>
+  <xacro:property name="ros_ns"    value="$(arg ros_namespace)"/>
+  <xacro:property name="ctrl_yaml" value="$(arg controllers_yaml)"/>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       Geometry constants
+       ═══════════════════════════════════════════════════════════ -->
+  <xacro:property name="body_x"        value="0.30"/>
+  <xacro:property name="body_y"        value="0.30"/>
+  <xacro:property name="body_z"        value="0.15"/>
+  <xacro:property name="wheel_radius"  value="0.05"/>
+  <xacro:property name="wheel_width"   value="0.04"/>
+  <xacro:property name="wheel_sep"     value="0.25"/>
+  <xacro:property name="caster_radius" value="0.025"/>
+
+  <!-- Robot base rides at wheel_radius above the ground plane -->
+  <xacro:property name="base_z_offset" value="${wheel_radius}"/>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       LINKS
+       ═══════════════════════════════════════════════════════════ -->
+
+  <!-- Zero-inertia ground-plane anchor -->
+  <link name="${rname}/base_footprint"/>
+
+  <!-- Robot body -->
+<link name="${rname}/base_link">
+  <visual>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <geometry>
+      <box size="${body_x} ${body_y} ${body_z}"/>
+    </geometry>
+  </visual>
+
+  <inertial>
+    <mass value="5.0"/>
+    <inertia
+      ixx="${5.0/12.0*(body_y*body_y + body_z*body_z)}"
+      ixy="0.0" ixz="0.0"
+      iyy="${5.0/12.0*(body_x*body_x + body_z*body_z)}"
+      iyz="0.0"
+      izz="${5.0/12.0*(body_x*body_x + body_y*body_y)}"/>
+  </inertial>
+</link>
+
+  <!-- Left drive wheel -->
+  <link name="${rname}/left_wheel">
+    <visual>
+      <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+      <material name="dark_grey">
+        <color rgba="0.2 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <inertia
+        ixx="${0.5/12.0*(3.0*wheel_radius*wheel_radius + wheel_width*wheel_width)}"
+        ixy="0.0" ixz="0.0"
+        iyy="${0.5/12.0*(3.0*wheel_radius*wheel_radius + wheel_width*wheel_width)}"
+        iyz="0.0"
+        izz="${0.5/2.0*wheel_radius*wheel_radius}"/>
+    </inertial>
+  </link>
+
+  <!-- Right drive wheel -->
+  <link name="${rname}/right_wheel">
+    <visual>
+      <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+      <material name="dark_grey">
+        <color rgba="0.2 0.2 0.2 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${wheel_width}"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <inertia
+        ixx="${0.5/12.0*(3.0*wheel_radius*wheel_radius + wheel_width*wheel_width)}"
+        ixy="0.0" ixz="0.0"
+        iyy="${0.5/12.0*(3.0*wheel_radius*wheel_radius + wheel_width*wheel_width)}"
+        iyz="0.0"
+        izz="${0.5/2.0*wheel_radius*wheel_radius}"/>
+    </inertial>
+  </link>
+
+  <!-- Passive caster (front, sphere, zero friction) -->
+  <link name="${rname}/caster_wheel_one">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="${caster_radius}"/>
+      </geometry>
+      <material name="light_grey">
+        <color rgba="0.6 0.6 0.6 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="${caster_radius}"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.1"/>
+      <inertia
+        ixx="${2.0/5.0*0.1*caster_radius*caster_radius}"
+        ixy="0.0" ixz="0.0"
+        iyy="${2.0/5.0*0.1*caster_radius*caster_radius}"
+        iyz="0.0"
+        izz="${2.0/5.0*0.1*caster_radius*caster_radius}"/>
+    </inertial>
+  </link>
+
+  <!-- Passive caster (front, sphere, zero friction) -->
+  <link name="${rname}/caster_wheel_two">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="${caster_radius}"/>
+      </geometry>
+      <material name="light_grey">
+        <color rgba="0.6 0.6 0.6 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="${caster_radius}"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.1"/>
+      <inertia
+        ixx="${2.0/5.0*0.1*caster_radius*caster_radius}"
+        ixy="0.0" ixz="0.0"
+        iyy="${2.0/5.0*0.1*caster_radius*caster_radius}"
+        iyz="0.0"
+        izz="${2.0/5.0*0.1*caster_radius*caster_radius}"/>
+    </inertial>
+  </link>
+
+  <!-- LiDAR sensor mount (top of body) -->
+  <link name="${rname}/lidar_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.025" length="0.04"/>
+      </geometry>
+      <material name="light_grey">
+        <color rgba="0.6 0.6 0.6 1.0"/>
+      </material>
+    </visual>
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="1e-5" ixy="0.0" ixz="0.0"
+               iyy="1e-5" iyz="0.0" izz="1e-5"/>
+    </inertial>
+  </link>
+
+  <!-- IMU (at body centre, massless) -->
+  <link name="${rname}/imu_link">
+    <inertial>
+      <mass value="0.01"/>
+      <inertia ixx="1e-6" ixy="0.0" ixz="0.0"
+               iyy="1e-6" iyz="0.0" izz="1e-6"/>
+    </inertial>
+  </link>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       JOINTS
+       ═══════════════════════════════════════════════════════════ -->
+
+  <!-- Footprint → body (lift to wheel height) -->
+  <joint name="${rname}/base_joint" type="fixed">
+    <parent link="${rname}/base_footprint"/>
+    <child  link="${rname}/base_link"/>
+    <origin xyz="0 0 ${base_z_offset}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Left drive wheel: positioned at +y side, rotates around Y axis -->
+  <joint name="${rname}/left_wheel_joint" type="continuous">
+    <parent link="${rname}/base_link"/>
+    <child  link="${rname}/left_wheel"/>
+    <origin xyz="0 ${wheel_sep/2} ${-body_z/2}" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <dynamics damping="0.1" friction="0.0"/>
+  </joint>
+
+  <!-- Right drive wheel: positioned at -y side -->
+  <joint name="${rname}/right_wheel_joint" type="continuous">
+    <parent link="${rname}/base_link"/>
+    <child  link="${rname}/right_wheel"/>
+    <origin xyz="0 ${-wheel_sep/2} ${-body_z/2}" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <dynamics damping="0.1" friction="0.0"/>
+  </joint>
+
+  <!-- Caster: front of base, hangs down to ground level -->
+  <joint name="${rname}/caster_joint_one" type="fixed">
+    <parent link="${rname}/base_link"/>
+    <child  link="${rname}/caster_wheel_one"/>
+    <origin xyz="${body_x/2 - caster_radius} 0 ${-body_z/2}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Caster: bottom of base, hangs down to ground level -->
+  <joint name="${rname}/caster_joint_two" type="fixed">
+    <parent link="${rname}/base_link"/>
+    <child  link="${rname}/caster_wheel_two"/>
+    <origin xyz="-${body_x/2 - caster_radius} 0 ${-body_z/2}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- LiDAR: on top of body -->
+  <joint name="${rname}/lidar_joint" type="fixed">
+    <parent link="${rname}/base_link"/>
+    <child  link="${rname}/lidar_link"/>
+    <origin xyz="0 0 ${body_z/2 + 0.02}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- IMU: at body centre -->
+  <joint name="${rname}/imu_joint" type="fixed">
+    <parent link="${rname}/base_link"/>
+    <child  link="${rname}/imu_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       GAZEBO — Ignition Fortress tags
+       ═══════════════════════════════════════════════════════════ -->
+
+  <!-- Body colour -->
+  <gazebo reference="${rname}/base_link">
+    <material>
+      <diffuse>0.2 0.4 0.8 1</diffuse>
+      <ambient>0.2 0.4 0.8 1</ambient>
+      <specular>0.1 0.1 0.1 1</specular>
+    </material>
+  </gazebo>
+
+  <!-- Drive wheels: high traction -->
+  <gazebo reference="${rname}/left_wheel">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+    <kp>1e6</kp>
+    <kd>100.0</kd>
+  </gazebo>
+  <gazebo reference="${rname}/right_wheel">
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+    <kp>1e6</kp>
+    <kd>100.0</kd>
+  </gazebo>
+
+  <!-- Caster: zero friction so it slides passively -->
+  <gazebo reference="${rname}/caster_wheel_one">
+    <mu1>0.0</mu1>
+    <mu2>0.0</mu2>
+  </gazebo>
+
+  <!-- Caster: zero friction so it slides passively -->
+  <gazebo reference="${rname}/caster_wheel_two">
+    <mu1>0.0</mu1>
+    <mu2>0.0</mu2>
+  </gazebo>
+
+  <!-- ── 2D LiDAR sensor ───────────────────────────────────── -->
+  <!-- Publishes to Ignition topic /${rname}/scan_raw          -->
+  <!-- Bridged to ROS2 /robot/N/scan in the launch file        -->
+  <gazebo reference="${rname}/lidar_link">
+    <sensor name="${rname}_lidar" type="gpu_lidar">
+      <pose>0 0 0 0 0 0</pose>
+      <always_on>true</always_on>
+      <visualize>false</visualize>
+      <update_rate>10</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>181</samples>
+            <resolution>1</resolution>
+            <min_angle>-3.14159265358979</min_angle>
+            <max_angle>3.14159265358979</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.10</min>
+          <max>10.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.01</stddev>
+        </noise>
+      </ray>
+      <topic>/${rname}/scan_raw</topic>
+      <ignition_frame_id>${rname}/lidar_link</ignition_frame_id>
+    </sensor>
+  </gazebo>
+
+  <!-- ── IMU sensor ───────────────────────────────────────── -->
+  <!-- Publishes to Ignition topic /${rname}/imu_raw           -->
+  <!-- Bridged to ROS2 /robot/N/imu in the launch file         -->
+  <gazebo reference="${rname}/imu_link">
+    <sensor name="${rname}_imu" type="imu">
+      <always_on>true</always_on>
+      <update_rate>100</update_rate>
+      <visualize>false</visualize>
+      <topic>/${rname}/imu_raw</topic>
+      <ignition_frame_id>${rname}/imu_link</ignition_frame_id>
+      <imu>
+        <angular_velocity>
+          <x><noise type="gaussian"><mean>0</mean><stddev>0.009</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0</mean><stddev>0.009</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0</mean><stddev>0.009</stddev></noise></z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x><noise type="gaussian"><mean>0</mean><stddev>0.021</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0</mean><stddev>0.021</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0</mean><stddev>0.021</stddev></noise></z>
+        </linear_acceleration>
+      </imu>
+    </sensor>
+  </gazebo>
+
+  <!-- ── ros2_control hardware interface ──────────────────── -->
+  <!-- Joint names MUST match the URDF joint names exactly     -->
+  <!-- (including the robot_name/ prefix)                      -->
+  <ros2_control name="${rname}_system" type="system">
+    <hardware>
+      <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+    </hardware>
+    <joint name="${rname}/left_wheel_joint">
+      <command_interface name="velocity"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+    <joint name="${rname}/right_wheel_joint">
+      <command_interface name="velocity"/>
+      <state_interface name="position"/>
+      <state_interface name="velocity"/>
+    </joint>
+  </ros2_control>
+
+  <gazebo>
+    <plugin filename="gz_ros2_control-system"
+            name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+      <ros>
+        <namespace>${ros_ns}</namespace>
+      </ros>
+      <parameters>${ctrl_yaml}</parameters>
+      <controller_manager_name>controller_manager</controller_manager_name>
+    </plugin>
+  </gazebo>
+
+</robot>
