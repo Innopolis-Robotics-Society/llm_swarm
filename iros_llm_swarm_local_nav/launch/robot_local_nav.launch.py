@@ -78,21 +78,32 @@ def _setup_robots(context, *args, **kwargs):
         robot_group = GroupAction([
             PushRosNamespace(ns),
 
+            # TO-DO: Требутся более агресивная фильтрация\иные подходы, из-за 19 других роботов локализация уплывает быстро
+            # Node(
+            #     package='nav2_amcl',
+            #     executable='amcl',
+            #     name='amcl',
+            #     output='log',
+            #     parameters=[
+            #         configured,
+            #         {
+            #             'set_initial_pose': True,
+            #             'initial_pose.x': x,
+            #             'initial_pose.y': y,
+            #             'initial_pose.yaw': yaw,
+            #         }
+            #     ],
+            #     remappings=tf_remaps + [('/map', '/map')],
+            # ),
+
             Node(
-                package='nav2_amcl',
-                executable='amcl',
-                name='amcl',
-                output='log',
-                parameters=[
-                    configured,
-                    {
-                        'set_initial_pose': True,
-                        'initial_pose.x': x,
-                        'initial_pose.y': y,
-                        'initial_pose.yaw': yaw,
-                    }
-                ],
-                remappings=tf_remaps + [('/map', '/map')],
+                package='tf2_ros',
+                executable='static_transform_publisher',
+                name='map_to_odom',
+                namespace=ns,
+                arguments=['0', '0', '0', '0', '0', '0',
+                        'map', f'{ns}/odom'],
+                parameters=[{'use_sim_time': True}],
             ),
 
             Node(
@@ -102,6 +113,7 @@ def _setup_robots(context, *args, **kwargs):
                 output='log',
                 parameters=[configured],
                 remappings=tf_remaps,
+                #arguments=['--ros-args', '--log-level', 'DEBUG'],
             ),
 
             Node(
@@ -121,7 +133,8 @@ def _setup_robots(context, *args, **kwargs):
                 parameters=[{
                     'autostart': True,
                     'use_sim_time': True,
-                    'node_names': ['amcl', 'controller_server', 'behavior_server'],
+                    'node_names': ['controller_server', 'behavior_server'],
+                    #'node_names': ['amcl', 'controller_server', 'behavior_server'],
                 }],
             ),
         ])
@@ -134,7 +147,7 @@ def _setup_robots(context, *args, **kwargs):
 def generate_launch_description():
     num_robots_arg = DeclareLaunchArgument(
         'num_robots',
-        default_value='10',
+        default_value='20',
         description='Number of robots to start Nav2 for'
     )
 

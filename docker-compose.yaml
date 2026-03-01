@@ -37,26 +37,3 @@ services:
       "/bin/bash","-lc","
       exec bash"
       ]
-
-  hw-terminal:
-    <<: *common-setup
-    image: fabook/iros:v0.0.1
-    stdin_open: true
-    tty: true
-    devices:
-      - /dev/video0:/dev/video0
-      - /dev/video1:/dev/video1
-      - /dev/snd:/dev/snd
-
-      - "/dev/ttyACM0:/dev/ttyACM0"
-      - "/dev/i2c-8:/dev/i2c-8"
-      - "/dev/ttyTHS0:/dev/ttyTHS0"
-      - "/dev/usb_2.3:/dev/usb_2.3"
-      - "/dev/usb_2.4:/dev/usb_2.4"
-    group_add:
-      - "video"
-      - "44"
-    command: [
-      "/bin/bash","-lc","
-      exec bash"
-      ]

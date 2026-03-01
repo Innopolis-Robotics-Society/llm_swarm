@@ -16,6 +16,10 @@ def generate_launch_description():
             ]
         ))
 
+    use_sim_time_arg = DeclareLaunchArgument(
+        'use_sim_time',
+        default_value='true')
+
     world_file_arg = DeclareLaunchArgument(
         'world_file',
         default_value=PathJoinSubstitution(
@@ -28,6 +32,7 @@ def generate_launch_description():
         'num_robots',
         default_value="20")
 
+    use_sim_time = LaunchConfiguration('use_sim_time')
     rviz_cfg = LaunchConfiguration('rviz_cfg')
     num_robots = LaunchConfiguration('num_robots')
     world_file = LaunchConfiguration('world_file')
@@ -68,12 +73,14 @@ def generate_launch_description():
             package='rviz2',
             executable='rviz2',
             arguments=['-d', rviz_cfg],
+            parameters=[{'use_sim_time': use_sim_time}],
         )
 
     return LaunchDescription([
         world_file_arg,
         num_robots_arg,
         rviz_cfg_arg,
+        use_sim_time_arg,
 
         stage_sim,
         TimerAction(period=1.0, actions=[local_nav2]),

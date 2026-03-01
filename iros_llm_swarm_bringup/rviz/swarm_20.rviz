@@ -7,6 +7,8 @@ Panels:
         - /Global Options1
         - /Status1
         - /Map1/Topic1
+        - /Map2
+        - /Polygon1
       Splitter Ratio: 0.5
     Tree Height: 872
   - Class: rviz_common/Selection
@@ -207,82 +209,6 @@ Visualization Manager:
             robot_0/base_link:
               robot_0/laser:
                 {}
-          robot_1/odom:
-            robot_1/base_link:
-              robot_1/laser:
-                {}
-          robot_10/odom:
-            robot_10/base_link:
-              robot_10/laser:
-                {}
-          robot_11/odom:
-            robot_11/base_link:
-              robot_11/laser:
-                {}
-          robot_12/odom:
-            robot_12/base_link:
-              robot_12/laser:
-                {}
-          robot_13/odom:
-            robot_13/base_link:
-              robot_13/laser:
-                {}
-          robot_14/odom:
-            robot_14/base_link:
-              robot_14/laser:
-                {}
-          robot_15/odom:
-            robot_15/base_link:
-              robot_15/laser:
-                {}
-          robot_16/odom:
-            robot_16/base_link:
-              robot_16/laser:
-                {}
-          robot_17/odom:
-            robot_17/base_link:
-              robot_17/laser:
-                {}
-          robot_18/odom:
-            robot_18/base_link:
-              robot_18/laser:
-                {}
-          robot_19/odom:
-            robot_19/base_link:
-              robot_19/laser:
-                {}
-          robot_2/odom:
-            robot_2/base_link:
-              robot_2/laser:
-                {}
-          robot_3/odom:
-            robot_3/base_link:
-              robot_3/laser:
-                {}
-          robot_4/odom:
-            robot_4/base_link:
-              robot_4/laser:
-                {}
-          robot_5/odom:
-            robot_5/base_link:
-              robot_5/laser:
-                {}
-          robot_6/odom:
-            robot_6/base_link:
-              robot_6/laser:
-                {}
-          robot_7/odom:
-            robot_7/base_link:
-              robot_7/laser:
-                {}
-          robot_8/odom:
-            robot_8/base_link:
-              robot_8/laser:
-                {}
-          robot_9/odom:
-            robot_9/base_link:
-              robot_9/laser:
-                {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -388,80 +314,6 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
-    - Angle Tolerance: 0.10000000149011612
-      Class: rviz_default_plugins/Odometry
-      Covariance:
-        Orientation:
-          Alpha: 0.5
-          Color: 255; 255; 127
-          Color Style: Unique
-          Frame: Local
-          Offset: 1
-          Scale: 1
-          Value: true
-        Position:
-          Alpha: 0.30000001192092896
-          Color: 204; 51; 204
-          Scale: 1
-          Value: true
-        Value: true
-      Enabled: true
-      Keep: 100
-      Name: Odometry
-      Position Tolerance: 0.10000000149011612
-      Shape:
-        Alpha: 1
-        Axes Length: 1
-        Axes Radius: 0.10000000149011612
-        Color: 255; 25; 0
-        Head Length: 0.30000001192092896
-        Head Radius: 0.10000000149011612
-        Shaft Length: 1
-        Shaft Radius: 0.05000000074505806
-        Value: Arrow
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        Filter size: 10
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /robot_0/ground_truth
-      Value: true
-    - Alpha: 1
-      Axes Length: 1
-      Axes Radius: 0.10000000149011612
-      Class: rviz_default_plugins/PoseWithCovariance
-      Color: 255; 25; 0
-      Covariance:
-        Orientation:
-          Alpha: 0.5
-          Color: 255; 255; 127
-          Color Style: Unique
-          Frame: Local
-          Offset: 1
-          Scale: 1
-          Value: true
-        Position:
-          Alpha: 0.30000001192092896
-          Color: 204; 51; 204
-          Scale: 1
-          Value: true
-        Value: true
-      Enabled: true
-      Head Length: 0.30000001192092896
-      Head Radius: 0.10000000149011612
-      Name: PoseWithCovariance
-      Shaft Length: 1
-      Shaft Radius: 0.05000000074505806
-      Shape: Arrow
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        Filter size: 10
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /robot_0/initialpose
-      Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -498,7 +350,7 @@ Visualization Manager:
       Value: true
     - Alpha: 0.699999988079071
       Class: rviz_default_plugins/Map
-      Color Scheme: map
+      Color Scheme: costmap
       Draw Behind: false
       Enabled: true
       Name: Map
@@ -558,18 +410,6 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /robot_0/local_plan
       Value: true
-    - Class: rviz_default_plugins/MarkerArray
-      Enabled: true
-      Name: MarkerArray
-      Namespaces:
-        {}
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /robot_0/marker
-      Value: true
     - Angle Tolerance: 0.10000000149011612
       Class: rviz_default_plugins/Odometry
       Covariance:
@@ -587,7 +427,7 @@ Visualization Manager:
           Scale: 1
           Value: true
         Value: true
-      Enabled: true
+      Enabled: false
       Keep: 100
       Name: Odometry
       Position Tolerance: 0.10000000149011612
@@ -608,7 +448,7 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /robot_0/odom
-      Value: true
+      Value: false
     - Alpha: 1
       Buffer Length: 1
       Class: rviz_default_plugins/Path
@@ -711,25 +551,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 6.467259883880615
+      Distance: 23.344146728515625
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 2.562116861343384
-        Y: 2.670619487762451
-        Z: -0.2551121115684509
+        X: 3.0223286151885986
+        Y: 3.881471872329712
+        Z: 0.01910727098584175
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.570398211479187
+      Pitch: 1.0197967290878296
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.253555774688721
+      Yaw: 4.538557529449463
     Saved: ~
 Window Geometry:
   Displays:
