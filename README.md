@@ -86,9 +86,9 @@ DDS and performance tuning scripts are in `src/scripts/`:
 
 ## Project Roadmap
 
-[.] 2D Stage simulation with 20 robots + Nav2 local nav
-[] MAPF with conflict-based search on hexagonal grid
-[] Formation control (leader-follower with PD controllers)
-[] Fault tolerance and communication loss handling
-[] LLM reasoning agent integration (fleet-level task allocation)
-[] Transition to Gazebo Harmonic for 3D simulation
+- [x] 2D Stage simulation with 20 robots + Nav2 local nav
+- [ ] MAPF with conflict-based search on hexagonal grid
+- [ ] Formation control (leader-follower with PD controllers)
+- [ ] Fault tolerance and communication loss handling
+- [ ] LLM reasoning agent integration (fleet-level task allocation)
+- [ ] Transition to Gazebo Harmonic for 3D simulation
