@@ -36,6 +36,24 @@ ros2 launch iros_llm_swarm_bringup swarm_warehouse.launch.py
 ros2 launch iros_llm_swarm_bringup swarm_warehouse.launch.py num_robots:=5
 ```
 
+### Simple tests
+
+You can play around with swarm a little:
+
+You can send everyone to the same point by following command:
+```bash
+ros2 run iros_llm_swarm_local_nav test_local_planne --num 20 --goal-x <replace> --goal-y <replace>
+```
+
+Or send everyone to their own random point within a radius:
+```bash
+ros2 run iros_llm_swarm_local_nav test_local_planne --num 20 --radius <replace>
+```
+
+> *notes:* num - determines the number of robots that will receive the command
+
+> *Behaviour explanation:* They will all approach the obstacle and stop, since the local planner is unable to handle obstacles; it will simply get upset at the wall and that's it
+
 ## Packages
 
 ### `iros_llm_swarm_bringup`
