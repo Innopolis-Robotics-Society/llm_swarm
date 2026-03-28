@@ -2,20 +2,21 @@ from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
     IncludeLaunchDescription,
+    LogInfo,
     TimerAction,
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-import os
 
 
 # Порядок запуска:
 #
-#  t=0s   Stage симулятор
+#  t=0s   Stage симулятор + RViz
 #  t=1s   Nav2 (map_server + controller_server на каждого робота)
-#  t=8s   mapf_planner  ← ждём пока map_server поднимется и опубликует /map
+#  t=10s  mapf_planner  ← ждём пока map_server поднимется и опубликует /map
+#  t=12s  path_followers ← ждём mapf_planner
 #
 # После запуска отправляй цели:
 #   ros2 topic pub --once /swarm_goals std_msgs/msg/String \
@@ -71,8 +72,8 @@ def generate_launch_description():
         launch_arguments=[('num_robots', num_robots)],
     )
 
-    # ------------------------------------------------- PBS planner (t=8s)
-    # Ждём 8 секунд чтобы map_server успел опубликовать /map
+    # ------------------------------------------------- PBS planner (t=10s)
+    # Ждём 10 секунд чтобы map_server успел опубликовать /map
     # с QoS transient_local — mapf_planner получит карту сразу при подписке.
     mapf_planner = Node(
         package='iros_llm_swarm_mapf',
@@ -97,20 +98,7 @@ def generate_launch_description():
         output='log',
     )
 
-    path_followers = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            PathJoinSubstitution([
-                FindPackageShare('iros_llm_swarm_mapf'),
-                'launch', 'path_followers.launch.py',
-            ])
-        ]),
-        launch_arguments=[
-            ('num_robots',   num_robots),
-            ('use_sim_time', use_sim_time),
-        ],
-    )
-
-    # ----------------------------------------- path followers (t=10s)
+    # ----------------------------------------- path followers (t=12s)
     path_followers = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             PathJoinSubstitution([
@@ -134,9 +122,8 @@ def generate_launch_description():
 
         # запуск по порядку
         stage_sim,
-        TimerAction(period=1.0, actions=[local_nav2]),   # ждём Stage
-        TimerAction(period=8.0,  actions=[mapf_planner]),  # ждём map_server
-        TimerAction(period=10.0, actions=[path_followers]), # ждём mapf_planner
-        TimerAction(period=9.0, actions=[path_followers]), # ждём mapf_planner
+        TimerAction(period=1.0,  actions=[LogInfo(msg='Starting Nav2...'), local_nav2]),
+        TimerAction(period=10.0, actions=[LogInfo(msg='Starting MAPF planner...'), mapf_planner]),
+        TimerAction(period=12.0, actions=[LogInfo(msg='Starting path followers...'), path_followers]),
         rviz,
     ])
