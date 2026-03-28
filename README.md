@@ -54,6 +54,20 @@ ros2 run iros_llm_swarm_local_nav test_local_planne --num 20 --radius <replace>
 
 > *Behaviour explanation:* They will all approach the obstacle and stop, since the local planner is unable to handle obstacles; it will simply get upset at the wall and that's it
 
+### MAPF tests
+
+Launch the full MAPF stack first:
+```bash
+ros2 launch iros_llm_swarm_bringup swarm_mapf.launch.py
+```
+
+Then send goals via the `/swarm/set_goals` service:
+```bash
+ros2 run iros_llm_swarm_mapf test_send_goals --goal-x 15.0 --goal-y 15.0
+ros2 run iros_llm_swarm_mapf test_send_goals --random --radius 5.0
+ros2 run iros_llm_swarm_mapf test_send_goals --json-file goals.json
+```
+
 ## Packages
 
 ### `iros_llm_swarm_bringup`
@@ -85,6 +99,18 @@ Robots are launched with staggered timers (0.3 s interval) to avoid startup race
 
 Custom Nav2 costmap layer plugin. Provides `ResettingObstacleLayer` — a drop-in replacement for `nav2_costmap_2d::ObstacleLayer` that resets its internal grid every cycle before marking. Fixes ghost obstacle trails caused by cells between LiDAR rays never being cleared via raytracing.
 
+### `iros_llm_swarm_mapf`
+
+Footprint-aware PBS (Priority-Based Search) MAPF planner. Accepts goals via `/swarm/set_goals` service (SetGoals), reads start positions from odometry and footprints from Nav2. Plans conflict-free time-indexed paths on a downsampled grid (0.2m/cell) with per-agent inflated maps and distance-based reservation tables. Path followers execute paths with temporal synchronization via Nav2 `follow_path` action.
+
+### `iros_llm_swarm_formation`
+
+Leader-follower formation control with PD controllers (Kp=1.2, Kd=0.3, 20 Hz). Pre-defined formations (wedge, line, diamond) in `formations.yaml`. Runtime create/disband via `/formation/set` and `/formation/disband` services.
+
+### `iros_llm_swarm_interfaces`
+
+Custom ROS 2 messages and services: FormationConfig, SetFormation, DisbandFormation, SetGoals.
+
 ### `iros_llm_swarm_simulation`
 
 Gazebo Harmonic (full 3D) simulation package - prepared for later development stages. Contains URDF/Xacro robot descriptions and an SDF world.
@@ -109,8 +135,13 @@ DDS and performance tuning scripts are in `src/scripts/`:
 ## Project Roadmap
 
 - [x] 2D Stage simulation with 20 robots + Nav2 local nav
-- [ ] MAPF with conflict-based search on hexagonal grid
-- [ ] Formation control (leader-follower with PD controllers)
+- [x] MAPF with footprint-aware PBS planner + service API
+- [x] Formation control (leader-follower with PD controllers)
+- [ ] MAPF improvements
+  - [ ] Formation-aware MAPF (plan formations as single entities with compound footprints)
+  - [ ] Schedule-based replanning (re-plan when robots fall behind)
+  - [ ] 8-connected grid movement (diagonal paths)
+  - [ ] Orientation-aware PBS for complex polygon footprints
 - [ ] Fault tolerance and communication loss handling
 - [ ] LLM reasoning agent integration (fleet-level task allocation)
 - [ ] Transition to Gazebo Harmonic for 3D simulation
