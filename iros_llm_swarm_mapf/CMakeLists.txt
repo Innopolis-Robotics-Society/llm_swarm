@@ -74,4 +74,11 @@ install(DIRECTORY launch config
   OPTIONAL
 )
 
+# Python-скрипты (тесты / утилиты)
+install(PROGRAMS
+  iros_llm_swarm_mapf/test_send_goals.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME test_send_goals
+)
+
 ament_package()
