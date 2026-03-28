@@ -95,10 +95,12 @@ def main():
         res = future.result()
         if res.success:
             node.get_logger().info(
-                f"OK: {res.num_agents_planned} agents, "
+                f"{res.num_agents_planned} agents, "
                 f"{res.planning_time_ms:.1f} ms, "
                 f"{res.pbs_expansions} expansions, "
                 f"max path {res.max_path_length} steps")
+            if res.message != "OK":
+                node.get_logger().warn(res.message)
         else:
             node.get_logger().error(f"Planning failed: {res.message}")
 
