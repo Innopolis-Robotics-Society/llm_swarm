@@ -17,6 +17,10 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'use_sim_time', default_value='true'
         ),
+        DeclareLaunchArgument(
+            'default_robot_radius', default_value='0.22',
+            description='Радиус робота по умолчанию если Nav2 ещё не опубликовал footprint'
+        ),
 
         Node(
             package='iros_llm_swarm_mapf',
@@ -24,11 +28,11 @@ def generate_launch_description():
             name='mapf_planner',
             output='screen',
             parameters=[{
-                'num_robots':    LaunchConfiguration('num_robots'),
-                'time_step_sec': LaunchConfiguration('time_step_sec'),
-                'use_sim_time':  LaunchConfiguration('use_sim_time'),
-                'map_topic':     '/map',
-                'goals_topic':   '/swarm_goals',
+                'num_robots':           LaunchConfiguration('num_robots'),
+                'time_step_sec':        LaunchConfiguration('time_step_sec'),
+                'use_sim_time':         LaunchConfiguration('use_sim_time'),
+                'map_topic':            '/map',
+                'default_robot_radius': LaunchConfiguration('default_robot_radius'),
             }],
         ),
     ])

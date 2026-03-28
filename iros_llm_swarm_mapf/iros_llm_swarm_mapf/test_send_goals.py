@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """
-Тестовый скрипт: отправляет /swarm_goals для всех роботов.
+Тестовый скрипт: вызывает сервис /swarm/set_goals для планирования.
+Старты берутся из одометрии планировщиком автоматически.
 
 Использование:
-  # Отправить всех роботов в одну точку
+  # Отправить всех роботов в одну точку (раскидывает по сетке 0.4м)
   ros2 run iros_llm_swarm_mapf test_send_goals --goal-x 15.0 --goal-y 15.0
 
-  # Отправить каждого в свою случайную точку вокруг центра
+  # Отправить каждого в случайную точку вокруг центра карты
   ros2 run iros_llm_swarm_mapf test_send_goals --random --radius 5.0
 
-  # Задать свои старты/цели явно через JSON-файл
-  ros2 run iros_llm_swarm_mapf test_send_goals --json-file /path/to/goals.json
+  # Задать цели из JSON-файла: {"goals": [{"id": 0, "gx": ..., "gy": ...}, ...]}
+  ros2 run iros_llm_swarm_mapf test_send_goals --json-file goals.json
 """
 
 import argparse
@@ -21,50 +22,45 @@ import sys
 
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import String
-
-# Стартовые позиции роботов из warehouse.world
-DEFAULT_STARTS = [
-    (2.0, 2.0), (3.5, 2.0), (2.0, 3.5), (3.5, 3.5),
-    (2.0, 5.0), (3.5, 5.0), (2.0, 6.5), (3.5, 6.5),
-    (2.0, 8.0), (3.5, 8.0),
-    (26.0, 22.0), (27.5, 22.0), (26.0, 23.5), (27.5, 23.5),
-    (26.0, 25.0), (27.5, 25.0), (26.0, 26.5), (27.5, 26.5),
-    (26.0, 28.0), (27.5, 28.0),
-]
+from geometry_msgs.msg import Point
+from iros_llm_swarm_interfaces.srv import SetGoals
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Send swarm goals to mapf_planner')
-    parser.add_argument('--num',      type=int,   default=20)
-    parser.add_argument('--goal-x',   type=float, default=None)
-    parser.add_argument('--goal-y',   type=float, default=None)
-    parser.add_argument('--random',   action='store_true')
-    parser.add_argument('--radius',   type=float, default=5.0)
-    parser.add_argument('--json-file', type=str,  default=None)
+    parser = argparse.ArgumentParser(description='Send swarm goals via /swarm/set_goals service')
+    parser.add_argument('--num',       type=int,   default=20)
+    parser.add_argument('--goal-x',    type=float, default=None)
+    parser.add_argument('--goal-y',    type=float, default=None)
+    parser.add_argument('--random',    action='store_true')
+    parser.add_argument('--radius',    type=float, default=5.0)
+    parser.add_argument('--json-file', type=str,   default=None)
     args = parser.parse_args()
 
     rclpy.init()
     node = Node('test_send_goals')
-    pub  = node.create_publisher(String, '/swarm_goals', 10)
+    client = node.create_client(SetGoals, '/swarm/set_goals')
 
-    # Даём время на установку соединения
-    import time; time.sleep(0.5)
+    if not client.wait_for_service(timeout_sec=10.0):
+        node.get_logger().error('Service /swarm/set_goals not available')
+        node.destroy_node()
+        rclpy.shutdown()
+        sys.exit(1)
 
-    goals = []
+    req = SetGoals.Request()
 
     if args.json_file:
         with open(args.json_file) as f:
             payload = json.load(f)
-        goals = payload['goals']
+        for entry in payload['goals']:
+            req.robot_ids.append(int(entry['id']))
+            req.goals.append(Point(x=float(entry['gx']), y=float(entry['gy']), z=0.0))
 
     else:
-        starts = DEFAULT_STARTS[:args.num]
-        for i, (sx, sy) in enumerate(starts):
+        for i in range(args.num):
             if args.random:
                 ang = random.uniform(0.0, 2 * math.pi)
-                r   = args.radius * math.sqrt(random.random())
-                # Берём центр карты как базу для случайных целей
+                r = args.radius * math.sqrt(random.random())
+                # Центр карты как база для случайных целей
                 cx, cy = 15.0, 15.0
                 gx = cx + r * math.cos(ang)
                 gy = cy + r * math.sin(ang)
@@ -84,18 +80,28 @@ def main():
                 print("Укажи --goal-x/--goal-y или --random")
                 sys.exit(1)
 
-            goals.append({'id': i, 'sx': sx, 'sy': sy, 'gx': gx, 'gy': gy})
+            req.robot_ids.append(i)
+            req.goals.append(Point(x=gx, y=gy, z=0.0))
 
-    payload_str = json.dumps({'goals': goals}, indent=2)
-    print("Отправляю в /swarm_goals:")
-    print(payload_str)
+    node.get_logger().info(
+        f"Calling /swarm/set_goals for {len(req.robot_ids)} robots...")
 
-    msg = String()
-    msg.data = payload_str
-    pub.publish(msg)
+    future = client.call_async(req)
+    rclpy.spin_until_future_complete(node, future, timeout_sec=60.0)
 
-    # Даём время на доставку сообщения
-    time.sleep(0.3)
+    if future.result() is None:
+        node.get_logger().error('Service call timed out or failed')
+    else:
+        res = future.result()
+        if res.success:
+            node.get_logger().info(
+                f"OK: {res.num_agents_planned} agents, "
+                f"{res.planning_time_ms:.1f} ms, "
+                f"{res.pbs_expansions} expansions, "
+                f"max path {res.max_path_length} steps")
+        else:
+            node.get_logger().error(f"Planning failed: {res.message}")
+
     node.destroy_node()
     rclpy.shutdown()
 
