@@ -19,6 +19,7 @@ find_package(nav_msgs      REQUIRED)
 find_package(nav2_msgs     REQUIRED)
 find_package(std_msgs      REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(iros_llm_swarm_interfaces REQUIRED)
 
 # -------------------------------------------------------------------------
 # mapf_planner_node  (PBS планировщик)
@@ -33,8 +34,8 @@ target_include_directories(mapf_planner_node PUBLIC
 ament_target_dependencies(mapf_planner_node
   rclcpp
   nav_msgs
-  std_msgs
   geometry_msgs
+  iros_llm_swarm_interfaces
 )
 
 # -------------------------------------------------------------------------
