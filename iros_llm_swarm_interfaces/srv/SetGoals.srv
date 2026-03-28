@@ -1,0 +1,10 @@
+uint32[] robot_ids              # которых роботов планировать
+geometry_msgs/Point[] goals     # целевые позиции в map frame; длина == robot_ids
+---
+bool success
+string message                  # статус или ошибка
+float64 planning_time_ms
+uint32 num_agents_planned
+uint32 pbs_expansions
+uint32 max_path_length
+uint32[] path_lengths           # длины путей, параллельно robot_ids
