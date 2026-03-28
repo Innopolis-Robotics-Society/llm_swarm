@@ -75,7 +75,7 @@ local_costmap:
         observation_persistence: 0.0  # 0 = препятствия живут только до следующего скана
         clearing: true
         marking: true
-        plugin: "nav2_costmap_2d::ObstacleLayer"
+        plugin: "iros_llm_swarm_costmap_plugins/ResettingObstacleLayer"
         enabled: true
         observation_sources: base_scan
         base_scan:

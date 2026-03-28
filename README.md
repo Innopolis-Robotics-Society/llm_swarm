@@ -81,6 +81,10 @@ Robots are launched with staggered timers (0.3 s interval) to avoid startup race
 
 > **Note:** AMCL is currently disabled - localization uses a static `map to odom` transform. This is intentional for the current development stage; dynamic localization with 20 robots causes drift due to cross-robot laser interference.
 
+### `iros_llm_swarm_costmap_plugins`
+
+Custom Nav2 costmap layer plugin. Provides `ResettingObstacleLayer` — a drop-in replacement for `nav2_costmap_2d::ObstacleLayer` that resets its internal grid every cycle before marking. Fixes ghost obstacle trails caused by cells between LiDAR rays never being cleared via raytracing.
+
 ### `iros_llm_swarm_simulation`
 
 Gazebo Harmonic (full 3D) simulation package - prepared for later development stages. Contains URDF/Xacro robot descriptions and an SDF world.
