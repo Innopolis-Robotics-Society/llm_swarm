@@ -17,6 +17,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/FormationConfig.msg"
   "srv/SetFormation.srv"
   "srv/DisbandFormation.srv"
+  "srv/SetGoals.srv"
   DEPENDENCIES std_msgs geometry_msgs
 )
 

@@ -6,28 +6,25 @@
 #include "rclcpp/rclcpp.hpp"
 
 #include "nav_msgs/msg/occupancy_grid.hpp"
+#include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
-#include "std_msgs/msg/string.hpp"
+#include "geometry_msgs/msg/polygon_stamped.hpp"
 
 // Наш solver (header-only)
 #include "iros_llm_swarm_mapf/pbs_solver.hpp"
 
+// Сервис планирования
+#include "iros_llm_swarm_interfaces/srv/set_goals.hpp"
+
 // ---------------------------------------------------------------------------
-// Формат запроса на планирование.
+// Планировщик принимает сервис /swarm/set_goals с robot_ids и целями.
+// Стартовые позиции берутся из одометрии (/robot_N/odom).
+// Футпринты берутся из Nav2 (/robot_N/local_costmap/published_footprint).
 //
-// Публикуй в топик /swarm_goals сообщение типа std_msgs/String в JSON:
-//
-//   {
-//     "goals": [
-//       {"id": 0, "sx": 2.0, "sy": 2.0, "gx": 15.0, "gy": 15.0},
-//       {"id": 1, "sx": 3.5, "sy": 2.0, "gx": 20.0, "gy": 10.0},
-//       ...
-//     ]
-//   }
-//
-// sx/sy — стартовая позиция в метрах (map-фрейм).
-// gx/gy — целевая позиция в метрах (map-фрейм).
+// Сервис возвращает:
+//   success, message, planning_time_ms, num_agents_planned,
+//   pbs_expansions, max_path_length, path_lengths[]
 //
 // После успешного планирования нода публикует пути в топики:
 //   /robot_0/mapf_path, /robot_1/mapf_path, ...  (nav_msgs/Path)
@@ -38,61 +35,6 @@
 // Path follower должен добраться до waypoint[k] и подождать
 // до stamp[k] перед движением к waypoint[k+1].
 // ---------------------------------------------------------------------------
-
-// ---------------------------------------------------------------------------
-// Простой JSON-парсер (без внешних зависимостей)
-// ---------------------------------------------------------------------------
-
-struct GoalEntry {
-  int    id = 0;
-  double sx = 0, sy = 0;  // start в метрах
-  double gx = 0, gy = 0;  // goal  в метрах
-};
-
-// Возвращает false если парсинг не удался.
-// Ожидаем строго формат описанный выше.
-static bool parse_goals_json(const std::string& json,
-                              std::vector<GoalEntry>& out) {
-  out.clear();
-  // Ищем массив "goals": [...]
-  const auto arr_start = json.find('[');
-  const auto arr_end   = json.rfind(']');
-  if (arr_start == std::string::npos || arr_end == std::string::npos) return false;
-
-  std::string arr = json.substr(arr_start + 1, arr_end - arr_start - 1);
-
-  // Разбиваем по объектам { ... }
-  size_t pos = 0;
-  while (pos < arr.size()) {
-    const auto ob = arr.find('{', pos);
-    const auto oe = arr.find('}', ob);
-    if (ob == std::string::npos || oe == std::string::npos) break;
-
-    const std::string obj = arr.substr(ob + 1, oe - ob - 1);
-
-    auto get_val = [&](const std::string& key) -> double {
-      const std::string search = "\"" + key + "\"";
-      auto kp = obj.find(search);
-      if (kp == std::string::npos) return 0.0;
-      auto colon = obj.find(':', kp);
-      if (colon == std::string::npos) return 0.0;
-      size_t vstart = colon + 1;
-      while (vstart < obj.size() && (obj[vstart] == ' ' || obj[vstart] == '\t')) ++vstart;
-      return std::stod(obj.substr(vstart));
-    };
-
-    GoalEntry e;
-    e.id = static_cast<int>(get_val("id"));
-    e.sx = get_val("sx");
-    e.sy = get_val("sy");
-    e.gx = get_val("gx");
-    e.gy = get_val("gy");
-    out.push_back(e);
-
-    pos = oe + 1;
-  }
-  return !out.empty();
-}
 
 // ---------------------------------------------------------------------------
 // Конвертация координат
@@ -128,18 +70,27 @@ class MapfPlannerNode : public rclcpp::Node {
       : Node("mapf_planner"),
         solver_(HeuristicType::Manhattan) {
 
+    using SetGoals = iros_llm_swarm_interfaces::srv::SetGoals;
+
     // Параметры
-    declare_parameter("num_robots",     20);
-    declare_parameter("time_step_sec",  0.1);
-    declare_parameter("map_topic",      std::string("/map"));
-    declare_parameter("goals_topic",    std::string("/swarm_goals"));
+    declare_parameter("num_robots",          20);
+    declare_parameter("time_step_sec",       0.1);
+    declare_parameter("map_topic",           std::string("/map"));
     // PBS планирует на грубой сетке. 0.2м/клетку -> 150x150 вместо 600x600.
     // Увеличь если медленно, уменьши для точности.
-    declare_parameter("pbs_resolution", 0.2);
+    declare_parameter("pbs_resolution",      0.2);
+    // Радиус по умолчанию если от Nav2 ещё не пришёл footprint
+    declare_parameter("default_robot_radius", 0.22);
+    // Дополнительный запас поверх footprint radius для PBS.
+    // Nav2 inflation_radius (0.55м) — это мягкий градиент, не жёсткий барьер.
+    // Здесь достаточно небольшого буфера для безопасности.
+    declare_parameter("inflation_radius", 0.2);
 
-    num_robots_     = get_parameter("num_robots").as_int();
-    time_step_sec_  = get_parameter("time_step_sec").as_double();
-    pbs_resolution_ = get_parameter("pbs_resolution").as_double();
+    num_robots_           = get_parameter("num_robots").as_int();
+    time_step_sec_        = get_parameter("time_step_sec").as_double();
+    pbs_resolution_       = get_parameter("pbs_resolution").as_double();
+    default_robot_radius_ = get_parameter("default_robot_radius").as_double();
+    inflation_radius_     = get_parameter("inflation_radius").as_double();
 
     // Подписка на карту.
     // map_server публикует с transient_local — подписчик обязан использовать
@@ -154,11 +105,46 @@ class MapfPlannerNode : public rclcpp::Node {
           on_map(msg);
         });
 
-    // Подписка на цели
-    goals_sub_ = create_subscription<std_msgs::msg::String>(
-        get_parameter("goals_topic").as_string(), 10,
-        [this](const std_msgs::msg::String::SharedPtr msg) {
-          on_goals(msg->data);
+    // Подписки на одометрию и футпринты для каждого робота
+    current_positions_.resize(num_robots_, {0.0, 0.0});
+    have_odom_.resize(num_robots_, false);
+    footprint_radii_.resize(num_robots_, 0.0);
+
+    odom_subs_.resize(num_robots_);
+    footprint_subs_.resize(num_robots_);
+    for (int i = 0; i < num_robots_; ++i) {
+      // Одометрия — стартовые позиции
+      const std::string odom_topic = "/robot_" + std::to_string(i) + "/odom";
+      odom_subs_[i] = create_subscription<nav_msgs::msg::Odometry>(
+          odom_topic, 10,
+          [this, i](const nav_msgs::msg::Odometry::SharedPtr msg) {
+            current_positions_[i] = {msg->pose.pose.position.x,
+                                      msg->pose.pose.position.y};
+            have_odom_[i] = true;
+          });
+
+      // Футпринт от Nav2 costmap — всегда PolygonStamped (даже для robot_radius).
+      // Вычисляем bounding radius: max(hypot(p.x, p.y)) по вершинам.
+      const std::string fp_topic =
+          "/robot_" + std::to_string(i) + "/local_costmap/published_footprint";
+      footprint_subs_[i] = create_subscription<geometry_msgs::msg::PolygonStamped>(
+          fp_topic, rclcpp::QoS(1).transient_local(),
+          [this, i](const geometry_msgs::msg::PolygonStamped::SharedPtr msg) {
+            double max_r = 0.0;
+            for (const auto& p : msg->polygon.points) {
+              const double r = std::hypot(p.x, p.y);
+              if (r > max_r) max_r = r;
+            }
+            footprint_radii_[i] = max_r;
+          });
+    }
+
+    // Сервис планирования
+    plan_srv_ = create_service<SetGoals>(
+        "/swarm/set_goals",
+        [this](const SetGoals::Request::SharedPtr req,
+               SetGoals::Response::SharedPtr res) {
+          on_set_goals(req, res);
         });
 
     // Паблишеры путей — по одному на каждого робота
@@ -169,8 +155,10 @@ class MapfPlannerNode : public rclcpp::Node {
     }
 
     RCLCPP_INFO(get_logger(),
-        "mapf_planner ready: %d robots, time_step=%.3f s",
-        num_robots_, time_step_sec_);
+        "mapf_planner ready: %d robots, time_step=%.3f s, "
+        "default_radius=%.3f m, inflation=%.3f m (effective=%.3f m)",
+        num_robots_, time_step_sec_, default_robot_radius_,
+        inflation_radius_, default_robot_radius_ + inflation_radius_);
   }
 
  private:
@@ -215,82 +203,167 @@ class MapfPlannerNode : public rclcpp::Node {
   }
 
   // ------------------------------------------------------------------
-  // Обработка запроса на планирование
+  // Обработка сервиса /swarm/set_goals
   // ------------------------------------------------------------------
-  void on_goals(const std::string& json) {
+  void on_set_goals(
+      const iros_llm_swarm_interfaces::srv::SetGoals::Request::SharedPtr req,
+      iros_llm_swarm_interfaces::srv::SetGoals::Response::SharedPtr res) {
+
+    // Валидация запроса
     if (!map_ready_) {
-      RCLCPP_WARN(get_logger(), "Map not ready yet, ignoring goals");
+      res->success = false;
+      res->message = "Map not ready yet";
+      return;
+    }
+    if (req->robot_ids.size() != req->goals.size()) {
+      res->success = false;
+      res->message = "robot_ids and goals must have the same length";
+      return;
+    }
+    if (req->robot_ids.empty()) {
+      res->success = false;
+      res->message = "robot_ids is empty";
       return;
     }
 
-    // Парсим JSON
-    std::vector<GoalEntry> entries;
-    if (!parse_goals_json(json, entries)) {
-      RCLCPP_ERROR(get_logger(), "Failed to parse goals JSON:\n%s", json.c_str());
-      return;
-    }
-
-    RCLCPP_INFO(get_logger(), "Planning for %zu agents...", entries.size());
-
-    // Конвертируем в Agent (grid-координаты)
+    // Собираем агентов из одометрии, футпринтов и целей запроса.
+    // Агенты с заблокированной целью включаются как стационарные препятствия
+    // (start = goal = текущая позиция), чтобы PBS обходил их.
     std::vector<Agent> agents;
-    agents.reserve(entries.size());
+    agents.reserve(req->robot_ids.size());
+    std::vector<uint32_t> skipped_ids;  // агенты с заблокированными целями
 
-    for (const auto& e : entries) {
-      Agent a;
-      a.id    = static_cast<size_t>(e.id);
-      a.start = world_to_cell(e.sx, e.sy, map_origin_x_, map_origin_y_,
-                               map_resolution_, grid_.rows);
-      a.goal  = world_to_cell(e.gx, e.gy, map_origin_x_, map_origin_y_,
-                               map_resolution_, grid_.rows);
+    // Кэш inflated-карт для валидации start/goal
+    // (те же карты будут пересозданы в solver, но нам нужны уже здесь)
+    std::unordered_map<float, GridMap> inflated_cache;
 
-      // Проверяем что клетки не в стене
-      if (grid_.blocked[a.start.row * grid_.cols + a.start.col]) {
-        RCLCPP_WARN(get_logger(),
-            "Agent %zu: start (%.2f, %.2f) -> cell (%zu, %zu) is blocked! Skipping.",
-            a.id, e.sx, e.sy, a.start.row, a.start.col);
+    for (size_t i = 0; i < req->robot_ids.size(); ++i) {
+      const uint32_t rid = req->robot_ids[i];
+      if (rid >= static_cast<uint32_t>(num_robots_)) {
+        RCLCPP_WARN(get_logger(), "Robot id %u >= num_robots %d, skip", rid, num_robots_);
         continue;
       }
-      if (grid_.blocked[a.goal.row * grid_.cols + a.goal.col]) {
-        RCLCPP_WARN(get_logger(),
-            "Agent %zu: goal (%.2f, %.2f) -> cell (%zu, %zu) is blocked! Skipping.",
-            a.id, e.gx, e.gy, a.goal.row, a.goal.col);
+      if (!have_odom_[rid]) {
+        RCLCPP_WARN(get_logger(), "No odom for robot_%u yet, skip", rid);
         continue;
+      }
+
+      Agent a;
+      a.id = rid;
+
+      // Старт из одометрии
+      const auto& [sx, sy] = current_positions_[rid];
+      a.start = world_to_cell(sx, sy, map_origin_x_, map_origin_y_,
+                               map_resolution_, grid_.rows);
+
+      // Цель из запроса
+      a.goal = world_to_cell(req->goals[i].x, req->goals[i].y,
+                              map_origin_x_, map_origin_y_,
+                              map_resolution_, grid_.rows);
+
+      // Футпринт: из Nav2 если пришёл, иначе default.
+      // Прибавляем inflation_radius для безопасного запаса.
+      const double base_radius = footprint_radii_[rid] > 0.0
+          ? footprint_radii_[rid]
+          : default_robot_radius_;
+      a.footprint_radius = static_cast<float>(base_radius + inflation_radius_);
+
+      // Получаем inflated-карту для данного радиуса
+      const float fr = a.footprint_radius;
+      if (fr > 0.0f && inflated_cache.find(fr) == inflated_cache.end()) {
+        inflated_cache[fr] = grid_.inflate(fr, static_cast<float>(map_resolution_));
+      }
+      const auto& check_grid = (fr > 0.0f) ? inflated_cache[fr] : grid_;
+
+      // Проверяем start на inflated-карте
+      if (check_grid.blocked[a.start.row * check_grid.cols + a.start.col]) {
+        RCLCPP_WARN(get_logger(),
+            "Agent %u: start (%.2f, %.2f) -> cell (%zu, %zu) is blocked on inflated map (r=%.3fm)! Skipping entirely.",
+            rid, sx, sy, a.start.row, a.start.col, fr);
+        continue;
+      }
+
+      // Проверяем goal на inflated-карте.
+      // Если цель заблокирована — агент включается как стационарное препятствие
+      // (start = goal = текущая позиция), чтобы другие роботы его обходили.
+      if (check_grid.blocked[a.goal.row * check_grid.cols + a.goal.col]) {
+        RCLCPP_WARN(get_logger(),
+            "Agent %u: goal (%.2f, %.2f) -> cell (%zu, %zu) is blocked on inflated map (r=%.3fm). "
+            "Including as stationary obstacle.",
+            rid, req->goals[i].x, req->goals[i].y, a.goal.row, a.goal.col, fr);
+        a.goal = a.start;  // стоит на месте
+        skipped_ids.push_back(rid);
       }
 
       agents.push_back(a);
     }
 
     if (agents.empty()) {
-      RCLCPP_ERROR(get_logger(), "No valid agents after filtering");
+      res->success = false;
+      res->message = "No valid agents after filtering (check odom and map)";
       return;
     }
 
-    // Запускаем PBS
+    // Планируем и публикуем пути
+    do_plan(agents, skipped_ids, res);
+  }
+
+  // ------------------------------------------------------------------
+  // Общая логика планирования и публикации
+  // ------------------------------------------------------------------
+  void do_plan(const std::vector<Agent>& agents,
+               const std::vector<uint32_t>& skipped_ids,
+               iros_llm_swarm_interfaces::srv::SetGoals::Response::SharedPtr res) {
+    RCLCPP_INFO(get_logger(), "Planning for %zu agents...", agents.size());
+
     solver_.set_map(&grid_);
 
     std::vector<Path> paths;
+    SolveStats stats;
     const auto t0 = now();
 
-    const bool ok = solver_.solve(agents, paths);
+    const bool ok = solver_.solve(agents, paths,
+                                   static_cast<float>(map_resolution_), &stats);
 
-    const double elapsed_ms =
-        (now() - t0).nanoseconds() / 1.0e6;
+    const double elapsed_ms = (now() - t0).nanoseconds() / 1.0e6;
+
+    // Заполняем ответ
+    res->planning_time_ms    = elapsed_ms;
+    res->num_agents_planned  = static_cast<uint32_t>(agents.size());
+    res->pbs_expansions      = static_cast<uint32_t>(stats.expansions);
+    res->max_path_length     = static_cast<uint32_t>(stats.max_path_length);
 
     if (!ok) {
-      RCLCPP_ERROR(get_logger(), "PBS failed to find solution (%.1f ms)", elapsed_ms);
+      res->success = false;
+      res->message = "PBS failed (" +
+                     std::to_string(elapsed_ms) + " ms, " +
+                     std::to_string(stats.expansions) + " expansions)";
+      RCLCPP_ERROR(get_logger(), "%s", res->message.c_str());
+      // Диагностика: логируем каждого агента для отладки
+      for (const auto& a : agents) {
+        RCLCPP_WARN(get_logger(),
+            "  agent %zu: start=(%zu,%zu) goal=(%zu,%zu) radius=%.3fm",
+            a.id, a.start.row, a.start.col, a.goal.row, a.goal.col,
+            a.footprint_radius);
+      }
       return;
     }
 
     RCLCPP_INFO(get_logger(),
-        "PBS solved in %.1f ms, publishing %zu paths", elapsed_ms, paths.size());
+        "PBS solved in %.1f ms (%zu expansions), publishing %zu paths",
+        elapsed_ms, stats.expansions, paths.size());
 
-    // Публикуем пути
+    // Публикуем пути и собираем длины для ответа
     const rclcpp::Time base_time = now();
+    res->path_lengths.resize(agents.size());
+
     for (size_t i = 0; i < agents.size(); ++i) {
       const size_t robot_id = agents[i].id;
+      res->path_lengths[i] = static_cast<uint32_t>(paths[i].size());
+
       if (robot_id >= static_cast<size_t>(num_robots_)) {
-        RCLCPP_WARN(get_logger(), "Robot id %zu >= num_robots %d, skip", robot_id, num_robots_);
+        RCLCPP_WARN(get_logger(), "Robot id %zu >= num_robots %d, skip publish",
+                    robot_id, num_robots_);
         continue;
       }
 
@@ -299,6 +372,14 @@ class MapfPlannerNode : public rclcpp::Node {
 
       RCLCPP_DEBUG(get_logger(),
           "Published path for robot_%zu: %zu waypoints", robot_id, paths[i].size());
+    }
+
+    res->success = true;
+    if (skipped_ids.empty()) {
+      res->message = "OK";
+    } else {
+      res->message = "OK, skipped agents (blocked goal, stationary):";
+      for (uint32_t id : skipped_ids) res->message += " " + std::to_string(id);
     }
   }
 
@@ -358,7 +439,9 @@ class MapfPlannerNode : public rclcpp::Node {
   // ------------------------------------------------------------------
   int    num_robots_;
   double time_step_sec_;
-  double pbs_resolution_  = 0.2;
+  double pbs_resolution_       = 0.2;
+  double default_robot_radius_ = 0.22;
+  double inflation_radius_     = 0.55;
 
   bool   map_ready_       = false;
   double map_origin_x_    = 0.0;
@@ -368,8 +451,20 @@ class MapfPlannerNode : public rclcpp::Node {
   GridMap    grid_;
   PBSSolver  solver_;
 
+  // Кэш одометрии и футпринтов для каждого робота
+  std::vector<std::pair<double, double>> current_positions_;
+  std::vector<bool>   have_odom_;
+  std::vector<double> footprint_radii_;   // bounding radius из Nav2 polygon
+
+  // Подписки
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
-  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr        goals_sub_;
+  std::vector<rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr> odom_subs_;
+  std::vector<rclcpp::Subscription<geometry_msgs::msg::PolygonStamped>::SharedPtr> footprint_subs_;
+
+  // Сервис
+  rclcpp::Service<iros_llm_swarm_interfaces::srv::SetGoals>::SharedPtr plan_srv_;
+
+  // Паблишеры путей
   std::vector<rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr> path_pubs_;
 };
 

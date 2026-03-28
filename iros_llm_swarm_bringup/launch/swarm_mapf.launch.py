@@ -18,9 +18,8 @@ from launch_ros.substitutions import FindPackageShare
 #  t=10s  mapf_planner  ← ждём пока map_server поднимется и опубликует /map
 #  t=12s  path_followers ← ждём mapf_planner
 #
-# После запуска отправляй цели:
-#   ros2 topic pub --once /swarm_goals std_msgs/msg/String \
-#     "data: '{\"goals\": [{\"id\":0,\"sx\":2.0,\"sy\":2.0,\"gx\":15.0,\"gy\":15.0}, ...]}'"
+# После запуска отправляй цели через сервис:
+#   ros2 run iros_llm_swarm_mapf test_send_goals --goal-x 15.0 --goal-y 15.0
 
 
 def generate_launch_description():
@@ -81,11 +80,11 @@ def generate_launch_description():
         name='mapf_planner',
         output='screen',
         parameters=[{
-            'num_robots':    num_robots,
-            'time_step_sec': time_step_sec,
-            'use_sim_time':  use_sim_time,
-            'map_topic':     '/map',
-            'goals_topic':   '/swarm_goals',
+            'num_robots':           num_robots,
+            'time_step_sec':        time_step_sec,
+            'use_sim_time':         use_sim_time,
+            'map_topic':            '/map',
+            'default_robot_radius': 0.22,
         }],
     )
 
