@@ -1,0 +1,10 @@
+# Request: define or update a formation at runtime
+string   formation_id   # unique name; if exists, overwrites
+string   leader_ns      # e.g. "robot_0"
+string[] follower_ns    # e.g. ["robot_1", "robot_2"]
+float64[] offsets_x     # parallel arrays — offset in leader body frame
+float64[] offsets_y     # length must equal follower_ns length
+bool      activate      # true = activate immediately after setting
+---
+bool   success
+string message
