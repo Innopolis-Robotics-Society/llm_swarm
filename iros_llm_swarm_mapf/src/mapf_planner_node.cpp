@@ -81,11 +81,16 @@ class MapfPlannerNode : public rclcpp::Node {
     declare_parameter("pbs_resolution",      0.2);
     // Радиус по умолчанию если от Nav2 ещё не пришёл footprint
     declare_parameter("default_robot_radius", 0.22);
+    // Дополнительный запас поверх footprint radius для PBS.
+    // Nav2 inflation_radius (0.55м) — это мягкий градиент, не жёсткий барьер.
+    // Здесь достаточно небольшого буфера для безопасности.
+    declare_parameter("inflation_radius", 0.2);
 
     num_robots_           = get_parameter("num_robots").as_int();
     time_step_sec_        = get_parameter("time_step_sec").as_double();
     pbs_resolution_       = get_parameter("pbs_resolution").as_double();
     default_robot_radius_ = get_parameter("default_robot_radius").as_double();
+    inflation_radius_     = get_parameter("inflation_radius").as_double();
 
     // Подписка на карту.
     // map_server публикует с transient_local — подписчик обязан использовать
@@ -150,8 +155,10 @@ class MapfPlannerNode : public rclcpp::Node {
     }
 
     RCLCPP_INFO(get_logger(),
-        "mapf_planner ready: %d robots, time_step=%.3f s, default_radius=%.3f m",
-        num_robots_, time_step_sec_, default_robot_radius_);
+        "mapf_planner ready: %d robots, time_step=%.3f s, "
+        "default_radius=%.3f m, inflation=%.3f m (effective=%.3f m)",
+        num_robots_, time_step_sec_, default_robot_radius_,
+        inflation_radius_, default_robot_radius_ + inflation_radius_);
   }
 
  private:
@@ -219,9 +226,16 @@ class MapfPlannerNode : public rclcpp::Node {
       return;
     }
 
-    // Собираем агентов из одометрии, футпринтов и целей запроса
+    // Собираем агентов из одометрии, футпринтов и целей запроса.
+    // Агенты с заблокированной целью включаются как стационарные препятствия
+    // (start = goal = текущая позиция), чтобы PBS обходил их.
     std::vector<Agent> agents;
     agents.reserve(req->robot_ids.size());
+    std::vector<uint32_t> skipped_ids;  // агенты с заблокированными целями
+
+    // Кэш inflated-карт для валидации start/goal
+    // (те же карты будут пересозданы в solver, но нам нужны уже здесь)
+    std::unordered_map<float, GridMap> inflated_cache;
 
     for (size_t i = 0; i < req->robot_ids.size(); ++i) {
       const uint32_t rid = req->robot_ids[i];
@@ -247,23 +261,38 @@ class MapfPlannerNode : public rclcpp::Node {
                               map_origin_x_, map_origin_y_,
                               map_resolution_, grid_.rows);
 
-      // Футпринт: из Nav2 если пришёл, иначе default
-      a.footprint_radius = footprint_radii_[rid] > 0.0
-          ? static_cast<float>(footprint_radii_[rid])
-          : static_cast<float>(default_robot_radius_);
+      // Футпринт: из Nav2 если пришёл, иначе default.
+      // Прибавляем inflation_radius для безопасного запаса.
+      const double base_radius = footprint_radii_[rid] > 0.0
+          ? footprint_radii_[rid]
+          : default_robot_radius_;
+      a.footprint_radius = static_cast<float>(base_radius + inflation_radius_);
 
-      // Проверяем что клетки не в стене
-      if (grid_.blocked[a.start.row * grid_.cols + a.start.col]) {
+      // Получаем inflated-карту для данного радиуса
+      const float fr = a.footprint_radius;
+      if (fr > 0.0f && inflated_cache.find(fr) == inflated_cache.end()) {
+        inflated_cache[fr] = grid_.inflate(fr, static_cast<float>(map_resolution_));
+      }
+      const auto& check_grid = (fr > 0.0f) ? inflated_cache[fr] : grid_;
+
+      // Проверяем start на inflated-карте
+      if (check_grid.blocked[a.start.row * check_grid.cols + a.start.col]) {
         RCLCPP_WARN(get_logger(),
-            "Agent %u: start (%.2f, %.2f) -> cell (%zu, %zu) is blocked! Skipping.",
-            rid, sx, sy, a.start.row, a.start.col);
+            "Agent %u: start (%.2f, %.2f) -> cell (%zu, %zu) is blocked on inflated map (r=%.3fm)! Skipping entirely.",
+            rid, sx, sy, a.start.row, a.start.col, fr);
         continue;
       }
-      if (grid_.blocked[a.goal.row * grid_.cols + a.goal.col]) {
+
+      // Проверяем goal на inflated-карте.
+      // Если цель заблокирована — агент включается как стационарное препятствие
+      // (start = goal = текущая позиция), чтобы другие роботы его обходили.
+      if (check_grid.blocked[a.goal.row * check_grid.cols + a.goal.col]) {
         RCLCPP_WARN(get_logger(),
-            "Agent %u: goal (%.2f, %.2f) -> cell (%zu, %zu) is blocked! Skipping.",
-            rid, req->goals[i].x, req->goals[i].y, a.goal.row, a.goal.col);
-        continue;
+            "Agent %u: goal (%.2f, %.2f) -> cell (%zu, %zu) is blocked on inflated map (r=%.3fm). "
+            "Including as stationary obstacle.",
+            rid, req->goals[i].x, req->goals[i].y, a.goal.row, a.goal.col, fr);
+        a.goal = a.start;  // стоит на месте
+        skipped_ids.push_back(rid);
       }
 
       agents.push_back(a);
@@ -276,13 +305,14 @@ class MapfPlannerNode : public rclcpp::Node {
     }
 
     // Планируем и публикуем пути
-    do_plan(agents, res);
+    do_plan(agents, skipped_ids, res);
   }
 
   // ------------------------------------------------------------------
   // Общая логика планирования и публикации
   // ------------------------------------------------------------------
   void do_plan(const std::vector<Agent>& agents,
+               const std::vector<uint32_t>& skipped_ids,
                iros_llm_swarm_interfaces::srv::SetGoals::Response::SharedPtr res) {
     RCLCPP_INFO(get_logger(), "Planning for %zu agents...", agents.size());
 
@@ -305,10 +335,17 @@ class MapfPlannerNode : public rclcpp::Node {
 
     if (!ok) {
       res->success = false;
-      res->message = "PBS failed to find solution (" +
+      res->message = "PBS failed (" +
                      std::to_string(elapsed_ms) + " ms, " +
                      std::to_string(stats.expansions) + " expansions)";
       RCLCPP_ERROR(get_logger(), "%s", res->message.c_str());
+      // Диагностика: логируем каждого агента для отладки
+      for (const auto& a : agents) {
+        RCLCPP_WARN(get_logger(),
+            "  agent %zu: start=(%zu,%zu) goal=(%zu,%zu) radius=%.3fm",
+            a.id, a.start.row, a.start.col, a.goal.row, a.goal.col,
+            a.footprint_radius);
+      }
       return;
     }
 
@@ -338,7 +375,12 @@ class MapfPlannerNode : public rclcpp::Node {
     }
 
     res->success = true;
-    res->message = "OK";
+    if (skipped_ids.empty()) {
+      res->message = "OK";
+    } else {
+      res->message = "OK, skipped agents (blocked goal, stationary):";
+      for (uint32_t id : skipped_ids) res->message += " " + std::to_string(id);
+    }
   }
 
   // ------------------------------------------------------------------
@@ -399,6 +441,7 @@ class MapfPlannerNode : public rclcpp::Node {
   double time_step_sec_;
   double pbs_resolution_       = 0.2;
   double default_robot_radius_ = 0.22;
+  double inflation_radius_     = 0.55;
 
   bool   map_ready_       = false;
   double map_origin_x_    = 0.0;

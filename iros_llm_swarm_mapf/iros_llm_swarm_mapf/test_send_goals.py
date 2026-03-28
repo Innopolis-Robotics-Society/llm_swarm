@@ -66,9 +66,9 @@ def main():
                 gy = cy + r * math.sin(ang)
             elif args.goal_x is not None and args.goal_y is not None:
                 # Раскидываем роботов по сетке вокруг целевой точки.
-                # PBS требует уникальных финальных клеток.
-                # Шаг 0.4м = 2 клетки PBS-сетки (resolution=0.2м).
-                step = 0.4
+                # Шаг должен быть > 2 * (robot_radius + inflation_radius),
+                # т.е. > 2 * (0.22 + 0.2) = 0.84м, иначе PBS не найдёт решение.
+                step = 1.0
                 cols_n = math.ceil(math.sqrt(args.num))
                 row_i = i // cols_n
                 col_i = i % cols_n
