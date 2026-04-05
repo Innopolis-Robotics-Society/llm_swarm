@@ -336,12 +336,13 @@ class MapfPlannerNode : public rclcpp::Node {
 
     std::vector<Path> paths;
     SolveStats stats;
-    const auto t0 = now();
+    const auto t0 = std::chrono::steady_clock::now();
 
     const bool ok = solver_.solve(agents, paths,
                                    static_cast<float>(map_resolution_), &stats);
 
-    const double elapsed_ms = (now() - t0).nanoseconds() / 1.0e6;
+    const double elapsed_ms = std::chrono::duration<double, std::milli>(
+        std::chrono::steady_clock::now() - t0).count();
 
     // Заполняем ответ
     res->planning_time_ms    = elapsed_ms;
