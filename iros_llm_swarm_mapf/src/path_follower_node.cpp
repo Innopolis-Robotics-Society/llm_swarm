@@ -56,7 +56,13 @@ class PathFollowerNode : public rclcpp::Node
   // ------------------------------------------------------------------
   void on_path(const nav_msgs::msg::Path::SharedPtr msg)
   {
-    if (msg->poses.empty()) return;
+    // Empty path = cancel signal (replanner stops deviated robots)
+    if (msg->poses.empty()) {
+      RCLCPP_INFO(get_logger(), "[%s] received empty path — cancelling", ns_.c_str());
+      cancel_current();
+      pending_path_.reset();
+      return;
+    }
 
     RCLCPP_INFO(get_logger(), "[%s] new path: %zu waypoints",
                 ns_.c_str(), msg->poses.size());
