@@ -229,6 +229,9 @@ class MapfPlannerNode : public rclcpp::Node {
       const iros_llm_swarm_interfaces::srv::SetGoals::Request::SharedPtr req,
       iros_llm_swarm_interfaces::srv::SetGoals::Response::SharedPtr res) {
 
+    // New external request cancels any active schedule monitoring
+    stop_monitoring();
+
     // Валидация запроса
     if (!map_ready_) {
       res->success = false;
@@ -252,6 +255,8 @@ class MapfPlannerNode : public rclcpp::Node {
     std::vector<Agent> agents;
     agents.reserve(req->robot_ids.size());
     std::vector<uint32_t> skipped_ids;  // агенты с заблокированными целями
+    std::vector<uint32_t> plan_robot_ids;
+    std::vector<geometry_msgs::msg::Point> plan_world_goals;
 
     // Кэш inflated-карт для валидации start/goal
     // (те же карты будут пересозданы в solver, но нам нужны уже здесь)
@@ -316,6 +321,8 @@ class MapfPlannerNode : public rclcpp::Node {
       }
 
       agents.push_back(a);
+      plan_robot_ids.push_back(rid);
+      plan_world_goals.push_back(req->goals[i]);
     }
 
     if (agents.empty()) {
@@ -325,13 +332,15 @@ class MapfPlannerNode : public rclcpp::Node {
     }
 
     // Планируем и публикуем пути
-    do_plan(agents, skipped_ids, res);
+    do_plan(agents, plan_robot_ids, plan_world_goals, skipped_ids, res);
   }
 
   // ------------------------------------------------------------------
   // Общая логика планирования и публикации
   // ------------------------------------------------------------------
   void do_plan(const std::vector<Agent>& agents,
+               const std::vector<uint32_t>& plan_robot_ids,
+               const std::vector<geometry_msgs::msg::Point>& plan_world_goals,
                const std::vector<uint32_t>& skipped_ids,
                iros_llm_swarm_interfaces::srv::SetGoals::Response::SharedPtr res) {
     RCLCPP_INFO(get_logger(), "Planning for %zu agents...", agents.size());
@@ -373,9 +382,12 @@ class MapfPlannerNode : public rclcpp::Node {
         "PBS solved in %.1f ms (%zu expansions), publishing %zu paths",
         elapsed_ms, stats.expansions, paths.size());
 
+    last_planning_ms_ = elapsed_ms;
+
     // Публикуем пути и собираем длины для ответа
     const rclcpp::Time base_time = now();
     res->path_lengths.resize(agents.size());
+    std::vector<nav_msgs::msg::Path> ros_paths(agents.size());
 
     for (size_t i = 0; i < agents.size(); ++i) {
       const size_t robot_id = agents[i].id;
@@ -387,12 +399,19 @@ class MapfPlannerNode : public rclcpp::Node {
         continue;
       }
 
-      auto ros_path = make_ros_path(paths[i], base_time);
-      path_pubs_[robot_id]->publish(ros_path);
+      ros_paths[i] = make_ros_path(paths[i], base_time);
+      path_pubs_[robot_id]->publish(ros_paths[i]);
 
       RCLCPP_DEBUG(get_logger(),
           "Published path for robot_%zu: %zu waypoints", robot_id, paths[i].size());
     }
+
+    // Store active plan for schedule monitoring
+    active_plan_.robot_ids  = plan_robot_ids;
+    active_plan_.goals      = plan_world_goals;
+    active_plan_.ros_paths  = std::move(ros_paths);
+    has_active_plan_ = true;
+    start_monitoring();
 
     res->success = true;
     if (skipped_ids.empty()) {
