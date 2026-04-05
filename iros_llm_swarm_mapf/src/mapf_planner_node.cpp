@@ -153,9 +153,20 @@ class MapfPlannerNode : public rclcpp::Node {
       footprint_subs_[i] = create_subscription<geometry_msgs::msg::PolygonStamped>(
           fp_topic, rclcpp::QoS(1),
           [this, i](const geometry_msgs::msg::PolygonStamped::SharedPtr msg) {
+            if (msg->polygon.points.empty()) return;
+            // published_footprint is in the map frame, so compute centroid
+            // first, then measure bounding radius relative to it.
+            double cx = 0.0, cy = 0.0;
+            for (const auto& p : msg->polygon.points) {
+              cx += p.x;
+              cy += p.y;
+            }
+            const double n = static_cast<double>(msg->polygon.points.size());
+            cx /= n;
+            cy /= n;
             double max_r = 0.0;
             for (const auto& p : msg->polygon.points) {
-              const double r = std::hypot(p.x, p.y);
+              const double r = std::hypot(p.x - cx, p.y - cy);
               if (r > max_r) max_r = r;
             }
             footprint_radii_[i] = max_r;
