@@ -105,6 +105,13 @@ class MapfPlannerNode : public rclcpp::Node {
     replan_cooldown_factor_ = get_parameter("replan_cooldown_factor").as_double();
     replan_predict_sec_   = get_parameter("replan_predict_sec").as_double();
     replan_stop_mode_     = get_parameter("replan_stop_mode").as_string();
+    if (replan_stop_mode_ != "none" && replan_stop_mode_ != "deviated" &&
+        replan_stop_mode_ != "all") {
+      RCLCPP_ERROR(get_logger(),
+          "Invalid replan_stop_mode '%s', must be 'none', 'deviated', or 'all'. "
+          "Falling back to 'deviated'.", replan_stop_mode_.c_str());
+      replan_stop_mode_ = "deviated";
+    }
     goal_reached_m_       = get_parameter("goal_reached_m").as_double();
 
     // Подписка на карту.
@@ -474,6 +481,272 @@ class MapfPlannerNode : public rclcpp::Node {
   }
 
   // ------------------------------------------------------------------
+  // Schedule monitoring
+  // ------------------------------------------------------------------
+
+  void start_monitoring()
+  {
+    if (monitor_timer_) return;          // already running
+    if (replan_check_hz_ <= 0.0) return; // monitoring disabled
+
+    RCLCPP_INFO(get_logger(),
+        "Starting schedule monitor at %.1f Hz "
+        "(threshold=%.2fm, cooldown=%.1fs, factor=%.1f, predict=%.2fs, stop=%s)",
+        replan_check_hz_, replan_threshold_m_, replan_cooldown_sec_,
+        replan_cooldown_factor_, replan_predict_sec_, replan_stop_mode_.c_str());
+
+    monitor_timer_ = create_wall_timer(
+        std::chrono::duration<double>(1.0 / replan_check_hz_),
+        [this]() { check_schedule(); });
+  }
+
+  void stop_monitoring()
+  {
+    if (monitor_timer_) {
+      monitor_timer_->cancel();
+      monitor_timer_.reset();
+    }
+    has_active_plan_ = false;
+  }
+
+  // Interpolate expected position from a timestamped path at a given time
+  static std::pair<double, double> expected_position(
+      const nav_msgs::msg::Path& path, const rclcpp::Time& t)
+  {
+    if (path.poses.empty()) return {0.0, 0.0};
+
+    const auto& first = path.poses.front();
+    const auto& last  = path.poses.back();
+
+    if (t <= rclcpp::Time(first.header.stamp))
+      return {first.pose.position.x, first.pose.position.y};
+
+    if (t >= rclcpp::Time(last.header.stamp))
+      return {last.pose.position.x, last.pose.position.y};
+
+    for (size_t i = 0; i + 1 < path.poses.size(); ++i) {
+      const rclcpp::Time t0(path.poses[i].header.stamp);
+      const rclcpp::Time t1(path.poses[i + 1].header.stamp);
+      if (t >= t0 && t < t1) {
+        const double dt = (t1 - t0).seconds();
+        const double alpha = dt > 1e-9 ? (t - t0).seconds() / dt : 0.0;
+        const double x = path.poses[i].pose.position.x * (1.0 - alpha)
+                       + path.poses[i + 1].pose.position.x * alpha;
+        const double y = path.poses[i].pose.position.y * (1.0 - alpha)
+                       + path.poses[i + 1].pose.position.y * alpha;
+        return {x, y};
+      }
+    }
+
+    return {last.pose.position.x, last.pose.position.y};
+  }
+
+  void check_schedule()
+  {
+    if (!has_active_plan_ || !map_ready_) return;
+
+    const rclcpp::Time now_t = now();
+
+    // Adaptive cooldown: max(configured, factor * last_planning_time)
+    const double adaptive_cd = replan_cooldown_factor_ * last_planning_ms_ / 1000.0;
+    const double eff_cooldown = std::max(replan_cooldown_sec_, adaptive_cd);
+    if (last_replan_time_.nanoseconds() > 0 &&
+        (now_t - last_replan_time_).seconds() < eff_cooldown) {
+      return;
+    }
+
+    std::vector<uint32_t> deviated_ids;
+    size_t active_count = 0;
+
+    for (size_t i = 0; i < active_plan_.robot_ids.size(); ++i) {
+      const uint32_t rid = active_plan_.robot_ids[i];
+      if (rid >= static_cast<uint32_t>(num_robots_) || !have_odom_[rid]) continue;
+
+      const auto& [ax, ay] = current_positions_[rid];
+      const double gx = active_plan_.goals[i].x;
+      const double gy = active_plan_.goals[i].y;
+
+      // Robot reached goal?
+      if (std::hypot(ax - gx, ay - gy) < goal_reached_m_) continue;
+
+      ++active_count;
+
+      // Check deviation from schedule
+      if (i >= active_plan_.ros_paths.size()) continue;
+      const auto& path = active_plan_.ros_paths[i];
+      if (path.poses.empty()) continue;
+
+      const auto [ex, ey] = expected_position(path, now_t);
+      const double deviation = std::hypot(ax - ex, ay - ey);
+
+      if (deviation > replan_threshold_m_) {
+        RCLCPP_WARN(get_logger(),
+            "robot_%u deviates %.2fm from schedule (threshold %.2fm)",
+            rid, deviation, replan_threshold_m_);
+        deviated_ids.push_back(rid);
+      }
+    }
+
+    if (active_count == 0) {
+      RCLCPP_INFO(get_logger(), "All robots reached goals, stopping schedule monitor");
+      stop_monitoring();
+      return;
+    }
+
+    if (!deviated_ids.empty()) {
+      trigger_replan(deviated_ids);
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Replanning
+  //
+  // Called when check_schedule() detects robots deviating from their
+  // PBS paths. Depending on replan_stop_mode:
+  //   "none"     — no robots are stopped; deviated use current odom,
+  //                on-schedule use predicted future positions as starts
+  //   "deviated" — only deviated robots are stopped (empty path cancel);
+  //                deviated use odom, on-schedule use prediction
+  //   "all"      — all active robots are stopped; everyone uses odom
+  //
+  // Arrived robots (within goal_reached_m) are included as stationary
+  // obstacles. Starts/goals are validated against the inflated map.
+  // After planning, new paths are published and schedule monitoring
+  // continues with the updated plan.
+  // ------------------------------------------------------------------
+
+  void trigger_replan(const std::vector<uint32_t>& deviated_ids)
+  {
+    using SetGoals = iros_llm_swarm_interfaces::srv::SetGoals;
+
+    // Effective prediction offset (adaptive: use last planning time; 0 if not measured yet)
+    const double predict_sec = (replan_predict_sec_ < 0.0)
+        ? last_planning_ms_ / 1000.0
+        : replan_predict_sec_;
+
+    const rclcpp::Time predict_time =
+        now() + rclcpp::Duration::from_seconds(predict_sec);
+
+    // Build set of deviated robot IDs for quick lookup
+    std::unordered_set<uint32_t> deviated_set(deviated_ids.begin(),
+                                               deviated_ids.end());
+
+    // Stop robots based on stop mode
+    const bool stop_deviated = (replan_stop_mode_ == "deviated" || replan_stop_mode_ == "all");
+    const bool stop_all      = (replan_stop_mode_ == "all");
+
+    size_t stopped_count = 0;
+    for (size_t i = 0; i < active_plan_.robot_ids.size(); ++i) {
+      const uint32_t rid = active_plan_.robot_ids[i];
+      if (rid >= static_cast<uint32_t>(num_robots_)) continue;
+
+      const bool is_deviated = deviated_set.count(rid) > 0;
+      if (stop_all || (stop_deviated && is_deviated)) {
+        nav_msgs::msg::Path empty;
+        empty.header.frame_id = "map";
+        empty.header.stamp = now();
+        path_pubs_[rid]->publish(empty);
+        ++stopped_count;
+      }
+    }
+
+    RCLCPP_INFO(get_logger(),
+        "Replanning: %zu deviated, %zu stopped (mode=%s), predict_offset=%.3fs",
+        deviated_ids.size(), stopped_count, replan_stop_mode_.c_str(), predict_sec);
+
+    // Build agents for replanning
+    std::vector<Agent> agents;
+    std::vector<uint32_t> plan_robot_ids;
+    std::vector<geometry_msgs::msg::Point> plan_world_goals;
+    std::vector<uint32_t> skipped_ids;
+    std::unordered_map<float, GridMap> inflated_cache;
+
+    for (size_t i = 0; i < active_plan_.robot_ids.size(); ++i) {
+      const uint32_t rid = active_plan_.robot_ids[i];
+      if (rid >= static_cast<uint32_t>(num_robots_) || !have_odom_[rid]) continue;
+
+      Agent a;
+      a.id = rid;
+
+      const auto& [ox, oy] = current_positions_[rid];
+      const double gx = active_plan_.goals[i].x;
+      const double gy = active_plan_.goals[i].y;
+      const bool is_deviated = deviated_set.count(rid) > 0;
+
+      // Decide start position
+      double sx, sy;
+      if (std::hypot(ox - gx, oy - gy) < goal_reached_m_) {
+        // Arrived: stationary obstacle at current position
+        sx = ox; sy = oy;
+        a.start = world_to_cell(sx, sy, map_origin_x_, map_origin_y_,
+                                 map_resolution_, grid_.rows);
+        a.goal = a.start;
+      } else if (is_deviated || stop_all) {
+        // Stopped or deviated: use current odom (exact or close to exact)
+        sx = ox; sy = oy;
+        a.start = world_to_cell(sx, sy, map_origin_x_, map_origin_y_,
+                                 map_resolution_, grid_.rows);
+        a.goal = world_to_cell(gx, gy, map_origin_x_, map_origin_y_,
+                                map_resolution_, grid_.rows);
+      } else {
+        // On-schedule: predict future position from plan
+        if (i < active_plan_.ros_paths.size() && !active_plan_.ros_paths[i].poses.empty()) {
+          std::tie(sx, sy) = expected_position(active_plan_.ros_paths[i], predict_time);
+        } else {
+          sx = ox; sy = oy;
+        }
+        a.start = world_to_cell(sx, sy, map_origin_x_, map_origin_y_,
+                                 map_resolution_, grid_.rows);
+        a.goal = world_to_cell(gx, gy, map_origin_x_, map_origin_y_,
+                                map_resolution_, grid_.rows);
+      }
+
+      // Footprint
+      const double base_radius = footprint_radii_[rid] > 0.0
+          ? footprint_radii_[rid] : default_robot_radius_;
+      a.footprint_radius = static_cast<float>(base_radius + inflation_radius_);
+
+      // Validate on inflated map
+      const float fr = a.footprint_radius;
+      if (fr > 0.0f && inflated_cache.find(fr) == inflated_cache.end()) {
+        inflated_cache[fr] = grid_.inflate(fr, static_cast<float>(map_resolution_));
+      }
+      const auto& check_grid = (fr > 0.0f) ? inflated_cache[fr] : grid_;
+
+      if (check_grid.blocked[a.start.row * check_grid.cols + a.start.col]) {
+        RCLCPP_WARN(get_logger(), "Replan: robot_%u start blocked, skip", rid);
+        continue;
+      }
+      if (check_grid.blocked[a.goal.row * check_grid.cols + a.goal.col]) {
+        a.goal = a.start;
+        skipped_ids.push_back(rid);
+      }
+
+      agents.push_back(a);
+      plan_robot_ids.push_back(rid);
+      plan_world_goals.push_back(active_plan_.goals[i]);
+    }
+
+    if (agents.empty()) {
+      RCLCPP_WARN(get_logger(), "Replan: no valid agents, stopping monitor");
+      stop_monitoring();
+      return;
+    }
+
+    auto res = std::make_shared<SetGoals::Response>();
+    do_plan(agents, plan_robot_ids, plan_world_goals, skipped_ids, res);
+
+    last_replan_time_ = now();
+
+    if (res->success) {
+      RCLCPP_INFO(get_logger(), "Replan OK: %s (%.1fms, %u expansions)",
+                  res->message.c_str(), res->planning_time_ms, res->pbs_expansions);
+    } else {
+      RCLCPP_WARN(get_logger(), "Replan FAILED: %s", res->message.c_str());
+    }
+  }
+
+  // ------------------------------------------------------------------
   // Поля
   // ------------------------------------------------------------------
   int    num_robots_;
@@ -528,6 +801,11 @@ class MapfPlannerNode : public rclcpp::Node {
   rclcpp::TimerBase::SharedPtr monitor_timer_;
 };
 
+// ---------------------------------------------------------------------------
+// NOTE: This node relies on single-threaded execution (rclcpp::spin).
+// The monitor timer, service callback, and odom/map subscriptions share
+// state without locks.  Switching to MultiThreadedExecutor would require
+// adding mutexes around grid_, active_plan_, current_positions_, etc.
 // ---------------------------------------------------------------------------
 int main(int argc, char** argv) {
   rclcpp::init(argc, argv);
