@@ -85,12 +85,27 @@ class MapfPlannerNode : public rclcpp::Node {
     // Nav2 inflation_radius (0.55м) — это мягкий градиент, не жёсткий барьер.
     // Здесь достаточно небольшого буфера для безопасности.
     declare_parameter("inflation_radius", 0.2);
+    // Schedule monitoring & replanning
+    declare_parameter("replan_check_hz",      2.0);
+    declare_parameter("replan_threshold_m",   1.0);
+    declare_parameter("replan_cooldown_sec",  5.0);
+    declare_parameter("replan_cooldown_factor", 3.0);
+    declare_parameter("replan_predict_sec",  -1.0);
+    declare_parameter("replan_stop_mode",     std::string("deviated"));
+    declare_parameter("goal_reached_m",       0.5);
 
     num_robots_           = get_parameter("num_robots").as_int();
     time_step_sec_        = get_parameter("time_step_sec").as_double();
     pbs_resolution_       = get_parameter("pbs_resolution").as_double();
     default_robot_radius_ = get_parameter("default_robot_radius").as_double();
     inflation_radius_     = get_parameter("inflation_radius").as_double();
+    replan_check_hz_      = get_parameter("replan_check_hz").as_double();
+    replan_threshold_m_   = get_parameter("replan_threshold_m").as_double();
+    replan_cooldown_sec_  = get_parameter("replan_cooldown_sec").as_double();
+    replan_cooldown_factor_ = get_parameter("replan_cooldown_factor").as_double();
+    replan_predict_sec_   = get_parameter("replan_predict_sec").as_double();
+    replan_stop_mode_     = get_parameter("replan_stop_mode").as_string();
+    goal_reached_m_       = get_parameter("goal_reached_m").as_double();
 
     // Подписка на карту.
     // map_server публикует с transient_local — подписчик обязан использовать
@@ -156,9 +171,14 @@ class MapfPlannerNode : public rclcpp::Node {
 
     RCLCPP_INFO(get_logger(),
         "mapf_planner ready: %d robots, time_step=%.3f s, "
-        "default_radius=%.3f m, inflation=%.3f m (effective=%.3f m)",
+        "default_radius=%.3f m, inflation=%.3f m (effective=%.3f m), "
+        "replan: %.1f Hz, threshold=%.2f m, cooldown=%.1f s (factor=%.1f), "
+        "predict=%.2f s, stop_mode=%s",
         num_robots_, time_step_sec_, default_robot_radius_,
-        inflation_radius_, default_robot_radius_ + inflation_radius_);
+        inflation_radius_, default_robot_radius_ + inflation_radius_,
+        replan_check_hz_, replan_threshold_m_, replan_cooldown_sec_,
+        replan_cooldown_factor_, replan_predict_sec_,
+        replan_stop_mode_.c_str());
   }
 
  private:
@@ -443,6 +463,15 @@ class MapfPlannerNode : public rclcpp::Node {
   double default_robot_radius_ = 0.22;
   double inflation_radius_     = 0.55;
 
+  // Replanning
+  double replan_check_hz_       = 2.0;
+  double replan_threshold_m_    = 1.0;
+  double replan_cooldown_sec_   = 5.0;
+  double replan_cooldown_factor_= 3.0;
+  double replan_predict_sec_    = -1.0;
+  std::string replan_stop_mode_ = "deviated";
+  double goal_reached_m_        = 0.5;
+
   bool   map_ready_       = false;
   double map_origin_x_    = 0.0;
   double map_origin_y_    = 0.0;
@@ -466,6 +495,18 @@ class MapfPlannerNode : public rclcpp::Node {
 
   // Паблишеры путей
   std::vector<rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr> path_pubs_;
+
+  // Schedule monitoring
+  struct ActivePlan {
+    std::vector<uint32_t>                   robot_ids;
+    std::vector<geometry_msgs::msg::Point>  goals;      // original goals (world coords)
+    std::vector<nav_msgs::msg::Path>        ros_paths;  // published paths (for schedule checks)
+  };
+  ActivePlan active_plan_;
+  bool       has_active_plan_  = false;
+  double     last_planning_ms_ = 0.0;
+  rclcpp::Time           last_replan_time_{0, 0, RCL_ROS_TIME};
+  rclcpp::TimerBase::SharedPtr monitor_timer_;
 };
 
 // ---------------------------------------------------------------------------
