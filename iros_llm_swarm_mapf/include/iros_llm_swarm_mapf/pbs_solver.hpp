@@ -68,9 +68,26 @@ using Path = std::vector<Cell>;
 // Статистика решения
 // ---------------------------------------------------------------------------
 
+enum class FailReason {
+  None,
+  RootPathFailed,    // A* failed for an agent in root (no reservations)
+  BranchExhausted,   // all branches explored, no conflict-free solution
+  MaxExpansions,      // hit MAX_EXP limit
+};
+
+struct SolveDiagnostics {
+  FailReason fail_reason = FailReason::None;
+  size_t     fail_agent = 0;        // agent index that caused root failure
+  Conflict   first_conflict{};      // first unresolved conflict
+  size_t     max_t_used = 0;
+  size_t     branches_tried = 0;
+  size_t     branches_failed = 0;
+};
+
 struct SolveStats {
   size_t expansions = 0;
   size_t max_path_length = 0;
+  SolveDiagnostics diag;
 };
 
 // ---------------------------------------------------------------------------
@@ -569,12 +586,19 @@ class PBSSolver {
     root.pg = PriorityGraph(n);
     root.paths.resize(n);
 
+    if (stats) stats->diag.max_t_used = max_t;
+
     ReservationTable empty;
     for (size_t i = 0; i < n; ++i) {
       set_agent_map(agents[i]);
       if (!low_level_.find_path(agents[i].start, agents[i].goal,
-                                 empty, radii_cells_[i], max_t, root.paths[i]))
+                                 empty, radii_cells_[i], max_t, root.paths[i])) {
+        if (stats) {
+          stats->diag.fail_reason = FailReason::RootPathFailed;
+          stats->diag.fail_agent = i;
+        }
         return false;
+      }
     }
     root.cost = cost(root.paths);
 
@@ -589,7 +613,10 @@ class PBSSolver {
 
     while (!open.empty()) {
       if (++expansions > MAX_EXP) {
-        if (stats) stats->expansions = expansions;
+        if (stats) {
+          stats->expansions = expansions;
+          stats->diag.fail_reason = FailReason::MaxExpansions;
+        }
         return false;
       }
 
@@ -608,11 +635,16 @@ class PBSSolver {
         return true;
       }
 
+      if (stats && expansions == 1) stats->diag.first_conflict = c;
+
       // ветка 1: agent1 имеет приоритет над agent2
       PBSNode ch1 = node;
       if (branch(agents, c.agent1, c.agent2, max_t, ch1)) {
         auto k = make_key(ch1);
         if (visited.insert(k).second) { ch1.cost = cost(ch1.paths); open.push(std::move(ch1)); }
+        if (stats) ++stats->diag.branches_tried;
+      } else {
+        if (stats) ++stats->diag.branches_failed;
       }
 
       // ветка 2: agent2 имеет приоритет над agent1
@@ -620,9 +652,15 @@ class PBSSolver {
       if (branch(agents, c.agent2, c.agent1, max_t, ch2)) {
         auto k = make_key(ch2);
         if (visited.insert(k).second) { ch2.cost = cost(ch2.paths); open.push(std::move(ch2)); }
+        if (stats) ++stats->diag.branches_tried;
+      } else {
+        if (stats) ++stats->diag.branches_failed;
       }
     }
-    if (stats) stats->expansions = expansions;
+    if (stats) {
+      stats->expansions = expansions;
+      stats->diag.fail_reason = FailReason::BranchExhausted;
+    }
     return false;
   }
 

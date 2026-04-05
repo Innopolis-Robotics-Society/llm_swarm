@@ -356,7 +356,36 @@ class MapfPlannerNode : public rclcpp::Node {
                      std::to_string(elapsed_ms) + " ms, " +
                      std::to_string(stats.expansions) + " expansions)";
       RCLCPP_ERROR(get_logger(), "%s", res->message.c_str());
-      // Per-agent dump at DEBUG level to avoid noise on repeated replan failures
+
+      // Diagnostics
+      const auto& d = stats.diag;
+      const char* reason_str =
+          d.fail_reason == FailReason::RootPathFailed  ? "root A* failed" :
+          d.fail_reason == FailReason::BranchExhausted ? "branches exhausted" :
+          d.fail_reason == FailReason::MaxExpansions    ? "max expansions" : "unknown";
+      RCLCPP_ERROR(get_logger(),
+          "  reason: %s, max_t=%zu, branches tried=%zu failed=%zu",
+          reason_str, d.max_t_used, d.branches_tried, d.branches_failed);
+
+      if (d.fail_reason == FailReason::RootPathFailed) {
+        const auto& fa = agents[d.fail_agent];
+        RCLCPP_ERROR(get_logger(),
+            "  root A* failed for agent %zu: start=(%zu,%zu) goal=(%zu,%zu) radius=%.3fm",
+            fa.id, fa.start.row, fa.start.col, fa.goal.row, fa.goal.col,
+            fa.footprint_radius);
+      }
+
+      if (d.first_conflict.type != ConflictType::None) {
+        const auto& fc = d.first_conflict;
+        RCLCPP_ERROR(get_logger(),
+            "  first conflict: %s between agents[%zu] and agents[%zu] at t=%zu "
+            "cells (%zu,%zu) vs (%zu,%zu)",
+            fc.type == ConflictType::Vertex ? "vertex" : "edge",
+            fc.agent1, fc.agent2, fc.time,
+            fc.cell1.row, fc.cell1.col, fc.cell2.row, fc.cell2.col);
+      }
+
+      // Per-agent dump at DEBUG level
       for (const auto& a : agents) {
         RCLCPP_DEBUG(get_logger(),
             "  agent %zu: start=(%zu,%zu) goal=(%zu,%zu) radius=%.3fm",
