@@ -293,39 +293,7 @@ class MapfPlannerNode : public rclcpp::Node {
                               map_origin_x_, map_origin_y_,
                               map_resolution_, grid_.rows);
 
-      // Футпринт: из Nav2 если пришёл, иначе default.
-      // Прибавляем inflation_radius для безопасного запаса.
-      const double base_radius = footprint_radii_[rid] > 0.0
-          ? footprint_radii_[rid]
-          : default_robot_radius_;
-      a.footprint_radius = static_cast<float>(base_radius + inflation_radius_);
-
-      // Получаем inflated-карту для данного радиуса
-      const float fr = a.footprint_radius;
-      if (fr > 0.0f && inflated_cache.find(fr) == inflated_cache.end()) {
-        inflated_cache[fr] = grid_.inflate(fr, static_cast<float>(map_resolution_));
-      }
-      const auto& check_grid = (fr > 0.0f) ? inflated_cache[fr] : grid_;
-
-      // Проверяем start на inflated-карте
-      if (check_grid.blocked[a.start.row * check_grid.cols + a.start.col]) {
-        RCLCPP_WARN(get_logger(),
-            "Agent %u: start (%.2f, %.2f) -> cell (%zu, %zu) is blocked on inflated map (r=%.3fm)! Skipping entirely.",
-            rid, sx, sy, a.start.row, a.start.col, fr);
-        continue;
-      }
-
-      // Проверяем goal на inflated-карте.
-      // Если цель заблокирована — агент включается как стационарное препятствие
-      // (start = goal = текущая позиция), чтобы другие роботы его обходили.
-      if (check_grid.blocked[a.goal.row * check_grid.cols + a.goal.col]) {
-        RCLCPP_WARN(get_logger(),
-            "Agent %u: goal (%.2f, %.2f) -> cell (%zu, %zu) is blocked on inflated map (r=%.3fm). "
-            "Including as stationary obstacle.",
-            rid, req->goals[i].x, req->goals[i].y, a.goal.row, a.goal.col, fr);
-        a.goal = a.start;  // стоит на месте
-        skipped_ids.push_back(rid);
-      }
+      if (!validate_agent(a, rid, inflated_cache, skipped_ids)) continue;
 
       agents.push_back(a);
       plan_robot_ids.push_back(rid);
@@ -478,6 +446,59 @@ class MapfPlannerNode : public rclcpp::Node {
     }
 
     return ros_path;
+  }
+
+  // ------------------------------------------------------------------
+  // Compute footprint, inflate map, validate start/goal for a single agent.
+  // Caller must set a.start and a.goal before calling.
+  //
+  // Footprint: uses Nav2-published bounding radius if available, otherwise
+  // default_robot_radius. Adds inflation_radius as a safety buffer beyond
+  // the footprint (Nav2's own inflation is a soft gradient, not a hard wall).
+  //
+  // If the goal cell is blocked on the inflated map, the agent is turned
+  // into a stationary obstacle (start = goal = current position) so that
+  // PBS routes other robots around it.
+  //
+  // Returns false if agent should be skipped entirely (start blocked).
+  // ------------------------------------------------------------------
+  bool validate_agent(Agent& a, uint32_t rid,
+                      std::unordered_map<float, GridMap>& inflated_cache,
+                      std::vector<uint32_t>& skipped_ids)
+  {
+    const double base_radius = footprint_radii_[rid] > 0.0
+        ? footprint_radii_[rid] : default_robot_radius_;
+    a.footprint_radius = static_cast<float>(base_radius + inflation_radius_);
+
+    const float fr = a.footprint_radius;
+    if (fr > 0.0f && inflated_cache.find(fr) == inflated_cache.end()) {
+      inflated_cache[fr] = grid_.inflate(fr, static_cast<float>(map_resolution_));
+    }
+    const auto& check_grid = (fr > 0.0f) ? inflated_cache[fr] : grid_;
+
+    // Convert cells back to world coords for diagnostics
+    double start_wx, start_wy, goal_wx, goal_wy;
+    cell_to_world(a.start, map_origin_x_, map_origin_y_, map_resolution_,
+                  start_wx, start_wy);
+    cell_to_world(a.goal, map_origin_x_, map_origin_y_, map_resolution_,
+                  goal_wx, goal_wy);
+
+    if (check_grid.blocked[a.start.row * check_grid.cols + a.start.col]) {
+      RCLCPP_WARN(get_logger(),
+          "Agent %u: start (%.2f, %.2f) -> cell (%zu, %zu) blocked on inflated map "
+          "(r=%.3fm), skipping entirely",
+          rid, start_wx, start_wy, a.start.row, a.start.col, fr);
+      return false;
+    }
+    if (check_grid.blocked[a.goal.row * check_grid.cols + a.goal.col]) {
+      RCLCPP_WARN(get_logger(),
+          "Agent %u: goal (%.2f, %.2f) -> cell (%zu, %zu) blocked on inflated map "
+          "(r=%.3fm), including as stationary obstacle",
+          rid, goal_wx, goal_wy, a.goal.row, a.goal.col, fr);
+      a.goal = a.start;
+      skipped_ids.push_back(rid);
+    }
+    return true;
   }
 
   // ------------------------------------------------------------------
@@ -701,26 +722,7 @@ class MapfPlannerNode : public rclcpp::Node {
                                 map_resolution_, grid_.rows);
       }
 
-      // Footprint
-      const double base_radius = footprint_radii_[rid] > 0.0
-          ? footprint_radii_[rid] : default_robot_radius_;
-      a.footprint_radius = static_cast<float>(base_radius + inflation_radius_);
-
-      // Validate on inflated map
-      const float fr = a.footprint_radius;
-      if (fr > 0.0f && inflated_cache.find(fr) == inflated_cache.end()) {
-        inflated_cache[fr] = grid_.inflate(fr, static_cast<float>(map_resolution_));
-      }
-      const auto& check_grid = (fr > 0.0f) ? inflated_cache[fr] : grid_;
-
-      if (check_grid.blocked[a.start.row * check_grid.cols + a.start.col]) {
-        RCLCPP_WARN(get_logger(), "Replan: robot_%u start blocked, skip", rid);
-        continue;
-      }
-      if (check_grid.blocked[a.goal.row * check_grid.cols + a.goal.col]) {
-        a.goal = a.start;
-        skipped_ids.push_back(rid);
-      }
+      if (!validate_agent(a, rid, inflated_cache, skipped_ids)) continue;
 
       agents.push_back(a);
       plan_robot_ids.push_back(rid);
@@ -802,7 +804,7 @@ class MapfPlannerNode : public rclcpp::Node {
 };
 
 // ---------------------------------------------------------------------------
-// NOTE: This node relies on single-threaded execution (rclcpp::spin).
+// WARNING: This node relies on single-threaded execution (rclcpp::spin).
 // The monitor timer, service callback, and odom/map subscriptions share
 // state without locks.  Switching to MultiThreadedExecutor would require
 // adding mutexes around grid_, active_plan_, current_positions_, etc.
