@@ -529,8 +529,11 @@ class MapfPlannerNode : public rclcpp::Node {
         replan_check_hz_, replan_threshold_m_, replan_cooldown_sec_,
         replan_cooldown_factor_, replan_predict_sec_, replan_stop_mode_.c_str());
 
-    monitor_timer_ = create_wall_timer(
-        std::chrono::duration<double>(1.0 / replan_check_hz_),
+    // Use the node's clock (sim-time-aware) so checks stay synchronized
+    // with path timestamps that also use sim time.
+    monitor_timer_ = rclcpp::create_timer(
+        this, get_clock(),
+        rclcpp::Duration::from_seconds(1.0 / replan_check_hz_),
         [this]() { check_schedule(); });
   }
 
