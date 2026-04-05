@@ -151,7 +151,7 @@ class MapfPlannerNode : public rclcpp::Node {
       const std::string fp_topic =
           "/robot_" + std::to_string(i) + "/local_costmap/published_footprint";
       footprint_subs_[i] = create_subscription<geometry_msgs::msg::PolygonStamped>(
-          fp_topic, rclcpp::QoS(1).transient_local(),
+          fp_topic, rclcpp::QoS(1),
           [this, i](const geometry_msgs::msg::PolygonStamped::SharedPtr msg) {
             double max_r = 0.0;
             for (const auto& p : msg->polygon.points) {
@@ -319,7 +319,7 @@ class MapfPlannerNode : public rclcpp::Node {
                const std::vector<geometry_msgs::msg::Point>& plan_world_goals,
                const std::vector<uint32_t>& skipped_ids,
                iros_llm_swarm_interfaces::srv::SetGoals::Response::SharedPtr res) {
-    RCLCPP_INFO(get_logger(), "Planning for %zu agents...", agents.size());
+    RCLCPP_DEBUG(get_logger(), "Planning for %zu agents...", agents.size());
 
     solver_.set_map(&grid_);
 
@@ -344,9 +344,9 @@ class MapfPlannerNode : public rclcpp::Node {
                      std::to_string(elapsed_ms) + " ms, " +
                      std::to_string(stats.expansions) + " expansions)";
       RCLCPP_ERROR(get_logger(), "%s", res->message.c_str());
-      // Диагностика: логируем каждого агента для отладки
+      // Per-agent dump at DEBUG level to avoid noise on repeated replan failures
       for (const auto& a : agents) {
-        RCLCPP_WARN(get_logger(),
+        RCLCPP_DEBUG(get_logger(),
             "  agent %zu: start=(%zu,%zu) goal=(%zu,%zu) radius=%.3fm",
             a.id, a.start.row, a.start.col, a.goal.row, a.goal.col,
             a.footprint_radius);
@@ -602,9 +602,9 @@ class MapfPlannerNode : public rclcpp::Node {
       const double deviation = std::hypot(ax - ex, ay - ey);
 
       if (deviation > replan_threshold_m_) {
-        RCLCPP_WARN(get_logger(),
-            "robot_%u deviates %.2fm from schedule (threshold %.2fm)",
-            rid, deviation, replan_threshold_m_);
+        RCLCPP_DEBUG(get_logger(),
+            "robot_%u: deviation=%.2fm (at %.2f,%.2f expected %.2f,%.2f)",
+            rid, deviation, ax, ay, ex, ey);
         deviated_ids.push_back(rid);
       }
     }
@@ -616,6 +616,14 @@ class MapfPlannerNode : public rclcpp::Node {
     }
 
     if (!deviated_ids.empty()) {
+      std::string ids_str;
+      for (uint32_t id : deviated_ids) {
+        if (!ids_str.empty()) ids_str += ", ";
+        ids_str += std::to_string(id);
+      }
+      RCLCPP_WARN(get_logger(),
+          "Schedule deviation: %zu/%zu active robots off-plan [%s], triggering replan",
+          deviated_ids.size(), active_count, ids_str.c_str());
       trigger_replan(deviated_ids);
     }
   }

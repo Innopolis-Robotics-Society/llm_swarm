@@ -79,6 +79,7 @@ def generate_launch_description():
         executable='mapf_planner_node',
         name='mapf_planner',
         output='screen',
+        arguments=['--ros-args', '--log-level', 'mapf_planner:=DEBUG'],
         parameters=[{
             'num_robots':           num_robots,
             'time_step_sec':        time_step_sec,
@@ -92,7 +93,7 @@ def generate_launch_description():
     rviz = Node(
         package='rviz2',
         executable='rviz2',
-        arguments=['-d', rviz_cfg],
+        arguments=['-d', rviz_cfg, '--ros-args', '--log-level', 'WARN'],
         parameters=[{'use_sim_time': use_sim_time}],
         output='log',
     )
