@@ -113,7 +113,7 @@ def _setup_robots(context, *args, **kwargs):
                 output='log',
                 parameters=[configured],
                 remappings=tf_remaps,
-                #arguments=['--ros-args', '--log-level', 'DEBUG'],
+                arguments=['--ros-args', '--log-level', 'WARN'],
             ),
 
             Node(
@@ -123,6 +123,7 @@ def _setup_robots(context, *args, **kwargs):
                 output='log',
                 parameters=[configured],
                 remappings=tf_remaps,
+                arguments=['--ros-args', '--log-level', 'WARN'],
             ),
 
             Node(
@@ -136,6 +137,7 @@ def _setup_robots(context, *args, **kwargs):
                     'node_names': ['controller_server', 'behavior_server'],
                     #'node_names': ['amcl', 'controller_server', 'behavior_server'],
                 }],
+                arguments=['--ros-args', '--log-level', 'WARN'],
             ),
         ])
 
@@ -189,6 +191,7 @@ def generate_launch_description():
         name='map_server',
         output='log',
         parameters=[{'yaml_filename': map_file, 'use_sim_time': True}],
+        arguments=['--ros-args', '--log-level', 'WARN'],
     ))
     ld.add_action(Node(
         package='nav2_lifecycle_manager',
@@ -196,6 +199,7 @@ def generate_launch_description():
         name='lifecycle_manager_map',
         output='log',
         parameters=[{'autostart': True, 'use_sim_time': True, 'node_names': ['map_server']}],
+        arguments=['--ros-args', '--log-level', 'WARN'],
     ))
 
     # роботы создаются через OpaqueFunction чтобы можно было прочитать LaunchConfiguration
