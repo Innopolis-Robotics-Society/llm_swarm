@@ -26,16 +26,17 @@ struct Agent {
   size_t id = 0;   // порядковый номер (0..N-1)
   Cell start;
   Cell goal;
-  float footprint_radius = 0.0f;  // радиус в метрах (0 = точечный агент)
+  float footprint_radius = 0.0f;  // physical robot radius in metres (hard boundary)
+  float inflation = 0.0f;         // soft zone width beyond footprint in metres
 };
 
 struct GridMap {
   size_t rows = 0;
   size_t cols = 0;
-  std::vector<uint8_t> blocked;  // 1 = стена, 0 = свободно
+  std::vector<uint8_t> blocked;  // 1 = hard blocked (wall or within footprint radius)
+  std::vector<int>     wall_cost; // gradient penalty near walls (0 = free, >0 = penalty)
 
-  // Возвращает новую карту, в которой все клетки в пределах
-  // ceil(radius_m / resolution_m) от любой стены тоже заблокированы.
+  // Binary inflation: all cells within radius are blocked.
   GridMap inflate(float radius_m, float resolution_m) const {
     if (radius_m <= 0.0f) return *this;
     const int r = static_cast<int>(std::ceil(radius_m / resolution_m));
@@ -54,6 +55,48 @@ struct GridMap {
             if (nr < 0 || nr >= static_cast<int>(rows)) continue;
             if (nc < 0 || nc >= static_cast<int>(cols)) continue;
             out.blocked[nr * cols + nc] = 1;
+          }
+        }
+      }
+    }
+    return out;
+  }
+
+  // Gradient inflation: cells within hard_r are blocked, cells between
+  // hard_r and soft_r get a gradient penalty (max_penalty at hard boundary,
+  // 0 at soft boundary).
+  GridMap inflate_gradient(float hard_m, float soft_m, float resolution_m,
+                           int max_penalty = 10) const {
+    if (soft_m <= 0.0f) return *this;
+    const float hard_r = hard_m / resolution_m;
+    const float soft_r = soft_m / resolution_m;
+    const int scan_r = static_cast<int>(std::ceil(soft_r));
+
+    GridMap out;
+    out.rows = rows;
+    out.cols = cols;
+    out.blocked.assign(rows * cols, 0);
+    out.wall_cost.assign(rows * cols, 0);
+
+    for (size_t row = 0; row < rows; ++row) {
+      for (size_t col = 0; col < cols; ++col) {
+        if (blocked[row * cols + col] == 0) continue;
+        for (int dr = -scan_r; dr <= scan_r; ++dr) {
+          for (int dc = -scan_r; dc <= scan_r; ++dc) {
+            const float dist = std::sqrt(static_cast<float>(dr * dr + dc * dc));
+            if (dist > soft_r) continue;
+            const int nr = static_cast<int>(row) + dr;
+            const int nc = static_cast<int>(col) + dc;
+            if (nr < 0 || nr >= static_cast<int>(rows)) continue;
+            if (nc < 0 || nc >= static_cast<int>(cols)) continue;
+            const size_t idx = nr * cols + nc;
+            if (dist <= hard_r) {
+              out.blocked[idx] = 1;
+            } else {
+              const float ratio = (soft_r - dist) / (soft_r - hard_r);
+              const int cost = static_cast<int>(ratio * max_penalty);
+              out.wall_cost[idx] = std::max(out.wall_cost[idx], cost);
+            }
           }
         }
       }
