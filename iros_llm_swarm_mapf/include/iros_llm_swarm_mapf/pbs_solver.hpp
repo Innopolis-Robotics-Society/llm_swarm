@@ -166,46 +166,70 @@ class ReservationTable {
   }
 
   // Зарезервировать путь агента с данным радиусом (в клетках).
+  // footprint_cells: physical (hard) radius in cells.
+  // soft_radius_cells: footprint + inflation in cells (outer penalty boundary).
   // skip_until: don't reserve entries for t < skip_until (grace period
   // for agents whose starts overlap — lets them separate first).
   void reserve_path(const Path& path,
-                    size_t hold_goal_until_time, float radius_cells,
+                    size_t hold_goal_until_time,
+                    float footprint_cells, float soft_radius_cells,
                     size_t skip_until = 0) {
     if (path.empty()) return;
     for (size_t t = skip_until; t < path.size(); ++t) {
-      entries_[t].push_back({path[t], radius_cells});
+      entries_[t].push_back({path[t], footprint_cells, soft_radius_cells});
     }
     // Удержание цели: агент остаётся на месте после прибытия
     if (path.size() <= hold_goal_until_time) {
-      held_goals_.push_back({path.back(), radius_cells,
+      held_goals_.push_back({path.back(), footprint_cells, soft_radius_cells,
                              std::max(path.size(), skip_until)});
     }
   }
 
-  // Можно ли агенту с радиусом my_radius_cells встать в клетку (row,col) в момент t?
-  bool is_vertex_blocked(size_t row, size_t col, size_t time,
-                          float my_radius_cells) const {
+  // Gradient penalty for placing an agent at (row,col) at time t.
+  // Returns: 0 = free, >0 = soft penalty, -1 = FORBIDDEN (physical overlap).
+  // my_footprint/my_soft: agent's own radii in cells.
+  // max_penalty: cost at the hard boundary edge (linearly decreasing to 0
+  // at the soft boundary).
+  int vertex_penalty(size_t row, size_t col, size_t time,
+                     float my_footprint, float my_soft,
+                     int max_penalty = 10) const {
+    int total = 0;
+    auto check = [&](const Cell& c, float fp, float sr) {
+      const float dr = static_cast<float>(row) - static_cast<float>(c.row);
+      const float dc = static_cast<float>(col) - static_cast<float>(c.col);
+      const float dist_sq = dr * dr + dc * dc;
+      const float hard = my_footprint + fp;
+      const float soft = my_soft + sr;
+      if (hard > 0.0f && dist_sq < hard * hard) { total = -1; return; }
+      if (soft > 0.0f && dist_sq < soft * soft) {
+        const float dist = std::sqrt(dist_sq);
+        const float ratio = (soft - dist) / (soft - hard);
+        total += static_cast<int>(ratio * max_penalty);
+      }
+    };
+
     // Проверяем удержанные цели
     for (const auto& hg : held_goals_) {
-      if (time >= hg.from_time && cells_conflict(row, col, my_radius_cells,
-                                                   hg.cell.row, hg.cell.col, hg.radius_cells))
-        return true;
+      if (time >= hg.from_time) {
+        check(hg.cell, hg.footprint_cells, hg.soft_radius_cells);
+        if (total < 0) return -1;
+      }
     }
     // Проверяем позиции на конкретном шаге
     auto it = entries_.find(time);
-    if (it == entries_.end()) return false;
-    for (const auto& e : it->second) {
-      if (cells_conflict(row, col, my_radius_cells,
-                          e.cell.row, e.cell.col, e.radius_cells))
-        return true;
+    if (it != entries_.end()) {
+      for (const auto& e : it->second) {
+        check(e.cell, e.footprint_cells, e.soft_radius_cells);
+        if (total < 0) return -1;
+      }
     }
-    return false;
+    return total;
   }
 
-  // Можно ли агенту перейти из (fr, fc) в (tr, tc) между шагами time и time+1?
-  // Проверяет встречное движение (edge conflict).
+  // Edge conflict: проверяет встречное движение между шагами time и time+1.
+  // Uses footprint (hard) radius only — physical swap prevention.
   bool is_edge_blocked(size_t fr, size_t fc, size_t tr, size_t tc,
-                        size_t time, float my_radius_cells) const {
+                        size_t time, float my_footprint_cells) const {
     auto it = entries_.find(time);
     auto it_next = entries_.find(time + 1);
     if (it == entries_.end() || it_next == entries_.end()) return false;
@@ -216,29 +240,31 @@ class ReservationTable {
       const auto& next = it_next->second[i];
       // Edge conflict: после обмена оба агента оказываются слишком близко
       // к предыдущей позиции другого
-      if (cells_conflict(fr, fc, my_radius_cells,
-                          next.cell.row, next.cell.col, cur.radius_cells) &&
-          cells_conflict(tr, tc, my_radius_cells,
-                          cur.cell.row, cur.cell.col, cur.radius_cells))
+      if (cells_conflict(fr, fc, my_footprint_cells,
+                          next.cell.row, next.cell.col, cur.footprint_cells) &&
+          cells_conflict(tr, tc, my_footprint_cells,
+                          cur.cell.row, cur.cell.col, cur.footprint_cells))
         return true;
     }
     return false;
   }
 
   // Можно ли агенту удерживать цель начиная с from_time?
+  // Uses footprint (hard) radius — agent can hold goal as long as no
+  // physical overlap with other agents' paths or held goals.
   bool can_hold_goal(size_t row, size_t col, size_t from_time,
-                      size_t max_time, float my_radius_cells) const {
+                      size_t max_time, float my_footprint_cells) const {
     for (const auto& hg : held_goals_) {
-      if (cells_conflict(row, col, my_radius_cells,
-                          hg.cell.row, hg.cell.col, hg.radius_cells))
+      if (cells_conflict(row, col, my_footprint_cells,
+                          hg.cell.row, hg.cell.col, hg.footprint_cells))
         return false;
     }
     for (size_t t = from_time; t <= max_time; ++t) {
       auto it = entries_.find(t);
       if (it == entries_.end()) continue;
       for (const auto& e : it->second) {
-        if (cells_conflict(row, col, my_radius_cells,
-                            e.cell.row, e.cell.col, e.radius_cells))
+        if (cells_conflict(row, col, my_footprint_cells,
+                            e.cell.row, e.cell.col, e.footprint_cells))
           return false;
       }
     }
@@ -248,11 +274,13 @@ class ReservationTable {
  private:
   struct Entry {
     Cell cell;
-    float radius_cells;
+    float footprint_cells;    // physical (hard) radius in cells
+    float soft_radius_cells;  // footprint + inflation in cells
   };
   struct HeldGoal {
     Cell cell;
-    float radius_cells;
+    float footprint_cells;
+    float soft_radius_cells;
     size_t from_time;
   };
 
