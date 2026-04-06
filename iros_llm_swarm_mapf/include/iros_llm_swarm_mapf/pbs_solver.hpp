@@ -713,25 +713,44 @@ class PBSSolver {
     }
     const size_t max_t = std::min<size_t>(max_dist * 4 + 64, 600);
 
-    // Корневой узел: план без ограничений
+    // Корневой узел: sequential root planning.
+    // Plan agents by decreasing distance to goal — longest paths get
+    // the most freedom, stationary agents (dist=0) plan last and must
+    // yield to moving agents.
     PBSNode root;
     root.pg = PriorityGraph(n);
     root.paths.resize(n);
 
     if (stats) stats->diag.max_t_used = max_t;
 
-    ReservationTable empty;
-    for (size_t i = 0; i < n; ++i) {
-      set_agent_map(agents[i]);
-      if (!low_level_.find_path(agents[i].start, agents[i].goal,
-                                 empty, footprint_cells_[i], soft_cells_[i],
-                                 max_t, root.paths[i])) {
+    std::vector<size_t> root_order(n);
+    for (size_t i = 0; i < n; ++i) root_order[i] = i;
+    std::sort(root_order.begin(), root_order.end(), [&](size_t a, size_t b) {
+      auto dist = [&](size_t i) -> size_t {
+        const auto& ag = agents[i];
+        return (ag.start.row > ag.goal.row ? ag.start.row - ag.goal.row
+                                           : ag.goal.row - ag.start.row) +
+               (ag.start.col > ag.goal.col ? ag.start.col - ag.goal.col
+                                           : ag.goal.col - ag.start.col);
+      };
+      return dist(a) > dist(b);
+    });
+
+    ReservationTable root_res;
+    for (size_t idx : root_order) {
+      set_agent_map(agents[idx]);
+      if (!low_level_.find_path(agents[idx].start, agents[idx].goal,
+                                 root_res, footprint_cells_[idx], soft_cells_[idx],
+                                 max_t, root.paths[idx])) {
         if (stats) {
           stats->diag.fail_reason = FailReason::RootPathFailed;
-          stats->diag.fail_agent = i;
+          stats->diag.fail_agent = idx;
         }
         return false;
       }
+      // Reserve this agent's path so subsequent agents avoid it
+      root_res.reserve_path(root.paths[idx], max_t,
+                            footprint_cells_[idx], soft_cells_[idx]);
     }
     root.cost = cost(root.paths);
 
