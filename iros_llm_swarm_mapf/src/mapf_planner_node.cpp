@@ -85,7 +85,7 @@ class MapfPlannerNode : public rclcpp::Node {
     // Дополнительный запас поверх footprint radius для PBS.
     // Nav2 inflation_radius (0.55м) — это мягкий градиент, не жёсткий барьер.
     // Здесь достаточно небольшого буфера для безопасности.
-    declare_parameter("inflation_radius", 0.2);
+    declare_parameter("inflation_radius", 0.1);
     // Schedule monitoring & replanning
     declare_parameter("replan_check_hz",      2.0);
     declare_parameter("replan_threshold_m",   1.0);
