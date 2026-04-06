@@ -703,13 +703,17 @@ class PBSSolver {
     // (запас на обходы и ожидания), но не меньше 64 и не больше 600.
     // Критично: карта 600x600 = 360k клеток, при max_t=1000
     // Space-Time A* выделяет 360M состояний и зависает.
+    // Per-agent Manhattan distances (used for branch ordering heuristic)
+    agent_dists_.resize(n);
     size_t max_dist = 0;
-    for (const auto& a : agents) {
+    for (size_t i = 0; i < n; ++i) {
+      const auto& a = agents[i];
       const size_t dr = a.start.row > a.goal.row
           ? a.start.row - a.goal.row : a.goal.row - a.start.row;
       const size_t dc = a.start.col > a.goal.col
           ? a.start.col - a.goal.col : a.goal.col - a.start.col;
-      max_dist = std::max(max_dist, dr + dc);
+      agent_dists_[i] = dr + dc;
+      max_dist = std::max(max_dist, agent_dists_[i]);
     }
     const size_t max_t = std::min<size_t>(max_dist * 4 + 64, 600);
 
@@ -788,9 +792,14 @@ class PBSSolver {
 
       if (stats && expansions == 1) stats->diag.first_conflict = c;
 
-      // ветка 1: agent1 имеет приоритет над agent2
+      // Branch ordering heuristic: try giving priority to the agent
+      // with the further goal first — it needs more space/freedom.
+      size_t hi = c.agent1, lo = c.agent2;
+      if (agent_dists_[lo] > agent_dists_[hi]) std::swap(hi, lo);
+
+      // ветка 1: further-goal agent gets priority
       PBSNode ch1 = node;
-      if (branch(agents, c.agent1, c.agent2, max_t, ch1)) {
+      if (branch(agents, hi, lo, max_t, ch1)) {
         auto k = make_key(ch1);
         if (visited.insert(k).second) { ch1.cost = cost(ch1.paths); open.push(std::move(ch1)); }
         if (stats) ++stats->diag.branches_tried;
@@ -798,9 +807,9 @@ class PBSSolver {
         if (stats) ++stats->diag.branches_failed;
       }
 
-      // ветка 2: agent2 имеет приоритет над agent1
+      // ветка 2: closer-goal agent gets priority
       PBSNode ch2 = std::move(node);
-      if (branch(agents, c.agent2, c.agent1, max_t, ch2)) {
+      if (branch(agents, lo, hi, max_t, ch2)) {
         auto k = make_key(ch2);
         if (visited.insert(k).second) { ch2.cost = cost(ch2.paths); open.push(std::move(ch2)); }
         if (stats) ++stats->diag.branches_tried;
@@ -842,6 +851,7 @@ class PBSSolver {
   float                  resolution_ = 0.0f;
   std::vector<float>     footprint_cells_;  // per-agent hard radius in cells
   std::vector<float>     soft_cells_;       // per-agent soft radius in cells
+  std::vector<size_t>    agent_dists_;      // per-agent Manhattan distance to goal
 
   // Кэш gradient-inflated карт: soft_radius (в метрах) -> GridMap
   std::unordered_map<float, GridMap> inflated_cache_;
