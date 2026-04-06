@@ -123,15 +123,19 @@ class ReservationTable {
   }
 
   // Зарезервировать путь агента с данным радиусом (в клетках).
+  // skip_until: don't reserve entries for t < skip_until (grace period
+  // for agents whose starts overlap — lets them separate first).
   void reserve_path(const Path& path,
-                    size_t hold_goal_until_time, float radius_cells) {
+                    size_t hold_goal_until_time, float radius_cells,
+                    size_t skip_until = 0) {
     if (path.empty()) return;
-    for (size_t t = 0; t < path.size(); ++t) {
+    for (size_t t = skip_until; t < path.size(); ++t) {
       entries_[t].push_back({path[t], radius_cells});
     }
     // Удержание цели: агент остаётся на месте после прибытия
     if (path.size() <= hold_goal_until_time) {
-      held_goals_.push_back({path.back(), radius_cells, path.size()});
+      held_goals_.push_back({path.back(), radius_cells,
+                             std::max(path.size(), skip_until)});
     }
   }
 
@@ -258,8 +262,11 @@ class SpaceTimeAStarPlanner {
     const size_t goal_idx  = idx(goal.row, goal.col);
     const size_t start_state = state_idx(start_idx, 0, spatial);
 
-    if (reservations.is_vertex_blocked(start.row, start.col, 0, my_radius_cells))
-      return false;
+    // NOTE: we intentionally do NOT reject starts that overlap with
+    // reservations at t=0.  During replanning agents are physically at
+    // their current positions and must be allowed to start there even if
+    // another agent's reservation covers the same cell.  A* will
+    // naturally find a path that diverges at t=1+.
 
     set_g(start_state, 0);
     parent_[start_state] = INVALID;
@@ -398,22 +405,28 @@ class ConflictDetector {
     const size_t n = paths.size();
     const size_t T = max_len(paths);
 
+    // Precompute grace periods for overlapping-start pairs.
+    // Agents whose starts overlap get ceil(combined_radius - distance) + 1
+    // timesteps to separate before conflicts are enforced.
+    std::vector<std::vector<size_t>> grace(n, std::vector<size_t>(n, 0));
+    for (size_t i = 0; i < n; ++i)
+      for (size_t j = i + 1; j < n; ++j) {
+        const size_t g = start_grace(paths[i][0], radii_cells[i],
+                                     paths[j][0], radii_cells[j]);
+        grace[i][j] = grace[j][i] = g;
+      }
+
     for (size_t t = 0; t < T; ++t) {
       for (size_t i = 0; i < n; ++i) {
         const Cell ci = at(paths[i], t);
         for (size_t j = i + 1; j < n; ++j) {
+          // Skip all conflicts during grace period for overlapping starts
+          if (t < grace[i][j]) continue;
+
           const Cell cj = at(paths[j], t);
 
           // Vertex conflict: центры слишком близко
           if (cells_conflict(ci, radii_cells[i], cj, radii_cells[j])) {
-            // Skip conflicts where both agents are still at their starting
-            // positions — PBS can't resolve pre-existing proximity.
-            // Once either agent moves away, conflicts are detected normally.
-            if (cells_conflict(paths[i][0], radii_cells[i],
-                               paths[j][0], radii_cells[j]) &&
-                ci.row == paths[i][0].row && ci.col == paths[i][0].col &&
-                cj.row == paths[j][0].row && cj.col == paths[j][0].col)
-              continue;
             return {ConflictType::Vertex, i, j, t, ci, cj};
           }
 
@@ -431,6 +444,18 @@ class ConflictDetector {
       }
     }
     return {};
+  }
+
+  // How many timesteps two overlapping agents need to separate.
+  // Returns 0 if starts don't overlap.
+  static size_t start_grace(const Cell& a, float ra, const Cell& b, float rb) {
+    const float combined = ra + rb;
+    if (combined <= 0.0f) return 0;
+    const float dr = static_cast<float>(a.row) - static_cast<float>(b.row);
+    const float dc = static_cast<float>(a.col) - static_cast<float>(b.col);
+    const float dist = std::sqrt(dr * dr + dc * dc);
+    if (dist >= combined) return 0;
+    return static_cast<size_t>(std::ceil(combined - dist)) + 1;
   }
 
  private:
@@ -552,7 +577,8 @@ class PBSSolver {
   // resolution — размер клетки PBS-сетки в метрах (для конвертации радиуса).
   // stats — если не nullptr, заполняется статистикой решения.
   bool solve(const std::vector<Agent>& agents, std::vector<Path>& solution,
-             float resolution = 0.0f, SolveStats* stats = nullptr) {
+             float resolution = 0.0f, SolveStats* stats = nullptr,
+             size_t max_expansions = 200000) {
     solution.clear();
     if (!map_ || agents.empty()) return false;
 
@@ -618,10 +644,9 @@ class PBSSolver {
     visited.insert(make_key(root));
 
     size_t expansions = 0;
-    static constexpr size_t MAX_EXP = 200000;
 
     while (!open.empty()) {
-      if (++expansions > MAX_EXP) {
+      if (++expansions > max_expansions) {
         if (stats) {
           stats->expansions = expansions;
           stats->diag.fail_reason = FailReason::MaxExpansions;
@@ -739,10 +764,16 @@ class PBSSolver {
               size_t max_t, PBSNode& node) {
     const auto order = node.pg.topo_from(changed);
     for (size_t ai : order) {
-      // Резервируем пути всех высокоприоритетных агентов с их радиусами
+      // Резервируем пути всех высокоприоритетных агентов с их радиусами.
+      // For agents whose starts overlap with ours, skip reservation
+      // entries during the grace period so A* can plan an escape path.
       ReservationTable res;
-      for (size_t bi : node.pg.higher_than(ai))
-        res.reserve_path(node.paths[bi], max_t, radii_cells_[bi]);
+      for (size_t bi : node.pg.higher_than(ai)) {
+        const size_t grace = ConflictDetector::start_grace(
+            agents[ai].start, radii_cells_[ai],
+            agents[bi].start, radii_cells_[bi]);
+        res.reserve_path(node.paths[bi], max_t, radii_cells_[bi], grace);
+      }
 
       // Используем inflated-карту для данного агента
       set_agent_map(agents[ai]);

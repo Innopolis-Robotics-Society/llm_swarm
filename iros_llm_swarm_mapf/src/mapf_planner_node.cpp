@@ -94,6 +94,7 @@ class MapfPlannerNode : public rclcpp::Node {
     declare_parameter("replan_predict_sec",  -1.0);
     declare_parameter("replan_stop_mode",     std::string("all"));
     declare_parameter("goal_reached_m",       0.5);
+    declare_parameter("max_pbs_expansions",   200000);
 
     num_robots_           = get_parameter("num_robots").as_int();
     time_step_sec_        = get_parameter("time_step_sec").as_double();
@@ -114,7 +115,8 @@ class MapfPlannerNode : public rclcpp::Node {
       replan_stop_mode_ = "deviated";
     }
     goal_reached_m_       = get_parameter("goal_reached_m").as_double();
-
+    max_pbs_expansions_   = static_cast<size_t>(
+        get_parameter("max_pbs_expansions").as_int());
 
     // Подписка на карту.
     // map_server публикует с transient_local — подписчик обязан использовать
@@ -340,7 +342,8 @@ class MapfPlannerNode : public rclcpp::Node {
     const auto t0 = std::chrono::steady_clock::now();
 
     const bool ok = solver_.solve(agents, paths,
-                                   static_cast<float>(map_resolution_), &stats);
+                                   static_cast<float>(map_resolution_), &stats,
+                                   max_pbs_expansions_);
 
     const double elapsed_ms = std::chrono::duration<double, std::milli>(
         std::chrono::steady_clock::now() - t0).count();
@@ -816,6 +819,7 @@ class MapfPlannerNode : public rclcpp::Node {
   double replan_predict_sec_    = -1.0;
   std::string replan_stop_mode_ = "deviated";
   double goal_reached_m_        = 0.5;
+  size_t max_pbs_expansions_    = 200000;
 
   bool   map_ready_       = false;
   double map_origin_x_    = 0.0;
