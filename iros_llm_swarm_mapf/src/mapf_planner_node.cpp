@@ -533,18 +533,18 @@ class MapfPlannerNode : public rclcpp::Node {
 
     if (check_grid.blocked[a.start.row * check_grid.cols + a.start.col]) {
       RCLCPP_WARN(get_logger(),
-          "Agent %u: start (%.2f, %.2f) -> cell (%zu, %zu) blocked on inflated map "
-          "(footprint=%.3fm, inflation=%.3fm), skipping entirely",
+          "Agent %u: start (%.2f, %.2f) -> cell (%zu, %zu) within hard radius "
+          "(%.3fm) of wall, skipping entirely",
           rid, start_wx, start_wy, a.start.row, a.start.col,
-          a.footprint_radius, a.inflation);
+          a.footprint_radius);
       return false;
     }
     if (check_grid.blocked[a.goal.row * check_grid.cols + a.goal.col]) {
       RCLCPP_WARN(get_logger(),
-          "Agent %u: goal (%.2f, %.2f) -> cell (%zu, %zu) blocked on inflated map "
-          "(footprint=%.3fm, inflation=%.3fm), including as stationary obstacle",
+          "Agent %u: goal (%.2f, %.2f) -> cell (%zu, %zu) within hard radius "
+          "(%.3fm) of wall, including as stationary obstacle",
           rid, goal_wx, goal_wy, a.goal.row, a.goal.col,
-          a.footprint_radius, a.inflation);
+          a.footprint_radius);
       a.goal = a.start;
       skipped_ids.push_back(rid);
     }
