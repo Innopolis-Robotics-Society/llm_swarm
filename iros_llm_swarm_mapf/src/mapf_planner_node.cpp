@@ -758,11 +758,13 @@ class MapfPlannerNode : public rclcpp::Node {
       // Decide start position
       double sx, sy;
       if (std::hypot(ox - gx, oy - gy) < goal_reached_m_) {
-        // Arrived: stationary obstacle at current position
+        // Arrived: keep original goal so it doesn't drift to an
+        // arbitrary cell that may conflict with other agents' goals.
         sx = ox; sy = oy;
         a.start = world_to_cell(sx, sy, map_origin_x_, map_origin_y_,
                                  map_resolution_, grid_.rows);
-        a.goal = a.start;
+        a.goal = world_to_cell(gx, gy, map_origin_x_, map_origin_y_,
+                                map_resolution_, grid_.rows);
       } else if (is_deviated || stop_all) {
         // Stopped or deviated: use current odom (exact or close to exact)
         sx = ox; sy = oy;

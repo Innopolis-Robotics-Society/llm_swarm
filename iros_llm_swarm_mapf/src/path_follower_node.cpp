@@ -160,6 +160,8 @@ class PathFollowerNode : public rclcpp::Node
 
     FollowPath::Goal goal;
     goal.path = chunk;
+    goal.controller_id = "FollowPath";
+    goal.goal_checker_id = "goal_checker";
 
     auto opts = rclcpp_action::Client<FollowPath>::SendGoalOptions{};
 
