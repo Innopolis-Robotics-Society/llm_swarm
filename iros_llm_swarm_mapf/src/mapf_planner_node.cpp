@@ -511,13 +511,17 @@ class MapfPlannerNode : public rclcpp::Node {
   {
     const double base_radius = footprint_radii_[rid] > 0.0
         ? footprint_radii_[rid] : default_robot_radius_;
-    a.footprint_radius = static_cast<float>(base_radius + inflation_radius_);
+    a.footprint_radius = static_cast<float>(base_radius);
+    a.inflation = static_cast<float>(inflation_radius_);
 
-    const float fr = a.footprint_radius;
-    if (fr > 0.0f && inflated_cache.find(fr) == inflated_cache.end()) {
-      inflated_cache[fr] = grid_.inflate(fr, static_cast<float>(map_resolution_));
+    // For start/goal validation, use hard-blocked cells from gradient map.
+    // Cells in the soft zone are OK (just penalized in A*).
+    const float soft = a.footprint_radius + a.inflation;
+    if (soft > 0.0f && inflated_cache.find(soft) == inflated_cache.end()) {
+      inflated_cache[soft] = grid_.inflate_gradient(
+          a.footprint_radius, soft, static_cast<float>(map_resolution_));
     }
-    const auto& check_grid = (fr > 0.0f) ? inflated_cache[fr] : grid_;
+    const auto& check_grid = (soft > 0.0f) ? inflated_cache[soft] : grid_;
 
     // Convert cells back to world coords for diagnostics
     double start_wx, start_wy, goal_wx, goal_wy;
@@ -529,15 +533,17 @@ class MapfPlannerNode : public rclcpp::Node {
     if (check_grid.blocked[a.start.row * check_grid.cols + a.start.col]) {
       RCLCPP_WARN(get_logger(),
           "Agent %u: start (%.2f, %.2f) -> cell (%zu, %zu) blocked on inflated map "
-          "(r=%.3fm), skipping entirely",
-          rid, start_wx, start_wy, a.start.row, a.start.col, fr);
+          "(footprint=%.3fm, inflation=%.3fm), skipping entirely",
+          rid, start_wx, start_wy, a.start.row, a.start.col,
+          a.footprint_radius, a.inflation);
       return false;
     }
     if (check_grid.blocked[a.goal.row * check_grid.cols + a.goal.col]) {
       RCLCPP_WARN(get_logger(),
           "Agent %u: goal (%.2f, %.2f) -> cell (%zu, %zu) blocked on inflated map "
-          "(r=%.3fm), including as stationary obstacle",
-          rid, goal_wx, goal_wy, a.goal.row, a.goal.col, fr);
+          "(footprint=%.3fm, inflation=%.3fm), including as stationary obstacle",
+          rid, goal_wx, goal_wy, a.goal.row, a.goal.col,
+          a.footprint_radius, a.inflation);
       a.goal = a.start;
       skipped_ids.push_back(rid);
     }

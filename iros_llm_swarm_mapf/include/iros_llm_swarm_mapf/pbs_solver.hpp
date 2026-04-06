@@ -312,13 +312,17 @@ class SpaceTimeAStarPlanner {
 
   void reset_map(const GridMap* map) { map_ = map; }
 
-  // my_radius_cells — радиус данного агента в клетках (0 = точечный).
+  // my_footprint_cells — physical (hard) radius of this agent in cells.
+  // my_soft_cells — footprint + inflation in cells (outer penalty boundary).
   // Используется для проверки дистанции до зарезервированных агентов
   // и для проверки удержания цели.
   bool find_path(const Cell& start, const Cell& goal,
                  const ReservationTable& reservations,
-                 float my_radius_cells,
+                 float my_footprint_cells, float my_soft_cells,
                  size_t max_time, Path& path) {
+    my_footprint_ = my_footprint_cells;
+    my_soft_ = my_soft_cells;
+
     path.clear();
     if (!map_) return false;
     if (is_blocked(start.row, start.col) || is_blocked(goal.row, goal.col)) return false;
@@ -355,7 +359,7 @@ class SpaceTimeAStarPlanner {
 
       if (cur.idx == goal_idx) {
         if (reservations.can_hold_goal(goal.row, goal.col, cur.t,
-                                        max_time, my_radius_cells)) {
+                                        max_time, my_footprint_cells)) {
           restore(cs, spatial, path);
           return true;
         }
@@ -368,12 +372,12 @@ class SpaceTimeAStarPlanner {
       const size_t nt = cur.t + 1;
 
       // ждать на месте
-      relax(cur.idx, cur.t, r, col_, nt, goal, reservations, my_radius_cells, open, spatial);
+      relax(cur.idx, cur.t, r, col_, nt, goal, reservations, open, spatial);
       // соседи
-      if (r > 0)               relax(cur.idx, cur.t, r-1, col_,   nt, goal, reservations, my_radius_cells, open, spatial);
-      if (r+1 < map_->rows)    relax(cur.idx, cur.t, r+1, col_,   nt, goal, reservations, my_radius_cells, open, spatial);
-      if (col_ > 0)            relax(cur.idx, cur.t, r,   col_-1, nt, goal, reservations, my_radius_cells, open, spatial);
-      if (col_+1 < map_->cols) relax(cur.idx, cur.t, r,   col_+1, nt, goal, reservations, my_radius_cells, open, spatial);
+      if (r > 0)               relax(cur.idx, cur.t, r-1, col_,   nt, goal, reservations, open, spatial);
+      if (r+1 < map_->rows)    relax(cur.idx, cur.t, r+1, col_,   nt, goal, reservations, open, spatial);
+      if (col_ > 0)            relax(cur.idx, cur.t, r,   col_-1, nt, goal, reservations, open, spatial);
+      if (col_+1 < map_->cols) relax(cur.idx, cur.t, r,   col_+1, nt, goal, reservations, open, spatial);
     }
     return false;
   }
@@ -391,6 +395,8 @@ class SpaceTimeAStarPlanner {
 
   const GridMap*  map_           = nullptr;
   HeuristicType   heuristic_type_;
+  float           my_footprint_  = 0.0f;   // current agent's hard radius in cells
+  float           my_soft_       = 0.0f;   // current agent's soft radius in cells
   std::vector<int>      g_;
   std::vector<size_t>   parent_;
   std::vector<uint8_t>  closed_;
@@ -404,6 +410,10 @@ class SpaceTimeAStarPlanner {
   static size_t state_cell(size_t si, size_t sp)           { return si % sp; }
 
   bool is_blocked(size_t r, size_t c) const { return map_->blocked[idx(r,c)] != 0; }
+
+  int wall_penalty(size_t r, size_t c) const {
+    return map_->wall_cost.empty() ? 0 : map_->wall_cost[idx(r,c)];
+  }
 
   int heuristic(const Cell& a, const Cell& b) const {
     const int dr = a.row > b.row ? a.row - b.row : b.row - a.row;
@@ -429,15 +439,19 @@ class SpaceTimeAStarPlanner {
 
   void relax(size_t ci, size_t ct, size_t nr, size_t nc, size_t nt,
              const Cell& goal, const ReservationTable& res,
-             float my_radius_cells,
              std::priority_queue<Node, std::vector<Node>, NodeCmp>& open,
              size_t sp) {
     if (is_blocked(nr, nc)) return;
-    if (res.is_vertex_blocked(nr, nc, nt, my_radius_cells)) return;
 
-    // Edge conflict: проверяем встречное движение
+    int penalty = wall_penalty(nr, nc);
+
+    const int agent_pen = res.vertex_penalty(nr, nc, nt, my_footprint_, my_soft_);
+    if (agent_pen < 0) return;  // physical agent overlap forbidden
+    penalty += agent_pen;
+
+    // Edge conflict: проверяем встречное движение (uses footprint/hard radius)
     const Cell from_cell = cell(ci);
-    if (res.is_edge_blocked(from_cell.row, from_cell.col, nr, nc, ct, my_radius_cells))
+    if (res.is_edge_blocked(from_cell.row, from_cell.col, nr, nc, ct, my_footprint_))
       return;
 
     const size_t ni = idx(nr, nc);
@@ -445,7 +459,7 @@ class SpaceTimeAStarPlanner {
     const size_t ns = state_idx(ni, nt, sp);
     if (is_closed(ns)) return;
 
-    const int tg = get_g(cs) + 1;
+    const int tg = get_g(cs) + 1 + penalty;
     if (tg < get_g(ns)) {
       set_g(ns, tg);
       parent_[ns] = cs;
@@ -466,24 +480,26 @@ class SpaceTimeAStarPlanner {
 
 class ConflictDetector {
  public:
-  // Версия с учётом радиусов агентов (в клетках).
-  // Level 1: евклидово расстояние между центрами vs (r_a + r_b).
+  // Detect conflicts using footprint (hard/physical) radii only.
+  // Soft-zone proximity is handled by A* penalties, not PBS branching.
+  // Евклидово расстояние между центрами vs (r_a + r_b).
   // Для точечных агентов (радиус 0) — эквивалентно проверке совпадения клеток.
   // TODO Level 2: при появлении ориентационно-зависимых полигонов —
   //   растеризация и проверка пересечения клеточных множеств.
   static Conflict find_first(const std::vector<Path>& paths,
-                              const std::vector<float>& radii_cells) {
+                              const std::vector<float>& footprint_cells) {
     const size_t n = paths.size();
     const size_t T = max_len(paths);
 
     // Precompute grace periods for overlapping-start pairs.
-    // Agents whose starts overlap get ceil(combined_radius - distance) + 1
-    // timesteps to separate before conflicts are enforced.
+    // Agents whose starts overlap (at hard radius) get
+    // ceil(combined_radius - distance) + 1 timesteps to separate
+    // before conflicts are enforced.
     std::vector<std::vector<size_t>> grace(n, std::vector<size_t>(n, 0));
     for (size_t i = 0; i < n; ++i)
       for (size_t j = i + 1; j < n; ++j) {
-        const size_t g = start_grace(paths[i][0], radii_cells[i],
-                                     paths[j][0], radii_cells[j]);
+        const size_t g = start_grace(paths[i][0], footprint_cells[i],
+                                     paths[j][0], footprint_cells[j]);
         grace[i][j] = grace[j][i] = g;
       }
 
@@ -496,8 +512,8 @@ class ConflictDetector {
 
           const Cell cj = at(paths[j], t);
 
-          // Vertex conflict: центры слишком близко
-          if (cells_conflict(ci, radii_cells[i], cj, radii_cells[j])) {
+          // Vertex conflict: физическое пересечение (hard radii)
+          if (cells_conflict(ci, footprint_cells[i], cj, footprint_cells[j])) {
             return {ConflictType::Vertex, i, j, t, ci, cj};
           }
 
@@ -507,8 +523,8 @@ class ConflictDetector {
             const Cell pj = at(paths[j], t - 1);
             // i двигался pi→ci, j двигался pj→cj
             // Конфликт если после обмена позициями оба слишком близко
-            if (cells_conflict(pi, radii_cells[i], cj, radii_cells[j]) &&
-                cells_conflict(pj, radii_cells[j], ci, radii_cells[i]))
+            if (cells_conflict(pi, footprint_cells[i], cj, footprint_cells[j]) &&
+                cells_conflict(pj, footprint_cells[j], ci, footprint_cells[i]))
               return {ConflictType::Edge, i, j, t - 1, pi, ci};
           }
         }
@@ -656,20 +672,26 @@ class PBSSolver {
     const size_t n = agents.size();
     resolution_ = resolution;
 
-    // Предвычислить радиусы в клетках
-    radii_cells_.resize(n);
+    // Предвычислить радиусы в клетках: footprint (hard) и soft (footprint+inflation)
+    footprint_cells_.resize(n);
+    soft_cells_.resize(n);
     for (size_t i = 0; i < n; ++i) {
-      radii_cells_[i] = (resolution > 0.0f && agents[i].footprint_radius > 0.0f)
+      footprint_cells_[i] = (resolution > 0.0f && agents[i].footprint_radius > 0.0f)
           ? agents[i].footprint_radius / resolution
+          : 0.0f;
+      soft_cells_[i] = (resolution > 0.0f)
+          ? (agents[i].footprint_radius + agents[i].inflation) / resolution
           : 0.0f;
     }
 
-    // Кэшировать inflated-карты для каждого уникального радиуса.
+    // Кэшировать gradient-inflated карты для каждого уникального soft_radius.
     // Маленькие роботы пролезут в щели, большие формации — нет.
+    // Hard boundary = footprint, soft boundary = footprint + inflation.
     for (size_t i = 0; i < n; ++i) {
-      const float r = agents[i].footprint_radius;
-      if (r > 0.0f && inflated_cache_.find(r) == inflated_cache_.end()) {
-        inflated_cache_[r] = map_->inflate(r, resolution);
+      const float soft = agents[i].footprint_radius + agents[i].inflation;
+      if (soft > 0.0f && inflated_cache_.find(soft) == inflated_cache_.end()) {
+        inflated_cache_[soft] = map_->inflate_gradient(
+            agents[i].footprint_radius, soft, resolution);
       }
     }
 
@@ -698,7 +720,8 @@ class PBSSolver {
     for (size_t i = 0; i < n; ++i) {
       set_agent_map(agents[i]);
       if (!low_level_.find_path(agents[i].start, agents[i].goal,
-                                 empty, radii_cells_[i], max_t, root.paths[i])) {
+                                 empty, footprint_cells_[i], soft_cells_[i],
+                                 max_t, root.paths[i])) {
         if (stats) {
           stats->diag.fail_reason = FailReason::RootPathFailed;
           stats->diag.fail_agent = i;
@@ -728,7 +751,7 @@ class PBSSolver {
       PBSNode node = open.top(); open.pop();
 
       const Conflict c = ConflictDetector::find_first(
-          node.paths, radii_cells_);
+          node.paths, footprint_cells_);
       if (c.type == ConflictType::None) {
         solution = node.paths;
         if (stats) {
@@ -794,17 +817,19 @@ class PBSSolver {
   const GridMap*         map_ = nullptr;
   SpaceTimeAStarPlanner  low_level_;
   float                  resolution_ = 0.0f;
-  std::vector<float>     radii_cells_;
+  std::vector<float>     footprint_cells_;  // per-agent hard radius in cells
+  std::vector<float>     soft_cells_;       // per-agent soft radius in cells
 
-  // Кэш inflated карт: footprint_radius (в метрах) -> inflated GridMap
+  // Кэш gradient-inflated карт: soft_radius (в метрах) -> GridMap
   std::unordered_map<float, GridMap> inflated_cache_;
 
-  // Установить карту для A* конкретного агента (inflated если есть радиус).
+  // Установить карту для A* конкретного агента (gradient-inflated).
   // Маленькие роботы получают менее раздутую карту и могут проходить
   // через узкие проходы, недоступные большим формациям.
   void set_agent_map(const Agent& a) {
-    if (a.footprint_radius > 0.0f) {
-      auto it = inflated_cache_.find(a.footprint_radius);
+    const float soft = a.footprint_radius + a.inflation;
+    if (soft > 0.0f) {
+      auto it = inflated_cache_.find(soft);
       if (it != inflated_cache_.end()) {
         low_level_.reset_map(&it->second);
         return;
@@ -841,16 +866,18 @@ class PBSSolver {
       ReservationTable res;
       for (size_t bi : node.pg.higher_than(ai)) {
         const size_t grace = ConflictDetector::start_grace(
-            agents[ai].start, radii_cells_[ai],
-            agents[bi].start, radii_cells_[bi]);
-        res.reserve_path(node.paths[bi], max_t, radii_cells_[bi], grace);
+            agents[ai].start, footprint_cells_[ai],
+            agents[bi].start, footprint_cells_[bi]);
+        res.reserve_path(node.paths[bi], max_t,
+                         footprint_cells_[bi], soft_cells_[bi], grace);
       }
 
-      // Используем inflated-карту для данного агента
+      // Используем gradient-inflated карту для данного агента
       set_agent_map(agents[ai]);
       Path p;
       if (!low_level_.find_path(agents[ai].start, agents[ai].goal,
-                                 res, radii_cells_[ai], max_t, p))
+                                 res, footprint_cells_[ai], soft_cells_[ai],
+                                 max_t, p))
         return false;
       node.paths[ai] = std::move(p);
     }
