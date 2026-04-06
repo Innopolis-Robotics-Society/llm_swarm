@@ -82,10 +82,9 @@ class MapfPlannerNode : public rclcpp::Node {
     declare_parameter("pbs_resolution",      0.2);
     // Радиус по умолчанию если от Nav2 ещё не пришёл footprint
     declare_parameter("default_robot_radius", 0.22);
-    // Дополнительный запас поверх footprint radius для PBS.
-    // Nav2 inflation_radius (0.55м) — это мягкий градиент, не жёсткий барьер.
-    // Здесь достаточно небольшого буфера для безопасности.
-    declare_parameter("inflation_radius", 0.1);
+    // Gradient zone width beyond footprint radius.
+    // Matching Nav2 inflation_radius for consistency.
+    declare_parameter("inflation_radius", 0.5);
     // Schedule monitoring & replanning
     declare_parameter("replan_check_hz",      2.0);
     declare_parameter("replan_threshold_m",   1.0);
@@ -372,9 +371,10 @@ class MapfPlannerNode : public rclcpp::Node {
       if (d.fail_reason == FailReason::RootPathFailed) {
         const auto& fa = agents[d.fail_agent];
         RCLCPP_ERROR(get_logger(),
-            "  root A* failed for agent %zu: start=(%zu,%zu) goal=(%zu,%zu) radius=%.3fm",
+            "  root A* failed for agent %zu: start=(%zu,%zu) goal=(%zu,%zu) "
+            "footprint=%.3fm inflation=%.3fm",
             fa.id, fa.start.row, fa.start.col, fa.goal.row, fa.goal.col,
-            fa.footprint_radius);
+            fa.footprint_radius, fa.inflation);
       }
 
       if (d.first_conflict.type != ConflictType::None) {
@@ -388,9 +388,10 @@ class MapfPlannerNode : public rclcpp::Node {
       // Per-agent dump at DEBUG level
       for (const auto& a : agents) {
         RCLCPP_DEBUG(get_logger(),
-            "  agent %zu: start=(%zu,%zu) goal=(%zu,%zu) radius=%.3fm",
+            "  agent %zu: start=(%zu,%zu) goal=(%zu,%zu) "
+            "footprint=%.3fm inflation=%.3fm",
             a.id, a.start.row, a.start.col, a.goal.row, a.goal.col,
-            a.footprint_radius);
+            a.footprint_radius, a.inflation);
       }
       return;
     }
@@ -815,7 +816,7 @@ class MapfPlannerNode : public rclcpp::Node {
   double time_step_sec_;
   double pbs_resolution_       = 0.2;
   double default_robot_radius_ = 0.22;
-  double inflation_radius_     = 0.55;
+  double inflation_radius_     = 0.5;
 
   // Replanning
   double replan_check_hz_       = 2.0;

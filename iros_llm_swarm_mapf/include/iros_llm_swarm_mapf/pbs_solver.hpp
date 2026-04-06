@@ -234,7 +234,11 @@ class ReservationTable {
     auto it_next = entries_.find(time + 1);
     if (it == entries_.end() || it_next == entries_.end()) return false;
 
-    // Для каждого агента: если он двигается навстречу
+    // Для каждого агента: если он двигается навстречу.
+    // NOTE: pairing by vector index assumes reserve_path() is called
+    // once per agent in a fixed order.  With skip_until, an agent's
+    // entries start later, so indices at the grace boundary may differ —
+    // the min(size, size) guard safely skips unmatched trailing entries.
     for (size_t i = 0; i < it->second.size() && i < it_next->second.size(); ++i) {
       const auto& cur  = it->second[i];
       const auto& next = it_next->second[i];
