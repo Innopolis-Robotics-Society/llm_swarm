@@ -65,6 +65,23 @@ struct GridMap {
 using Path = std::vector<Cell>;
 
 // ---------------------------------------------------------------------------
+// Enum-ы
+// ---------------------------------------------------------------------------
+
+enum class HeuristicType { Manhattan };
+
+enum class ConflictType { None, Vertex, Edge };
+
+struct Conflict {
+  ConflictType type = ConflictType::None;
+  size_t agent1 = 0;
+  size_t agent2 = 0;
+  size_t time   = 0;
+  Cell   cell1{};
+  Cell   cell2{};
+};
+
+// ---------------------------------------------------------------------------
 // Статистика решения
 // ---------------------------------------------------------------------------
 
@@ -88,23 +105,6 @@ struct SolveStats {
   size_t expansions = 0;
   size_t max_path_length = 0;
   SolveDiagnostics diag;
-};
-
-// ---------------------------------------------------------------------------
-// Enum-ы
-// ---------------------------------------------------------------------------
-
-enum class HeuristicType { Manhattan };
-
-enum class ConflictType { None, Vertex, Edge };
-
-struct Conflict {
-  ConflictType type = ConflictType::None;
-  size_t agent1 = 0;
-  size_t agent2 = 0;
-  size_t time   = 0;
-  Cell   cell1{};
-  Cell   cell2{};
 };
 
 // ---------------------------------------------------------------------------
@@ -405,8 +405,17 @@ class ConflictDetector {
           const Cell cj = at(paths[j], t);
 
           // Vertex conflict: центры слишком близко
-          if (cells_conflict(ci, radii_cells[i], cj, radii_cells[j]))
+          if (cells_conflict(ci, radii_cells[i], cj, radii_cells[j])) {
+            // Skip conflicts where both agents are still at their starting
+            // positions — PBS can't resolve pre-existing proximity.
+            // Once either agent moves away, conflicts are detected normally.
+            if (cells_conflict(paths[i][0], radii_cells[i],
+                               paths[j][0], radii_cells[j]) &&
+                ci.row == paths[i][0].row && ci.col == paths[i][0].col &&
+                cj.row == paths[j][0].row && cj.col == paths[j][0].col)
+              continue;
             return {ConflictType::Vertex, i, j, t, ci, cj};
+          }
 
           // Edge conflict: встречное движение
           if (t > 0) {

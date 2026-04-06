@@ -92,7 +92,7 @@ class MapfPlannerNode : public rclcpp::Node {
     declare_parameter("replan_cooldown_sec",  5.0);
     declare_parameter("replan_cooldown_factor", 3.0);
     declare_parameter("replan_predict_sec",  -1.0);
-    declare_parameter("replan_stop_mode",     std::string("deviated"));
+    declare_parameter("replan_stop_mode",     std::string("all"));
     declare_parameter("goal_reached_m",       0.5);
 
     num_robots_           = get_parameter("num_robots").as_int();
@@ -114,6 +114,7 @@ class MapfPlannerNode : public rclcpp::Node {
       replan_stop_mode_ = "deviated";
     }
     goal_reached_m_       = get_parameter("goal_reached_m").as_double();
+
 
     // Подписка на карту.
     // map_server публикует с transient_local — подписчик обязан использовать
@@ -344,7 +345,6 @@ class MapfPlannerNode : public rclcpp::Node {
     const double elapsed_ms = std::chrono::duration<double, std::milli>(
         std::chrono::steady_clock::now() - t0).count();
 
-    // Заполняем ответ
     res->planning_time_ms    = elapsed_ms;
     res->num_agents_planned  = static_cast<uint32_t>(agents.size());
     res->pbs_expansions      = static_cast<uint32_t>(stats.expansions);
@@ -357,7 +357,6 @@ class MapfPlannerNode : public rclcpp::Node {
                      std::to_string(stats.expansions) + " expansions)";
       RCLCPP_ERROR(get_logger(), "%s", res->message.c_str());
 
-      // Diagnostics
       const auto& d = stats.diag;
       const char* reason_str =
           d.fail_reason == FailReason::RootPathFailed  ? "root A* failed" :
@@ -378,11 +377,9 @@ class MapfPlannerNode : public rclcpp::Node {
       if (d.first_conflict.type != ConflictType::None) {
         const auto& fc = d.first_conflict;
         RCLCPP_ERROR(get_logger(),
-            "  first conflict: %s between agents[%zu] and agents[%zu] at t=%zu "
-            "cells (%zu,%zu) vs (%zu,%zu)",
+            "  first conflict: %s between agents[%zu] and agents[%zu] at t=%zu",
             fc.type == ConflictType::Vertex ? "vertex" : "edge",
-            fc.agent1, fc.agent2, fc.time,
-            fc.cell1.row, fc.cell1.col, fc.cell2.row, fc.cell2.col);
+            fc.agent1, fc.agent2, fc.time);
       }
 
       // Per-agent dump at DEBUG level
@@ -400,6 +397,7 @@ class MapfPlannerNode : public rclcpp::Node {
         elapsed_ms, stats.expansions, paths.size());
 
     last_planning_ms_ = elapsed_ms;
+    last_replan_time_ = now();  // cooldown applies after initial plan too
 
     // Публикуем пути и собираем длины для ответа
     const rclcpp::Time base_time = now();
@@ -846,8 +844,8 @@ class MapfPlannerNode : public rclcpp::Node {
   // Schedule monitoring
   struct ActivePlan {
     std::vector<uint32_t>                   robot_ids;
-    std::vector<geometry_msgs::msg::Point>  goals;      // original goals (world coords)
-    std::vector<nav_msgs::msg::Path>        ros_paths;  // published paths (for schedule checks)
+    std::vector<geometry_msgs::msg::Point>  goals;        // original goals (world coords)
+    std::vector<nav_msgs::msg::Path>        ros_paths;    // published paths (for schedule checks)
   };
   ActivePlan active_plan_;
   bool       has_active_plan_  = false;
