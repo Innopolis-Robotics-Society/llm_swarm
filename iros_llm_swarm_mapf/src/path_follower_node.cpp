@@ -58,13 +58,13 @@ class PathFollowerNode : public rclcpp::Node
   {
     // Empty path = cancel signal (replanner stops deviated robots)
     if (msg->poses.empty()) {
-      RCLCPP_INFO(get_logger(), "[%s] received empty path — cancelling", ns_.c_str());
+      RCLCPP_DEBUG(get_logger(), "[%s] received empty path — cancelling", ns_.c_str());
       cancel_current();
       pending_path_.reset();
       return;
     }
 
-    RCLCPP_INFO(get_logger(), "[%s] new path: %zu waypoints",
+    RCLCPP_DEBUG(get_logger(), "[%s] new path: %zu waypoints",
                 ns_.c_str(), msg->poses.size());
 
     // Отменяем текущее движение если есть
@@ -102,7 +102,7 @@ class PathFollowerNode : public rclcpp::Node
   void send_next_chunk()
   {
     if (!pending_path_ || wp_idx_ >= pending_path_->poses.size()) {
-      RCLCPP_INFO(get_logger(), "[%s] path complete", ns_.c_str());
+      RCLCPP_DEBUG(get_logger(), "[%s] path complete", ns_.c_str());
       pending_path_.reset();
       return;
     }
@@ -188,7 +188,7 @@ class PathFollowerNode : public rclcpp::Node
   {
     // Если путь закончился
     if (!pending_path_ || stop_idx >= pending_path_->poses.size() - 1) {
-      RCLCPP_INFO(get_logger(), "[%s] path complete", ns_.c_str());
+      RCLCPP_DEBUG(get_logger(), "[%s] path complete", ns_.c_str());
       pending_path_.reset();
       return;
     }

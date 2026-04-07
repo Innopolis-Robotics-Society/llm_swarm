@@ -537,7 +537,7 @@ class MapfPlannerNode : public rclcpp::Node {
                   goal_wx, goal_wy);
 
     if (check_grid.blocked[a.start.row * check_grid.cols + a.start.col]) {
-      RCLCPP_WARN(get_logger(),
+      RCLCPP_WARN_ONCE(get_logger(),
           "Agent %u: start (%.2f, %.2f) -> cell (%zu, %zu) within hard radius "
           "(%.3fm) of wall, skipping entirely",
           rid, start_wx, start_wy, a.start.row, a.start.col,
@@ -545,7 +545,7 @@ class MapfPlannerNode : public rclcpp::Node {
       return false;
     }
     if (check_grid.blocked[a.goal.row * check_grid.cols + a.goal.col]) {
-      RCLCPP_WARN(get_logger(),
+      RCLCPP_WARN_ONCE(get_logger(),
           "Agent %u: goal (%.2f, %.2f) -> cell (%zu, %zu) within hard radius "
           "(%.3fm) of wall, including as stationary obstacle",
           rid, goal_wx, goal_wy, a.goal.row, a.goal.col,
@@ -813,7 +813,7 @@ class MapfPlannerNode : public rclcpp::Node {
       RCLCPP_INFO(get_logger(), "Replan OK: %s (%.1fms, %u expansions)",
                   res->message.c_str(), res->planning_time_ms, res->pbs_expansions);
     } else {
-      RCLCPP_WARN(get_logger(), "Replan FAILED: %s", res->message.c_str());
+      RCLCPP_ERROR(get_logger(), "Replan FAILED: %s", res->message.c_str());
     }
   }
 
