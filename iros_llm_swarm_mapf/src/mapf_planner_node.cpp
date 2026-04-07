@@ -44,13 +44,13 @@
 static Cell world_to_cell(double wx, double wy,
                            double origin_x, double origin_y,
                            double resolution,
-                           size_t rows) {
+                           size_t rows, size_t cols) {
   // OccupancyGrid: origin = левый нижний угол.
   // row = 0 соответствует y = origin_y (низ карты).
   const size_t col = static_cast<size_t>((wx - origin_x) / resolution);
   const size_t row = static_cast<size_t>((wy - origin_y) / resolution);
   // Ограничиваем на всякий случай
-  return {std::min(row, rows - 1), col};
+  return {std::min(row, rows - 1), std::min(col, cols - 1)};
 }
 
 static void cell_to_world(const Cell& c,
@@ -68,8 +68,7 @@ static void cell_to_world(const Cell& c,
 class MapfPlannerNode : public rclcpp::Node {
  public:
   MapfPlannerNode()
-      : Node("mapf_planner"),
-        solver_(HeuristicType::Manhattan) {
+      : Node("mapf_planner") {
 
     using SetGoals = iros_llm_swarm_interfaces::srv::SetGoals;
 
@@ -82,10 +81,9 @@ class MapfPlannerNode : public rclcpp::Node {
     declare_parameter("pbs_resolution",      0.2);
     // Радиус по умолчанию если от Nav2 ещё не пришёл footprint
     declare_parameter("default_robot_radius", 0.22);
-    // Дополнительный запас поверх footprint radius для PBS.
-    // Nav2 inflation_radius (0.55м) — это мягкий градиент, не жёсткий барьер.
-    // Здесь достаточно небольшого буфера для безопасности.
-    declare_parameter("inflation_radius", 0.1);
+    // Gradient zone width beyond footprint radius.
+    // Matching Nav2 inflation_radius for consistency.
+    declare_parameter("inflation_radius", 0.5);
     // Schedule monitoring & replanning
     declare_parameter("replan_check_hz",      2.0);
     declare_parameter("replan_threshold_m",   1.0);
@@ -95,6 +93,8 @@ class MapfPlannerNode : public rclcpp::Node {
     declare_parameter("replan_stop_mode",     std::string("all"));
     declare_parameter("goal_reached_m",       0.5);
     declare_parameter("max_pbs_expansions",   200000);
+    declare_parameter("cost_exponent",        2.0);
+    declare_parameter("proximity_penalty",    50);
 
     num_robots_           = get_parameter("num_robots").as_int();
     time_step_sec_        = get_parameter("time_step_sec").as_double();
@@ -117,6 +117,8 @@ class MapfPlannerNode : public rclcpp::Node {
     goal_reached_m_       = get_parameter("goal_reached_m").as_double();
     max_pbs_expansions_   = static_cast<size_t>(
         get_parameter("max_pbs_expansions").as_int());
+    cost_exponent_        = get_parameter("cost_exponent").as_double();
+    proximity_penalty_    = get_parameter("proximity_penalty").as_int();
 
     // Подписка на карту.
     // map_server публикует с transient_local — подписчик обязан использовать
@@ -280,8 +282,8 @@ class MapfPlannerNode : public rclcpp::Node {
     std::vector<uint32_t> plan_robot_ids;
     std::vector<geometry_msgs::msg::Point> plan_world_goals;
 
-    // Кэш inflated-карт для валидации start/goal
-    // (те же карты будут пересозданы в solver, но нам нужны уже здесь)
+    // TODO: this local cache duplicates inflate_gradient() work that
+    // PBSSolver::solve() also does.  Could share a common cache.
     std::unordered_map<float, GridMap> inflated_cache;
 
     for (size_t i = 0; i < req->robot_ids.size(); ++i) {
@@ -301,12 +303,12 @@ class MapfPlannerNode : public rclcpp::Node {
       // Старт из одометрии
       const auto& [sx, sy] = current_positions_[rid];
       a.start = world_to_cell(sx, sy, map_origin_x_, map_origin_y_,
-                               map_resolution_, grid_.rows);
+                               map_resolution_, grid_.rows, grid_.cols);
 
       // Цель из запроса
       a.goal = world_to_cell(req->goals[i].x, req->goals[i].y,
                               map_origin_x_, map_origin_y_,
-                              map_resolution_, grid_.rows);
+                              map_resolution_, grid_.rows, grid_.cols);
 
       if (!validate_agent(a, rid, inflated_cache, skipped_ids)) continue;
 
@@ -343,7 +345,9 @@ class MapfPlannerNode : public rclcpp::Node {
 
     const bool ok = solver_.solve(agents, paths,
                                    static_cast<float>(map_resolution_), &stats,
-                                   max_pbs_expansions_);
+                                   max_pbs_expansions_,
+                                   static_cast<float>(cost_exponent_),
+                                   proximity_penalty_);
 
     const double elapsed_ms = std::chrono::duration<double, std::milli>(
         std::chrono::steady_clock::now() - t0).count();
@@ -372,9 +376,10 @@ class MapfPlannerNode : public rclcpp::Node {
       if (d.fail_reason == FailReason::RootPathFailed) {
         const auto& fa = agents[d.fail_agent];
         RCLCPP_ERROR(get_logger(),
-            "  root A* failed for agent %zu: start=(%zu,%zu) goal=(%zu,%zu) radius=%.3fm",
+            "  root A* failed for agent %zu: start=(%zu,%zu) goal=(%zu,%zu) "
+            "footprint=%.3fm inflation=%.3fm",
             fa.id, fa.start.row, fa.start.col, fa.goal.row, fa.goal.col,
-            fa.footprint_radius);
+            fa.footprint_radius, fa.inflation);
       }
 
       if (d.first_conflict.type != ConflictType::None) {
@@ -388,9 +393,10 @@ class MapfPlannerNode : public rclcpp::Node {
       // Per-agent dump at DEBUG level
       for (const auto& a : agents) {
         RCLCPP_DEBUG(get_logger(),
-            "  agent %zu: start=(%zu,%zu) goal=(%zu,%zu) radius=%.3fm",
+            "  agent %zu: start=(%zu,%zu) goal=(%zu,%zu) "
+            "footprint=%.3fm inflation=%.3fm",
             a.id, a.start.row, a.start.col, a.goal.row, a.goal.col,
-            a.footprint_radius);
+            a.footprint_radius, a.inflation);
       }
       return;
     }
@@ -511,13 +517,17 @@ class MapfPlannerNode : public rclcpp::Node {
   {
     const double base_radius = footprint_radii_[rid] > 0.0
         ? footprint_radii_[rid] : default_robot_radius_;
-    a.footprint_radius = static_cast<float>(base_radius + inflation_radius_);
+    a.footprint_radius = static_cast<float>(base_radius);
+    a.inflation = static_cast<float>(inflation_radius_);
 
-    const float fr = a.footprint_radius;
-    if (fr > 0.0f && inflated_cache.find(fr) == inflated_cache.end()) {
-      inflated_cache[fr] = grid_.inflate(fr, static_cast<float>(map_resolution_));
+    // For start/goal validation, use hard-blocked cells from gradient map.
+    // Cells in the soft zone are OK (just penalized in A*).
+    const float soft = a.footprint_radius + a.inflation;
+    if (soft > 0.0f && inflated_cache.find(soft) == inflated_cache.end()) {
+      inflated_cache[soft] = grid_.inflate_gradient(
+          a.footprint_radius, soft, static_cast<float>(map_resolution_));
     }
-    const auto& check_grid = (fr > 0.0f) ? inflated_cache[fr] : grid_;
+    const auto& check_grid = (soft > 0.0f) ? inflated_cache[soft] : grid_;
 
     // Convert cells back to world coords for diagnostics
     double start_wx, start_wy, goal_wx, goal_wy;
@@ -528,16 +538,18 @@ class MapfPlannerNode : public rclcpp::Node {
 
     if (check_grid.blocked[a.start.row * check_grid.cols + a.start.col]) {
       RCLCPP_WARN(get_logger(),
-          "Agent %u: start (%.2f, %.2f) -> cell (%zu, %zu) blocked on inflated map "
-          "(r=%.3fm), skipping entirely",
-          rid, start_wx, start_wy, a.start.row, a.start.col, fr);
+          "Agent %u: start (%.2f, %.2f) -> cell (%zu, %zu) within hard radius "
+          "(%.3fm) of wall, skipping entirely",
+          rid, start_wx, start_wy, a.start.row, a.start.col,
+          a.footprint_radius);
       return false;
     }
     if (check_grid.blocked[a.goal.row * check_grid.cols + a.goal.col]) {
       RCLCPP_WARN(get_logger(),
-          "Agent %u: goal (%.2f, %.2f) -> cell (%zu, %zu) blocked on inflated map "
-          "(r=%.3fm), including as stationary obstacle",
-          rid, goal_wx, goal_wy, a.goal.row, a.goal.col, fr);
+          "Agent %u: goal (%.2f, %.2f) -> cell (%zu, %zu) within hard radius "
+          "(%.3fm) of wall, including as stationary obstacle",
+          rid, goal_wx, goal_wy, a.goal.row, a.goal.col,
+          a.footprint_radius);
       a.goal = a.start;
       skipped_ids.push_back(rid);
     }
@@ -734,6 +746,7 @@ class MapfPlannerNode : public rclcpp::Node {
     std::vector<uint32_t> plan_robot_ids;
     std::vector<geometry_msgs::msg::Point> plan_world_goals;
     std::vector<uint32_t> skipped_ids;
+    // TODO: duplicates inflate_gradient() work from PBSSolver::solve()
     std::unordered_map<float, GridMap> inflated_cache;
 
     for (size_t i = 0; i < active_plan_.robot_ids.size(); ++i) {
@@ -751,18 +764,20 @@ class MapfPlannerNode : public rclcpp::Node {
       // Decide start position
       double sx, sy;
       if (std::hypot(ox - gx, oy - gy) < goal_reached_m_) {
-        // Arrived: stationary obstacle at current position
+        // Arrived: keep original goal so it doesn't drift to an
+        // arbitrary cell that may conflict with other agents' goals.
         sx = ox; sy = oy;
         a.start = world_to_cell(sx, sy, map_origin_x_, map_origin_y_,
-                                 map_resolution_, grid_.rows);
-        a.goal = a.start;
+                                 map_resolution_, grid_.rows, grid_.cols);
+        a.goal = world_to_cell(gx, gy, map_origin_x_, map_origin_y_,
+                                map_resolution_, grid_.rows, grid_.cols);
       } else if (is_deviated || stop_all) {
         // Stopped or deviated: use current odom (exact or close to exact)
         sx = ox; sy = oy;
         a.start = world_to_cell(sx, sy, map_origin_x_, map_origin_y_,
-                                 map_resolution_, grid_.rows);
+                                 map_resolution_, grid_.rows, grid_.cols);
         a.goal = world_to_cell(gx, gy, map_origin_x_, map_origin_y_,
-                                map_resolution_, grid_.rows);
+                                map_resolution_, grid_.rows, grid_.cols);
       } else {
         // On-schedule: predict future position from plan
         if (i < active_plan_.ros_paths.size() && !active_plan_.ros_paths[i].poses.empty()) {
@@ -771,9 +786,9 @@ class MapfPlannerNode : public rclcpp::Node {
           sx = ox; sy = oy;
         }
         a.start = world_to_cell(sx, sy, map_origin_x_, map_origin_y_,
-                                 map_resolution_, grid_.rows);
+                                 map_resolution_, grid_.rows, grid_.cols);
         a.goal = world_to_cell(gx, gy, map_origin_x_, map_origin_y_,
-                                map_resolution_, grid_.rows);
+                                map_resolution_, grid_.rows, grid_.cols);
       }
 
       if (!validate_agent(a, rid, inflated_cache, skipped_ids)) continue;
@@ -809,7 +824,7 @@ class MapfPlannerNode : public rclcpp::Node {
   double time_step_sec_;
   double pbs_resolution_       = 0.2;
   double default_robot_radius_ = 0.22;
-  double inflation_radius_     = 0.55;
+  double inflation_radius_     = 0.5;
 
   // Replanning
   double replan_check_hz_       = 2.0;
@@ -817,9 +832,11 @@ class MapfPlannerNode : public rclcpp::Node {
   double replan_cooldown_sec_   = 5.0;
   double replan_cooldown_factor_= 3.0;
   double replan_predict_sec_    = -1.0;
-  std::string replan_stop_mode_ = "deviated";
+  std::string replan_stop_mode_ = "all";
   double goal_reached_m_        = 0.5;
   size_t max_pbs_expansions_    = 200000;
+  double cost_exponent_         = 2.0;
+  int    proximity_penalty_     = 50;
 
   bool   map_ready_       = false;
   double map_origin_x_    = 0.0;

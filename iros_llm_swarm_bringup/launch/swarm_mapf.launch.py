@@ -86,6 +86,7 @@ def generate_launch_description():
             'use_sim_time':         use_sim_time,
             'map_topic':            '/map',
             'default_robot_radius': 0.22,
+            'inflation_radius':     0.75,
         }],
     )
 

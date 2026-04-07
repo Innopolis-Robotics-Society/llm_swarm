@@ -151,7 +151,7 @@ class PathFollowerNode : public rclcpp::Node
     // Выставляем ориентацию вдоль пути
     fix_orientations(chunk);
 
-    RCLCPP_INFO(get_logger(),
+    RCLCPP_DEBUG(get_logger(),
                 "[%s] sending chunk wp %zu..%zu/%zu  -> (%.2f, %.2f)%s",
                 ns_.c_str(), wp_idx_, stop_idx, poses.size() - 1,
                 poses[stop_idx].pose.position.x,
@@ -160,6 +160,8 @@ class PathFollowerNode : public rclcpp::Node
 
     FollowPath::Goal goal;
     goal.path = chunk;
+    goal.controller_id = "FollowPath";
+    goal.goal_checker_id = "goal_checker";
 
     auto opts = rclcpp_action::Client<FollowPath>::SendGoalOptions{};
 
@@ -194,7 +196,7 @@ class PathFollowerNode : public rclcpp::Node
     // Если нужно ждать по расписанию
     const double wait = (stop_sched - now()).seconds();
     if (wait > 0.02) {
-      RCLCPP_INFO(get_logger(),
+      RCLCPP_DEBUG(get_logger(),
                   "[%s] holding %.2fs at wp %zu per PBS schedule",
                   ns_.c_str(), wait, stop_idx);
       hold_timer_ = create_wall_timer(

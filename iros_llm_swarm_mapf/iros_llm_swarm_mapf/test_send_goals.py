@@ -66,8 +66,9 @@ def main():
                 gy = cy + r * math.sin(ang)
             elif args.goal_x is not None and args.goal_y is not None:
                 # Раскидываем роботов по сетке вокруг целевой точки.
-                # Шаг должен быть > 2 * (robot_radius + inflation_radius),
-                # т.е. > 2 * (0.22 + 0.2) = 0.84м, иначе PBS не найдёт решение.
+                # Шаг должен быть > 2 * robot_radius (hard boundary),
+                # чтобы роботы физически поместились.  Мягкая зона
+                # (inflation) обрабатывается градиентом в PBS.
                 step = 1.0
                 cols_n = math.ceil(math.sqrt(args.num))
                 row_i = i // cols_n
