@@ -36,32 +36,6 @@ struct GridMap {
   std::vector<uint8_t> blocked;  // 1 = hard blocked (wall or within footprint radius)
   std::vector<int>     wall_cost; // gradient penalty near walls (0 = free, >0 = penalty)
 
-  // Binary inflation: all cells within radius are blocked.
-  GridMap inflate(float radius_m, float resolution_m) const {
-    if (radius_m <= 0.0f) return *this;
-    const int r = static_cast<int>(std::ceil(radius_m / resolution_m));
-    GridMap out;
-    out.rows = rows;
-    out.cols = cols;
-    out.blocked.assign(rows * cols, 0);
-    for (size_t row = 0; row < rows; ++row) {
-      for (size_t col = 0; col < cols; ++col) {
-        if (blocked[row * cols + col] == 0) continue;
-        for (int dr = -r; dr <= r; ++dr) {
-          for (int dc = -r; dc <= r; ++dc) {
-            if (dr * dr + dc * dc > r * r) continue;
-            const int nr = static_cast<int>(row) + dr;
-            const int nc = static_cast<int>(col) + dc;
-            if (nr < 0 || nr >= static_cast<int>(rows)) continue;
-            if (nc < 0 || nc >= static_cast<int>(cols)) continue;
-            out.blocked[nr * cols + nc] = 1;
-          }
-        }
-      }
-    }
-    return out;
-  }
-
   // Gradient inflation: cells within hard_r are blocked, cells between
   // hard_r and soft_r get a gradient penalty (max_penalty at hard boundary,
   // 0 at soft boundary).  cost_exponent controls the curve shape:
@@ -243,6 +217,8 @@ class ReservationTable {
     // once per agent in a fixed order.  With skip_until, an agent's
     // entries start later, so indices at the grace boundary may differ —
     // the min(size, size) guard safely skips unmatched trailing entries.
+    // TODO: edge conflicts are silently missed at the grace boundary
+    // timestep. Fix by pairing entries by agent ID, not vector index.
     for (size_t i = 0; i < it->second.size() && i < it_next->second.size(); ++i) {
       const auto& cur  = it->second[i];
       const auto& next = it_next->second[i];
@@ -257,7 +233,6 @@ class ReservationTable {
     return false;
   }
 
-  // Можно ли агенту удерживать цель начиная с from_time?
   // Можно ли агенту удерживать цель начиная с from_time?
   // Uses footprint (hard) radius — agent can hold goal as long as no
   // physical overlap with other agents' paths or held goals.
@@ -431,9 +406,10 @@ class SpaceTimeAStarPlanner {
     return map_->wall_cost.empty() ? 0 : map_->wall_cost[idx(r,c)];
   }
 
-  // Heuristic for A*: precomputed Dijkstra distance from goal (accounts
-  // for wall gradient costs).  Falls back to Manhattan if goal_dists_
-  // is not set (e.g. during testing without full solver context).
+  // Heuristic for A*: precomputed Dijkstra step-distance from goal.
+  // Accounts for wall topology (blocked cells) but excludes penalties.
+  // Admissible — always <= true cost.  Falls back to Manhattan if
+  // goal_dists_ is not set (e.g. during testing).
   int heuristic(const Cell& a, const Cell& b) const {
     if (goal_dists_) {
       const int d = (*goal_dists_)[idx(a.row, a.col)];
@@ -704,7 +680,6 @@ class PBSSolver {
     if (!map_ || agents.empty()) return false;
 
     const size_t n = agents.size();
-    resolution_ = resolution;
     cost_exponent_ = cost_exponent;
     proximity_penalty_ = proximity_penalty;
 
@@ -897,7 +872,6 @@ class PBSSolver {
 
   const GridMap*         map_ = nullptr;
   SpaceTimeAStarPlanner  low_level_;
-  float                  resolution_ = 0.0f;
   float                  cost_exponent_ = 2.0f;
   int                    proximity_penalty_ = 50;
   std::vector<float>     footprint_cells_;  // per-agent hard radius in cells

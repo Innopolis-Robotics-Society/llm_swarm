@@ -44,13 +44,13 @@
 static Cell world_to_cell(double wx, double wy,
                            double origin_x, double origin_y,
                            double resolution,
-                           size_t rows) {
+                           size_t rows, size_t cols) {
   // OccupancyGrid: origin = левый нижний угол.
   // row = 0 соответствует y = origin_y (низ карты).
   const size_t col = static_cast<size_t>((wx - origin_x) / resolution);
   const size_t row = static_cast<size_t>((wy - origin_y) / resolution);
   // Ограничиваем на всякий случай
-  return {std::min(row, rows - 1), col};
+  return {std::min(row, rows - 1), std::min(col, cols - 1)};
 }
 
 static void cell_to_world(const Cell& c,
@@ -282,8 +282,8 @@ class MapfPlannerNode : public rclcpp::Node {
     std::vector<uint32_t> plan_robot_ids;
     std::vector<geometry_msgs::msg::Point> plan_world_goals;
 
-    // Кэш inflated-карт для валидации start/goal
-    // (те же карты будут пересозданы в solver, но нам нужны уже здесь)
+    // TODO: this local cache duplicates inflate_gradient() work that
+    // PBSSolver::solve() also does.  Could share a common cache.
     std::unordered_map<float, GridMap> inflated_cache;
 
     for (size_t i = 0; i < req->robot_ids.size(); ++i) {
@@ -303,12 +303,12 @@ class MapfPlannerNode : public rclcpp::Node {
       // Старт из одометрии
       const auto& [sx, sy] = current_positions_[rid];
       a.start = world_to_cell(sx, sy, map_origin_x_, map_origin_y_,
-                               map_resolution_, grid_.rows);
+                               map_resolution_, grid_.rows, grid_.cols);
 
       // Цель из запроса
       a.goal = world_to_cell(req->goals[i].x, req->goals[i].y,
                               map_origin_x_, map_origin_y_,
-                              map_resolution_, grid_.rows);
+                              map_resolution_, grid_.rows, grid_.cols);
 
       if (!validate_agent(a, rid, inflated_cache, skipped_ids)) continue;
 
@@ -746,6 +746,7 @@ class MapfPlannerNode : public rclcpp::Node {
     std::vector<uint32_t> plan_robot_ids;
     std::vector<geometry_msgs::msg::Point> plan_world_goals;
     std::vector<uint32_t> skipped_ids;
+    // TODO: duplicates inflate_gradient() work from PBSSolver::solve()
     std::unordered_map<float, GridMap> inflated_cache;
 
     for (size_t i = 0; i < active_plan_.robot_ids.size(); ++i) {
@@ -767,16 +768,16 @@ class MapfPlannerNode : public rclcpp::Node {
         // arbitrary cell that may conflict with other agents' goals.
         sx = ox; sy = oy;
         a.start = world_to_cell(sx, sy, map_origin_x_, map_origin_y_,
-                                 map_resolution_, grid_.rows);
+                                 map_resolution_, grid_.rows, grid_.cols);
         a.goal = world_to_cell(gx, gy, map_origin_x_, map_origin_y_,
-                                map_resolution_, grid_.rows);
+                                map_resolution_, grid_.rows, grid_.cols);
       } else if (is_deviated || stop_all) {
         // Stopped or deviated: use current odom (exact or close to exact)
         sx = ox; sy = oy;
         a.start = world_to_cell(sx, sy, map_origin_x_, map_origin_y_,
-                                 map_resolution_, grid_.rows);
+                                 map_resolution_, grid_.rows, grid_.cols);
         a.goal = world_to_cell(gx, gy, map_origin_x_, map_origin_y_,
-                                map_resolution_, grid_.rows);
+                                map_resolution_, grid_.rows, grid_.cols);
       } else {
         // On-schedule: predict future position from plan
         if (i < active_plan_.ros_paths.size() && !active_plan_.ros_paths[i].poses.empty()) {
@@ -785,9 +786,9 @@ class MapfPlannerNode : public rclcpp::Node {
           sx = ox; sy = oy;
         }
         a.start = world_to_cell(sx, sy, map_origin_x_, map_origin_y_,
-                                 map_resolution_, grid_.rows);
+                                 map_resolution_, grid_.rows, grid_.cols);
         a.goal = world_to_cell(gx, gy, map_origin_x_, map_origin_y_,
-                                map_resolution_, grid_.rows);
+                                map_resolution_, grid_.rows, grid_.cols);
       }
 
       if (!validate_agent(a, rid, inflated_cache, skipped_ids)) continue;
@@ -831,7 +832,7 @@ class MapfPlannerNode : public rclcpp::Node {
   double replan_cooldown_sec_   = 5.0;
   double replan_cooldown_factor_= 3.0;
   double replan_predict_sec_    = -1.0;
-  std::string replan_stop_mode_ = "deviated";
+  std::string replan_stop_mode_ = "all";
   double goal_reached_m_        = 0.5;
   size_t max_pbs_expansions_    = 200000;
   double cost_exponent_         = 2.0;
