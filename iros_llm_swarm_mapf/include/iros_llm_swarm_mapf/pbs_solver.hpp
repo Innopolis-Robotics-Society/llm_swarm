@@ -113,7 +113,6 @@ using Path = std::vector<Cell>;
 // Enum-ы
 // ---------------------------------------------------------------------------
 
-enum class HeuristicType { Manhattan };
 
 enum class ConflictType { None, Vertex, Edge };
 
@@ -317,10 +316,11 @@ class ReservationTable {
 
 class SpaceTimeAStarPlanner {
  public:
-  explicit SpaceTimeAStarPlanner(HeuristicType h = HeuristicType::Manhattan)
-      : heuristic_type_(h) {}
+  SpaceTimeAStarPlanner() = default;
 
   void reset_map(const GridMap* map) { map_ = map; }
+  const GridMap* current_map() const { return map_; }
+  void set_goal_dists(const std::vector<int>* d) { goal_dists_ = d; }
 
   // my_footprint_cells — physical (hard) radius of this agent in cells.
   // my_soft_cells — footprint + inflation in cells (outer penalty boundary).
@@ -408,7 +408,7 @@ class SpaceTimeAStarPlanner {
   };
 
   const GridMap*  map_           = nullptr;
-  HeuristicType   heuristic_type_;
+  const std::vector<int>* goal_dists_ = nullptr;  // precomputed Dijkstra from goal
   float           my_footprint_  = 0.0f;   // current agent's hard radius in cells
   float           my_soft_       = 0.0f;   // current agent's soft radius in cells
   float           cost_exponent_ = 2.0f;   // gradient curve shape
@@ -431,7 +431,14 @@ class SpaceTimeAStarPlanner {
     return map_->wall_cost.empty() ? 0 : map_->wall_cost[idx(r,c)];
   }
 
+  // Heuristic for A*: precomputed Dijkstra distance from goal (accounts
+  // for wall gradient costs).  Falls back to Manhattan if goal_dists_
+  // is not set (e.g. during testing without full solver context).
   int heuristic(const Cell& a, const Cell& b) const {
+    if (goal_dists_) {
+      const int d = (*goal_dists_)[idx(a.row, a.col)];
+      return d < INF ? d : INF;
+    }
     const int dr = a.row > b.row ? a.row - b.row : b.row - a.row;
     const int dc = a.col > b.col ? a.col - b.col : b.col - a.col;
     return dr + dc;
@@ -669,12 +676,12 @@ class PriorityGraph {
 
 class PBSSolver {
  public:
-  explicit PBSSolver(HeuristicType h = HeuristicType::Manhattan)
-      : low_level_(h) {}
+  PBSSolver() = default;
 
   void set_map(const GridMap* map) {
     map_ = map;
     inflated_cache_.clear();
+    dist_cache_.clear();
   }
 
   // Основной вызов. Возвращает true если решение найдено.
@@ -719,22 +726,35 @@ class PBSSolver {
       }
     }
 
-    // max_t = максимальное манхэттенское расстояние среди всех агентов * 4
-    // (запас на обходы и ожидания), но не меньше 64 и не больше 600.
-    // Критично: карта 600x600 = 360k клеток, при max_t=1000
-    // Space-Time A* выделяет 360M состояний и зависает.
-    // Per-agent Manhattan distances (used for branch ordering heuristic)
+    // Precompute Dijkstra distances from each agent's goal on its
+    // gradient map.  Used as A* heuristic and for agent ordering.
+    // Cached by goal cell index (agents sharing a goal reuse the map).
+    agent_goal_dists_.resize(n);
+    for (size_t i = 0; i < n; ++i) {
+      set_agent_map(agents[i]);
+      const size_t key = agents[i].goal.row * map_->cols + agents[i].goal.col;
+      if (dist_cache_.find(key) == dist_cache_.end()) {
+        dist_cache_[key] = dijkstra_from(*low_level_.current_map(),
+                                          agents[i].goal);
+      }
+      agent_goal_dists_[i] = &dist_cache_[key];
+    }
+
+    // Per-agent true distances (Dijkstra cost from start to goal).
+    // Used for branch ordering and root path ordering.
     agent_dists_.resize(n);
     size_t max_dist = 0;
     for (size_t i = 0; i < n; ++i) {
-      const auto& a = agents[i];
-      const size_t dr = a.start.row > a.goal.row
-          ? a.start.row - a.goal.row : a.goal.row - a.start.row;
-      const size_t dc = a.start.col > a.goal.col
-          ? a.start.col - a.goal.col : a.goal.col - a.start.col;
-      agent_dists_[i] = dr + dc;
+      const size_t si = agents[i].start.row * map_->cols + agents[i].start.col;
+      const int d = (*agent_goal_dists_[i])[si];
+      agent_dists_[i] = d < std::numeric_limits<int>::max() / 4
+          ? static_cast<size_t>(d) : 0;
       max_dist = std::max(max_dist, agent_dists_[i]);
     }
+
+    // max_t: time horizon for Space-Time A*.
+    // Критично: карта 600x600 = 360k клеток, при max_t=1000
+    // Space-Time A* выделяет 360M состояний и зависает.
     const size_t max_t = std::min<size_t>(max_dist * 4 + 64, 600);
 
     // Корневой узел: sequential root planning.
@@ -750,19 +770,13 @@ class PBSSolver {
     std::vector<size_t> root_order(n);
     for (size_t i = 0; i < n; ++i) root_order[i] = i;
     std::sort(root_order.begin(), root_order.end(), [&](size_t a, size_t b) {
-      auto dist = [&](size_t i) -> size_t {
-        const auto& ag = agents[i];
-        return (ag.start.row > ag.goal.row ? ag.start.row - ag.goal.row
-                                           : ag.goal.row - ag.start.row) +
-               (ag.start.col > ag.goal.col ? ag.start.col - ag.goal.col
-                                           : ag.goal.col - ag.start.col);
-      };
-      return dist(a) > dist(b);
+      return agent_dists_[a] > agent_dists_[b];
     });
 
     ReservationTable root_res;
     for (size_t idx : root_order) {
       set_agent_map(agents[idx]);
+      low_level_.set_goal_dists(agent_goal_dists_[idx]);
       if (!low_level_.find_path(agents[idx].start, agents[idx].goal,
                                  root_res, footprint_cells_[idx], soft_cells_[idx],
                                  max_t, root.paths[idx],
@@ -882,10 +896,55 @@ class PBSSolver {
   int                    proximity_penalty_ = 50;
   std::vector<float>     footprint_cells_;  // per-agent hard radius in cells
   std::vector<float>     soft_cells_;       // per-agent soft radius in cells
-  std::vector<size_t>    agent_dists_;      // per-agent Manhattan distance to goal
+  std::vector<size_t>    agent_dists_;      // per-agent true distance to goal
+  std::vector<const std::vector<int>*> agent_goal_dists_;  // per-agent Dijkstra map
 
   // Кэш gradient-inflated карт: soft_radius (в метрах) -> GridMap
   std::unordered_map<float, GridMap> inflated_cache_;
+
+  // Dijkstra distance cache: goal_cell_index -> distance map.
+  // Precomputed backward from each goal on the agent's gradient map.
+  std::unordered_map<size_t, std::vector<int>> dist_cache_;
+
+  // Compute shortest-path costs from every cell to the goal, accounting
+  // for wall gradient costs.  Runs Dijkstra backward from the goal.
+  static std::vector<int> dijkstra_from(const GridMap& map, const Cell& goal) {
+    const size_t N = map.rows * map.cols;
+    static constexpr int INF = std::numeric_limits<int>::max() / 4;
+    std::vector<int> dist(N, INF);
+
+    using Pair = std::pair<int, size_t>;
+    std::priority_queue<Pair, std::vector<Pair>, std::greater<Pair>> pq;
+
+    const size_t gi = goal.row * map.cols + goal.col;
+    dist[gi] = 0;
+    pq.push({0, gi});
+
+    while (!pq.empty()) {
+      const auto [d, ci] = pq.top(); pq.pop();
+      if (d > dist[ci]) continue;
+
+      const size_t r = ci / map.cols;
+      const size_t c = ci % map.cols;
+
+      auto relax = [&](size_t nr, size_t nc) {
+        if (nr >= map.rows || nc >= map.cols) return;
+        const size_t ni = nr * map.cols + nc;
+        if (map.blocked[ni]) return;
+        const int cost = d + 1 + (map.wall_cost.empty() ? 0 : map.wall_cost[ni]);
+        if (cost < dist[ni]) {
+          dist[ni] = cost;
+          pq.push({cost, ni});
+        }
+      };
+
+      if (r > 0)            relax(r - 1, c);
+      if (r + 1 < map.rows) relax(r + 1, c);
+      if (c > 0)            relax(r, c - 1);
+      if (c + 1 < map.cols) relax(r, c + 1);
+    }
+    return dist;
+  }
 
   // Установить карту для A* конкретного агента (gradient-inflated).
   // Маленькие роботы получают менее раздутую карту и могут проходить
@@ -938,6 +997,7 @@ class PBSSolver {
 
       // Используем gradient-inflated карту для данного агента
       set_agent_map(agents[ai]);
+      low_level_.set_goal_dists(agent_goal_dists_[ai]);
       Path p;
       if (!low_level_.find_path(agents[ai].start, agents[ai].goal,
                                  res, footprint_cells_[ai], soft_cells_[ai],

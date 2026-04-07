@@ -68,8 +68,7 @@ static void cell_to_world(const Cell& c,
 class MapfPlannerNode : public rclcpp::Node {
  public:
   MapfPlannerNode()
-      : Node("mapf_planner"),
-        solver_(HeuristicType::Manhattan) {
+      : Node("mapf_planner") {
 
     using SetGoals = iros_llm_swarm_interfaces::srv::SetGoals;
 
