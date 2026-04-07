@@ -314,7 +314,11 @@ class MapfPlannerNode : public rclcpp::Node {
 
       agents.push_back(a);
       plan_robot_ids.push_back(rid);
-      plan_world_goals.push_back(req->goals[i]);
+      double gwx, gwy;
+      cell_to_world(a.goal, map_origin_x_, map_origin_y_, map_resolution_, gwx, gwy);
+      plan_world_goals.push_back(geometry_msgs::msg::Point());
+      plan_world_goals.back().x = gwx;
+      plan_world_goals.back().y = gwy;
     }
 
     if (agents.empty()) {
@@ -335,7 +339,7 @@ class MapfPlannerNode : public rclcpp::Node {
                const std::vector<geometry_msgs::msg::Point>& plan_world_goals,
                const std::vector<uint32_t>& skipped_ids,
                iros_llm_swarm_interfaces::srv::SetGoals::Response::SharedPtr res) {
-    RCLCPP_DEBUG(get_logger(), "Planning for %zu agents...", agents.size());
+    RCLCPP_INFO(get_logger(), "Planning for %zu agents...", agents.size());
 
     solver_.set_map(&grid_);
 
@@ -443,6 +447,7 @@ class MapfPlannerNode : public rclcpp::Node {
     } else {
       res->message = "OK, skipped agents (blocked goal, stationary):";
       for (uint32_t id : skipped_ids) res->message += " " + std::to_string(id);
+      RCLCPP_WARN(get_logger(), "%s", res->message.c_str());
     }
   }
 
@@ -537,7 +542,7 @@ class MapfPlannerNode : public rclcpp::Node {
                   goal_wx, goal_wy);
 
     if (check_grid.blocked[a.start.row * check_grid.cols + a.start.col]) {
-      RCLCPP_WARN_ONCE(get_logger(),
+      RCLCPP_DEBUG(get_logger(),
           "Agent %u: start (%.2f, %.2f) -> cell (%zu, %zu) within hard radius "
           "(%.3fm) of wall, skipping entirely",
           rid, start_wx, start_wy, a.start.row, a.start.col,
@@ -545,7 +550,7 @@ class MapfPlannerNode : public rclcpp::Node {
       return false;
     }
     if (check_grid.blocked[a.goal.row * check_grid.cols + a.goal.col]) {
-      RCLCPP_WARN_ONCE(get_logger(),
+      RCLCPP_DEBUG(get_logger(),
           "Agent %u: goal (%.2f, %.2f) -> cell (%zu, %zu) within hard radius "
           "(%.3fm) of wall, including as stationary obstacle",
           rid, goal_wx, goal_wy, a.goal.row, a.goal.col,
@@ -626,7 +631,27 @@ class MapfPlannerNode : public rclcpp::Node {
 
     const rclcpp::Time now_t = now();
 
-    // Adaptive cooldown: max(configured, factor * last_planning_time)
+    // Always check arrival, even during cooldown
+    size_t active_count = 0;
+    for (size_t i = 0; i < active_plan_.robot_ids.size(); ++i) {
+      const uint32_t rid = active_plan_.robot_ids[i];
+      if (rid >= static_cast<uint32_t>(num_robots_) || !have_odom_[rid]) continue;
+      const auto& [ax, ay] = current_positions_[rid];
+      const double gx = active_plan_.goals[i].x;
+      const double gy = active_plan_.goals[i].y;
+      if (std::hypot(ax - gx, ay - gy) >= goal_reached_m_) ++active_count;
+    }
+
+    if (active_count == 0) {
+      RCLCPP_INFO(get_logger(),
+          "==== ALL %zu ROBOTS REACHED THEIR GOALS! Mission complete, awaiting new goals ====",
+          active_plan_.robot_ids.size());
+      stop_monitoring();
+      return;
+    }
+
+    // Adaptive cooldown: max(configured, factor * last_planning_time).
+    // Only gates replanning, not arrival detection above.
     const double adaptive_cd = replan_cooldown_factor_ * last_planning_ms_ / 1000.0;
     const double eff_cooldown = std::max(replan_cooldown_sec_, adaptive_cd);
     if (last_replan_time_.nanoseconds() > 0 &&
@@ -634,9 +659,8 @@ class MapfPlannerNode : public rclcpp::Node {
       return;
     }
 
+    // Check deviations from schedule
     std::vector<uint32_t> deviated_ids;
-    size_t active_count = 0;
-
     for (size_t i = 0; i < active_plan_.robot_ids.size(); ++i) {
       const uint32_t rid = active_plan_.robot_ids[i];
       if (rid >= static_cast<uint32_t>(num_robots_) || !have_odom_[rid]) continue;
@@ -645,12 +669,8 @@ class MapfPlannerNode : public rclcpp::Node {
       const double gx = active_plan_.goals[i].x;
       const double gy = active_plan_.goals[i].y;
 
-      // Robot reached goal?
       if (std::hypot(ax - gx, ay - gy) < goal_reached_m_) continue;
 
-      ++active_count;
-
-      // Check deviation from schedule
       if (i >= active_plan_.ros_paths.size()) continue;
       const auto& path = active_plan_.ros_paths[i];
       if (path.poses.empty()) continue;
@@ -664,12 +684,6 @@ class MapfPlannerNode : public rclcpp::Node {
             rid, deviation, ax, ay, ex, ey);
         deviated_ids.push_back(rid);
       }
-    }
-
-    if (active_count == 0) {
-      RCLCPP_INFO(get_logger(), "All robots reached goals, stopping schedule monitor");
-      stop_monitoring();
-      return;
     }
 
     if (!deviated_ids.empty()) {
@@ -795,7 +809,11 @@ class MapfPlannerNode : public rclcpp::Node {
 
       agents.push_back(a);
       plan_robot_ids.push_back(rid);
-      plan_world_goals.push_back(active_plan_.goals[i]);
+      double gwx, gwy;
+      cell_to_world(a.goal, map_origin_x_, map_origin_y_, map_resolution_, gwx, gwy);
+      plan_world_goals.push_back(geometry_msgs::msg::Point());
+      plan_world_goals.back().x = gwx;
+      plan_world_goals.back().y = gwy;
     }
 
     if (agents.empty()) {
