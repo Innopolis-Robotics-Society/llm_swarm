@@ -466,7 +466,12 @@ class SpaceTimeAStarPlanner {
              size_t sp) {
     if (is_blocked(nr, nc)) return;
 
-    int penalty = wall_penalty(nr, nc);
+    const size_t ni = idx(nr, nc);
+    const bool moving = (ni != ci);
+
+    // Wall penalty only when entering a new cell (not waiting).
+    // Agent penalty every timestep (occupying space near them).
+    int penalty = moving ? wall_penalty(nr, nc) : 0;
 
     const int agent_pen = res.vertex_penalty(
         nr, nc, nt, my_footprint_, my_soft_,
@@ -479,12 +484,13 @@ class SpaceTimeAStarPlanner {
     if (res.is_edge_blocked(from_cell.row, from_cell.col, nr, nc, ct, my_footprint_))
       return;
 
-    const size_t ni = idx(nr, nc);
     const size_t cs = state_idx(ci, ct, sp);
     const size_t ns = state_idx(ni, nt, sp);
     if (is_closed(ns)) return;
 
-    const int tg = get_g(cs) + 1 + penalty;
+    // Every timestep costs 1.  Movement adds 1 more — agents prefer
+    // waiting over unnecessary walking.
+    const int tg = get_g(cs) + 1 + (moving ? 1 : 0) + penalty;
     if (tg < get_g(ns)) {
       set_g(ns, tg);
       parent_[ns] = cs;
@@ -906,8 +912,11 @@ class PBSSolver {
   // Precomputed backward from each goal on the agent's gradient map.
   std::unordered_map<size_t, std::vector<int>> dist_cache_;
 
-  // Compute shortest-path costs from every cell to the goal, accounting
-  // for wall gradient costs.  Runs Dijkstra backward from the goal.
+  // Compute shortest-path distances (in steps) from every cell to the
+  // goal.  Accounts for wall topology (blocked cells) but excludes
+  // gradient penalties — gives true step count, not cost.
+  // Used as A* heuristic (admissible: real cost >= steps) and for
+  // agent ordering / max_t computation.
   static std::vector<int> dijkstra_from(const GridMap& map, const Cell& goal) {
     const size_t N = map.rows * map.cols;
     static constexpr int INF = std::numeric_limits<int>::max() / 4;
@@ -931,7 +940,7 @@ class PBSSolver {
         if (nr >= map.rows || nc >= map.cols) return;
         const size_t ni = nr * map.cols + nc;
         if (map.blocked[ni]) return;
-        const int cost = d + 1 + (map.wall_cost.empty() ? 0 : map.wall_cost[ni]);
+        const int cost = d + 1;
         if (cost < dist[ni]) {
           dist[ni] = cost;
           pq.push({cost, ni});
