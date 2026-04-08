@@ -56,9 +56,15 @@ class PathFollowerNode : public rclcpp::Node
   // ------------------------------------------------------------------
   void on_path(const nav_msgs::msg::Path::SharedPtr msg)
   {
-    if (msg->poses.empty()) return;
+    // Empty path = cancel signal (replanner stops deviated robots)
+    if (msg->poses.empty()) {
+      RCLCPP_DEBUG(get_logger(), "[%s] received empty path — cancelling", ns_.c_str());
+      cancel_current();
+      pending_path_.reset();
+      return;
+    }
 
-    RCLCPP_INFO(get_logger(), "[%s] new path: %zu waypoints",
+    RCLCPP_DEBUG(get_logger(), "[%s] new path: %zu waypoints",
                 ns_.c_str(), msg->poses.size());
 
     // Отменяем текущее движение если есть
@@ -96,7 +102,7 @@ class PathFollowerNode : public rclcpp::Node
   void send_next_chunk()
   {
     if (!pending_path_ || wp_idx_ >= pending_path_->poses.size()) {
-      RCLCPP_INFO(get_logger(), "[%s] path complete", ns_.c_str());
+      RCLCPP_DEBUG(get_logger(), "[%s] path complete", ns_.c_str());
       pending_path_.reset();
       return;
     }
@@ -145,7 +151,7 @@ class PathFollowerNode : public rclcpp::Node
     // Выставляем ориентацию вдоль пути
     fix_orientations(chunk);
 
-    RCLCPP_INFO(get_logger(),
+    RCLCPP_DEBUG(get_logger(),
                 "[%s] sending chunk wp %zu..%zu/%zu  -> (%.2f, %.2f)%s",
                 ns_.c_str(), wp_idx_, stop_idx, poses.size() - 1,
                 poses[stop_idx].pose.position.x,
@@ -154,6 +160,8 @@ class PathFollowerNode : public rclcpp::Node
 
     FollowPath::Goal goal;
     goal.path = chunk;
+    goal.controller_id = "FollowPath";
+    goal.goal_checker_id = "goal_checker";
 
     auto opts = rclcpp_action::Client<FollowPath>::SendGoalOptions{};
 
@@ -180,7 +188,7 @@ class PathFollowerNode : public rclcpp::Node
   {
     // Если путь закончился
     if (!pending_path_ || stop_idx >= pending_path_->poses.size() - 1) {
-      RCLCPP_INFO(get_logger(), "[%s] path complete", ns_.c_str());
+      RCLCPP_DEBUG(get_logger(), "[%s] path complete", ns_.c_str());
       pending_path_.reset();
       return;
     }
@@ -188,7 +196,7 @@ class PathFollowerNode : public rclcpp::Node
     // Если нужно ждать по расписанию
     const double wait = (stop_sched - now()).seconds();
     if (wait > 0.02) {
-      RCLCPP_INFO(get_logger(),
+      RCLCPP_DEBUG(get_logger(),
                   "[%s] holding %.2fs at wp %zu per PBS schedule",
                   ns_.c_str(), wait, stop_idx);
       hold_timer_ = create_wall_timer(

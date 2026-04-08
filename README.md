@@ -5,11 +5,13 @@ Multi-robot simulation on ROS 2 Humble with Nav2 local navigation stack. Runs 20
 ## Quick Start (Docker)
 
 Run container:
+
 ```bash
 docker compose up terminal
 ```
 
 Attach to the container:
+
 ```bash
 docker compose exec terminal bash
 ```
@@ -24,12 +26,12 @@ ros2 launch iros_llm_swarm_bringup swarm_warehouse.launch.py
 
 ### Launch Arguments
 
-| Argument | Default | Description |
-|---|---|---|
-| `num_robots` | `20` | Number of robots to controll by system (still spawn as many robots as there are in the world file) |
-| `world_file` | `warehouse.world` | Stage world file path |
-| `rviz_cfg` | `swarm_20.rviz` | common RViz config for 20 robots |
-| `use_sim_time` | `true` | Use simulation clock |
+| Argument       | Default           | Description                                                                                        |
+| -------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
+| `num_robots`   | `20`              | Number of robots to controll by system (still spawn as many robots as there are in the world file) |
+| `world_file`   | `warehouse.world` | Stage world file path                                                                              |
+| `rviz_cfg`     | `swarm_20.rviz`   | common RViz config for 20 robots                                                                   |
+| `use_sim_time` | `true`            | Use simulation clock                                                                               |
 
 ```bash
 # Example: launch with 5 robots under nav2 controll
@@ -41,27 +43,31 @@ ros2 launch iros_llm_swarm_bringup swarm_warehouse.launch.py num_robots:=5
 You can play around with swarm a little:
 
 You can send everyone to the same point by following command:
+
 ```bash
 ros2 run iros_llm_swarm_local_nav test_local_planne --num 20 --goal-x <replace> --goal-y <replace>
 ```
 
 Or send everyone to their own random point within a radius:
+
 ```bash
 ros2 run iros_llm_swarm_local_nav test_local_planne --num 20 --radius <replace>
 ```
 
-> *notes:* num - determines the number of robots that will receive the command
+> _notes:_ num - determines the number of robots that will receive the command
 
-> *Behaviour explanation:* They will all approach the obstacle and stop, since the local planner is unable to handle obstacles; it will simply get upset at the wall and that's it
+> _Behaviour explanation:_ They will all approach the obstacle and stop, since the local planner is unable to handle obstacles; it will simply get upset at the wall and that's it
 
 ### MAPF tests
 
 Launch the full MAPF stack first:
+
 ```bash
 ros2 launch iros_llm_swarm_bringup swarm_mapf.launch.py
 ```
 
 Then send goals via the `/swarm/set_goals` service:
+
 ```bash
 ros2 run iros_llm_swarm_mapf test_send_goals --goal-x 15.0 --goal-y 15.0
 ros2 run iros_llm_swarm_mapf test_send_goals --random --radius 5.0
@@ -101,7 +107,43 @@ Custom Nav2 costmap layer plugin. Provides `ResettingObstacleLayer` — a drop-i
 
 ### `iros_llm_swarm_mapf`
 
-Footprint-aware PBS (Priority-Based Search) MAPF planner. Accepts goals via `/swarm/set_goals` service (SetGoals), reads start positions from odometry and footprints from Nav2. Plans conflict-free time-indexed paths on a downsampled grid (0.2m/cell) with per-agent inflated maps and distance-based reservation tables. Path followers execute paths with temporal synchronization via Nav2 `follow_path` action.
+PBS (Priority-Based Search) MAPF planner with gradient inflation. Header-only C++17 solver (`pbs_solver.hpp`). Accepts goals via `/swarm/set_goals` service (SetGoals), reads start positions from odometry and footprints from Nav2. Plans conflict-free time-indexed paths on a downsampled grid (0.2m/cell).
+
+#### How the solver works
+
+Each agent has two radii: physical footprint (hard — overlap forbidden) and inflation zone (soft — gradient penalty). Closer to the hard boundary = higher cost. Robots naturally keep distance but can approach when forced. Same model for walls.
+
+```
+  distance:   [ 0 ····· hard ············· soft ··· ∞ ]
+  cost:       [ FORBIDDEN | max penalty -> 0 |  free  ]
+```
+
+Initial paths are computed sequentially — agents with furthest goals plan first (most freedom), stationary agents plan last (must yield). If sequential planning fails for an agent (too constrained by previously reserved paths), it falls back to independent planning and lets PBS resolve the conflicts.
+
+PBS then searches for a conflict-free ordering: detects physical-overlap conflicts (hard radius only), branches by assigning priority to one agent over another, replans the lower-priority agent around the higher. Branch heuristic: further-goal agent gets priority first.
+
+Low-level pathfinding uses Space-Time A\* with a Dijkstra-precomputed heuristic (true step-distance from goal, accounting for wall topology). Cost model: every timestep costs 1, movement adds 1 more — robots prefer waiting over unnecessary walking. Wall gradient penalty charged only on cell entry, agent proximity penalty per-timestep. Agents can start at positions overlapping with reservations (needed during replanning when robots are close together) — A\* finds a diverging path from there.
+
+During PBS replanning, agents whose starts physically overlap get a grace period: the overlapping agent's reservation entries are skipped for the first few timesteps, giving both agents time to separate before collision avoidance kicks in.
+
+After paths are published, schedule monitoring compares robot positions to the plan. On deviation, triggers replanning from current positions with adaptive cooldown. Arrived robots keep their original goals to prevent drift-induced conflicts.
+
+Path followers chunk paths at hold points and send to Nav2 `follow_path` with temporal synchronization.
+
+#### Key parameters
+
+| Parameter | Default | Description |
+|---|---|---|
+| `default_robot_radius` | 0.22 | Physical footprint radius (m) |
+| `inflation_radius` | 0.5 (0.75 in launch) | Gradient zone width beyond footprint (m) |
+| `cost_exponent` | 2.0 | Gradient curve shape (1=linear, 2=quadratic) |
+| `proximity_penalty` | 50 | Cost per step at the hard boundary |
+| `pbs_resolution` | 0.2 | PBS grid cell size (m), map downsampled from 0.05 |
+| `max_pbs_expansions` | 200000 | PBS node expansion limit |
+| `time_step_sec` | 0.4 | Seconds per PBS grid step |
+| `replan_check_hz` | 2.0 | Schedule deviation check rate (Hz) |
+| `replan_threshold_m` | 1.0 | Deviation distance to trigger replan (m) |
+| `replan_cooldown_sec` | 5.0 | Min cooldown between replans (s) |
 
 ### `iros_llm_swarm_formation`
 
@@ -131,15 +173,14 @@ DDS and performance tuning scripts are in `src/scripts/`:
 - `cyclonedds_swarm.xml` — CycloneDDS config optimized for multi-robot comms
 - `setup_swarm_env.sh` — environment variable setup (DDS config, domain ID, etc.)
 
-
 ## Project Roadmap
 
 - [x] 2D Stage simulation with 20 robots + Nav2 local nav
-- [x] MAPF with footprint-aware PBS planner + service API
+- [x] MAPF with PBS planner, gradient inflation, and service API
+- [x] Schedule-based replanning with adaptive cooldown
 - [x] Formation control (leader-follower with PD controllers)
 - [ ] MAPF improvements
   - [ ] Formation-aware MAPF (plan formations as single entities with compound footprints)
-  - [ ] Schedule-based replanning (re-plan when robots fall behind)
   - [ ] 8-connected grid movement (diagonal paths)
   - [ ] Orientation-aware PBS for complex polygon footprints
 - [ ] Fault tolerance and communication loss handling
