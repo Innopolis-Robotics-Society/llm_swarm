@@ -92,8 +92,9 @@ class MapfPlannerNode : public rclcpp::Node {
     declare_parameter("replan_predict_sec",  -1.0);
     declare_parameter("replan_stop_mode",     std::string("all"));
     declare_parameter("goal_reached_m",       0.5);
-    declare_parameter("max_pbs_expansions",   200000);
-    declare_parameter("cost_exponent",        2.0);
+    declare_parameter("max_pbs_expansions",   5000);
+    declare_parameter("max_astar_expansions", 200000);
+    declare_parameter("cost_curve",           std::string("quadratic"));
     declare_parameter("proximity_penalty",    50);
 
     num_robots_           = get_parameter("num_robots").as_int();
@@ -117,7 +118,20 @@ class MapfPlannerNode : public rclcpp::Node {
     goal_reached_m_       = get_parameter("goal_reached_m").as_double();
     max_pbs_expansions_   = static_cast<size_t>(
         get_parameter("max_pbs_expansions").as_int());
-    cost_exponent_        = get_parameter("cost_exponent").as_double();
+    max_astar_expansions_ = static_cast<size_t>(
+        get_parameter("max_astar_expansions").as_int());
+    {
+      const auto curve_str = get_parameter("cost_curve").as_string();
+      if (curve_str == "linear")         cost_curve_ = CostCurve::Linear;
+      else if (curve_str == "quadratic") cost_curve_ = CostCurve::Quadratic;
+      else if (curve_str == "cubic")     cost_curve_ = CostCurve::Cubic;
+      else {
+        RCLCPP_ERROR(get_logger(),
+            "Invalid cost_curve '%s', must be 'linear', 'quadratic', or 'cubic'. "
+            "Falling back to 'quadratic'.", curve_str.c_str());
+        cost_curve_ = CostCurve::Quadratic;
+      }
+    }
     proximity_penalty_    = get_parameter("proximity_penalty").as_int();
 
     // Подписка на карту.
@@ -350,8 +364,9 @@ class MapfPlannerNode : public rclcpp::Node {
     const bool ok = solver_.solve(agents, paths,
                                    static_cast<float>(map_resolution_), &stats,
                                    max_pbs_expansions_,
-                                   static_cast<float>(cost_exponent_),
-                                   proximity_penalty_);
+                                   cost_curve_,
+                                   proximity_penalty_,
+                                   max_astar_expansions_);
 
     const double elapsed_ms = std::chrono::duration<double, std::milli>(
         std::chrono::steady_clock::now() - t0).count();
@@ -852,8 +867,9 @@ class MapfPlannerNode : public rclcpp::Node {
   double replan_predict_sec_    = -1.0;
   std::string replan_stop_mode_ = "all";
   double goal_reached_m_        = 0.5;
-  size_t max_pbs_expansions_    = 200000;
-  double cost_exponent_         = 2.0;
+  size_t max_pbs_expansions_    = 5000;
+  size_t max_astar_expansions_  = 200000;
+  CostCurve cost_curve_         = CostCurve::Quadratic;
   int    proximity_penalty_     = 50;
 
   bool   map_ready_       = false;

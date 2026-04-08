@@ -17,6 +17,18 @@
 // Базовые структуры
 // ---------------------------------------------------------------------------
 
+enum class CostCurve { Linear, Quadratic, Cubic };
+
+// Fast pow replacement: avoids std::pow() in hot paths.
+inline float apply_curve(float ratio, CostCurve curve) {
+  switch (curve) {
+    case CostCurve::Linear:    return ratio;
+    case CostCurve::Quadratic: return ratio * ratio;
+    case CostCurve::Cubic:     return ratio * ratio * ratio;
+  }
+  return ratio;
+}
+
 struct Cell {
   size_t row = 0;
   size_t col = 0;
@@ -38,10 +50,10 @@ struct GridMap {
 
   // Gradient inflation: cells within hard_r are blocked, cells between
   // hard_r and soft_r get a gradient penalty (max_penalty at hard boundary,
-  // 0 at soft boundary).  cost_exponent controls the curve shape:
-  // 1 = linear, 2 = quadratic (low cost far from wall, steep near it).
+  // 0 at soft boundary).  cost_curve controls the gradient shape.
   GridMap inflate_gradient(float hard_m, float soft_m, float resolution_m,
-                           int max_penalty = 10, float cost_exponent = 1.0f) const {
+                           int max_penalty = 10,
+                           CostCurve cost_curve = CostCurve::Quadratic) const {
     if (soft_m <= 0.0f) return *this;
     const float hard_r = hard_m / resolution_m;
     const float soft_r = soft_m / resolution_m;
@@ -53,24 +65,28 @@ struct GridMap {
     out.blocked.assign(rows * cols, 0);
     out.wall_cost.assign(rows * cols, 0);
 
+    const float hard_r_sq = hard_r * hard_r;
+    const float soft_r_sq = soft_r * soft_r;
+
     for (size_t row = 0; row < rows; ++row) {
       for (size_t col = 0; col < cols; ++col) {
         if (blocked[row * cols + col] == 0) continue;
         for (int dr = -scan_r; dr <= scan_r; ++dr) {
           for (int dc = -scan_r; dc <= scan_r; ++dc) {
-            const float dist = std::sqrt(static_cast<float>(dr * dr + dc * dc));
-            if (dist > soft_r) continue;
+            const float dist_sq = static_cast<float>(dr * dr + dc * dc);
+            if (dist_sq > soft_r_sq) continue;
             const int nr = static_cast<int>(row) + dr;
             const int nc = static_cast<int>(col) + dc;
             if (nr < 0 || nr >= static_cast<int>(rows)) continue;
             if (nc < 0 || nc >= static_cast<int>(cols)) continue;
             const size_t idx = nr * cols + nc;
-            if (dist <= hard_r) {
+            if (dist_sq <= hard_r_sq) {
               out.blocked[idx] = 1;
             } else {
+              const float dist = std::sqrt(dist_sq);
               const float ratio = (soft_r - dist) / (soft_r - hard_r);
               const int cost = static_cast<int>(
-                  std::pow(ratio, cost_exponent) * max_penalty);
+                  apply_curve(ratio, cost_curve) * max_penalty);
               out.wall_cost[idx] = std::max(out.wall_cost[idx], cost);
             }
           }
@@ -86,7 +102,6 @@ using Path = std::vector<Cell>;
 // ---------------------------------------------------------------------------
 // Enum-ы
 // ---------------------------------------------------------------------------
-
 
 enum class ConflictType { None, Vertex, Edge };
 
@@ -164,11 +179,11 @@ class ReservationTable {
   // Returns: 0 = free, >0 = soft penalty, -1 = FORBIDDEN (physical overlap).
   // my_footprint/my_soft: agent's own radii in cells.
   // max_penalty: cost at the hard boundary (decreasing to 0 at soft boundary).
-  // cost_exponent: curve shape (1 = linear, 2 = quadratic, etc.).
   // Multiple nearby agents: takes the greatest penalty, not sum.
   int vertex_penalty(size_t row, size_t col, size_t time,
                      float my_footprint, float my_soft,
-                     int max_penalty = 50, float cost_exponent = 2.0f) const {
+                     int max_penalty = 50,
+                     CostCurve cost_curve = CostCurve::Quadratic) const {
     int total = 0;
     auto check = [&](const Cell& c, float fp, float sr) {
       const float dr = static_cast<float>(row) - static_cast<float>(c.row);
@@ -181,7 +196,7 @@ class ReservationTable {
         const float dist = std::sqrt(dist_sq);
         const float ratio = (soft - dist) / (soft - hard);
         const int cost = static_cast<int>(
-            std::pow(ratio, cost_exponent) * max_penalty);
+            apply_curve(ratio, cost_curve) * max_penalty);
         total = std::max(total, cost);
       }
     };
@@ -299,17 +314,19 @@ class SpaceTimeAStarPlanner {
 
   // my_footprint_cells — physical (hard) radius of this agent in cells.
   // my_soft_cells — footprint + inflation in cells (outer penalty boundary).
-  // cost_exponent — gradient curve shape (1 = linear, 2 = quadratic).
+  // cost_curve — gradient shape (Linear, Quadratic, Cubic).
   // proximity_penalty — cost per step at the hard boundary.
+  // max_astar_expansions — per-call expansion limit (0 = unlimited).
   bool find_path(const Cell& start, const Cell& goal,
                  const ReservationTable& reservations,
                  float my_footprint_cells, float my_soft_cells,
                  size_t max_time, Path& path,
-                 float cost_exponent = 2.0f,
-                 int proximity_penalty = 50) {
+                 CostCurve cost_curve = CostCurve::Quadratic,
+                 int proximity_penalty = 50,
+                 size_t max_astar_expansions = 0) {
     my_footprint_ = my_footprint_cells;
     my_soft_ = my_soft_cells;
-    cost_exponent_ = cost_exponent;
+    cost_curve_ = cost_curve;
     proximity_penalty_ = proximity_penalty;
 
     path.clear();
@@ -338,7 +355,11 @@ class SpaceTimeAStarPlanner {
     std::priority_queue<Node, std::vector<Node>, NodeCmp> open;
     open.push({start_idx, 0, 0, heuristic(start, goal)});
 
+    size_t astar_exp = 0;
     while (!open.empty()) {
+      if (max_astar_expansions > 0 && ++astar_exp > max_astar_expansions)
+        return false;
+
       const Node cur = open.top(); open.pop();
       const size_t cs = state_idx(cur.idx, cur.t, spatial);
 
@@ -386,7 +407,7 @@ class SpaceTimeAStarPlanner {
   const std::vector<int>* goal_dists_ = nullptr;  // precomputed Dijkstra from goal
   float           my_footprint_  = 0.0f;   // current agent's hard radius in cells
   float           my_soft_       = 0.0f;   // current agent's soft radius in cells
-  float           cost_exponent_ = 2.0f;   // gradient curve shape
+  CostCurve       cost_curve_    = CostCurve::Quadratic;
   int             proximity_penalty_ = 50; // cost at hard boundary
   std::vector<int>      g_;
   std::vector<size_t>   parent_;
@@ -451,7 +472,7 @@ class SpaceTimeAStarPlanner {
 
     const int agent_pen = res.vertex_penalty(
         nr, nc, nt, my_footprint_, my_soft_,
-        proximity_penalty_, cost_exponent_);
+        proximity_penalty_, cost_curve_);
     if (agent_pen < 0) return;  // physical agent overlap forbidden
     penalty += agent_pen;
 
@@ -670,18 +691,22 @@ class PBSSolver {
   // solution[i] — путь для agents[i], каждый элемент — Cell в grid-координатах.
   // resolution — размер клетки PBS-сетки в метрах (для конвертации радиуса).
   // stats — если не nullptr, заполняется статистикой решения.
-  // cost_exponent — gradient curve shape (1 = linear, 2 = quadratic).
+  // cost_curve — gradient shape (Linear, Quadratic, Cubic).
   // proximity_penalty — cost per step at the hard boundary (0 at soft boundary).
+  // max_astar_expansions — per-A* call expansion limit (0 = unlimited).
   bool solve(const std::vector<Agent>& agents, std::vector<Path>& solution,
              float resolution = 0.0f, SolveStats* stats = nullptr,
-             size_t max_expansions = 200000,
-             float cost_exponent = 2.0f, int proximity_penalty = 50) {
+             size_t max_expansions = 5000,
+             CostCurve cost_curve = CostCurve::Quadratic,
+             int proximity_penalty = 50,
+             size_t max_astar_expansions = 200000) {
     solution.clear();
     if (!map_ || agents.empty()) return false;
 
     const size_t n = agents.size();
-    cost_exponent_ = cost_exponent;
+    cost_curve_ = cost_curve;
     proximity_penalty_ = proximity_penalty;
+    max_astar_expansions_ = max_astar_expansions;
 
     // Предвычислить радиусы в клетках: footprint (hard) и soft (footprint+inflation)
     footprint_cells_.resize(n);
@@ -703,7 +728,7 @@ class PBSSolver {
       if (soft > 0.0f && inflated_cache_.find(soft) == inflated_cache_.end()) {
         inflated_cache_[soft] = map_->inflate_gradient(
             agents[i].footprint_radius, soft, resolution,
-            proximity_penalty, cost_exponent);
+            proximity_penalty, cost_curve);
       }
     }
 
@@ -715,7 +740,7 @@ class PBSSolver {
       set_agent_map(agents[i]);
       const size_t key = agents[i].goal.row * map_->cols + agents[i].goal.col;
       if (dist_cache_.find(key) == dist_cache_.end()) {
-        dist_cache_[key] = dijkstra_from(*low_level_.current_map(),
+        dist_cache_[key] = bfs_from(*low_level_.current_map(),
                                           agents[i].goal);
       }
       agent_goal_dists_[i] = &dist_cache_[key];
@@ -761,14 +786,16 @@ class PBSSolver {
       if (!low_level_.find_path(agents[idx].start, agents[idx].goal,
                                  root_res, footprint_cells_[idx], soft_cells_[idx],
                                  max_t, root.paths[idx],
-                                 cost_exponent, proximity_penalty)) {
+                                 cost_curve, proximity_penalty,
+                                 max_astar_expansions)) {
         // Sequential planning too constrained — fall back to independent
         // planning for this agent.  PBS resolves resulting conflicts.
         ReservationTable empty;
         if (!low_level_.find_path(agents[idx].start, agents[idx].goal,
                                    empty, footprint_cells_[idx], soft_cells_[idx],
                                    max_t, root.paths[idx],
-                                   cost_exponent, proximity_penalty)) {
+                                   cost_curve, proximity_penalty,
+                                   max_astar_expansions)) {
           if (stats) {
             stats->diag.fail_reason = FailReason::RootPathFailed;
             stats->diag.fail_agent = idx;
@@ -872,8 +899,9 @@ class PBSSolver {
 
   const GridMap*         map_ = nullptr;
   SpaceTimeAStarPlanner  low_level_;
-  float                  cost_exponent_ = 2.0f;
+  CostCurve              cost_curve_ = CostCurve::Quadratic;
   int                    proximity_penalty_ = 50;
+  size_t                 max_astar_expansions_ = 200000;
   std::vector<float>     footprint_cells_;  // per-agent hard radius in cells
   std::vector<float>     soft_cells_;       // per-agent soft radius in cells
   std::vector<size_t>    agent_dists_;      // per-agent true distance to goal
@@ -887,26 +915,23 @@ class PBSSolver {
   std::unordered_map<size_t, std::vector<int>> dist_cache_;
 
   // Compute shortest-path distances (in steps) from every cell to the
-  // goal.  Accounts for wall topology (blocked cells) but excludes
-  // gradient penalties — gives true step count, not cost.
-  // Used as A* heuristic (admissible: real cost >= steps) and for
-  // agent ordering / max_t computation.
-  static std::vector<int> dijkstra_from(const GridMap& map, const Cell& goal) {
+  // goal via BFS.  All edges have uniform cost 1, so BFS is optimal
+  // (O(V) vs O(V log V) for Dijkstra with a priority queue).
+  // Accounts for wall topology (blocked cells) but excludes penalties.
+  // Used as A* heuristic and for agent ordering / max_t computation.
+  static std::vector<int> bfs_from(const GridMap& map, const Cell& goal) {
     const size_t N = map.rows * map.cols;
     static constexpr int INF = std::numeric_limits<int>::max() / 4;
     std::vector<int> dist(N, INF);
 
-    using Pair = std::pair<int, size_t>;
-    std::priority_queue<Pair, std::vector<Pair>, std::greater<Pair>> pq;
-
+    std::deque<size_t> q;
     const size_t gi = goal.row * map.cols + goal.col;
     dist[gi] = 0;
-    pq.push({0, gi});
+    q.push_back(gi);
 
-    while (!pq.empty()) {
-      const auto [d, ci] = pq.top(); pq.pop();
-      if (d > dist[ci]) continue;
-
+    while (!q.empty()) {
+      const size_t ci = q.front(); q.pop_front();
+      const int d = dist[ci];
       const size_t r = ci / map.cols;
       const size_t c = ci % map.cols;
 
@@ -914,10 +939,9 @@ class PBSSolver {
         if (nr >= map.rows || nc >= map.cols) return;
         const size_t ni = nr * map.cols + nc;
         if (map.blocked[ni]) return;
-        const int cost = d + 1;
-        if (cost < dist[ni]) {
-          dist[ni] = cost;
-          pq.push({cost, ni});
+        if (d + 1 < dist[ni]) {
+          dist[ni] = d + 1;
+          q.push_back(ni);
         }
       };
 
@@ -985,7 +1009,8 @@ class PBSSolver {
       if (!low_level_.find_path(agents[ai].start, agents[ai].goal,
                                  res, footprint_cells_[ai], soft_cells_[ai],
                                  max_t, p,
-                                 cost_exponent_, proximity_penalty_))
+                                 cost_curve_, proximity_penalty_,
+                                 max_astar_expansions_))
         return false;
       node.paths[ai] = std::move(p);
     }
