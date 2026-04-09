@@ -1,11 +1,9 @@
 #pragma once
 
-#include <algorithm>
-#include <cmath>
-#include <cstdint>
+#include "iros_llm_swarm_mapf/mapf_types.hpp"
+
 #include <deque>
 #include <functional>
-#include <limits>
 #include <memory>
 #include <queue>
 #include <string>
@@ -14,93 +12,7 @@
 #include <vector>
 
 // ---------------------------------------------------------------------------
-// Базовые структуры
-// ---------------------------------------------------------------------------
-
-enum class CostCurve { Linear, Quadratic, Cubic };
-
-// Fast pow replacement: avoids std::pow() in hot paths.
-inline float apply_curve(float ratio, CostCurve curve) {
-  switch (curve) {
-    case CostCurve::Linear:    return ratio;
-    case CostCurve::Quadratic: return ratio * ratio;
-    case CostCurve::Cubic:     return ratio * ratio * ratio;
-  }
-  return ratio;
-}
-
-struct Cell {
-  size_t row = 0;
-  size_t col = 0;
-};
-
-struct Agent {
-  size_t id = 0;   // порядковый номер (0..N-1)
-  Cell start;
-  Cell goal;
-  float footprint_radius = 0.0f;  // physical robot radius in metres (hard boundary)
-  float inflation = 0.0f;         // soft zone width beyond footprint in metres
-};
-
-struct GridMap {
-  size_t rows = 0;
-  size_t cols = 0;
-  std::vector<uint8_t> blocked;  // 1 = hard blocked (wall or within footprint radius)
-  std::vector<int>     wall_cost; // gradient penalty near walls (0 = free, >0 = penalty)
-
-  // Gradient inflation: cells within hard_r are blocked, cells between
-  // hard_r and soft_r get a gradient penalty (max_penalty at hard boundary,
-  // 0 at soft boundary).  cost_curve controls the gradient shape.
-  GridMap inflate_gradient(float hard_m, float soft_m, float resolution_m,
-                           int max_penalty = 10,
-                           CostCurve cost_curve = CostCurve::Quadratic) const {
-    if (soft_m <= 0.0f) return *this;
-    const float hard_r = hard_m / resolution_m;
-    const float soft_r = soft_m / resolution_m;
-    const int scan_r = static_cast<int>(std::ceil(soft_r));
-
-    GridMap out;
-    out.rows = rows;
-    out.cols = cols;
-    out.blocked.assign(rows * cols, 0);
-    out.wall_cost.assign(rows * cols, 0);
-
-    const float hard_r_sq = hard_r * hard_r;
-    const float soft_r_sq = soft_r * soft_r;
-
-    for (size_t row = 0; row < rows; ++row) {
-      for (size_t col = 0; col < cols; ++col) {
-        if (blocked[row * cols + col] == 0) continue;
-        for (int dr = -scan_r; dr <= scan_r; ++dr) {
-          for (int dc = -scan_r; dc <= scan_r; ++dc) {
-            const float dist_sq = static_cast<float>(dr * dr + dc * dc);
-            if (dist_sq > soft_r_sq) continue;
-            const int nr = static_cast<int>(row) + dr;
-            const int nc = static_cast<int>(col) + dc;
-            if (nr < 0 || nr >= static_cast<int>(rows)) continue;
-            if (nc < 0 || nc >= static_cast<int>(cols)) continue;
-            const size_t idx = nr * cols + nc;
-            if (dist_sq <= hard_r_sq) {
-              out.blocked[idx] = 1;
-            } else {
-              const float dist = std::sqrt(dist_sq);
-              const float ratio = (soft_r - dist) / (soft_r - hard_r);
-              const int cost = static_cast<int>(
-                  apply_curve(ratio, cost_curve) * max_penalty);
-              out.wall_cost[idx] = std::max(out.wall_cost[idx], cost);
-            }
-          }
-        }
-      }
-    }
-    return out;
-  }
-};
-
-using Path = std::vector<Cell>;
-
-// ---------------------------------------------------------------------------
-// Enum-ы
+// Conflict types
 // ---------------------------------------------------------------------------
 
 enum class ConflictType { None, Vertex, Edge };
@@ -114,47 +26,15 @@ struct Conflict {
   Cell   cell2{};
 };
 
-// ---------------------------------------------------------------------------
-// Статистика решения
-// ---------------------------------------------------------------------------
-
-enum class FailReason {
-  None,
-  RootPathFailed,    // A* failed for an agent in root (no reservations)
-  BranchExhausted,   // all branches explored, no conflict-free solution
-  MaxExpansions,      // hit MAX_EXP limit
-};
-
-struct SolveDiagnostics {
-  FailReason fail_reason = FailReason::None;
-  size_t     fail_agent = 0;        // agent index that caused root failure
-  Conflict   first_conflict{};      // first unresolved conflict
-  size_t     max_t_used = 0;
-  size_t     branches_tried = 0;
-  size_t     branches_failed = 0;
-};
-
-struct AStarStats {
-  size_t ok_total_exp = 0;   // sum of expansions across successful calls
-  size_t ok_max_exp = 0;     // worst single successful call
-  size_t ok_count = 0;
-  size_t fail_count = 0;
-};
-
-struct SolveStats {
-  size_t expansions = 0;
-  size_t max_path_length = 0;
-  AStarStats astar;
-  SolveDiagnostics diag;
-};
+// SolveDiagnostics, AStarStats, SolveStats defined in mapf_types.hpp
 
 // ---------------------------------------------------------------------------
 // ReservationTable
 // ---------------------------------------------------------------------------
-// Хранит центры и радиусы высокоприоритетных агентов.
-// Проверка конфликтов через евклидово расстояние между центрами:
-// если расстояние < (r_a + r_b), агенты считаются в конфликте.
-// При нулевых радиусах поведение идентично старой точечной проверке.
+// Stores centres and radii of higher-priority agents.
+// Conflict check via Euclidean distance between centres:
+// if distance < (r_a + r_b), agents are considered in conflict.
+// With zero radii the behaviour is identical to point-based checking.
 
 class ReservationTable {
  public:
@@ -163,7 +43,7 @@ class ReservationTable {
     held_goals_.clear();
   }
 
-  // Зарезервировать путь агента с данным радиусом (в клетках).
+  // Reserve agent path with the given radius (in cells).
   // footprint_cells: physical (hard) radius in cells.
   // soft_radius_cells: footprint + inflation in cells (outer penalty boundary).
   // skip_until: don't reserve entries for t < skip_until (grace period
@@ -176,7 +56,7 @@ class ReservationTable {
     for (size_t t = skip_until; t < path.size(); ++t) {
       entries_[t].push_back({path[t], footprint_cells, soft_radius_cells});
     }
-    // Удержание цели: агент остаётся на месте после прибытия
+    // Goal hold: agent stays in place after arrival
     if (path.size() <= hold_goal_until_time) {
       held_goals_.push_back({path.back(), footprint_cells, soft_radius_cells,
                              std::max(path.size(), skip_until)});
@@ -209,14 +89,14 @@ class ReservationTable {
       }
     };
 
-    // Проверяем удержанные цели
+    // Check held goals
     for (const auto& hg : held_goals_) {
       if (time >= hg.from_time) {
         check(hg.cell, hg.footprint_cells, hg.soft_radius_cells);
         if (total < 0) return -1;
       }
     }
-    // Проверяем позиции на конкретном шаге
+    // Check positions at the specific timestep
     auto it = entries_.find(time);
     if (it != entries_.end()) {
       for (const auto& e : it->second) {
@@ -227,7 +107,7 @@ class ReservationTable {
     return total;
   }
 
-  // Edge conflict: проверяет встречное движение между шагами time и time+1.
+  // Edge conflict: checks opposing movement between steps time and time+1.
   // Uses footprint (hard) radius only — physical swap prevention.
   bool is_edge_blocked(size_t fr, size_t fc, size_t tr, size_t tc,
                         size_t time, float my_footprint_cells) const {
@@ -235,7 +115,7 @@ class ReservationTable {
     auto it_next = entries_.find(time + 1);
     if (it == entries_.end() || it_next == entries_.end()) return false;
 
-    // Для каждого агента: если он двигается навстречу.
+    // For each agent: check if it moves in the opposite direction.
     // NOTE: pairing by vector index assumes reserve_path() is called
     // once per agent in a fixed order.  With skip_until, an agent's
     // entries start later, so indices at the grace boundary may differ —
@@ -245,8 +125,8 @@ class ReservationTable {
     for (size_t i = 0; i < it->second.size() && i < it_next->second.size(); ++i) {
       const auto& cur  = it->second[i];
       const auto& next = it_next->second[i];
-      // Edge conflict: после обмена оба агента оказываются слишком близко
-      // к предыдущей позиции другого
+      // Edge conflict: after swap both agents end up too close
+      // to each other's previous position
       if (cells_conflict(fr, fc, my_footprint_cells,
                           next.cell.row, next.cell.col, cur.footprint_cells) &&
           cells_conflict(tr, tc, my_footprint_cells,
@@ -256,7 +136,7 @@ class ReservationTable {
     return false;
   }
 
-  // Можно ли агенту удерживать цель начиная с from_time?
+  // Can the agent hold its goal starting from from_time?
   // Uses footprint (hard) radius — agent can hold goal as long as no
   // physical overlap with other agents' paths or held goals.
   bool can_hold_goal(size_t row, size_t col, size_t from_time,
@@ -294,8 +174,8 @@ class ReservationTable {
   std::unordered_map<size_t, std::vector<Entry>> entries_;  // time -> entries
   std::vector<HeldGoal> held_goals_;
 
-  // Проверка конфликта двух кругов: расстояние между центрами < сумма радиусов.
-  // При нулевых радиусах — точечная проверка совпадения клеток.
+  // Two-circle conflict check: distance between centres < sum of radii.
+  // With zero radii — point-based cell coincidence check.
   static bool cells_conflict(size_t r1, size_t c1, float rad1,
                               size_t r2, size_t c2, float rad2) {
     const float min_dist = rad1 + rad2;
@@ -391,9 +271,9 @@ class SpaceTimeAStarPlanner {
       const size_t r = c.row, col_ = c.col;
       const size_t nt = cur.t + 1;
 
-      // ждать на месте
+      // wait in place
       relax(cur.idx, cur.t, r, col_, nt, goal, reservations, open, spatial);
-      // соседи
+      // neighbours
       if (r > 0)               relax(cur.idx, cur.t, r-1, col_,   nt, goal, reservations, open, spatial);
       if (r+1 < map_->rows)    relax(cur.idx, cur.t, r+1, col_,   nt, goal, reservations, open, spatial);
       if (col_ > 0)            relax(cur.idx, cur.t, r,   col_-1, nt, goal, reservations, open, spatial);
@@ -487,7 +367,7 @@ class SpaceTimeAStarPlanner {
     if (agent_pen < 0) return;  // physical agent overlap forbidden
     penalty += agent_pen;
 
-    // Edge conflict: проверяем встречное движение (uses footprint/hard radius)
+    // Edge conflict: check opposing movement (uses footprint/hard radius)
     const Cell from_cell = cell(ci);
     if (res.is_edge_blocked(from_cell.row, from_cell.col, nr, nc, ct, my_footprint_))
       return;
@@ -521,10 +401,10 @@ class ConflictDetector {
  public:
   // Detect conflicts using footprint (hard/physical) radii only.
   // Soft-zone proximity is handled by A* penalties, not PBS branching.
-  // Евклидово расстояние между центрами vs (r_a + r_b).
-  // Для точечных агентов (радиус 0) — эквивалентно проверке совпадения клеток.
-  // TODO Level 2: при появлении ориентационно-зависимых полигонов —
-  //   растеризация и проверка пересечения клеточных множеств.
+  // Euclidean distance between centres vs (r_a + r_b).
+  // For point agents (radius 0) — equivalent to cell coincidence check.
+  // TODO Level 2: for orientation-dependent polygons —
+  //   rasterise and check cell-set intersection.
   static Conflict find_first(const std::vector<Path>& paths,
                               const std::vector<float>& footprint_cells) {
     const size_t n = paths.size();
@@ -551,17 +431,17 @@ class ConflictDetector {
 
           const Cell cj = at(paths[j], t);
 
-          // Vertex conflict: физическое пересечение (hard radii)
+          // Vertex conflict: physical overlap (hard radii)
           if (cells_conflict(ci, footprint_cells[i], cj, footprint_cells[j])) {
             return {ConflictType::Vertex, i, j, t, ci, cj};
           }
 
-          // Edge conflict: встречное движение
+          // Edge conflict: opposing movement
           if (t > 0) {
             const Cell pi = at(paths[i], t - 1);
             const Cell pj = at(paths[j], t - 1);
-            // i двигался pi→ci, j двигался pj→cj
-            // Конфликт если после обмена позициями оба слишком близко
+            // i moved pi->ci, j moved pj->cj
+            // Conflict if after swapping positions both are too close
             if (cells_conflict(pi, footprint_cells[i], cj, footprint_cells[j]) &&
                 cells_conflict(pj, footprint_cells[j], ci, footprint_cells[i]))
               return {ConflictType::Edge, i, j, t - 1, pi, ci};
@@ -594,8 +474,8 @@ class ConflictDetector {
     for (const auto& p : ps) r = std::max(r, p.size());
     return r;
   }
-  // Проверка конфликта двух кругов.
-  // При нулевых радиусах — совпадение клеток.
+  // Two-circle conflict check.
+  // With zero radii — cell coincidence.
   static bool cells_conflict(const Cell& a, float ra, const Cell& b, float rb) {
     const float min_dist = ra + rb;
     if (min_dist <= 0.0f) {
@@ -685,7 +565,7 @@ class PriorityGraph {
 };
 
 // ---------------------------------------------------------------------------
-// PBS Solver (публичный API)
+// PBS Solver (public API)
 // ---------------------------------------------------------------------------
 
 class PBSSolver {
@@ -698,10 +578,10 @@ class PBSSolver {
     dist_cache_.clear();
   }
 
-  // Основной вызов. Возвращает true если решение найдено.
-  // solution[i] — путь для agents[i], каждый элемент — Cell в grid-координатах.
-  // resolution — размер клетки PBS-сетки в метрах (для конвертации радиуса).
-  // stats — если не nullptr, заполняется статистикой решения.
+  // Main entry point. Returns true if a solution is found.
+  // solution[i] — path for agents[i], each element is a Cell in grid coordinates.
+  // resolution — PBS grid cell size in metres (for radius conversion).
+  // stats — if non-null, filled with solve statistics.
   // cost_curve — gradient shape (Linear, Quadratic, Cubic).
   // proximity_penalty — cost per step at the hard boundary (0 at soft boundary).
   // max_astar_expansions — per-A* call expansion limit (0 = unlimited).
@@ -720,7 +600,7 @@ class PBSSolver {
     proximity_penalty_ = proximity_penalty;
     max_astar_expansions_ = max_astar_expansions;
 
-    // Предвычислить радиусы в клетках: footprint (hard) и soft (footprint+inflation)
+    // Precompute radii in cells: footprint (hard) and soft (footprint+inflation)
     footprint_cells_.resize(n);
     soft_cells_.resize(n);
     for (size_t i = 0; i < n; ++i) {
@@ -732,8 +612,8 @@ class PBSSolver {
           : 0.0f;
     }
 
-    // Кэшировать gradient-inflated карты для каждого уникального soft_radius.
-    // Маленькие роботы пролезут в щели, большие формации — нет.
+    // Cache gradient-inflated maps for each unique soft_radius.
+    // Smaller robots fit through gaps that larger formations cannot.
     // Hard boundary = footprint, soft boundary = footprint + inflation.
     for (size_t i = 0; i < n; ++i) {
       const float soft = agents[i].footprint_radius + agents[i].inflation;
@@ -771,11 +651,11 @@ class PBSSolver {
     }
 
     // max_t: time horizon for Space-Time A*.
-    // Критично: карта 600x600 = 360k клеток, при max_t=1000
-    // Space-Time A* выделяет 360M состояний и зависает.
+    // Critical: a 600x600 map = 360k cells; at max_t=1000
+    // Space-Time A* allocates 360M states and hangs.
     const size_t max_t = std::min<size_t>(max_dist * 4 + 64, 600);
 
-    // Корневой узел: sequential root planning.
+    // Root node: sequential root planning.
     // Plan agents by decreasing distance to goal — longest paths get
     // the most freedom, stationary agents (dist=0) plan last and must
     // yield to moving agents.
@@ -856,14 +736,12 @@ class PBSSolver {
         return true;
       }
 
-      if (stats && expansions == 1) stats->diag.first_conflict = c;
-
       // Branch ordering heuristic: try giving priority to the agent
       // with the further goal first — it needs more space/freedom.
       size_t hi = c.agent1, lo = c.agent2;
       if (agent_dists_[lo] > agent_dists_[hi]) std::swap(hi, lo);
 
-      // ветка 1: further-goal agent gets priority
+      // branch 1: further-goal agent gets priority
       PBSNode ch1 = node;
       if (branch(agents, hi, lo, max_t, ch1)) {
         auto k = make_key(ch1);
@@ -873,7 +751,7 @@ class PBSSolver {
         if (stats) ++stats->diag.branches_failed;
       }
 
-      // ветка 2: closer-goal agent gets priority
+      // branch 2: closer-goal agent gets priority
       PBSNode ch2 = std::move(node);
       if (branch(agents, lo, hi, max_t, ch2)) {
         auto k = make_key(ch2);
@@ -936,7 +814,7 @@ class PBSSolver {
   std::vector<size_t>    agent_dists_;      // per-agent true distance to goal
   std::vector<const std::vector<int>*> agent_goal_dists_;  // per-agent Dijkstra map
 
-  // Кэш gradient-inflated карт: soft_radius (в метрах) -> GridMap
+  // Cache of gradient-inflated maps: soft_radius (in metres) -> GridMap
   std::unordered_map<float, GridMap> inflated_cache_;
 
   // Dijkstra distance cache: goal_cell_index -> distance map.
@@ -982,9 +860,9 @@ class PBSSolver {
     return dist;
   }
 
-  // Установить карту для A* конкретного агента (gradient-inflated).
-  // Маленькие роботы получают менее раздутую карту и могут проходить
-  // через узкие проходы, недоступные большим формациям.
+  // Set the map for a specific agent's A* (gradient-inflated).
+  // Smaller robots get a less inflated map and can pass through
+  // narrow gaps inaccessible to larger formations.
   void set_agent_map(const Agent& a) {
     const float soft = a.footprint_radius + a.inflation;
     if (soft > 0.0f) {
@@ -1019,7 +897,7 @@ class PBSSolver {
               size_t max_t, PBSNode& node) {
     const auto order = node.pg.topo_from(changed);
     for (size_t ai : order) {
-      // Резервируем пути всех высокоприоритетных агентов с их радиусами.
+      // Reserve paths of all higher-priority agents with their radii.
       // For agents whose starts overlap with ours, skip reservation
       // entries during the grace period so A* can plan an escape path.
       ReservationTable res;
@@ -1031,7 +909,7 @@ class PBSSolver {
                          footprint_cells_[bi], soft_cells_[bi], grace);
       }
 
-      // Используем gradient-inflated карту для данного агента
+      // Use the gradient-inflated map for this agent
       set_agent_map(agents[ai]);
       low_level_.set_goal_dists(agent_goal_dists_[ai]);
       Path p;

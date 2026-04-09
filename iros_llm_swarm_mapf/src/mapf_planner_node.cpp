@@ -406,14 +406,6 @@ class MapfPlannerNode : public rclcpp::Node {
             fa.footprint_radius, fa.inflation);
       }
 
-      if (d.first_conflict.type != ConflictType::None) {
-        const auto& fc = d.first_conflict;
-        RCLCPP_ERROR(get_logger(),
-            "  first conflict: %s between agents[%zu] and agents[%zu] at t=%zu",
-            fc.type == ConflictType::Vertex ? "vertex" : "edge",
-            fc.agent1, fc.agent2, fc.time);
-      }
-
       // Per-agent dump at DEBUG level
       for (const auto& a : agents) {
         RCLCPP_DEBUG(get_logger(),
