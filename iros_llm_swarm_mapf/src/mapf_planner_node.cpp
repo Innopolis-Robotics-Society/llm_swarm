@@ -421,8 +421,14 @@ class MapfPlannerNode : public rclcpp::Node {
     }
 
     RCLCPP_INFO(get_logger(),
-        "PBS solved in %.1f ms (%zu expansions), publishing %zu paths",
-        elapsed_ms, stats.expansions, paths.size());
+        "PBS solved in %.1f ms (%zu PBS exp, A*: %zu ok (avg %zu / max %zu exp), "
+        "%zu failed), publishing %zu paths",
+        elapsed_ms, stats.expansions,
+        stats.astar.ok_count,
+        stats.astar.ok_count > 0 ? stats.astar.ok_total_exp / stats.astar.ok_count : 0,
+        stats.astar.ok_max_exp,
+        stats.astar.fail_count,
+        paths.size());
 
     last_planning_ms_ = elapsed_ms;
     last_replan_time_ = now();  // cooldown applies after initial plan too

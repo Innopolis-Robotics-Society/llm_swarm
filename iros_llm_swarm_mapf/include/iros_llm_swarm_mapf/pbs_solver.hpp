@@ -134,9 +134,17 @@ struct SolveDiagnostics {
   size_t     branches_failed = 0;
 };
 
+struct AStarStats {
+  size_t ok_total_exp = 0;   // sum of expansions across successful calls
+  size_t ok_max_exp = 0;     // worst single successful call
+  size_t ok_count = 0;
+  size_t fail_count = 0;
+};
+
 struct SolveStats {
   size_t expansions = 0;
   size_t max_path_length = 0;
+  AStarStats astar;
   SolveDiagnostics diag;
 };
 
@@ -311,6 +319,7 @@ class SpaceTimeAStarPlanner {
   void reset_map(const GridMap* map) { map_ = map; }
   const GridMap* current_map() const { return map_; }
   void set_goal_dists(const std::vector<int>* d) { goal_dists_ = d; }
+  size_t last_expansions() const { return last_expansions_; }
 
   // my_footprint_cells — physical (hard) radius of this agent in cells.
   // my_soft_cells — footprint + inflation in cells (outer penalty boundary).
@@ -355,9 +364,10 @@ class SpaceTimeAStarPlanner {
     std::priority_queue<Node, std::vector<Node>, NodeCmp> open;
     open.push({start_idx, 0, 0, heuristic(start, goal)});
 
-    size_t astar_exp = 0;
+    last_expansions_ = 0;
     while (!open.empty()) {
-      if (max_astar_expansions > 0 && ++astar_exp > max_astar_expansions)
+      ++last_expansions_;
+      if (max_astar_expansions > 0 && last_expansions_ > max_astar_expansions)
         return false;
 
       const Node cur = open.top(); open.pop();
@@ -409,6 +419,7 @@ class SpaceTimeAStarPlanner {
   float           my_soft_       = 0.0f;   // current agent's soft radius in cells
   CostCurve       cost_curve_    = CostCurve::Quadratic;
   int             proximity_penalty_ = 50; // cost at hard boundary
+  size_t          last_expansions_ = 0;    // expansions in last find_path call
   std::vector<int>      g_;
   std::vector<size_t>   parent_;
   std::vector<uint8_t>  closed_;
@@ -704,6 +715,7 @@ class PBSSolver {
     if (!map_ || agents.empty()) return false;
 
     const size_t n = agents.size();
+    stats_ = stats;
     cost_curve_ = cost_curve;
     proximity_penalty_ = proximity_penalty;
     max_astar_expansions_ = max_astar_expansions;
@@ -783,25 +795,28 @@ class PBSSolver {
     for (size_t idx : root_order) {
       set_agent_map(agents[idx]);
       low_level_.set_goal_dists(agent_goal_dists_[idx]);
+      // Root planning: uncapped A* — quality root paths prevent PBS explosion.
       if (!low_level_.find_path(agents[idx].start, agents[idx].goal,
                                  root_res, footprint_cells_[idx], soft_cells_[idx],
                                  max_t, root.paths[idx],
-                                 cost_curve, proximity_penalty,
-                                 max_astar_expansions)) {
-        // Sequential planning too constrained — fall back to independent
-        // planning for this agent.  PBS resolves resulting conflicts.
+                                 cost_curve, proximity_penalty)) {
+        record_astar(false);
+        // Fallback: A* without reservations. PBS resolves conflicts.
         ReservationTable empty;
         if (!low_level_.find_path(agents[idx].start, agents[idx].goal,
                                    empty, footprint_cells_[idx], soft_cells_[idx],
                                    max_t, root.paths[idx],
-                                   cost_curve, proximity_penalty,
-                                   max_astar_expansions)) {
+                                   cost_curve, proximity_penalty)) {
+          record_astar(false);
           if (stats) {
             stats->diag.fail_reason = FailReason::RootPathFailed;
             stats->diag.fail_agent = idx;
           }
           return false;
         }
+        record_astar(true);
+      } else {
+        record_astar(true);
       }
       // Reserve this agent's path so subsequent agents avoid it
       root_res.reserve_path(root.paths[idx], max_t,
@@ -899,9 +914,23 @@ class PBSSolver {
 
   const GridMap*         map_ = nullptr;
   SpaceTimeAStarPlanner  low_level_;
+  SolveStats*            stats_ = nullptr;  // set during solve(), nullable
   CostCurve              cost_curve_ = CostCurve::Quadratic;
   int                    proximity_penalty_ = 50;
   size_t                 max_astar_expansions_ = 200000;
+
+  // Call after each find_path() to accumulate A* stats.
+  void record_astar(bool ok) {
+    if (!stats_) return;
+    const size_t e = low_level_.last_expansions();
+    if (ok) {
+      stats_->astar.ok_total_exp += e;
+      stats_->astar.ok_max_exp = std::max(stats_->astar.ok_max_exp, e);
+      ++stats_->astar.ok_count;
+    } else {
+      ++stats_->astar.fail_count;
+    }
+  }
   std::vector<float>     footprint_cells_;  // per-agent hard radius in cells
   std::vector<float>     soft_cells_;       // per-agent soft radius in cells
   std::vector<size_t>    agent_dists_;      // per-agent true distance to goal
@@ -1010,8 +1039,11 @@ class PBSSolver {
                                  res, footprint_cells_[ai], soft_cells_[ai],
                                  max_t, p,
                                  cost_curve_, proximity_penalty_,
-                                 max_astar_expansions_))
+                                 max_astar_expansions_)) {
+        record_astar(false);
         return false;
+      }
+      record_astar(true);
       node.paths[ai] = std::move(p);
     }
     return true;

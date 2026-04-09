@@ -87,6 +87,8 @@ def generate_launch_description():
             'map_topic':            '/map',
             'default_robot_radius': 0.22,
             'inflation_radius':     0.75,
+            'max_pbs_expansions':   5000,
+            'max_astar_expansions': 100000,
         }],
     )
 
