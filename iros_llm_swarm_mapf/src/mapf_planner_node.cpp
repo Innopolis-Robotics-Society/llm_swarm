@@ -87,8 +87,7 @@ class MapfPlannerNode : public rclcpp::Node {
     // Schedule monitoring & replanning
     declare_parameter("replan_check_hz",      2.0);
     declare_parameter("replan_threshold_m",   1.0);
-    declare_parameter("replan_cooldown_sec",  5.0);
-    declare_parameter("replan_cooldown_factor", 3.0);
+    declare_parameter("replan_cooldown_sec",  10.0);
     declare_parameter("replan_predict_sec",  -1.0);
     declare_parameter("replan_stop_mode",     std::string("all"));
     declare_parameter("goal_reached_m",       0.5);
@@ -108,7 +107,6 @@ class MapfPlannerNode : public rclcpp::Node {
     replan_check_hz_      = get_parameter("replan_check_hz").as_double();
     replan_threshold_m_   = get_parameter("replan_threshold_m").as_double();
     replan_cooldown_sec_  = get_parameter("replan_cooldown_sec").as_double();
-    replan_cooldown_factor_ = get_parameter("replan_cooldown_factor").as_double();
     replan_predict_sec_   = get_parameter("replan_predict_sec").as_double();
     replan_stop_mode_     = get_parameter("replan_stop_mode").as_string();
     if (replan_stop_mode_ != "none" && replan_stop_mode_ != "deviated" &&
@@ -216,13 +214,12 @@ class MapfPlannerNode : public rclcpp::Node {
     RCLCPP_INFO(get_logger(),
         "mapf_planner ready: %d robots, time_step=%.3f s, "
         "default_radius=%.3f m, inflation=%.3f m (effective=%.3f m), "
-        "replan: %.1f Hz, threshold=%.2f m, cooldown=%.1f s (factor=%.1f), "
+        "replan: %.1f Hz, threshold=%.2f m, cooldown=%.1f s, "
         "predict=%.2f s, stop_mode=%s",
         num_robots_, time_step_sec_, default_robot_radius_,
         inflation_radius_, default_robot_radius_ + inflation_radius_,
         replan_check_hz_, replan_threshold_m_, replan_cooldown_sec_,
-        replan_cooldown_factor_, replan_predict_sec_,
-        replan_stop_mode_.c_str());
+        replan_predict_sec_, replan_stop_mode_.c_str());
   }
 
  private:
@@ -601,9 +598,9 @@ class MapfPlannerNode : public rclcpp::Node {
 
     RCLCPP_INFO(get_logger(),
         "Starting schedule monitor at %.1f Hz "
-        "(threshold=%.2fm, cooldown=%.1fs, factor=%.1f, predict=%.2fs, stop=%s)",
+        "(threshold=%.2fm, cooldown=%.1fs, predict=%.2fs, stop=%s)",
         replan_check_hz_, replan_threshold_m_, replan_cooldown_sec_,
-        replan_cooldown_factor_, replan_predict_sec_, replan_stop_mode_.c_str());
+        replan_predict_sec_, replan_stop_mode_.c_str());
 
     // Use the node's clock (sim-time-aware) so checks stay synchronized
     // with path timestamps that also use sim time.
@@ -679,12 +676,9 @@ class MapfPlannerNode : public rclcpp::Node {
       return;
     }
 
-    // Adaptive cooldown: max(configured, factor * last_planning_time).
-    // Only gates replanning, not arrival detection above.
-    const double adaptive_cd = replan_cooldown_factor_ * last_planning_ms_ / 1000.0;
-    const double eff_cooldown = std::max(replan_cooldown_sec_, adaptive_cd);
+    // Static cooldown from end of last replan.
     if (last_replan_time_.nanoseconds() > 0 &&
-        (now_t - last_replan_time_).seconds() < eff_cooldown) {
+        (now_t - last_replan_time_).seconds() < replan_cooldown_sec_) {
       return;
     }
 
@@ -877,7 +871,6 @@ class MapfPlannerNode : public rclcpp::Node {
   double replan_check_hz_       = 2.0;
   double replan_threshold_m_    = 1.0;
   double replan_cooldown_sec_   = 5.0;
-  double replan_cooldown_factor_= 3.0;
   double replan_predict_sec_    = -1.0;
   std::string replan_stop_mode_ = "all";
   double goal_reached_m_        = 0.5;

@@ -30,12 +30,8 @@ def generate_launch_description():
             description='Deviation from schedule to trigger replan (metres)'
         ),
         DeclareLaunchArgument(
-            'replan_cooldown_sec', default_value='5.0',
-            description='Minimum time between replans (seconds)'
-        ),
-        DeclareLaunchArgument(
-            'replan_cooldown_factor', default_value='3.0',
-            description='Adaptive cooldown multiplier on last planning time'
+            'replan_cooldown_sec', default_value='10.0',
+            description='Cooldown between end of last replan and next replan (seconds)'
         ),
         DeclareLaunchArgument(
             'replan_predict_sec', default_value='-1.0',
@@ -77,7 +73,6 @@ def generate_launch_description():
                 'replan_check_hz':        LaunchConfiguration('replan_check_hz'),
                 'replan_threshold_m':     LaunchConfiguration('replan_threshold_m'),
                 'replan_cooldown_sec':    LaunchConfiguration('replan_cooldown_sec'),
-                'replan_cooldown_factor': LaunchConfiguration('replan_cooldown_factor'),
                 'replan_predict_sec':     LaunchConfiguration('replan_predict_sec'),
                 'replan_stop_mode':       LaunchConfiguration('replan_stop_mode'),
                 'goal_reached_m':         LaunchConfiguration('goal_reached_m'),
