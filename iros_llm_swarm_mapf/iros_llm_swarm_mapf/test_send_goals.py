@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 """
-Тестовый скрипт: вызывает сервис /swarm/set_goals для планирования.
-Старты берутся из одометрии планировщиком автоматически.
+Test script: calls the /swarm/set_goals service for MAPF planning.
+Start positions are taken from odometry automatically by the planner.
 
-Использование:
-  # Отправить всех роботов в одну точку (раскидывает по сетке 0.4м)
+Usage:
+  # Send all robots to a single point (spread on a 1.0m grid)
   ros2 run iros_llm_swarm_mapf test_send_goals --goal-x 15.0 --goal-y 15.0
 
-  # Отправить каждого в случайную точку вокруг центра карты
+  # Send each robot to a random point around map centre
   ros2 run iros_llm_swarm_mapf test_send_goals --random --radius 5.0
 
-  # Задать цели из JSON-файла: {"goals": [{"id": 0, "gx": ..., "gy": ...}, ...]}
+  # Set goals from a JSON file: {"goals": [{"id": 0, "gx": ..., "gy": ...}, ...]}
   ros2 run iros_llm_swarm_mapf test_send_goals --json-file goals.json
 """
 
@@ -60,15 +60,15 @@ def main():
             if args.random:
                 ang = random.uniform(0.0, 2 * math.pi)
                 r = args.radius * math.sqrt(random.random())
-                # Центр карты как база для случайных целей
+                # Map centre as base for random goals
                 cx, cy = 15.0, 15.0
                 gx = cx + r * math.cos(ang)
                 gy = cy + r * math.sin(ang)
             elif args.goal_x is not None and args.goal_y is not None:
-                # Раскидываем роботов по сетке вокруг целевой точки.
-                # Шаг должен быть > 2 * robot_radius (hard boundary),
-                # чтобы роботы физически поместились.  Мягкая зона
-                # (inflation) обрабатывается градиентом в PBS.
+                # Spread robots on a grid around the target point.
+                # Step must be > 2 * robot_radius (hard boundary) so
+                # robots physically fit. The soft zone (inflation) is
+                # handled by the gradient penalty in PBS.
                 step = 1.0
                 cols_n = math.ceil(math.sqrt(args.num))
                 row_i = i // cols_n
@@ -78,7 +78,7 @@ def main():
                 gx = args.goal_x + offset_x
                 gy = args.goal_y + offset_y
             else:
-                print("Укажи --goal-x/--goal-y или --random")
+                print("Specify --goal-x/--goal-y or --random")
                 sys.exit(1)
 
             req.robot_ids.append(i)

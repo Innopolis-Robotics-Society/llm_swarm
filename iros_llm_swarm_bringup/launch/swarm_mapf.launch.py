@@ -11,14 +11,14 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
-# Порядок запуска:
+# Launch order:
 #
-#  t=0s   Stage симулятор + RViz
-#  t=1s   Nav2 (map_server + controller_server на каждого робота)
-#  t=10s  mapf_planner  ← ждём пока map_server поднимется и опубликует /map
-#  t=12s  path_followers ← ждём mapf_planner
+#  t=0s   Stage simulator + RViz
+#  t=1s   Nav2 (map_server + controller_server per robot)
+#  t=10s  mapf_planner  -- wait for map_server to publish /map
+#  t=12s  path_followers -- wait for mapf_planner
 #
-# После запуска отправляй цели через сервис:
+# After launch, send goals via service:
 #   ros2 run iros_llm_swarm_mapf test_send_goals --goal-x 15.0 --goal-y 15.0
 
 
@@ -29,7 +29,7 @@ def generate_launch_description():
     use_sim_time_arg = DeclareLaunchArgument('use_sim_time', default_value='true')
     time_step_arg = DeclareLaunchArgument(
         'time_step_sec', default_value='0.4',
-        description='Секунд на один grid-шаг PBS пути')
+        description='Seconds per PBS grid step')
     world_file_arg = DeclareLaunchArgument(
         'world_file',
         default_value=PathJoinSubstitution([
@@ -72,14 +72,14 @@ def generate_launch_description():
     )
 
     # ------------------------------------------------- PBS planner (t=10s)
-    # Ждём 10 секунд чтобы map_server успел опубликовать /map
-    # с QoS transient_local — mapf_planner получит карту сразу при подписке.
+    # Wait 10 seconds for map_server to publish /map with transient_local
+    # QoS -- mapf_planner will receive the map immediately on subscribe.
     mapf_planner = Node(
         package='iros_llm_swarm_mapf',
         executable='mapf_planner_node',
         name='mapf_planner',
         output='screen',
-        arguments=['--ros-args', '--log-level', 'mapf_planner:=DEBUG'],
+        arguments=['--ros-args', '--log-level', 'mapf_planner:=INFO'],
         parameters=[{
             'num_robots':           num_robots,
             'time_step_sec':        time_step_sec,
@@ -88,7 +88,13 @@ def generate_launch_description():
             'default_robot_radius': 0.22,
             'inflation_radius':     0.75,
             'max_pbs_expansions':   5000,
-            'max_astar_expansions': 100000,
+            'max_astar_expansions': 1000000,
+            'cost_curve':           'quadratic',
+            'urgency':              1.0,
+            'replan_threshold_m':   1.5,
+            'proximity_penalty':    50,
+            'pbs_resolution':       0.2,
+            'replan_cooldown_sec':  30
         }],
     )
 
@@ -116,14 +122,14 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        # аргументы
+        # arguments
         num_robots_arg,
         use_sim_time_arg,
         time_step_arg,
         world_file_arg,
         rviz_cfg_arg,
 
-        # запуск по порядку
+        # launch in sequence
         stage_sim,
         TimerAction(period=1.0,  actions=[LogInfo(msg='Starting Nav2...'), local_nav2]),
         TimerAction(period=10.0, actions=[LogInfo(msg='Starting MAPF planner...'), mapf_planner]),
