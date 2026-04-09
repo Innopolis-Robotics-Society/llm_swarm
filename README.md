@@ -107,26 +107,41 @@ Custom Nav2 costmap layer plugin. Provides `ResettingObstacleLayer` — a drop-i
 
 ### `iros_llm_swarm_mapf`
 
-PBS (Priority-Based Search) MAPF planner with gradient inflation. Header-only C++17 solver (`pbs_solver.hpp`). Accepts goals via `/swarm/set_goals` service (SetGoals), reads start positions from odometry and footprints from Nav2. Plans conflict-free time-indexed paths on a downsampled grid (0.2m/cell).
+PBS (Priority-Based Search) MAPF planner with gradient inflation and N-connected Euclidean A\*. Header-only C++17 solver split across `mapf_types.hpp`, `euclidean_astar.hpp`, and `pbs_solver.hpp` (old 4-connected planner preserved in `space_time_astar.hpp`). Accepts goals via `/swarm/set_goals` service (SetGoals), reads start positions from odometry and footprints from Nav2. Plans conflict-free time-indexed paths on a downsampled grid (0.2m/cell).
 
 #### How the solver works
 
-Each agent has two radii: physical footprint (hard — overlap forbidden) and inflation zone (soft — gradient penalty). Closer to the hard boundary = higher cost. Robots naturally keep distance but can approach when forced. Same model for walls.
+**Gradient inflation.** Each agent has two radii: physical footprint (hard — overlap forbidden) and inflation zone (soft — gradient penalty). Closer to the hard boundary = higher cost. Robots naturally keep distance but can approach when forced. Same model for walls.
 
 ```
   distance:   [ 0 ····· hard ············· soft ··· ∞ ]
   cost:       [ FORBIDDEN | max penalty -> 0 |  free  ]
 ```
 
-Initial paths are computed sequentially — agents with furthest goals plan first (most freedom), stationary agents plan last (must yield). If sequential planning fails for an agent (too constrained by previously reserved paths), it falls back to independent planning and lets PBS resolve the conflicts.
+**N-connected movement.** A\* movement connectivity is auto-generated from physical parameters: `reach = max(1, floor(max_speed * time_step_sec / resolution))`. At reach=1 (default), agents have 9 moves: 4 cardinal + 4 diagonal + wait. Increasing `time_step_sec` grows the reach — at reach=2, agents can jump 2 cells per timestep (~13 moves). Multi-cell moves are validated by tracing the center-line through the grid (Bresenham): any blocked cell along the trace rejects the move, and wall gradient penalties are summed across all traversed cells.
 
-PBS then searches for a conflict-free ordering: detects physical-overlap conflicts (hard radius only), branches by assigning priority to one agent over another, replans the lower-priority agent around the higher. Branch heuristic: further-goal agent gets priority first.
+**Cost model.** Costs are in physical units:
 
-Low-level pathfinding uses Space-Time A\* with a BFS-precomputed heuristic (true step-distance from goal, accounting for wall topology). Cost model: every timestep costs 1, movement adds 1 more — robots prefer waiting over unnecessary walking. Wall gradient penalty charged only on cell entry, agent proximity penalty per-timestep. Agents can start at positions overlapping with reservations (needed during replanning when robots are close together) — A\* finds a diverging path from there.
+```
+cost = urgency * max_speed * time_step_sec   (time: opportunity cost of not moving)
+     + sqrt(dr² + dc²) * resolution          (distance in metres)
+     + wall_penalty_sum * resolution          (wall gradient, normalized)
+     + agent_proximity_penalty                (from reservation table)
+```
 
-During PBS replanning, agents whose starts physically overlap get a grace period: the overlapping agent's reservation entries are skipped for the first few timesteps, giving both agents time to separate before collision avoidance kicks in.
+The `urgency` coefficient (default 1.0) controls time-vs-distance tradeoff. At 1.0, one timestep of waiting costs as much as the distance the robot could have covered at max speed. Values below 1.0 are not recommended.
 
-After paths are published, schedule monitoring compares robot positions to the plan. On deviation, triggers replanning from current positions with adaptive cooldown. Arrived robots keep their original goals to prevent drift-induced conflicts.
+**Capsule-based conflict detection.** Each agent's movement per timestep sweeps a capsule (circle along a line segment). Conflicts are detected by checking segment-segment distance between agent pairs against their combined footprint radii. This catches both positional overlap and mid-step crossing — a single test replaces the old vertex/edge distinction.
+
+**Dijkstra heuristic.** Backward Dijkstra from each goal using the same move set as A\*. Produces tight distance estimates for any connectivity level. Cached per unique goal cell.
+
+**PBS orchestration.** Initial paths are computed sequentially — agents with furthest goals plan first (most freedom), stationary agents plan last (must yield). If sequential planning fails for an agent (too constrained by previously reserved paths), it falls back to independent planning and lets PBS resolve the conflicts.
+
+PBS then searches for a conflict-free ordering: detects capsule-overlap conflicts (hard radius only), branches by assigning priority to one agent over another, replans the lower-priority agent around the higher. Branch heuristic: further-goal agent gets priority first.
+
+Agents can start at positions overlapping with reservations (needed during replanning when robots are close together) — A\* finds a diverging path from there. Agents whose starts physically overlap get a grace period: the overlapping agent's reservation entries are skipped for the first few timesteps, giving both time to separate.
+
+**Schedule monitoring.** After paths are published, periodic checks compare robot positions to the plan. On deviation, triggers replanning from current positions with a static cooldown (from replan end to next replan start). Arrived robots keep their original goals to prevent drift-induced conflicts.
 
 Path followers chunk paths at hold points and send to Nav2 `follow_path` with temporal synchronization.
 
@@ -175,7 +190,7 @@ JSON format:
 
 **Planner node** (`mapf_planner`) on success:
 ```
-PBS solved in 13256.5 ms (1 PBS exp, A*: 20 ok (avg 425000 / max 890000 exp), 0 failed), publishing 20 paths
+PBS solved in 8267.2 ms (1 PBS exp, A*: 20 ok (avg 308227 / max 661387 exp), 0 failed), publishing 20 paths
 ```
 
 **Planner node** on failure:
@@ -187,7 +202,7 @@ PBS failed (2709.9 ms, 1 expansions)
 
 **test_send_goals** on success:
 ```
-20 agents, 13256.5 ms, 1 PBS exp, A*: 20 ok (avg 425000 / max 890000 exp), 0 failed, max path 134 steps
+20 agents, 8267.2 ms, 1 PBS exp, A*: 20 ok (avg 308227 / max 661387 exp), 0 failed, max path 127 steps
 ```
 
 #### Key parameters
@@ -203,10 +218,11 @@ PBS failed (2709.9 ms, 1 expansions)
 | `max_astar_expansions` | 100000 (launch) | Per-A* expansion limit (root planning uncapped) |
 | `time_step_sec` | 0.4 | Seconds per PBS grid step |
 | `max_speed` | 0.5 | Max robot speed (m/s), determines movement connectivity with time_step_sec |
+| `urgency` | 1.0 | Time cost coefficient: 1 = balanced, >1 = rush. Below 1.0 not recommended |
 | `planner_type` | "euclidean" | A* planner: "euclidean" (N-connected) or "classic" (4-connected) |
 | `replan_check_hz` | 2.0 | Schedule deviation check rate (Hz) |
 | `replan_threshold_m` | 1.0 | Deviation distance to trigger replan (m) |
-| `replan_cooldown_sec` | 5.0 | Min cooldown between replans (s) |
+| `replan_cooldown_sec` | 15.0 | Cooldown from replan end to next replan start (s) |
 
 **Constraint:** `footprint_radius >= 0.7 * pbs_resolution` must hold when using the Euclidean planner. The planner asserts this at startup. With defaults (0.22m footprint, 0.2m resolution) the constraint is satisfied. Increasing `pbs_resolution` beyond `footprint_radius / 0.7` requires a proportionally larger footprint or finer resolution.
 
@@ -242,11 +258,11 @@ DDS and performance tuning scripts are in `src/scripts/`:
 
 - [x] 2D Stage simulation with 20 robots + Nav2 local nav
 - [x] MAPF with PBS planner, gradient inflation, and service API
-- [x] Schedule-based replanning with adaptive cooldown
+- [x] N-connected Euclidean A\* with capsule-based conflict detection
+- [x] Schedule-based replanning with static cooldown
 - [x] Formation control (leader-follower with PD controllers)
 - [ ] MAPF improvements
   - [ ] Formation-aware MAPF (plan formations as single entities with compound footprints)
-  - [ ] 8-connected grid movement (diagonal paths)
   - [ ] Orientation-aware PBS for complex polygon footprints
 - [ ] Fault tolerance and communication loss handling
 - [ ] LLM reasoning agent integration (fleet-level task allocation)

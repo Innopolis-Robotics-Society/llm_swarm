@@ -30,7 +30,7 @@ def generate_launch_description():
             description='Deviation from schedule to trigger replan (metres)'
         ),
         DeclareLaunchArgument(
-            'replan_cooldown_sec', default_value='10.0',
+            'replan_cooldown_sec', default_value='15.0',
             description='Cooldown between end of last replan and next replan (seconds)'
         ),
         DeclareLaunchArgument(
