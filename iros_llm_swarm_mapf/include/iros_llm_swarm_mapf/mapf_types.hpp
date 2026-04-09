@@ -124,3 +124,87 @@ struct SolveStats {
   AStarStats astar;
   SolveDiagnostics diag;
 };
+
+// ---------------------------------------------------------------------------
+// Segment geometry (capsule collision)
+// ---------------------------------------------------------------------------
+
+struct Segment {
+  float r0, c0;  // start point (row, col) as float
+  float r1, c1;  // end point
+
+  static Segment from_cells(const Cell& a, const Cell& b) {
+    return {static_cast<float>(a.row), static_cast<float>(a.col),
+            static_cast<float>(b.row), static_cast<float>(b.col)};
+  }
+
+  static Segment from_cell(const Cell& a) {
+    return from_cells(a, a);
+  }
+};
+
+// Minimum squared distance between two line segments.
+// Each segment is parameterized as P(s) = A + s*(B-A), s in [0,1].
+inline float segment_segment_dist_sq(const Segment& s1, const Segment& s2) {
+  const float d1r = s1.r1 - s1.r0, d1c = s1.c1 - s1.c0;
+  const float d2r = s2.r1 - s2.r0, d2c = s2.c1 - s2.c0;
+  const float rr = s1.r0 - s2.r0,  rc = s1.c0 - s2.c0;
+
+  const float a = d1r * d1r + d1c * d1c;  // |d1|^2
+  const float e = d2r * d2r + d2c * d2c;  // |d2|^2
+  const float b = d1r * d2r + d1c * d2c;  // d1 . d2
+  const float c = d1r * rr  + d1c * rc;   // d1 . r
+  const float f = d2r * rr  + d2c * rc;   // d2 . r
+
+  const float denom = a * e - b * b;
+  float s, t;
+
+  if (denom < 1e-8f) {
+    s = 0.0f;
+    t = (e > 1e-8f) ? f / e : 0.0f;
+  } else {
+    s = (b * f - c * e) / denom;
+    t = (a * f - b * c) / denom;
+  }
+
+  s = std::max(0.0f, std::min(1.0f, s));
+  t = (e > 1e-8f) ? (b * s + f) / e : 0.0f;
+
+  t = std::max(0.0f, std::min(1.0f, t));
+  if (a > 1e-8f) {
+    s = (b * t - c) / a;
+    s = std::max(0.0f, std::min(1.0f, s));
+  }
+
+  const float pr = s1.r0 + s * d1r - (s2.r0 + t * d2r);
+  const float pc = s1.c0 + s * d1c - (s2.c0 + t * d2c);
+  return pr * pr + pc * pc;
+}
+
+// Check if two capsules overlap (swept circles along segments).
+inline bool capsule_overlap(const Segment& a, float radius_a,
+                            const Segment& b, float radius_b) {
+  const float combined = radius_a + radius_b;
+  if (combined <= 0.0f) {
+    return segment_segment_dist_sq(a, b) < 1e-6f;
+  }
+  return segment_segment_dist_sq(a, b) < combined * combined;
+}
+
+// Gradient penalty between two capsules.
+// Returns: -1 = hard overlap (forbidden), 0 = free, >0 = soft penalty.
+inline int capsule_penalty(const Segment& a, float hard_a, float soft_a,
+                           const Segment& b, float hard_b, float soft_b,
+                           int max_penalty = 50,
+                           CostCurve cost_curve = CostCurve::Quadratic) {
+  const float dist_sq = segment_segment_dist_sq(a, b);
+  const float hard_dist = hard_a + hard_b;
+  const float soft_dist = soft_a + soft_b;
+
+  if (hard_dist > 0.0f && dist_sq < hard_dist * hard_dist) return -1;
+  if (soft_dist <= 0.0f || dist_sq >= soft_dist * soft_dist) return 0;
+
+  const float dist = std::sqrt(dist_sq);
+  const float ratio = (soft_dist - dist) / (soft_dist - hard_dist);
+  return static_cast<int>(apply_curve(ratio, cost_curve) * max_penalty);
+}
