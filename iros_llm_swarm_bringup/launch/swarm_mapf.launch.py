@@ -28,7 +28,7 @@ def generate_launch_description():
     num_robots_arg = DeclareLaunchArgument('num_robots',    default_value='20')
     use_sim_time_arg = DeclareLaunchArgument('use_sim_time', default_value='true')
     time_step_arg = DeclareLaunchArgument(
-        'time_step_sec', default_value='1.0',
+        'time_step_sec', default_value='0.4',
         description='Секунд на один grid-шаг PBS пути')
     world_file_arg = DeclareLaunchArgument(
         'world_file',
@@ -79,20 +79,22 @@ def generate_launch_description():
         executable='mapf_planner_node',
         name='mapf_planner',
         output='screen',
-        arguments=['--ros-args', '--log-level', 'mapf_planner:=DEBUG'],
+        arguments=['--ros-args', '--log-level', 'mapf_planner:=INFO'],
         parameters=[{
             'num_robots':           num_robots,
             'time_step_sec':        time_step_sec,
             'use_sim_time':         use_sim_time,
             'map_topic':            '/map',
             'default_robot_radius': 0.22,
-            'inflation_radius':     0.8,
+            'inflation_radius':     0.75,
             'max_pbs_expansions':   5000,
             'max_astar_expansions': 1000000,
-            'cost_curve':           'cubic',
-            'urgency':              1.3,
+            'cost_curve':           'quadratic',
+            'urgency':              1.0,
             'replan_threshold_m':   1.5,
-            'proximity_penalty':    30
+            'proximity_penalty':    50,
+            'pbs_resolution':       0.2,
+            'replan_cooldown_sec':  30
         }],
     )
 

@@ -192,6 +192,8 @@ class PBSSolver {
     dist_cache_.clear();
   }
 
+  // NOTE: does not clear dist_cache_ / inflated_cache_ — params are
+  // expected to stay constant across calls.  Call set_map() to reset.
   void set_movement_params(float max_speed, float time_step_sec,
                             float resolution, float urgency = 1.0f) {
     move_set_ = MoveSet::generate(max_speed, time_step_sec, resolution);
@@ -244,25 +246,30 @@ class PBSSolver {
       }
     }
 
-    // Cache gradient-inflated maps for each unique soft_radius.
+    // Cache gradient-inflated maps for each unique footprint_radius.
     // Smaller robots fit through gaps that larger formations cannot.
-    // Hard boundary = footprint, soft boundary = footprint + inflation.
+    // Hard boundary = footprint (determines blocked cells),
+    // soft boundary = footprint + inflation (gradient penalty zone).
     for (size_t i = 0; i < n; ++i) {
-      const float soft = agents[i].footprint_radius + agents[i].inflation;
-      if (soft > 0.0f && inflated_cache_.find(soft) == inflated_cache_.end()) {
-        inflated_cache_[soft] = map_->inflate_gradient(
-            agents[i].footprint_radius, soft, resolution,
+      const float hard = agents[i].footprint_radius;
+      const float soft = hard + agents[i].inflation;
+      if (hard > 0.0f && inflated_cache_.find(hard) == inflated_cache_.end()) {
+        inflated_cache_[hard] = map_->inflate_gradient(
+            hard, soft, resolution,
             proximity_penalty, cost_curve);
       }
     }
 
     // Precompute Dijkstra distances from each agent's goal on its
     // gradient map.  Used as A* heuristic and for agent ordering.
-    // Cached by goal cell index (agents sharing a goal reuse the map).
+    // Cached by (goal_cell, footprint_radius) — agents with different
+    // hard radii have different blocked cells and different distances.
     agent_goal_dists_.resize(n);
     for (size_t i = 0; i < n; ++i) {
       set_agent_map(agents[i]);
-      const size_t key = agents[i].goal.row * map_->cols + agents[i].goal.col;
+      const size_t goal_idx = agents[i].goal.row * map_->cols + agents[i].goal.col;
+      const size_t key = goal_idx
+          ^ (std::hash<float>{}(agents[i].footprint_radius) * 2654435761u);
       if (dist_cache_.find(key) == dist_cache_.end()) {
         dist_cache_[key] = dijkstra_from(*low_level_.current_map(),
                                                agents[i].goal, move_set_,
@@ -284,9 +291,24 @@ class PBSSolver {
     }
 
     // max_t: time horizon for Space-Time A*.
+    // Based on Chebyshev cell distance (min steps in 8-connected grid),
+    // not cost units. Multiplier accounts for obstacle detours.
+    // TODO: per-agent time cap based on individual cell distance
+    //       instead of shared max — short-path agents don't need the
+    //       full horizon, reducing their state space.
     // Critical: a 600x600 map = 360k cells; at max_t=1000
     // Space-Time A* allocates 360M states and hangs.
-    const size_t max_t = std::min<size_t>(max_dist * 2 + 32, 600);
+    size_t max_cell_dist = 0;
+    for (size_t i = 0; i < n; ++i) {
+      const size_t dr = agents[i].start.row > agents[i].goal.row
+          ? agents[i].start.row - agents[i].goal.row
+          : agents[i].goal.row - agents[i].start.row;
+      const size_t dc = agents[i].start.col > agents[i].goal.col
+          ? agents[i].start.col - agents[i].goal.col
+          : agents[i].goal.col - agents[i].start.col;
+      max_cell_dist = std::max(max_cell_dist, std::max(dr, dc));
+    }
+    const size_t max_t = std::min<size_t>(max_cell_dist * 2 + 32, 600);
 
     // Root node: sequential root planning.
     // Plan agents by decreasing distance to goal — longest paths get
@@ -369,6 +391,9 @@ class PBSSolver {
         return true;
       }
 
+      // TODO: PBS conflict resolution is brute force — just tries both
+      // priority orderings. Needs smarter strategy (CBS, ECBS, or
+      // improved heuristics) to scale beyond simple scenarios.
       // Branch ordering heuristic: try giving priority to the agent
       // with the further goal first — it needs more space/freedom.
       size_t hi = c->agent1, lo = c->agent2;
@@ -450,10 +475,10 @@ class PBSSolver {
   std::vector<size_t>    agent_dists_;      // per-agent true distance to goal
   std::vector<const std::vector<float>*> agent_goal_dists_;  // per-agent Dijkstra map
 
-  // Cache of gradient-inflated maps: soft_radius (in metres) -> GridMap
+  // Cache of gradient-inflated maps: footprint_radius (in metres) -> GridMap
   std::unordered_map<float, GridMap> inflated_cache_;
 
-  // Dijkstra distance cache: goal_cell_index -> distance map.
+  // Dijkstra distance cache: hash(goal_cell, footprint_radius) -> distance map.
   // Precomputed backward from each goal on the agent's gradient map.
   std::unordered_map<size_t, std::vector<float>> dist_cache_;
 
@@ -461,9 +486,8 @@ class PBSSolver {
   // Smaller robots get a less inflated map and can pass through
   // narrow gaps inaccessible to larger formations.
   void set_agent_map(const Agent& a) {
-    const float soft = a.footprint_radius + a.inflation;
-    if (soft > 0.0f) {
-      auto it = inflated_cache_.find(soft);
+    if (a.footprint_radius > 0.0f) {
+      auto it = inflated_cache_.find(a.footprint_radius);
       if (it != inflated_cache_.end()) {
         low_level_.reset_map(&it->second);
         return;

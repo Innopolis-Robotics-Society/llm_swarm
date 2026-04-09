@@ -54,10 +54,6 @@ def generate_launch_description():
             description='Urgency coefficient: how much robots prefer moving over waiting. '
                         '0 = time is free (shortest path only), 1.0 = balanced, >1 = rush'
         ),
-        DeclareLaunchArgument(
-            'planner_type', default_value='euclidean',
-            description='A* planner type: euclidean (N-connected) or classic (4-connected)'
-        ),
 
         Node(
             package='iros_llm_swarm_mapf',
@@ -78,7 +74,6 @@ def generate_launch_description():
                 'goal_reached_m':         LaunchConfiguration('goal_reached_m'),
                 'max_speed':              LaunchConfiguration('max_speed'),
                 'urgency':        LaunchConfiguration('urgency'),
-                'planner_type':           LaunchConfiguration('planner_type'),
             }],
         ),
     ])

@@ -13,6 +13,11 @@
 #include "nav2_msgs/action/follow_path.hpp"
 
 // ---------------------------------------------------------------------------
+// TODO: robots don't track the planned temporal schedule accurately —
+// they arrive too early or too late at waypoints. This causes the
+// schedule monitor to trigger unnecessary replans. Needs velocity
+// regulation or hold-point waiting to match planned timestamps.
+// ---------------------------------------------------------------------------
 
 class PathFollowerNode : public rclcpp::Node
 {

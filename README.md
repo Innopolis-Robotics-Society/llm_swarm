@@ -229,7 +229,6 @@ PBS failed (2709.9 ms, 1 expansions)
 | `time_step_sec`        | 0.1             | Seconds per PBS grid step                                                  |
 | `max_speed`            | 0.5             | Max robot speed (m/s), determines movement connectivity with time_step_sec |
 | `urgency`              | 1.0             | Time cost coefficient: 1 = balanced, >1 = rush. Below 1.0 not recommended  |
-| `planner_type`         | "euclidean"     | A\* planner: "euclidean" (N-connected) or "classic" (4-connected)          |
 | `replan_check_hz`      | 2.0             | Schedule deviation check rate (Hz)                                         |
 | `replan_threshold_m`   | 1.0             | Deviation distance to trigger replan (m)                                   |
 | `replan_cooldown_sec`  | 15.0            | Cooldown from replan end to next replan start (s)                          |
@@ -272,6 +271,10 @@ DDS and performance tuning scripts are in `src/scripts/`:
 - [x] Schedule-based replanning with static cooldown
 - [x] Formation control (leader-follower with PD controllers)
 - [ ] MAPF improvements
+  - [ ] Better conflict resolution — PBS is currently brute force, needs smarter strategy (CBS, ECBS, or improved PBS heuristics)
+  - [ ] Path following temporal accuracy — robots drift from planned schedule (too fast/slow), causing unnecessary replans
+  - [ ] Replan trigger tuning — replanning fires too often, needs hysteresis or less sensitive thresholds
+  - [ ] Per-agent time horizon — short-path agents don't need the full max_t, reducing their state space
   - [ ] Formation-aware MAPF (plan formations as single entities with compound footprints)
   - [ ] Orientation-aware PBS for complex polygon footprints
 - [ ] Fault tolerance and communication loss handling

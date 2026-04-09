@@ -282,11 +282,17 @@ inline std::pair<bool, float> trace_move(const GridMap& map,
   if (tr < 0 || tr >= static_cast<int>(map.rows)) return {false, 0.0f};
   if (tc < 0 || tc >= static_cast<int>(map.cols)) return {false, 0.0f};
 
+  // Wait move: no trace, no cost.
+  if (dr == 0 && dc == 0) return {true, 0.0f};
+
   bool valid = true;
   float penalty = 0.0f;
+  bool first = true;
 
   bresenham_trace(static_cast<int>(from_r), static_cast<int>(from_c),
                   tr, tc, [&](int r, int c) -> bool {
+    // Skip source cell — penalty was already charged on entry.
+    if (first) { first = false; return true; }
     const size_t idx = static_cast<size_t>(r) * map.cols + static_cast<size_t>(c);
     if (map.blocked[idx]) { valid = false; return false; }
     if (!map.wall_cost.empty()) penalty += static_cast<float>(map.wall_cost[idx]);

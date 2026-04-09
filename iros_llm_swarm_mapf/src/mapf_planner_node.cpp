@@ -97,7 +97,6 @@ class MapfPlannerNode : public rclcpp::Node {
     declare_parameter("proximity_penalty",    15);
     declare_parameter("max_speed",             0.5);
     declare_parameter("urgency",       1.0);
-    declare_parameter("planner_type",          std::string("euclidean"));
 
     num_robots_           = get_parameter("num_robots").as_int();
     time_step_sec_        = get_parameter("time_step_sec").as_double();
@@ -136,7 +135,6 @@ class MapfPlannerNode : public rclcpp::Node {
     proximity_penalty_    = get_parameter("proximity_penalty").as_int();
     max_speed_            = get_parameter("max_speed").as_double();
     urgency_      = get_parameter("urgency").as_double();
-    planner_type_         = get_parameter("planner_type").as_string();
 
     // Подписка на карту.
     // map_server публикует с transient_local — подписчик обязан использовать
@@ -651,6 +649,10 @@ class MapfPlannerNode : public rclcpp::Node {
     return {last.pose.position.x, last.pose.position.y};
   }
 
+  // TODO: replanning triggers too often — robots drift from schedule
+  // (too fast or too slow) and exceed threshold. Needs either:
+  //   - better path following with temporal sync (root cause)
+  //   - hysteresis / less sensitive thresholds (workaround)
   void check_schedule()
   {
     if (!has_active_plan_ || !map_ready_) return;
@@ -880,7 +882,6 @@ class MapfPlannerNode : public rclcpp::Node {
   int    proximity_penalty_     = 50;
   double max_speed_              = 0.5;
   double urgency_       = 1.0;
-  std::string planner_type_     = "euclidean";
 
   bool   map_ready_       = false;
   double map_origin_x_    = 0.0;
