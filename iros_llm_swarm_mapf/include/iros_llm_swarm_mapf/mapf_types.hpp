@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -294,3 +295,120 @@ inline std::pair<bool, float> trace_move(const GridMap& map,
 
   return {valid, penalty};
 }
+
+// ---------------------------------------------------------------------------
+// Segment-based Reservation Table
+// ---------------------------------------------------------------------------
+
+class SegmentReservationTable {
+ public:
+  void clear() {
+    entries_.clear();
+    held_goals_.clear();
+  }
+
+  // Reserve an agent's path as a sequence of segments.
+  // footprint_cells: physical (hard) radius in cells.
+  // soft_radius_cells: footprint + inflation in cells.
+  // skip_until: grace period — skip entries for t < skip_until.
+  void reserve_path(const Path& path, size_t hold_goal_until_time,
+                    float footprint_cells, float soft_radius_cells,
+                    size_t skip_until = 0) {
+    if (path.empty()) return;
+    for (size_t t = std::max(skip_until, size_t(1)); t < path.size(); ++t) {
+      entries_[t].push_back(
+          {path[t - 1], path[t], footprint_cells, soft_radius_cells});
+    }
+    // Also store wait at t=0 (or skip_until) as a point segment
+    if (skip_until == 0) {
+      entries_[0].push_back(
+          {path[0], path[0], footprint_cells, soft_radius_cells});
+    }
+    // Hold goal: agent stays at final cell after arrival
+    if (path.size() <= hold_goal_until_time) {
+      held_goals_.push_back({path.back(), footprint_cells, soft_radius_cells,
+                             std::max(path.size(), skip_until)});
+    }
+  }
+
+  // Check a candidate move segment against reservations.
+  // Returns: 0 = free, >0 = soft penalty, -1 = forbidden.
+  int segment_penalty(const Cell& from, const Cell& to, size_t time,
+                      float my_footprint, float my_soft,
+                      int max_penalty = 50,
+                      CostCurve cost_curve = CostCurve::Quadratic) const {
+    const Segment my_seg = Segment::from_cells(from, to);
+    int worst = 0;
+
+    auto check = [&](const SegEntry& e) {
+      const Segment other = Segment::from_cells(e.from, e.to);
+      const int pen = capsule_penalty(
+          my_seg, my_footprint, my_soft,
+          other, e.footprint_cells, e.soft_radius_cells,
+          max_penalty, cost_curve);
+      if (pen < 0) { worst = -1; return; }
+      worst = std::max(worst, pen);
+    };
+
+    // Check held goals
+    for (const auto& hg : held_goals_) {
+      if (time >= hg.from_time) {
+        const Segment goal_seg = Segment::from_cell(hg.cell);
+        const int pen = capsule_penalty(
+            my_seg, my_footprint, my_soft,
+            goal_seg, hg.footprint_cells, hg.soft_radius_cells,
+            max_penalty, cost_curve);
+        if (pen < 0) return -1;
+        worst = std::max(worst, pen);
+      }
+    }
+
+    // Check entries at this timestep
+    auto it = entries_.find(time);
+    if (it != entries_.end()) {
+      for (const auto& e : it->second) {
+        check(e);
+        if (worst < 0) return -1;
+      }
+    }
+    return worst;
+  }
+
+  // Can an agent hold its goal from from_time onward?
+  bool can_hold_goal(size_t row, size_t col, size_t from_time,
+                     size_t max_time, float my_footprint_cells) const {
+    const Segment my_seg = Segment::from_cell({row, col});
+    for (const auto& hg : held_goals_) {
+      const Segment other = Segment::from_cell(hg.cell);
+      if (capsule_overlap(my_seg, my_footprint_cells, other, hg.footprint_cells))
+        return false;
+    }
+    for (size_t t = from_time; t <= max_time; ++t) {
+      auto it = entries_.find(t);
+      if (it == entries_.end()) continue;
+      for (const auto& e : it->second) {
+        const Segment other = Segment::from_cells(e.from, e.to);
+        if (capsule_overlap(my_seg, my_footprint_cells, other, e.footprint_cells))
+          return false;
+      }
+    }
+    return true;
+  }
+
+ private:
+  struct SegEntry {
+    Cell  from;
+    Cell  to;
+    float footprint_cells;
+    float soft_radius_cells;
+  };
+  struct HeldGoal {
+    Cell   cell;
+    float  footprint_cells;
+    float  soft_radius_cells;
+    size_t from_time;
+  };
+
+  std::unordered_map<size_t, std::vector<SegEntry>> entries_;
+  std::vector<HeldGoal> held_goals_;
+};
