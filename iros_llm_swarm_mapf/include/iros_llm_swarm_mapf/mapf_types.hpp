@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
+#include <utility>
 #include <vector>
 
 // ---------------------------------------------------------------------------
@@ -207,4 +208,89 @@ inline int capsule_penalty(const Segment& a, float hard_a, float soft_a,
   const float dist = std::sqrt(dist_sq);
   const float ratio = (soft_dist - dist) / (soft_dist - hard_dist);
   return static_cast<int>(apply_curve(ratio, cost_curve) * max_penalty);
+}
+
+// ---------------------------------------------------------------------------
+// Move table
+// ---------------------------------------------------------------------------
+
+struct Move {
+  int   dr;
+  int   dc;
+  float cost;  // Euclidean distance in cells (0 for wait)
+};
+
+struct MoveSet {
+  std::vector<Move> moves;
+
+  // Generate all reachable moves from physical parameters.
+  // reach = max(1, floor(max_speed * time_step / resolution))
+  // Includes wait (0,0) and all (dr,dc) where dr²+dc² <= reach².
+  static MoveSet generate(float max_speed, float time_step_sec,
+                           float resolution) {
+    const int reach = std::max(1,
+        static_cast<int>(std::floor(max_speed * time_step_sec / resolution)));
+    MoveSet ms;
+    ms.moves.push_back({0, 0, 0.0f});  // wait
+    for (int dr = -reach; dr <= reach; ++dr) {
+      for (int dc = -reach; dc <= reach; ++dc) {
+        if (dr == 0 && dc == 0) continue;
+        if (dr * dr + dc * dc <= reach * reach) {
+          ms.moves.push_back({dr, dc,
+              std::sqrt(static_cast<float>(dr * dr + dc * dc))});
+        }
+      }
+    }
+    return ms;
+  }
+};
+
+// ---------------------------------------------------------------------------
+// Bresenham line trace
+// ---------------------------------------------------------------------------
+
+// Trace cells along line from (r0,c0) to (r1,c1) using Bresenham.
+// Callback receives each cell (row, col). Returns false from callback to stop early.
+template <typename Fn>
+void bresenham_trace(int r0, int c0, int r1, int c1, Fn&& fn) {
+  int dr = r1 > r0 ? r1 - r0 : r0 - r1;
+  int dc = c1 > c0 ? c1 - c0 : c0 - c1;
+  int sr = r0 < r1 ? 1 : -1;
+  int sc = c0 < c1 ? 1 : -1;
+  int err = dr - dc;
+
+  while (true) {
+    if (!fn(r0, c0)) return;
+    if (r0 == r1 && c0 == c1) break;
+    const int e2 = 2 * err;
+    if (e2 > -dc) { err -= dc; r0 += sr; }
+    if (e2 <  dr) { err += dr; c0 += sc; }
+  }
+}
+
+// Check if a move is valid (no blocked cells along trace) and compute
+// the sum of wall_cost along the trace.
+// Returns: {valid, wall_penalty_sum}
+inline std::pair<bool, float> trace_move(const GridMap& map,
+                                          size_t from_r, size_t from_c,
+                                          int dr, int dc) {
+  const int tr = static_cast<int>(from_r) + dr;
+  const int tc = static_cast<int>(from_c) + dc;
+
+  // Bounds check
+  if (tr < 0 || tr >= static_cast<int>(map.rows)) return {false, 0.0f};
+  if (tc < 0 || tc >= static_cast<int>(map.cols)) return {false, 0.0f};
+
+  bool valid = true;
+  float penalty = 0.0f;
+
+  bresenham_trace(static_cast<int>(from_r), static_cast<int>(from_c),
+                  tr, tc, [&](int r, int c) -> bool {
+    const size_t idx = static_cast<size_t>(r) * map.cols + static_cast<size_t>(c);
+    if (map.blocked[idx]) { valid = false; return false; }
+    if (!map.wall_cost.empty()) penalty += static_cast<float>(map.wall_cost[idx]);
+    return true;
+  });
+
+  return {valid, penalty};
 }
