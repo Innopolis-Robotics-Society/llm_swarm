@@ -54,6 +54,7 @@ ament_target_dependencies(path_follower_node
   nav_msgs
   nav2_msgs
   geometry_msgs
+  iros_llm_swarm_interfaces
 )
 
 # -------------------------------------------------------------------------
