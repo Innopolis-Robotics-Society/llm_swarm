@@ -94,7 +94,7 @@ class MapfPlannerNode : public rclcpp::Node {
     declare_parameter("max_pbs_expansions",   5000);
     declare_parameter("max_astar_expansions", 200000);
     declare_parameter("cost_curve",           std::string("quadratic"));
-    declare_parameter("proximity_penalty",    50);
+    declare_parameter("proximity_penalty",    15);
     declare_parameter("max_speed",             0.5);
     declare_parameter("urgency",       1.0);
     declare_parameter("planner_type",          std::string("euclidean"));

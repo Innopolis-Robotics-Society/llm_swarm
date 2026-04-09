@@ -153,23 +153,24 @@ Service `/swarm/set_goals` (`iros_llm_swarm_interfaces/srv/SetGoals`):
 
 **Response:**
 
-| Field | Type | Description |
-|---|---|---|
-| `success` | bool | Whether planning succeeded |
-| `message` | string | "OK" or warning/error description |
-| `planning_time_ms` | float64 | Wall-clock planning time (ms) |
-| `num_agents_planned` | uint32 | Number of agents actually planned |
-| `pbs_expansions` | uint32 | PBS tree node expansions |
-| `max_path_length` | uint32 | Longest path in steps |
-| `path_lengths` | uint32[] | Per-agent path lengths (parallel to `robot_ids`) |
-| `astar_ok_count` | uint32 | Successful A\* calls |
-| `astar_fail_count` | uint32 | Failed A\* calls (hit expansion cap) |
-| `astar_avg_exp` | uint32 | Avg expansions per successful A\* call |
-| `astar_max_exp` | uint32 | Max expansions in a single successful A\* call |
+| Field                | Type     | Description                                      |
+| -------------------- | -------- | ------------------------------------------------ |
+| `success`            | bool     | Whether planning succeeded                       |
+| `message`            | string   | "OK" or warning/error description                |
+| `planning_time_ms`   | float64  | Wall-clock planning time (ms)                    |
+| `num_agents_planned` | uint32   | Number of agents actually planned                |
+| `pbs_expansions`     | uint32   | PBS tree node expansions                         |
+| `max_path_length`    | uint32   | Longest path in steps                            |
+| `path_lengths`       | uint32[] | Per-agent path lengths (parallel to `robot_ids`) |
+| `astar_ok_count`     | uint32   | Successful A\* calls                             |
+| `astar_fail_count`   | uint32   | Failed A\* calls (hit expansion cap)             |
+| `astar_avg_exp`      | uint32   | Avg expansions per successful A\* call           |
+| `astar_max_exp`      | uint32   | Max expansions in a single successful A\* call   |
 
 Paths are published as `nav_msgs/Path` on `/robot_{id}/mapf_path`. Each `PoseStamped` contains the scheduled arrival time (`header.stamp = plan_time + step × time_step_sec`) and orientation pointing toward the next waypoint.
 
 Sending goals:
+
 ```bash
 # All robots to a point (distributed in grid pattern with 1m spacing)
 ros2 run iros_llm_swarm_mapf test_send_goals --goal-x 15.0 --goal-y 15.0
@@ -182,18 +183,26 @@ ros2 run iros_llm_swarm_mapf test_send_goals --json-file goals.json
 ```
 
 JSON format:
+
 ```json
-{"goals": [{"id": 0, "gx": 15.0, "gy": 12.5}, {"id": 1, "gx": 16.2, "gy": 14.8}]}
+{
+  "goals": [
+    { "id": 0, "gx": 15.0, "gy": 12.5 },
+    { "id": 1, "gx": 16.2, "gy": 14.8 }
+  ]
+}
 ```
 
 #### Log output
 
 **Planner node** (`mapf_planner`) on success:
+
 ```
 PBS solved in 8267.2 ms (1 PBS exp, A*: 20 ok (avg 308227 / max 661387 exp), 0 failed), publishing 20 paths
 ```
 
 **Planner node** on failure:
+
 ```
 PBS failed (2709.9 ms, 1 expansions)
   reason: root A* failed, max_t=536, branches tried=0 failed=2
@@ -201,28 +210,29 @@ PBS failed (2709.9 ms, 1 expansions)
 ```
 
 **test_send_goals** on success:
+
 ```
 20 agents, 8267.2 ms, 1 PBS exp, A*: 20 ok (avg 308227 / max 661387 exp), 0 failed, max path 127 steps
 ```
 
 #### Key parameters
 
-| Parameter | Default | Description |
-|---|---|---|
-| `default_robot_radius` | 0.22 | Physical footprint radius (m) |
-| `inflation_radius` | 0.5 (0.75 in launch) | Gradient zone width beyond footprint (m) |
-| `cost_curve` | "quadratic" | Gradient curve shape ("linear", "quadratic", "cubic") |
-| `proximity_penalty` | 50 | Cost per step at the hard boundary |
-| `pbs_resolution` | 0.2 | PBS grid cell size (m), map downsampled from 0.05 |
-| `max_pbs_expansions` | 5000 | PBS node expansion limit |
-| `max_astar_expansions` | 100000 (launch) | Per-A* expansion limit (root planning uncapped) |
-| `time_step_sec` | 0.4 | Seconds per PBS grid step |
-| `max_speed` | 0.5 | Max robot speed (m/s), determines movement connectivity with time_step_sec |
-| `urgency` | 1.0 | Time cost coefficient: 1 = balanced, >1 = rush. Below 1.0 not recommended |
-| `planner_type` | "euclidean" | A* planner: "euclidean" (N-connected) or "classic" (4-connected) |
-| `replan_check_hz` | 2.0 | Schedule deviation check rate (Hz) |
-| `replan_threshold_m` | 1.0 | Deviation distance to trigger replan (m) |
-| `replan_cooldown_sec` | 15.0 | Cooldown from replan end to next replan start (s) |
+| Parameter              | Default         | Description                                                                |
+| ---------------------- | --------------- | -------------------------------------------------------------------------- |
+| `default_robot_radius` | 0.22            | Physical footprint radius (m)                                              |
+| `inflation_radius`     | 0.5             | Gradient zone width beyond footprint (m)                                   |
+| `cost_curve`           | "quadratic"     | Gradient curve shape ("linear", "quadratic", "cubic")                      |
+| `proximity_penalty`    | 15              | Max gradient penalty at the hard boundary (walls and agents)               |
+| `pbs_resolution`       | 0.2             | PBS grid cell size (m), map downsampled from 0.05                          |
+| `max_pbs_expansions`   | 5000            | PBS node expansion limit                                                   |
+| `max_astar_expansions` | 100000 (launch) | Per-A\* expansion limit (root planning uncapped)                           |
+| `time_step_sec`        | 0.1             | Seconds per PBS grid step                                                  |
+| `max_speed`            | 0.5             | Max robot speed (m/s), determines movement connectivity with time_step_sec |
+| `urgency`              | 1.0             | Time cost coefficient: 1 = balanced, >1 = rush. Below 1.0 not recommended  |
+| `planner_type`         | "euclidean"     | A\* planner: "euclidean" (N-connected) or "classic" (4-connected)          |
+| `replan_check_hz`      | 2.0             | Schedule deviation check rate (Hz)                                         |
+| `replan_threshold_m`   | 1.0             | Deviation distance to trigger replan (m)                                   |
+| `replan_cooldown_sec`  | 15.0            | Cooldown from replan end to next replan start (s)                          |
 
 **Constraint:** `footprint_radius >= 0.7 * pbs_resolution` must hold when using the Euclidean planner. The planner asserts this at startup. With defaults (0.22m footprint, 0.2m resolution) the constraint is satisfied. Increasing `pbs_resolution` beyond `footprint_radius / 0.7` requires a proportionally larger footprint or finer resolution.
 

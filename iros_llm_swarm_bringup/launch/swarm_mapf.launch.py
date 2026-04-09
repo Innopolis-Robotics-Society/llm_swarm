@@ -28,7 +28,7 @@ def generate_launch_description():
     num_robots_arg = DeclareLaunchArgument('num_robots',    default_value='20')
     use_sim_time_arg = DeclareLaunchArgument('use_sim_time', default_value='true')
     time_step_arg = DeclareLaunchArgument(
-        'time_step_sec', default_value='0.4',
+        'time_step_sec', default_value='1.0',
         description='Секунд на один grid-шаг PBS пути')
     world_file_arg = DeclareLaunchArgument(
         'world_file',
@@ -86,9 +86,13 @@ def generate_launch_description():
             'use_sim_time':         use_sim_time,
             'map_topic':            '/map',
             'default_robot_radius': 0.22,
-            'inflation_radius':     0.75,
+            'inflation_radius':     0.8,
             'max_pbs_expansions':   5000,
-            'max_astar_expansions': 100000,
+            'max_astar_expansions': 1000000,
+            'cost_curve':           'cubic',
+            'urgency':              1.3,
+            'replan_threshold_m':   1.5,
+            'proximity_penalty':    30
         }],
     )
 
