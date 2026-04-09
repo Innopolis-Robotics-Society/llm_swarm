@@ -1,7 +1,8 @@
 #pragma once
 
-#include "iros_llm_swarm_mapf/space_time_astar.hpp"
+#include "iros_llm_swarm_mapf/euclidean_astar.hpp"
 
+#include <cassert>
 #include <deque>
 #include <functional>
 #include <memory>
@@ -23,7 +24,6 @@ struct Conflict {
 };
 
 // SolveDiagnostics, AStarStats, SolveStats defined in mapf_types.hpp
-// ReservationTable, SpaceTimeAStarPlanner defined in space_time_astar.hpp
 
 // ---------------------------------------------------------------------------
 // Conflict Detector
@@ -192,6 +192,12 @@ class PBSSolver {
     dist_cache_.clear();
   }
 
+  void set_movement_params(float max_speed, float time_step_sec,
+                            float resolution) {
+    move_set_ = MoveSet::generate(max_speed, time_step_sec, resolution);
+    low_level_.set_move_set(move_set_);
+  }
+
   // Main entry point. Returns true if a solution is found.
   // solution[i] — path for agents[i], each element is a Cell in grid coordinates.
   // resolution — PBS grid cell size in metres (for radius conversion).
@@ -226,6 +232,15 @@ class PBSSolver {
           : 0.0f;
     }
 
+    // Ensure footprint radius is large enough for the PBS grid resolution
+    // to prevent wall clipping with diagonal/multi-cell moves.
+    for (size_t i = 0; i < n; ++i) {
+      if (resolution > 0.0f && agents[i].footprint_radius > 0.0f) {
+        assert(agents[i].footprint_radius >= 0.7f * resolution &&
+               "footprint_radius must be >= 0.7 * pbs_resolution to prevent wall clipping");
+      }
+    }
+
     // Cache gradient-inflated maps for each unique soft_radius.
     // Smaller robots fit through gaps that larger formations cannot.
     // Hard boundary = footprint, soft boundary = footprint + inflation.
@@ -246,8 +261,8 @@ class PBSSolver {
       set_agent_map(agents[i]);
       const size_t key = agents[i].goal.row * map_->cols + agents[i].goal.col;
       if (dist_cache_.find(key) == dist_cache_.end()) {
-        dist_cache_[key] = bfs_from(*low_level_.current_map(),
-                                          agents[i].goal);
+        dist_cache_[key] = dijkstra_from(*low_level_.current_map(),
+                                               agents[i].goal, move_set_);
       }
       agent_goal_dists_[i] = &dist_cache_[key];
     }
@@ -258,8 +273,8 @@ class PBSSolver {
     size_t max_dist = 0;
     for (size_t i = 0; i < n; ++i) {
       const size_t si = agents[i].start.row * map_->cols + agents[i].start.col;
-      const int d = (*agent_goal_dists_[i])[si];
-      agent_dists_[i] = d < std::numeric_limits<int>::max() / 4
+      const float d = (*agent_goal_dists_[i])[si];
+      agent_dists_[i] = d < std::numeric_limits<float>::max() / 4.0f
           ? static_cast<size_t>(d) : 0;
       max_dist = std::max(max_dist, agent_dists_[i]);
     }
@@ -267,7 +282,7 @@ class PBSSolver {
     // max_t: time horizon for Space-Time A*.
     // Critical: a 600x600 map = 360k cells; at max_t=1000
     // Space-Time A* allocates 360M states and hangs.
-    const size_t max_t = std::min<size_t>(max_dist * 4 + 64, 600);
+    const size_t max_t = std::min<size_t>(max_dist * 2 + 32, 600);
 
     // Root node: sequential root planning.
     // Plan agents by decreasing distance to goal — longest paths get
@@ -285,7 +300,7 @@ class PBSSolver {
       return agent_dists_[a] > agent_dists_[b];
     });
 
-    ReservationTable root_res;
+    SegmentReservationTable root_res;
     for (size_t idx : root_order) {
       set_agent_map(agents[idx]);
       low_level_.set_goal_dists(agent_goal_dists_[idx]);
@@ -296,7 +311,7 @@ class PBSSolver {
                                  cost_curve, proximity_penalty)) {
         record_astar(false);
         // Fallback: A* without reservations. PBS resolves conflicts.
-        ReservationTable empty;
+        SegmentReservationTable empty;
         if (!low_level_.find_path(agents[idx].start, agents[idx].goal,
                                    empty, footprint_cells_[idx], soft_cells_[idx],
                                    max_t, root.paths[idx],
@@ -405,7 +420,8 @@ class PBSSolver {
   };
 
   const GridMap*         map_ = nullptr;
-  SpaceTimeAStarPlanner  low_level_;
+  EuclideanAStarPlanner  low_level_;
+  MoveSet                move_set_;
   SolveStats*            stats_ = nullptr;  // set during solve(), nullable
   CostCurve              cost_curve_ = CostCurve::Quadratic;
   int                    proximity_penalty_ = 50;
@@ -426,53 +442,14 @@ class PBSSolver {
   std::vector<float>     footprint_cells_;  // per-agent hard radius in cells
   std::vector<float>     soft_cells_;       // per-agent soft radius in cells
   std::vector<size_t>    agent_dists_;      // per-agent true distance to goal
-  std::vector<const std::vector<int>*> agent_goal_dists_;  // per-agent Dijkstra map
+  std::vector<const std::vector<float>*> agent_goal_dists_;  // per-agent Dijkstra map
 
   // Cache of gradient-inflated maps: soft_radius (in metres) -> GridMap
   std::unordered_map<float, GridMap> inflated_cache_;
 
   // Dijkstra distance cache: goal_cell_index -> distance map.
   // Precomputed backward from each goal on the agent's gradient map.
-  std::unordered_map<size_t, std::vector<int>> dist_cache_;
-
-  // Compute shortest-path distances (in steps) from every cell to the
-  // goal via BFS.  All edges have uniform cost 1, so BFS is optimal
-  // (O(V) vs O(V log V) for Dijkstra with a priority queue).
-  // Accounts for wall topology (blocked cells) but excludes penalties.
-  // Used as A* heuristic and for agent ordering / max_t computation.
-  static std::vector<int> bfs_from(const GridMap& map, const Cell& goal) {
-    const size_t N = map.rows * map.cols;
-    static constexpr int INF = std::numeric_limits<int>::max() / 4;
-    std::vector<int> dist(N, INF);
-
-    std::deque<size_t> q;
-    const size_t gi = goal.row * map.cols + goal.col;
-    dist[gi] = 0;
-    q.push_back(gi);
-
-    while (!q.empty()) {
-      const size_t ci = q.front(); q.pop_front();
-      const int d = dist[ci];
-      const size_t r = ci / map.cols;
-      const size_t c = ci % map.cols;
-
-      auto relax = [&](size_t nr, size_t nc) {
-        if (nr >= map.rows || nc >= map.cols) return;
-        const size_t ni = nr * map.cols + nc;
-        if (map.blocked[ni]) return;
-        if (d + 1 < dist[ni]) {
-          dist[ni] = d + 1;
-          q.push_back(ni);
-        }
-      };
-
-      if (r > 0)            relax(r - 1, c);
-      if (r + 1 < map.rows) relax(r + 1, c);
-      if (c > 0)            relax(r, c - 1);
-      if (c + 1 < map.cols) relax(r, c + 1);
-    }
-    return dist;
-  }
+  std::unordered_map<size_t, std::vector<float>> dist_cache_;
 
   // Set the map for a specific agent's A* (gradient-inflated).
   // Smaller robots get a less inflated map and can pass through
@@ -514,7 +491,7 @@ class PBSSolver {
       // Reserve paths of all higher-priority agents with their radii.
       // For agents whose starts overlap with ours, skip reservation
       // entries during the grace period so A* can plan an escape path.
-      ReservationTable res;
+      SegmentReservationTable res;
       for (size_t bi : node.pg.higher_than(ai)) {
         const size_t grace = ConflictDetector::start_grace(
             agents[ai].start, footprint_cells_[ai],
