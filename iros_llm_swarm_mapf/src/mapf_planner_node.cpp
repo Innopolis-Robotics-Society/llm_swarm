@@ -375,6 +375,11 @@ class MapfPlannerNode : public rclcpp::Node {
     res->num_agents_planned  = static_cast<uint32_t>(agents.size());
     res->pbs_expansions      = static_cast<uint32_t>(stats.expansions);
     res->max_path_length     = static_cast<uint32_t>(stats.max_path_length);
+    res->astar_ok_count      = static_cast<uint32_t>(stats.astar.ok_count);
+    res->astar_fail_count    = static_cast<uint32_t>(stats.astar.fail_count);
+    res->astar_avg_exp       = stats.astar.ok_count > 0
+        ? static_cast<uint32_t>(stats.astar.ok_total_exp / stats.astar.ok_count) : 0;
+    res->astar_max_exp       = static_cast<uint32_t>(stats.astar.ok_max_exp);
 
     if (!ok) {
       res->success = false;

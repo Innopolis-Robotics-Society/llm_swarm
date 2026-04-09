@@ -122,7 +122,7 @@ Initial paths are computed sequentially — agents with furthest goals plan firs
 
 PBS then searches for a conflict-free ordering: detects physical-overlap conflicts (hard radius only), branches by assigning priority to one agent over another, replans the lower-priority agent around the higher. Branch heuristic: further-goal agent gets priority first.
 
-Low-level pathfinding uses Space-Time A\* with a Dijkstra-precomputed heuristic (true step-distance from goal, accounting for wall topology). Cost model: every timestep costs 1, movement adds 1 more — robots prefer waiting over unnecessary walking. Wall gradient penalty charged only on cell entry, agent proximity penalty per-timestep. Agents can start at positions overlapping with reservations (needed during replanning when robots are close together) — A\* finds a diverging path from there.
+Low-level pathfinding uses Space-Time A\* with a BFS-precomputed heuristic (true step-distance from goal, accounting for wall topology). Cost model: every timestep costs 1, movement adds 1 more — robots prefer waiting over unnecessary walking. Wall gradient penalty charged only on cell entry, agent proximity penalty per-timestep. Agents can start at positions overlapping with reservations (needed during replanning when robots are close together) — A\* finds a diverging path from there.
 
 During PBS replanning, agents whose starts physically overlap get a grace period: the overlapping agent's reservation entries are skipped for the first few timesteps, giving both agents time to separate before collision avoidance kicks in.
 
@@ -130,16 +130,77 @@ After paths are published, schedule monitoring compares robot positions to the p
 
 Path followers chunk paths at hold points and send to Nav2 `follow_path` with temporal synchronization.
 
+#### Service API
+
+Service `/swarm/set_goals` (`iros_llm_swarm_interfaces/srv/SetGoals`):
+
+**Request:** `uint32[] robot_ids` + `geometry_msgs/Point[] goals` (x, y in map frame, arrays must be same length). Start positions are read automatically from `/robot_{id}/odom`.
+
+**Response:**
+
+| Field | Type | Description |
+|---|---|---|
+| `success` | bool | Whether planning succeeded |
+| `message` | string | "OK" or warning/error description |
+| `planning_time_ms` | float64 | Wall-clock planning time (ms) |
+| `num_agents_planned` | uint32 | Number of agents actually planned |
+| `pbs_expansions` | uint32 | PBS tree node expansions |
+| `max_path_length` | uint32 | Longest path in steps |
+| `path_lengths` | uint32[] | Per-agent path lengths (parallel to `robot_ids`) |
+| `astar_ok_count` | uint32 | Successful A\* calls |
+| `astar_fail_count` | uint32 | Failed A\* calls (hit expansion cap) |
+| `astar_avg_exp` | uint32 | Avg expansions per successful A\* call |
+| `astar_max_exp` | uint32 | Max expansions in a single successful A\* call |
+
+Paths are published as `nav_msgs/Path` on `/robot_{id}/mapf_path`. Each `PoseStamped` contains the scheduled arrival time (`header.stamp = plan_time + step × time_step_sec`) and orientation pointing toward the next waypoint.
+
+Sending goals:
+```bash
+# All robots to a point (distributed in grid pattern with 1m spacing)
+ros2 run iros_llm_swarm_mapf test_send_goals --goal-x 15.0 --goal-y 15.0
+
+# Random goals within radius of map center (15, 15)
+ros2 run iros_llm_swarm_mapf test_send_goals --random --radius 5.0
+
+# From JSON file
+ros2 run iros_llm_swarm_mapf test_send_goals --json-file goals.json
+```
+
+JSON format:
+```json
+{"goals": [{"id": 0, "gx": 15.0, "gy": 12.5}, {"id": 1, "gx": 16.2, "gy": 14.8}]}
+```
+
+#### Log output
+
+**Planner node** (`mapf_planner`) on success:
+```
+PBS solved in 13256.5 ms (1 PBS exp, A*: 20 ok (avg 425000 / max 890000 exp), 0 failed), publishing 20 paths
+```
+
+**Planner node** on failure:
+```
+PBS failed (2709.9 ms, 1 expansions)
+  reason: root A* failed, max_t=536, branches tried=0 failed=2
+  root A* failed for agent 11: start=(45,12) goal=(120,85) footprint=0.220m inflation=0.750m
+```
+
+**test_send_goals** on success:
+```
+20 agents, 13256.5 ms, 1 PBS exp, A*: 20 ok (avg 425000 / max 890000 exp), 0 failed, max path 134 steps
+```
+
 #### Key parameters
 
 | Parameter | Default | Description |
 |---|---|---|
 | `default_robot_radius` | 0.22 | Physical footprint radius (m) |
 | `inflation_radius` | 0.5 (0.75 in launch) | Gradient zone width beyond footprint (m) |
-| `cost_exponent` | 2.0 | Gradient curve shape (1=linear, 2=quadratic) |
+| `cost_curve` | "quadratic" | Gradient curve shape ("linear", "quadratic", "cubic") |
 | `proximity_penalty` | 50 | Cost per step at the hard boundary |
 | `pbs_resolution` | 0.2 | PBS grid cell size (m), map downsampled from 0.05 |
-| `max_pbs_expansions` | 200000 | PBS node expansion limit |
+| `max_pbs_expansions` | 5000 | PBS node expansion limit |
+| `max_astar_expansions` | 100000 (launch) | Per-A* expansion limit (root planning uncapped) |
 | `time_step_sec` | 0.4 | Seconds per PBS grid step |
 | `replan_check_hz` | 2.0 | Schedule deviation check rate (Hz) |
 | `replan_threshold_m` | 1.0 | Deviation distance to trigger replan (m) |

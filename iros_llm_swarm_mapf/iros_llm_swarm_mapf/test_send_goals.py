@@ -98,7 +98,10 @@ def main():
             node.get_logger().info(
                 f"{res.num_agents_planned} agents, "
                 f"{res.planning_time_ms:.1f} ms, "
-                f"{res.pbs_expansions} expansions, "
+                f"{res.pbs_expansions} PBS exp, "
+                f"A*: {res.astar_ok_count} ok "
+                f"(avg {res.astar_avg_exp} / max {res.astar_max_exp} exp), "
+                f"{res.astar_fail_count} failed, "
                 f"max path {res.max_path_length} steps")
             if res.message != "OK":
                 node.get_logger().warn(res.message)
