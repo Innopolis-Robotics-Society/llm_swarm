@@ -49,6 +49,14 @@ def generate_launch_description():
             'goal_reached_m', default_value='0.5',
             description='Distance to consider robot arrived at goal'
         ),
+        DeclareLaunchArgument(
+            'max_speed', default_value='0.5',
+            description='Max robot speed (m/s), used with time_step_sec to compute movement reach'
+        ),
+        DeclareLaunchArgument(
+            'planner_type', default_value='euclidean',
+            description='A* planner type: euclidean (N-connected) or classic (4-connected)'
+        ),
 
         Node(
             package='iros_llm_swarm_mapf',
@@ -68,6 +76,8 @@ def generate_launch_description():
                 'replan_predict_sec':     LaunchConfiguration('replan_predict_sec'),
                 'replan_stop_mode':       LaunchConfiguration('replan_stop_mode'),
                 'goal_reached_m':         LaunchConfiguration('goal_reached_m'),
+                'max_speed':              LaunchConfiguration('max_speed'),
+                'planner_type':           LaunchConfiguration('planner_type'),
             }],
         ),
     ])
