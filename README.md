@@ -202,9 +202,13 @@ PBS failed (2709.9 ms, 1 expansions)
 | `max_pbs_expansions` | 5000 | PBS node expansion limit |
 | `max_astar_expansions` | 100000 (launch) | Per-A* expansion limit (root planning uncapped) |
 | `time_step_sec` | 0.4 | Seconds per PBS grid step |
+| `max_speed` | 0.5 | Max robot speed (m/s), determines movement connectivity with time_step_sec |
+| `planner_type` | "euclidean" | A* planner: "euclidean" (N-connected) or "classic" (4-connected) |
 | `replan_check_hz` | 2.0 | Schedule deviation check rate (Hz) |
 | `replan_threshold_m` | 1.0 | Deviation distance to trigger replan (m) |
 | `replan_cooldown_sec` | 5.0 | Min cooldown between replans (s) |
+
+**Constraint:** `footprint_radius >= 0.7 * pbs_resolution` must hold when using the Euclidean planner. The planner asserts this at startup. With defaults (0.22m footprint, 0.2m resolution) the constraint is satisfied. Increasing `pbs_resolution` beyond `footprint_radius / 0.7` requires a proportionally larger footprint or finer resolution.
 
 ### `iros_llm_swarm_formation`
 
