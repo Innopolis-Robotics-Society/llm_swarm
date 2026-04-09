@@ -97,6 +97,7 @@ class MapfPlannerNode : public rclcpp::Node {
     declare_parameter("cost_curve",           std::string("quadratic"));
     declare_parameter("proximity_penalty",    50);
     declare_parameter("max_speed",             0.5);
+    declare_parameter("urgency",       1.0);
     declare_parameter("planner_type",          std::string("euclidean"));
 
     num_robots_           = get_parameter("num_robots").as_int();
@@ -136,6 +137,7 @@ class MapfPlannerNode : public rclcpp::Node {
     }
     proximity_penalty_    = get_parameter("proximity_penalty").as_int();
     max_speed_            = get_parameter("max_speed").as_double();
+    urgency_      = get_parameter("urgency").as_double();
     planner_type_         = get_parameter("planner_type").as_string();
 
     // Подписка на карту.
@@ -363,7 +365,8 @@ class MapfPlannerNode : public rclcpp::Node {
     solver_.set_movement_params(
         static_cast<float>(max_speed_),
         static_cast<float>(time_step_sec_),
-        static_cast<float>(pbs_resolution_));
+        static_cast<float>(pbs_resolution_),
+        static_cast<float>(urgency_));
 
     std::vector<Path> paths;
     SolveStats stats;
@@ -883,6 +886,7 @@ class MapfPlannerNode : public rclcpp::Node {
   CostCurve cost_curve_         = CostCurve::Quadratic;
   int    proximity_penalty_     = 50;
   double max_speed_              = 0.5;
+  double urgency_       = 1.0;
   std::string planner_type_     = "euclidean";
 
   bool   map_ready_       = false;

@@ -193,9 +193,12 @@ class PBSSolver {
   }
 
   void set_movement_params(float max_speed, float time_step_sec,
-                            float resolution) {
+                            float resolution, float urgency = 1.0f) {
     move_set_ = MoveSet::generate(max_speed, time_step_sec, resolution);
+    time_cost_ = urgency * max_speed * time_step_sec;
+    resolution_ = resolution;
     low_level_.set_move_set(move_set_);
+    low_level_.set_cost_params(time_cost_, resolution_);
   }
 
   // Main entry point. Returns true if a solution is found.
@@ -262,7 +265,8 @@ class PBSSolver {
       const size_t key = agents[i].goal.row * map_->cols + agents[i].goal.col;
       if (dist_cache_.find(key) == dist_cache_.end()) {
         dist_cache_[key] = dijkstra_from(*low_level_.current_map(),
-                                               agents[i].goal, move_set_);
+                                               agents[i].goal, move_set_,
+                                               time_cost_, resolution_);
       }
       agent_goal_dists_[i] = &dist_cache_[key];
     }
@@ -422,6 +426,8 @@ class PBSSolver {
   const GridMap*         map_ = nullptr;
   EuclideanAStarPlanner  low_level_;
   MoveSet                move_set_;
+  float                  time_cost_   = 1.0f;
+  float                  resolution_  = 1.0f;
   SolveStats*            stats_ = nullptr;  // set during solve(), nullable
   CostCurve              cost_curve_ = CostCurve::Quadratic;
   int                    proximity_penalty_ = 50;

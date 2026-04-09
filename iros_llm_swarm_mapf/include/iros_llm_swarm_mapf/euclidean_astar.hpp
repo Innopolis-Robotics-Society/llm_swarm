@@ -32,6 +32,10 @@ class EuclideanAStarPlanner {
   size_t last_expansions() const { return last_expansions_; }
 
   void set_move_set(const MoveSet& ms) { moves_ = ms; }
+  void set_cost_params(float time_cost, float resolution) {
+    time_cost_ = time_cost;
+    resolution_ = resolution;
+  }
 
   bool find_path(const Cell& start, const Cell& goal,
                  const SegmentReservationTable& reservations,
@@ -119,6 +123,8 @@ class EuclideanAStarPlanner {
   float my_soft_ = 0.0f;
   CostCurve cost_curve_ = CostCurve::Quadratic;
   int proximity_penalty_ = 50;
+  float time_cost_  = 1.0f;   // urgency * max_speed * time_step_sec
+  float resolution_ = 1.0f;   // PBS grid cell size in metres
   size_t last_expansions_ = 0;
 
   std::vector<float>    g_;
@@ -201,9 +207,8 @@ class EuclideanAStarPlanner {
     const size_t ns = state_idx(ni, nt, sp);
     if (is_closed(ns)) return;
 
-    // Cost: base time step (1.0) + Euclidean move cost + penalties
-    const float tg = get_g(cs) + 1.0f + mv.cost
-                     + wall_pen + static_cast<float>(agent_pen);
+    const float tg = get_g(cs) + time_cost_ + resolution_ * mv.cost
+                     + wall_pen * resolution_ + static_cast<float>(agent_pen);
     if (tg < get_g(ns)) {
       set_g(ns, tg);
       parent_[ns] = cs;
@@ -228,7 +233,8 @@ class EuclideanAStarPlanner {
 // ---------------------------------------------------------------------------
 
 inline std::vector<float> dijkstra_from(const GridMap& map, const Cell& goal,
-                                         const MoveSet& moves) {
+                                         const MoveSet& moves,
+                                         float time_cost, float resolution) {
   static constexpr float INF_F = std::numeric_limits<float>::max() / 4.0f;
   const size_t N = map.rows * map.cols;
   std::vector<float> dist(N, INF_F);
@@ -262,7 +268,7 @@ inline std::vector<float> dijkstra_from(const GridMap& map, const Cell& goal,
       if (!valid) continue;
 
       const size_t ni = static_cast<size_t>(nr) * map.cols + static_cast<size_t>(nc);
-      const float nd = d + mv.cost;
+      const float nd = d + time_cost + resolution * mv.cost;
       if (nd < dist[ni]) {
         dist[ni] = nd;
         pq.push({ni, nd});
