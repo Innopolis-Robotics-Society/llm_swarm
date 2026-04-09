@@ -5,6 +5,7 @@
 #include <deque>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <queue>
 #include <string>
 #include <unordered_map>
@@ -12,18 +13,13 @@
 #include <vector>
 
 // ---------------------------------------------------------------------------
-// Conflict types
+// Conflict
 // ---------------------------------------------------------------------------
 
-enum class ConflictType { None, Vertex, Edge };
-
 struct Conflict {
-  ConflictType type = ConflictType::None;
   size_t agent1 = 0;
   size_t agent2 = 0;
   size_t time   = 0;
-  Cell   cell1{};
-  Cell   cell2{};
 };
 
 // SolveDiagnostics, AStarStats, SolveStats defined in mapf_types.hpp
@@ -35,14 +31,14 @@ struct Conflict {
 
 class ConflictDetector {
  public:
-  // Detect conflicts using footprint (hard/physical) radii only.
+  // Detect conflicts using capsule overlap of movement segments.
+  // Each agent sweeps a capsule (circle along a line segment) per timestep.
+  // Capsule overlap catches both positional overlap AND mid-step crossing
+  // conflicts that point-based checks miss with diagonal/multi-cell moves.
   // Soft-zone proximity is handled by A* penalties, not PBS branching.
-  // Euclidean distance between centres vs (r_a + r_b).
-  // For point agents (radius 0) — equivalent to cell coincidence check.
-  // TODO Level 2: for orientation-dependent polygons —
-  //   rasterise and check cell-set intersection.
-  static Conflict find_first(const std::vector<Path>& paths,
-                              const std::vector<float>& footprint_cells) {
+  static std::optional<Conflict> find_first(
+      const std::vector<Path>& paths,
+      const std::vector<float>& footprint_cells) {
     const size_t n = paths.size();
     const size_t T = max_len(paths);
 
@@ -60,32 +56,25 @@ class ConflictDetector {
 
     for (size_t t = 0; t < T; ++t) {
       for (size_t i = 0; i < n; ++i) {
-        const Cell ci = at(paths[i], t);
         for (size_t j = i + 1; j < n; ++j) {
-          // Skip all conflicts during grace period for overlapping starts
           if (t < grace[i][j]) continue;
 
-          const Cell cj = at(paths[j], t);
+          // Build movement segments for this timestep
+          const Cell ci_from = at(paths[i], t > 0 ? t - 1 : 0);
+          const Cell ci_to   = at(paths[i], t);
+          const Cell cj_from = at(paths[j], t > 0 ? t - 1 : 0);
+          const Cell cj_to   = at(paths[j], t);
 
-          // Vertex conflict: physical overlap (hard radii)
-          if (cells_conflict(ci, footprint_cells[i], cj, footprint_cells[j])) {
-            return {ConflictType::Vertex, i, j, t, ci, cj};
-          }
+          const Segment si = Segment::from_cells(ci_from, ci_to);
+          const Segment sj = Segment::from_cells(cj_from, cj_to);
 
-          // Edge conflict: opposing movement
-          if (t > 0) {
-            const Cell pi = at(paths[i], t - 1);
-            const Cell pj = at(paths[j], t - 1);
-            // i moved pi->ci, j moved pj->cj
-            // Conflict if after swapping positions both are too close
-            if (cells_conflict(pi, footprint_cells[i], cj, footprint_cells[j]) &&
-                cells_conflict(pj, footprint_cells[j], ci, footprint_cells[i]))
-              return {ConflictType::Edge, i, j, t - 1, pi, ci};
+          if (capsule_overlap(si, footprint_cells[i], sj, footprint_cells[j])) {
+            return Conflict{i, j, t};
           }
         }
       }
     }
-    return {};
+    return std::nullopt;
   }
 
   // How many timesteps two overlapping agents need to separate.
@@ -109,17 +98,6 @@ class ConflictDetector {
     size_t r = 0;
     for (const auto& p : ps) r = std::max(r, p.size());
     return r;
-  }
-  // Two-circle conflict check.
-  // With zero radii — cell coincidence.
-  static bool cells_conflict(const Cell& a, float ra, const Cell& b, float rb) {
-    const float min_dist = ra + rb;
-    if (min_dist <= 0.0f) {
-      return a.row == b.row && a.col == b.col;
-    }
-    const float dr = static_cast<float>(a.row) - static_cast<float>(b.row);
-    const float dc = static_cast<float>(a.col) - static_cast<float>(b.col);
-    return dr * dr + dc * dc < min_dist * min_dist;
   }
 };
 
@@ -359,9 +337,9 @@ class PBSSolver {
 
       PBSNode node = open.top(); open.pop();
 
-      const Conflict c = ConflictDetector::find_first(
+      const auto c = ConflictDetector::find_first(
           node.paths, footprint_cells_);
-      if (c.type == ConflictType::None) {
+      if (!c) {
         solution = node.paths;
         if (stats) {
           stats->expansions = expansions;
@@ -374,7 +352,7 @@ class PBSSolver {
 
       // Branch ordering heuristic: try giving priority to the agent
       // with the further goal first — it needs more space/freedom.
-      size_t hi = c.agent1, lo = c.agent2;
+      size_t hi = c->agent1, lo = c->agent2;
       if (agent_dists_[lo] > agent_dists_[hi]) std::swap(hi, lo);
 
       // branch 1: further-goal agent gets priority
