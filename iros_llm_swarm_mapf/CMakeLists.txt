@@ -10,7 +10,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # -------------------------------------------------------------------------
-# Зависимости
+# Dependencies
 # -------------------------------------------------------------------------
 find_package(ament_cmake   REQUIRED)
 find_package(rclcpp        REQUIRED)
@@ -22,7 +22,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(iros_llm_swarm_interfaces REQUIRED)
 
 # -------------------------------------------------------------------------
-# mapf_planner_node  (PBS планировщик)
+# mapf_planner_node  (PBS planner)
 # -------------------------------------------------------------------------
 add_executable(mapf_planner_node src/mapf_planner_node.cpp)
 
@@ -39,7 +39,7 @@ ament_target_dependencies(mapf_planner_node
 )
 
 # -------------------------------------------------------------------------
-# path_follower_node  (исполнитель пути для одного робота)
+# path_follower_node  (single-robot path executor)
 # -------------------------------------------------------------------------
 add_executable(path_follower_node src/path_follower_node.cpp)
 
@@ -57,7 +57,7 @@ ament_target_dependencies(path_follower_node
 )
 
 # -------------------------------------------------------------------------
-# Установка
+# Install
 # -------------------------------------------------------------------------
 install(TARGETS
   mapf_planner_node
@@ -74,7 +74,7 @@ install(DIRECTORY launch config
   OPTIONAL
 )
 
-# Python-скрипты (тесты / утилиты)
+# Python scripts (tests / utilities)
 install(PROGRAMS
   iros_llm_swarm_mapf/test_send_goals.py
   DESTINATION lib/${PROJECT_NAME}

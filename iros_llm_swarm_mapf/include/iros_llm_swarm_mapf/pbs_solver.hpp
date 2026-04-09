@@ -359,6 +359,9 @@ class PBSSolver {
     }
     root.cost = cost(root.paths);
 
+    // PBS best-first search: expand lowest-cost node, detect first
+    // conflict, branch into two children (one per priority ordering).
+    // Visited set prevents re-exploring identical priority graphs.
     std::priority_queue<PBSNode, std::vector<PBSNode>, PBSNodeCmp> open;
     std::unordered_set<NodeKey, NodeKeyHash> visited;
 

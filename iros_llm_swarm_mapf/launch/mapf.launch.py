@@ -8,18 +8,18 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
             'num_robots', default_value='20',
-            description='Количество роботов'
+            description='Number of robots'
         ),
         DeclareLaunchArgument(
             'time_step_sec', default_value='0.1',
-            description='Секунд на один grid-шаг PBS пути'
+            description='Seconds per PBS grid step'
         ),
         DeclareLaunchArgument(
             'use_sim_time', default_value='true'
         ),
         DeclareLaunchArgument(
             'default_robot_radius', default_value='0.22',
-            description='Радиус робота по умолчанию если Nav2 ещё не опубликовал footprint'
+            description='Default robot radius if Nav2 has not yet published a footprint'
         ),
         DeclareLaunchArgument(
             'replan_check_hz', default_value='2.0',

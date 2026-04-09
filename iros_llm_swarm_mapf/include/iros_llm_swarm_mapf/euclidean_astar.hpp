@@ -161,6 +161,9 @@ class EuclideanAStarPlanner {
     gen_.resize(n, 0);
   }
 
+  // Lazy reset: instead of clearing g_/closed_ arrays (expensive for
+  // large state spaces), bump a generation counter. States from prior
+  // generations are treated as unvisited. Wraps at uint32 overflow.
   void next_generation() {
     if (++current_gen_ == 0) {
       current_gen_ = 1;
@@ -207,6 +210,8 @@ class EuclideanAStarPlanner {
     const size_t ns = state_idx(ni, nt, sp);
     if (is_closed(ns)) return;
 
+    // Cost = time (opportunity cost) + distance (metres) + wall gradient
+    //        (sum along trace, normalized to metres) + agent proximity
     const float tg = get_g(cs) + time_cost_ + resolution_ * mv.cost
                      + wall_pen * resolution_ + static_cast<float>(agent_pen);
     if (tg < get_g(ns)) {

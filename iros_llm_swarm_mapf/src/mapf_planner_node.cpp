@@ -12,44 +12,44 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/polygon_stamped.hpp"
 
-// Наш solver (header-only)
+// PBS solver (header-only library)
 #include "iros_llm_swarm_mapf/pbs_solver.hpp"
 
-// Сервис планирования
+// Planning service interface
 #include "iros_llm_swarm_interfaces/srv/set_goals.hpp"
 
 // ---------------------------------------------------------------------------
-// Планировщик принимает сервис /swarm/set_goals с robot_ids и целями.
-// Стартовые позиции берутся из одометрии (/robot_N/odom).
-// Футпринты берутся из Nav2 (/robot_N/local_costmap/published_footprint).
+// The planner exposes the /swarm/set_goals service accepting robot_ids
+// and goal poses. Start positions come from odometry (/robot_N/odom).
+// Footprint radii come from Nav2 (/robot_N/local_costmap/published_footprint).
 //
-// Сервис возвращает:
+// Service response includes:
 //   success, message, planning_time_ms, num_agents_planned,
 //   pbs_expansions, max_path_length, path_lengths[]
 //
-// После успешного планирования нода публикует пути в топики:
+// On success, the node publishes paths to per-robot topics:
 //   /robot_0/mapf_path, /robot_1/mapf_path, ...  (nav_msgs/Path)
 //
-// Каждый PoseStamped в пути содержит временну́ю метку:
+// Each PoseStamped contains a timestamp:
 //   stamp = t_start + step_index * time_step_sec
 //
-// Path follower должен добраться до waypoint[k] и подождать
-// до stamp[k] перед движением к waypoint[k+1].
+// The path follower should reach waypoint[k] and wait until stamp[k]
+// before moving to waypoint[k+1].
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// Конвертация координат
+// Coordinate conversion
 // ---------------------------------------------------------------------------
 
 static Cell world_to_cell(double wx, double wy,
                            double origin_x, double origin_y,
                            double resolution,
                            size_t rows, size_t cols) {
-  // OccupancyGrid: origin = левый нижний угол.
-  // row = 0 соответствует y = origin_y (низ карты).
+  // OccupancyGrid origin is the bottom-left corner.
+  // row=0 corresponds to y=origin_y (bottom of the map).
   const size_t col = static_cast<size_t>((wx - origin_x) / resolution);
   const size_t row = static_cast<size_t>((wy - origin_y) / resolution);
-  // Ограничиваем на всякий случай
+  // Clamp to grid bounds
   return {std::min(row, rows - 1), std::min(col, cols - 1)};
 }
 
@@ -62,7 +62,7 @@ static void cell_to_world(const Cell& c,
 }
 
 // ---------------------------------------------------------------------------
-// Нода
+// MAPF Planner Node
 // ---------------------------------------------------------------------------
 
 class MapfPlannerNode : public rclcpp::Node {
@@ -72,14 +72,14 @@ class MapfPlannerNode : public rclcpp::Node {
 
     using SetGoals = iros_llm_swarm_interfaces::srv::SetGoals;
 
-    // Параметры
+    // Parameters
     declare_parameter("num_robots",          20);
     declare_parameter("time_step_sec",       0.1);
     declare_parameter("map_topic",           std::string("/map"));
-    // PBS планирует на грубой сетке. 0.2м/клетку -> 150x150 вместо 600x600.
-    // Увеличь если медленно, уменьши для точности.
+    // PBS plans on a coarse grid. 0.2m/cell -> 150x150 instead of 600x600.
+    // Increase for speed, decrease for accuracy.
     declare_parameter("pbs_resolution",      0.2);
-    // Радиус по умолчанию если от Nav2 ещё не пришёл footprint
+    // Default radius if Nav2 has not yet published a footprint
     declare_parameter("default_robot_radius", 0.22);
     // Gradient zone width beyond footprint radius.
     // Matching Nav2 inflation_radius for consistency.
@@ -136,9 +136,9 @@ class MapfPlannerNode : public rclcpp::Node {
     max_speed_            = get_parameter("max_speed").as_double();
     urgency_      = get_parameter("urgency").as_double();
 
-    // Подписка на карту.
-    // map_server публикует с transient_local — подписчик обязан использовать
-    // тот же QoS, иначе уже опубликованная карта не придёт никогда.
+    // Map subscription.
+    // map_server publishes with transient_local QoS — the subscriber must
+    // use the same QoS, otherwise an already-published map will never arrive.
     auto map_qos = rclcpp::QoS(rclcpp::KeepLast(1))
         .transient_local()
         .reliable();
@@ -149,7 +149,7 @@ class MapfPlannerNode : public rclcpp::Node {
           on_map(msg);
         });
 
-    // Подписки на одометрию и футпринты для каждого робота
+    // Per-robot odometry and footprint subscriptions
     current_positions_.resize(num_robots_, {0.0, 0.0});
     have_odom_.resize(num_robots_, false);
     footprint_radii_.resize(num_robots_, 0.0);
@@ -157,7 +157,7 @@ class MapfPlannerNode : public rclcpp::Node {
     odom_subs_.resize(num_robots_);
     footprint_subs_.resize(num_robots_);
     for (int i = 0; i < num_robots_; ++i) {
-      // Одометрия — стартовые позиции
+      // Odometry — start positions
       const std::string odom_topic = "/robot_" + std::to_string(i) + "/odom";
       odom_subs_[i] = create_subscription<nav_msgs::msg::Odometry>(
           odom_topic, 10,
@@ -167,8 +167,8 @@ class MapfPlannerNode : public rclcpp::Node {
             have_odom_[i] = true;
           });
 
-      // Футпринт от Nav2 costmap — всегда PolygonStamped (даже для robot_radius).
-      // Вычисляем bounding radius: max(hypot(p.x, p.y)) по вершинам.
+      // Nav2 costmap footprint — always PolygonStamped (even for robot_radius).
+      // Compute bounding radius: max(hypot(p.x, p.y)) across vertices.
       const std::string fp_topic =
           "/robot_" + std::to_string(i) + "/local_costmap/published_footprint";
       footprint_subs_[i] = create_subscription<geometry_msgs::msg::PolygonStamped>(
@@ -194,7 +194,7 @@ class MapfPlannerNode : public rclcpp::Node {
           });
     }
 
-    // Сервис планирования
+    // Planning service
     plan_srv_ = create_service<SetGoals>(
         "/swarm/set_goals",
         [this](const SetGoals::Request::SharedPtr req,
@@ -202,7 +202,7 @@ class MapfPlannerNode : public rclcpp::Node {
           on_set_goals(req, res);
         });
 
-    // Паблишеры путей — по одному на каждого робота
+    // Path publishers — one per robot
     path_pubs_.resize(num_robots_);
     for (int i = 0; i < num_robots_; ++i) {
       const std::string topic = "/robot_" + std::to_string(i) + "/mapf_path";
@@ -222,11 +222,11 @@ class MapfPlannerNode : public rclcpp::Node {
 
  private:
   // ------------------------------------------------------------------
-  // Обработка карты
+  // Map callback
   // ------------------------------------------------------------------
   void on_map(const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
     const double src_res = msg->info.resolution;
-    // Сколько исходных клеток входит в одну PBS-клетку
+    // How many source cells fit into one PBS cell
     const int ratio = std::max(1, static_cast<int>(std::round(pbs_resolution_ / src_res)));
     const double actual_res = src_res * ratio;
 
@@ -243,7 +243,7 @@ class MapfPlannerNode : public rclcpp::Node {
     grid_.cols = static_cast<size_t>(dst_w);
     grid_.blocked.assign(grid_.rows * grid_.cols, 0);
 
-    // Ячейка PBS занята если ЛЮБАЯ исходная клетка внутри неё занята
+    // A PBS cell is blocked if ANY source cell within it is occupied
     for (int sr = 0; sr < src_h; ++sr) {
       for (int sc = 0; sc < src_w; ++sc) {
         const int8_t v = msg->data[static_cast<size_t>(sr * src_w + sc)];
@@ -257,12 +257,12 @@ class MapfPlannerNode : public rclcpp::Node {
 
     map_origin_x_   = msg->info.origin.position.x;
     map_origin_y_   = msg->info.origin.position.y;
-    map_resolution_ = actual_res;   // PBS использует огрублённый resolution
+    map_resolution_ = actual_res;   // PBS uses the downsampled resolution
     map_ready_      = true;
   }
 
   // ------------------------------------------------------------------
-  // Обработка сервиса /swarm/set_goals
+  // /swarm/set_goals service handler
   // ------------------------------------------------------------------
   void on_set_goals(
       const iros_llm_swarm_interfaces::srv::SetGoals::Request::SharedPtr req,
@@ -271,7 +271,7 @@ class MapfPlannerNode : public rclcpp::Node {
     // New external request cancels any active schedule monitoring
     stop_monitoring();
 
-    // Валидация запроса
+    // Validate request
     if (!map_ready_) {
       res->success = false;
       res->message = "Map not ready yet";
@@ -288,12 +288,12 @@ class MapfPlannerNode : public rclcpp::Node {
       return;
     }
 
-    // Собираем агентов из одометрии, футпринтов и целей запроса.
-    // Агенты с заблокированной целью включаются как стационарные препятствия
-    // (start = goal = текущая позиция), чтобы PBS обходил их.
+    // Build agents from odometry, footprints, and request goals.
+    // Agents with blocked goals are included as stationary obstacles
+    // (start = goal = current position) so PBS routes around them.
     std::vector<Agent> agents;
     agents.reserve(req->robot_ids.size());
-    std::vector<uint32_t> skipped_ids;  // агенты с заблокированными целями
+    std::vector<uint32_t> skipped_ids;  // agents with blocked goals
     std::vector<uint32_t> plan_robot_ids;
     std::vector<geometry_msgs::msg::Point> plan_world_goals;
 
@@ -315,12 +315,12 @@ class MapfPlannerNode : public rclcpp::Node {
       Agent a;
       a.id = rid;
 
-      // Старт из одометрии
+      // Start from odometry
       const auto& [sx, sy] = current_positions_[rid];
       a.start = world_to_cell(sx, sy, map_origin_x_, map_origin_y_,
                                map_resolution_, grid_.rows, grid_.cols);
 
-      // Цель из запроса
+      // Goal from request
       a.goal = world_to_cell(req->goals[i].x, req->goals[i].y,
                               map_origin_x_, map_origin_y_,
                               map_resolution_, grid_.rows, grid_.cols);
@@ -342,12 +342,12 @@ class MapfPlannerNode : public rclcpp::Node {
       return;
     }
 
-    // Планируем и публикуем пути
+    // Plan and publish paths
     do_plan(agents, plan_robot_ids, plan_world_goals, skipped_ids, res);
   }
 
   // ------------------------------------------------------------------
-  // Общая логика планирования и публикации
+  // Core planning and path publishing logic
   // ------------------------------------------------------------------
   void do_plan(const std::vector<Agent>& agents,
                const std::vector<uint32_t>& plan_robot_ids,
@@ -436,7 +436,7 @@ class MapfPlannerNode : public rclcpp::Node {
     last_planning_ms_ = elapsed_ms;
     last_replan_time_ = now();  // cooldown applies after initial plan too
 
-    // Публикуем пути и собираем длины для ответа
+    // Publish paths and collect lengths for the response
     const rclcpp::Time base_time = now();
     res->path_lengths.resize(agents.size());
     std::vector<nav_msgs::msg::Path> ros_paths(agents.size());
@@ -476,7 +476,7 @@ class MapfPlannerNode : public rclcpp::Node {
   }
 
   // ------------------------------------------------------------------
-  // Конвертация Path -> nav_msgs::Path с временны́ми метками
+  // Convert PBS Path -> nav_msgs::Path with timestamps
   // ------------------------------------------------------------------
   nav_msgs::msg::Path make_ros_path(const Path& pbs_path,
                                      const rclcpp::Time& base_time) const {
@@ -488,12 +488,12 @@ class MapfPlannerNode : public rclcpp::Node {
       geometry_msgs::msg::PoseStamped ps;
       ps.header.frame_id = "map";
 
-      // Временна́я метка: base + step * time_step
+      // Timestamp: base + step * time_step
       const double offset_ns = step * time_step_sec_ * 1e9;
       ps.header.stamp = rclcpp::Time(
           base_time.nanoseconds() + static_cast<int64_t>(offset_ns));
 
-      // Позиция: центр ячейки
+      // Position: cell centre
       double wx, wy;
       cell_to_world(pbs_path[step],
                     map_origin_x_, map_origin_y_, map_resolution_,
@@ -502,7 +502,7 @@ class MapfPlannerNode : public rclcpp::Node {
       ps.pose.position.y = wy;
       ps.pose.position.z = 0.0;
 
-      // Ориентация: смотрим в сторону следующей точки
+      // Orientation: face towards the next waypoint
       if (step + 1 < pbs_path.size()) {
         double nx, ny;
         cell_to_world(pbs_path[step + 1],
@@ -512,7 +512,7 @@ class MapfPlannerNode : public rclcpp::Node {
         ps.pose.orientation.z = std::sin(yaw * 0.5);
         ps.pose.orientation.w = std::cos(yaw * 0.5);
       } else {
-        // последняя точка — ориентация как у предыдущей
+        // Last point: copy orientation from the previous one
         if (!ros_path.poses.empty()) {
           ps.pose.orientation = ros_path.poses.back().pose.orientation;
         } else {
@@ -861,7 +861,7 @@ class MapfPlannerNode : public rclcpp::Node {
   }
 
   // ------------------------------------------------------------------
-  // Поля
+  // Member fields
   // ------------------------------------------------------------------
   int    num_robots_;
   double time_step_sec_;
@@ -886,25 +886,25 @@ class MapfPlannerNode : public rclcpp::Node {
   bool   map_ready_       = false;
   double map_origin_x_    = 0.0;
   double map_origin_y_    = 0.0;
-  double map_resolution_  = 0.2;   // реальный resolution PBS-сетки (после downsampling)
+  double map_resolution_  = 0.2;   // actual PBS grid resolution (after downsampling)
 
   GridMap    grid_;
   PBSSolver  solver_;
 
-  // Кэш одометрии и футпринтов для каждого робота
+  // Per-robot odometry and footprint cache
   std::vector<std::pair<double, double>> current_positions_;
   std::vector<bool>   have_odom_;
-  std::vector<double> footprint_radii_;   // bounding radius из Nav2 polygon
+  std::vector<double> footprint_radii_;   // bounding radius from Nav2 polygon
 
-  // Подписки
+  // Subscriptions
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
   std::vector<rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr> odom_subs_;
   std::vector<rclcpp::Subscription<geometry_msgs::msg::PolygonStamped>::SharedPtr> footprint_subs_;
 
-  // Сервис
+  // Service
   rclcpp::Service<iros_llm_swarm_interfaces::srv::SetGoals>::SharedPtr plan_srv_;
 
-  // Паблишеры путей
+  // Path publishers
   std::vector<rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr> path_pubs_;
 
   // Schedule monitoring

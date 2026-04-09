@@ -29,9 +29,9 @@ class PathFollowerNode : public rclcpp::Node
   {
     declare_parameter("robot_id",               0);
     declare_parameter("path_frame",             std::string("map"));
-    // Если робот приехал к waypoint раньше расписания больше чем на это
-    // значение — притормаживает (отправляет только часть пути до этой точки
-    // и ждёт). Уменьши до 0.0 чтобы никогда не ждать.
+    // If the robot arrives at a waypoint ahead of schedule by more than
+    // this value, it holds (sends only a partial path up to this point
+    // and waits). Set to 0.0 to never hold.
     declare_parameter("schedule_tolerance_sec", 0.5);
 
     const int robot_id = get_parameter("robot_id").as_int();
@@ -72,14 +72,14 @@ class PathFollowerNode : public rclcpp::Node
     RCLCPP_DEBUG(get_logger(), "[%s] new path: %zu waypoints",
                 ns_.c_str(), msg->poses.size());
 
-    // Отменяем текущее движение если есть
+    // Cancel current movement if any
     cancel_current();
 
     pending_path_ = msg;
     wp_idx_       = 0;
 
     if (!have_pose_) {
-      // Ждём первой одометрии
+      // Wait for first odometry message
       start_timer_ = create_wall_timer(
           std::chrono::milliseconds(100),
           [this]() {
@@ -94,15 +94,15 @@ class PathFollowerNode : public rclcpp::Node
   }
 
   // ------------------------------------------------------------------
-  // Отправляем путь от текущего wp_idx_ до ближайшей "точки ожидания".
+  // Send path from current wp_idx_ to the nearest "hold point".
   //
-  // Логика: идём по waypoints вперёд пока не найдём точку где по расписанию
-  // нужно подождать (scheduled_time существенно в будущем). Отправляем путь
-  // до этой точки включительно. Когда DWB доедет — ждём до scheduled_time
-  // и отправляем следующий chunk.
+  // Logic: walk forward through waypoints until finding one whose
+  // scheduled_time is significantly in the future (ahead of schedule).
+  // Send path up to and including that point. When DWB arrives, wait
+  // until scheduled_time, then send the next chunk.
   //
-  // Если ни одной точки ожидания нет — отправляем весь оставшийся путь
-  // сразу. Это самый частый случай (роботы не опережают расписание).
+  // If no hold point is found, send the entire remaining path at once.
+  // This is the most common case (robots don't run ahead of schedule).
   // ------------------------------------------------------------------
   void send_next_chunk()
   {
@@ -121,8 +121,8 @@ class PathFollowerNode : public rclcpp::Node
     const rclcpp::Time now_t = now();
     const auto& poses = pending_path_->poses;
 
-    // Ищем первую точку где надо ждать
-    size_t stop_idx = poses.size() - 1;  // по умолчанию — до конца
+    // Find the first waypoint where we need to hold
+    size_t stop_idx = poses.size() - 1;  // default: go to the end
     rclcpp::Time stop_sched{0, 0, RCL_ROS_TIME};
 
     for (size_t i = wp_idx_; i < poses.size(); ++i) {
@@ -135,12 +135,12 @@ class PathFollowerNode : public rclcpp::Node
       }
     }
 
-    // Строим подпуть wp_idx_..stop_idx
+    // Build sub-path from wp_idx_ to stop_idx
     nav_msgs::msg::Path chunk;
     chunk.header.frame_id = frame_;
     chunk.header.stamp    = now_t;
 
-    // Первая точка — текущая позиция (чтобы DWB не дёргался)
+    // First point is the current position (prevents DWB from jerking)
     geometry_msgs::msg::PoseStamped cur_ps;
     cur_ps.header.frame_id = frame_;
     cur_ps.header.stamp    = now_t;
@@ -153,7 +153,7 @@ class PathFollowerNode : public rclcpp::Node
       chunk.poses.push_back(poses[i]);
     }
 
-    // Выставляем ориентацию вдоль пути
+    // Orient poses along the path direction
     fix_orientations(chunk);
 
     RCLCPP_DEBUG(get_logger(),
@@ -191,14 +191,14 @@ class PathFollowerNode : public rclcpp::Node
 
   void on_chunk_done(size_t stop_idx, const rclcpp::Time& stop_sched)
   {
-    // Если путь закончился
+    // Path is complete
     if (!pending_path_ || stop_idx >= pending_path_->poses.size() - 1) {
       RCLCPP_DEBUG(get_logger(), "[%s] path complete", ns_.c_str());
       pending_path_.reset();
       return;
     }
 
-    // Если нужно ждать по расписанию
+    // Hold if the schedule requires waiting
     const double wait = (stop_sched - now()).seconds();
     if (wait > 0.02) {
       RCLCPP_DEBUG(get_logger(),
@@ -227,7 +227,7 @@ class PathFollowerNode : public rclcpp::Node
     }
   }
 
-  // Выставляем ориентацию каждой точки пути вдоль вектора к следующей
+  // Set each waypoint's orientation along the direction to the next one
   static void fix_orientations(nav_msgs::msg::Path& path)
   {
     for (size_t i = 0; i + 1 < path.poses.size(); ++i) {
@@ -241,7 +241,7 @@ class PathFollowerNode : public rclcpp::Node
         path.poses[i].pose.orientation.w = std::cos(yaw * 0.5);
       }
     }
-    // Последняя точка — ориентация как у предпоследней
+    // Last point: copy orientation from the second-to-last
     if (path.poses.size() >= 2) {
       path.poses.back().pose.orientation =
           path.poses[path.poses.size() - 2].pose.orientation;

@@ -158,10 +158,13 @@ inline float segment_segment_dist_sq(const Segment& s1, const Segment& s2) {
   const float c = d1r * rr  + d1c * rc;   // d1 . r
   const float f = d2r * rr  + d2c * rc;   // d2 . r
 
+  // Solve for unconstrained closest points (s, t) on the two lines.
+  // denom = 0 means segments are parallel or degenerate (zero-length).
   const float denom = a * e - b * b;
   float s, t;
 
   if (denom < 1e-8f) {
+    // Parallel/degenerate: fix s=0, project onto segment 2
     s = 0.0f;
     t = (e > 1e-8f) ? f / e : 0.0f;
   } else {
@@ -169,6 +172,10 @@ inline float segment_segment_dist_sq(const Segment& s1, const Segment& s2) {
     t = (a * f - b * c) / denom;
   }
 
+  // Two-pass clamp: clamp s to [0,1], re-derive optimal t,
+  // then clamp t to [0,1], re-derive optimal s. This finds the
+  // true closest point pair when the unconstrained solution falls
+  // outside the segment bounds.
   s = std::max(0.0f, std::min(1.0f, s));
   t = (e > 1e-8f) ? (b * s + f) / e : 0.0f;
 
@@ -178,6 +185,7 @@ inline float segment_segment_dist_sq(const Segment& s1, const Segment& s2) {
     s = std::max(0.0f, std::min(1.0f, s));
   }
 
+  // Squared distance between the closest points on the two segments
   const float pr = s1.r0 + s * d1r - (s2.r0 + t * d2r);
   const float pc = s1.c0 + s * d1c - (s2.c0 + t * d2c);
   return pr * pr + pc * pc;
