@@ -1,10 +1,15 @@
+#include <atomic>
 #include <chrono>
 #include <cmath>
+#include <mutex>
 #include <string>
+#include <thread>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 #include "rclcpp/rclcpp.hpp"
+#include "rclcpp_action/rclcpp_action.hpp"
 
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "nav_msgs/msg/odometry.hpp"
@@ -15,15 +20,15 @@
 // PBS solver (header-only library)
 #include "iros_llm_swarm_mapf/pbs_solver.hpp"
 
-// Planning service interface
-#include "iros_llm_swarm_interfaces/srv/set_goals.hpp"
+// Action interface (replaces the old SetGoals service)
+#include "iros_llm_swarm_interfaces/action/set_goals.hpp"
 
 // ---------------------------------------------------------------------------
-// The planner exposes the /swarm/set_goals service accepting robot_ids
-// and goal poses. Start positions come from odometry (/robot_N/odom).
+// The planner exposes the /swarm/set_goals action accepting robot_ids
+// and goal poses.  Start positions come from odometry (/robot_N/odom).
 // Footprint radii come from Nav2 (/robot_N/local_costmap/published_footprint).
 //
-// Service response includes:
+// Action result includes:
 //   success, message, planning_time_ms, num_agents_planned,
 //   pbs_expansions, max_path_length, path_lengths[]
 //
@@ -35,6 +40,18 @@
 //
 // The path follower should reach waypoint[k] and wait until stamp[k]
 // before moving to waypoint[k+1].
+//
+// Threading model
+// ---------------
+// Executor thread (rclcpp::spin): runs all subscription/timer callbacks.
+// Planning thread (detached):     runs execute_goal() for each accepted goal.
+//
+// Shared state is protected by state_mutex_.  Planning itself (solver.solve)
+// runs without the lock (pure computation on a grid snapshot).  The lock is
+// held only for brief snapshots at the start and state updates at the end.
+//
+// is_planning_ (atomic) prevents concurrent goal execution and makes
+// check_schedule() a no-op while planning is in progress.
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
@@ -44,19 +61,18 @@
 static Cell world_to_cell(double wx, double wy,
                            double origin_x, double origin_y,
                            double resolution,
-                           size_t rows, size_t cols) {
-  // OccupancyGrid origin is the bottom-left corner.
-  // row=0 corresponds to y=origin_y (bottom of the map).
+                           size_t rows, size_t cols)
+{
   const size_t col = static_cast<size_t>((wx - origin_x) / resolution);
   const size_t row = static_cast<size_t>((wy - origin_y) / resolution);
-  // Clamp to grid bounds
   return {std::min(row, rows - 1), std::min(col, cols - 1)};
 }
 
 static void cell_to_world(const Cell& c,
                            double origin_x, double origin_y,
                            double resolution,
-                           double& wx, double& wy) {
+                           double& wx, double& wy)
+{
   wx = origin_x + (c.col + 0.5) * resolution;
   wy = origin_y + (c.row + 0.5) * resolution;
 }
@@ -67,24 +83,19 @@ static void cell_to_world(const Cell& c,
 
 class MapfPlannerNode : public rclcpp::Node {
  public:
+  using SetGoalsAction = iros_llm_swarm_interfaces::action::SetGoals;
+  using GoalHandle     = rclcpp_action::ServerGoalHandle<SetGoalsAction>;
+
   MapfPlannerNode()
-      : Node("mapf_planner") {
-
-    using SetGoals = iros_llm_swarm_interfaces::srv::SetGoals;
-
-    // Parameters
-    declare_parameter("num_robots",          20);
-    declare_parameter("time_step_sec",       0.1);
-    declare_parameter("map_topic",           std::string("/map"));
-    // PBS plans on a coarse grid. 0.2m/cell -> 150x150 instead of 600x600.
-    // Increase for speed, decrease for accuracy.
-    declare_parameter("pbs_resolution",      0.2);
-    // Default radius if Nav2 has not yet published a footprint
+      : Node("mapf_planner")
+  {
+    // ---------------------------------------------------------------- params
+    declare_parameter("num_robots",           20);
+    declare_parameter("time_step_sec",        0.1);
+    declare_parameter("map_topic",            std::string("/map"));
+    declare_parameter("pbs_resolution",       0.2);
     declare_parameter("default_robot_radius", 0.22);
-    // Gradient zone width beyond footprint radius.
-    // Matching Nav2 inflation_radius for consistency.
-    declare_parameter("inflation_radius", 0.5);
-    // Schedule monitoring & replanning
+    declare_parameter("inflation_radius",     0.5);
     declare_parameter("replan_check_hz",      2.0);
     declare_parameter("replan_threshold_m",   1.0);
     declare_parameter("replan_cooldown_sec",  10.0);
@@ -96,7 +107,7 @@ class MapfPlannerNode : public rclcpp::Node {
     declare_parameter("cost_curve",           std::string("quadratic"));
     declare_parameter("proximity_penalty",    15);
     declare_parameter("max_speed",             0.5);
-    declare_parameter("urgency",       1.0);
+    declare_parameter("urgency",              1.0);
 
     num_robots_           = get_parameter("num_robots").as_int();
     time_step_sec_        = get_parameter("time_step_sec").as_double();
@@ -111,8 +122,8 @@ class MapfPlannerNode : public rclcpp::Node {
     if (replan_stop_mode_ != "none" && replan_stop_mode_ != "deviated" &&
         replan_stop_mode_ != "all") {
       RCLCPP_ERROR(get_logger(),
-          "Invalid replan_stop_mode '%s', must be 'none', 'deviated', or 'all'. "
-          "Falling back to 'deviated'.", replan_stop_mode_.c_str());
+          "Invalid replan_stop_mode '%s', falling back to 'deviated'.",
+          replan_stop_mode_.c_str());
       replan_stop_mode_ = "deviated";
     }
     goal_reached_m_       = get_parameter("goal_reached_m").as_double();
@@ -121,88 +132,83 @@ class MapfPlannerNode : public rclcpp::Node {
     max_astar_expansions_ = static_cast<size_t>(
         get_parameter("max_astar_expansions").as_int());
     {
-      const auto curve_str = get_parameter("cost_curve").as_string();
-      if (curve_str == "linear")         cost_curve_ = CostCurve::Linear;
-      else if (curve_str == "quadratic") cost_curve_ = CostCurve::Quadratic;
-      else if (curve_str == "cubic")     cost_curve_ = CostCurve::Cubic;
-      else {
+      const auto s = get_parameter("cost_curve").as_string();
+      if      (s == "linear")    cost_curve_ = CostCurve::Linear;
+      else if (s == "cubic")     cost_curve_ = CostCurve::Cubic;
+      else                       cost_curve_ = CostCurve::Quadratic;
+      if (s != "linear" && s != "quadratic" && s != "cubic") {
         RCLCPP_ERROR(get_logger(),
-            "Invalid cost_curve '%s', must be 'linear', 'quadratic', or 'cubic'. "
-            "Falling back to 'quadratic'.", curve_str.c_str());
-        cost_curve_ = CostCurve::Quadratic;
+            "Invalid cost_curve '%s', falling back to 'quadratic'.", s.c_str());
       }
     }
-    proximity_penalty_    = get_parameter("proximity_penalty").as_int();
-    max_speed_            = get_parameter("max_speed").as_double();
-    urgency_      = get_parameter("urgency").as_double();
+    proximity_penalty_ = get_parameter("proximity_penalty").as_int();
+    max_speed_         = get_parameter("max_speed").as_double();
+    urgency_           = get_parameter("urgency").as_double();
 
-    // Map subscription.
-    // map_server publishes with transient_local QoS — the subscriber must
-    // use the same QoS, otherwise an already-published map will never arrive.
-    auto map_qos = rclcpp::QoS(rclcpp::KeepLast(1))
-        .transient_local()
-        .reliable();
-
+    // ------------------------------------------------------- map subscription
+    // map_server publishes with transient_local QoS — must match.
+    auto map_qos = rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable();
     map_sub_ = create_subscription<nav_msgs::msg::OccupancyGrid>(
         get_parameter("map_topic").as_string(), map_qos,
         [this](const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
+          std::lock_guard<std::mutex> lk(state_mutex_);
           on_map(msg);
         });
 
-    // Per-robot odometry and footprint subscriptions
+    // --------------------------------- per-robot odometry and footprint subs
     current_positions_.resize(num_robots_, {0.0, 0.0});
     have_odom_.resize(num_robots_, false);
     footprint_radii_.resize(num_robots_, 0.0);
-
     odom_subs_.resize(num_robots_);
     footprint_subs_.resize(num_robots_);
+
     for (int i = 0; i < num_robots_; ++i) {
-      // Odometry — start positions
       const std::string odom_topic = "/robot_" + std::to_string(i) + "/odom";
       odom_subs_[i] = create_subscription<nav_msgs::msg::Odometry>(
           odom_topic, 10,
           [this, i](const nav_msgs::msg::Odometry::SharedPtr msg) {
+            std::lock_guard<std::mutex> lk(state_mutex_);
             current_positions_[i] = {msg->pose.pose.position.x,
                                       msg->pose.pose.position.y};
             have_odom_[i] = true;
           });
 
-      // Nav2 costmap footprint — always PolygonStamped (even for robot_radius).
-      // Compute bounding radius: max(hypot(p.x, p.y)) across vertices.
       const std::string fp_topic =
           "/robot_" + std::to_string(i) + "/local_costmap/published_footprint";
       footprint_subs_[i] = create_subscription<geometry_msgs::msg::PolygonStamped>(
           fp_topic, rclcpp::QoS(1),
           [this, i](const geometry_msgs::msg::PolygonStamped::SharedPtr msg) {
             if (msg->polygon.points.empty()) return;
-            // published_footprint is in the map frame, so compute centroid
-            // first, then measure bounding radius relative to it.
             double cx = 0.0, cy = 0.0;
-            for (const auto& p : msg->polygon.points) {
-              cx += p.x;
-              cy += p.y;
-            }
+            for (const auto& p : msg->polygon.points) { cx += p.x; cy += p.y; }
             const double n = static_cast<double>(msg->polygon.points.size());
-            cx /= n;
-            cy /= n;
+            cx /= n; cy /= n;
             double max_r = 0.0;
             for (const auto& p : msg->polygon.points) {
               const double r = std::hypot(p.x - cx, p.y - cy);
               if (r > max_r) max_r = r;
             }
+            std::lock_guard<std::mutex> lk(state_mutex_);
             footprint_radii_[i] = max_r;
           });
     }
 
-    // Planning service
-    plan_srv_ = create_service<SetGoals>(
+    // --------------------------------------------------------- action server
+    plan_action_server_ = rclcpp_action::create_server<SetGoalsAction>(
+        this,
         "/swarm/set_goals",
-        [this](const SetGoals::Request::SharedPtr req,
-               SetGoals::Response::SharedPtr res) {
-          on_set_goals(req, res);
+        [this](const rclcpp_action::GoalUUID& uuid,
+               std::shared_ptr<const SetGoalsAction::Goal> goal) {
+          return handle_goal(uuid, goal);
+        },
+        [this](const std::shared_ptr<GoalHandle> gh) {
+          return handle_cancel(gh);
+        },
+        [this](const std::shared_ptr<GoalHandle> gh) {
+          handle_accepted(gh);
         });
 
-    // Path publishers — one per robot
+    // --------------------------------------------------------- path publishers
     path_pubs_.resize(num_robots_);
     for (int i = 0; i < num_robots_; ++i) {
       const std::string topic = "/robot_" + std::to_string(i) + "/mapf_path";
@@ -210,7 +216,7 @@ class MapfPlannerNode : public rclcpp::Node {
     }
 
     RCLCPP_INFO(get_logger(),
-        "mapf_planner ready: %d robots, time_step=%.3f s, "
+        "mapf_planner ready (action): %d robots, time_step=%.3f s, "
         "default_radius=%.3f m, inflation=%.3f m (effective=%.3f m), "
         "replan: %.1f Hz, threshold=%.2f m, cooldown=%.1f s, "
         "predict=%.2f s, stop_mode=%s",
@@ -222,11 +228,11 @@ class MapfPlannerNode : public rclcpp::Node {
 
  private:
   // ------------------------------------------------------------------
-  // Map callback
+  // Map callback  (called under state_mutex_)
   // ------------------------------------------------------------------
-  void on_map(const nav_msgs::msg::OccupancyGrid::SharedPtr msg) {
+  void on_map(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
+  {
     const double src_res = msg->info.resolution;
-    // How many source cells fit into one PBS cell
     const int ratio = std::max(1, static_cast<int>(std::round(pbs_resolution_ / src_res)));
     const double actual_res = src_res * ratio;
 
@@ -243,62 +249,101 @@ class MapfPlannerNode : public rclcpp::Node {
     grid_.cols = static_cast<size_t>(dst_w);
     grid_.blocked.assign(grid_.rows * grid_.cols, 0);
 
-    // A PBS cell is blocked if ANY source cell within it is occupied
     for (int sr = 0; sr < src_h; ++sr) {
       for (int sc = 0; sc < src_w; ++sc) {
         const int8_t v = msg->data[static_cast<size_t>(sr * src_w + sc)];
         if (v > 50 || v < 0) {
-          const int dr = sr / ratio;
-          const int dc = sc / ratio;
-          grid_.blocked[static_cast<size_t>(dr * dst_w + dc)] = 1;
+          grid_.blocked[static_cast<size_t>((sr / ratio) * dst_w + (sc / ratio))] = 1;
         }
       }
     }
 
     map_origin_x_   = msg->info.origin.position.x;
     map_origin_y_   = msg->info.origin.position.y;
-    map_resolution_ = actual_res;   // PBS uses the downsampled resolution
+    map_resolution_ = actual_res;
     map_ready_      = true;
   }
 
   // ------------------------------------------------------------------
-  // /swarm/set_goals service handler
+  // Action server callbacks
   // ------------------------------------------------------------------
-  void on_set_goals(
-      const iros_llm_swarm_interfaces::srv::SetGoals::Request::SharedPtr req,
-      iros_llm_swarm_interfaces::srv::SetGoals::Response::SharedPtr res) {
 
-    // New external request cancels any active schedule monitoring
-    stop_monitoring();
-
-    // Validate request
+  rclcpp_action::GoalResponse handle_goal(
+      const rclcpp_action::GoalUUID&,
+      std::shared_ptr<const SetGoalsAction::Goal> goal)
+  {
+    // Quick checks so we can reject before touching shared state
     if (!map_ready_) {
-      res->success = false;
-      res->message = "Map not ready yet";
-      return;
+      RCLCPP_WARN(get_logger(), "Goal rejected: map not ready yet");
+      return rclcpp_action::GoalResponse::REJECT;
     }
-    if (req->robot_ids.size() != req->goals.size()) {
-      res->success = false;
-      res->message = "robot_ids and goals must have the same length";
-      return;
+    if (goal->robot_ids.size() != goal->goals.size()) {
+      RCLCPP_WARN(get_logger(), "Goal rejected: robot_ids/goals size mismatch");
+      return rclcpp_action::GoalResponse::REJECT;
     }
-    if (req->robot_ids.empty()) {
-      res->success = false;
-      res->message = "robot_ids is empty";
-      return;
+    if (goal->robot_ids.empty()) {
+      RCLCPP_WARN(get_logger(), "Goal rejected: empty robot_ids");
+      return rclcpp_action::GoalResponse::REJECT;
+    }
+    // Reject concurrent goals — PBS is not re-entrant
+    bool expected = false;
+    if (!is_planning_.compare_exchange_strong(expected, true)) {
+      RCLCPP_WARN(get_logger(), "Goal rejected: planning already in progress");
+      return rclcpp_action::GoalResponse::REJECT;
+    }
+    return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+  }
+
+  rclcpp_action::CancelResponse handle_cancel(const std::shared_ptr<GoalHandle>)
+  {
+    RCLCPP_INFO(get_logger(), "Goal cancel requested — will honour at next check");
+    return rclcpp_action::CancelResponse::ACCEPT;
+  }
+
+  void handle_accepted(const std::shared_ptr<GoalHandle> goal_handle)
+  {
+    // Detach immediately so the executor thread is never blocked by planning
+    std::thread([this, goal_handle]() { execute_goal(goal_handle); }).detach();
+  }
+
+  // ------------------------------------------------------------------
+  // Planning execution  (runs in a detached thread)
+  // ------------------------------------------------------------------
+  void execute_goal(const std::shared_ptr<GoalHandle> goal_handle)
+  {
+    const auto& req = goal_handle->get_goal();
+    auto result   = std::make_shared<SetGoalsAction::Result>();
+    auto feedback = std::make_shared<SetGoalsAction::Feedback>();
+
+    // ── 1. Snapshot shared state (brief lock) ────────────────────────────
+    std::vector<std::pair<double, double>> snap_pos;
+    std::vector<bool>   snap_have_odom;
+    std::vector<double> snap_footprint;
+    GridMap snap_grid;
+    double  snap_ox, snap_oy, snap_res;
+
+    {
+      std::lock_guard<std::mutex> lk(state_mutex_);
+      stop_monitoring();            // cancel schedule timer before planning
+      snap_pos       = current_positions_;
+      snap_have_odom = have_odom_;
+      snap_footprint = footprint_radii_;
+      snap_grid      = grid_;
+      snap_ox        = map_origin_x_;
+      snap_oy        = map_origin_y_;
+      snap_res       = map_resolution_;
     }
 
-    // Build agents from odometry, footprints, and request goals.
-    // Agents with blocked goals are included as stationary obstacles
-    // (start = goal = current position) so PBS routes around them.
+    feedback->status = "validating";
+    feedback->elapsed_ms = 0;
+    goal_handle->publish_feedback(feedback);
+
+    // ── 2. Build agents from snapshot (no lock) ───────────────────────────
     std::vector<Agent> agents;
     agents.reserve(req->robot_ids.size());
-    std::vector<uint32_t> skipped_ids;  // agents with blocked goals
+    std::vector<uint32_t> skipped_ids;
     std::vector<uint32_t> plan_robot_ids;
     std::vector<geometry_msgs::msg::Point> plan_world_goals;
-
-    // TODO: this local cache duplicates inflate_gradient() work that
-    // PBSSolver::solve() also does.  Could share a common cache.
     std::unordered_map<float, GridMap> inflated_cache;
 
     for (size_t i = 0; i < req->robot_ids.size(); ++i) {
@@ -307,85 +352,127 @@ class MapfPlannerNode : public rclcpp::Node {
         RCLCPP_WARN(get_logger(), "Robot id %u >= num_robots %d, skip", rid, num_robots_);
         continue;
       }
-      if (!have_odom_[rid]) {
+      if (!snap_have_odom[rid]) {
         RCLCPP_WARN(get_logger(), "No odom for robot_%u yet, skip", rid);
         continue;
       }
-
       Agent a;
       a.id = rid;
-
-      // Start from odometry
-      const auto& [sx, sy] = current_positions_[rid];
-      a.start = world_to_cell(sx, sy, map_origin_x_, map_origin_y_,
-                               map_resolution_, grid_.rows, grid_.cols);
-
-      // Goal from request
-      a.goal = world_to_cell(req->goals[i].x, req->goals[i].y,
-                              map_origin_x_, map_origin_y_,
-                              map_resolution_, grid_.rows, grid_.cols);
-
-      if (!validate_agent(a, rid, inflated_cache, skipped_ids)) continue;
-
+      const auto& [sx, sy] = snap_pos[rid];
+      a.start = world_to_cell(sx, sy, snap_ox, snap_oy, snap_res,
+                               snap_grid.rows, snap_grid.cols);
+      a.goal  = world_to_cell(req->goals[i].x, req->goals[i].y,
+                               snap_ox, snap_oy, snap_res,
+                               snap_grid.rows, snap_grid.cols);
+      if (!validate_agent(a, rid, snap_footprint, snap_grid, snap_res,
+                           snap_ox, snap_oy, inflated_cache, skipped_ids))
+        continue;
       agents.push_back(a);
       plan_robot_ids.push_back(rid);
       double gwx, gwy;
-      cell_to_world(a.goal, map_origin_x_, map_origin_y_, map_resolution_, gwx, gwy);
+      cell_to_world(a.goal, snap_ox, snap_oy, snap_res, gwx, gwy);
       plan_world_goals.push_back(geometry_msgs::msg::Point());
       plan_world_goals.back().x = gwx;
       plan_world_goals.back().y = gwy;
     }
 
     if (agents.empty()) {
-      res->success = false;
-      res->message = "No valid agents after filtering (check odom and map)";
+      result->success = false;
+      result->message = "No valid agents after filtering (check odom and map)";
+      is_planning_ = false;
+      goal_handle->succeed(result);
       return;
     }
 
-    // Plan and publish paths
-    do_plan(agents, plan_robot_ids, plan_world_goals, skipped_ids, res);
+    if (goal_handle->is_canceling()) {
+      result->success = false;
+      result->message = "Cancelled before planning started";
+      is_planning_ = false;
+      goal_handle->canceled(result);
+      return;
+    }
+
+    const auto plan_start = std::chrono::steady_clock::now();
+    feedback->status = "planning";
+    goal_handle->publish_feedback(feedback);
+
+    // ── 3. Plan (pure computation — no shared state) ──────────────────────
+    do_plan(agents, plan_robot_ids, plan_world_goals, skipped_ids, result,
+            snap_grid, snap_ox, snap_oy, snap_res, goal_handle, plan_start);
+
+    if (!result->success) {
+      is_planning_ = false;
+      goal_handle->succeed(result);
+      return;
+    }
+
+    if (goal_handle->is_canceling()) {
+      result->success = false;
+      result->message = "Cancelled after planning (paths already published)";
+      is_planning_ = false;
+      goal_handle->canceled(result);
+      return;
+    }
+
+    is_planning_ = false;
+    goal_handle->succeed(result);
   }
 
   // ------------------------------------------------------------------
   // Core planning and path publishing logic
+  // Called from execute_goal (detached thread, uses grid snapshot) and
+  // from trigger_replan (executor thread, uses member vars directly).
   // ------------------------------------------------------------------
   void do_plan(const std::vector<Agent>& agents,
                const std::vector<uint32_t>& plan_robot_ids,
                const std::vector<geometry_msgs::msg::Point>& plan_world_goals,
                const std::vector<uint32_t>& skipped_ids,
-               iros_llm_swarm_interfaces::srv::SetGoals::Response::SharedPtr res) {
+               SetGoalsAction::Result::SharedPtr res,
+               GridMap& grid,          // non-const: set_map() stores a raw pointer
+               double origin_x, double origin_y, double resolution,
+               const std::shared_ptr<GoalHandle>& goal_handle,
+               const std::chrono::steady_clock::time_point& plan_start)
+  {
     RCLCPP_INFO(get_logger(), "Planning for %zu agents...", agents.size());
 
-    solver_.set_map(&grid_);
+    solver_.set_map(&grid);
     solver_.set_movement_params(
         static_cast<float>(max_speed_),
         static_cast<float>(time_step_sec_),
-        static_cast<float>(pbs_resolution_),
+        static_cast<float>(resolution),
         static_cast<float>(urgency_));
 
     std::vector<Path> paths;
     SolveStats stats;
-    const auto t0 = std::chrono::steady_clock::now();
 
+    // Publish elapsed-time feedback while solver runs (progress ticks)
+    // The solver itself is blocking, so feedback is sent before and after.
     const bool ok = solver_.solve(agents, paths,
-                                   static_cast<float>(map_resolution_), &stats,
+                                   static_cast<float>(resolution), &stats,
                                    max_pbs_expansions_,
                                    cost_curve_,
                                    proximity_penalty_,
                                    max_astar_expansions_);
 
     const double elapsed_ms = std::chrono::duration<double, std::milli>(
-        std::chrono::steady_clock::now() - t0).count();
+        std::chrono::steady_clock::now() - plan_start).count();
 
-    res->planning_time_ms    = elapsed_ms;
-    res->num_agents_planned  = static_cast<uint32_t>(agents.size());
-    res->pbs_expansions      = static_cast<uint32_t>(stats.expansions);
-    res->max_path_length     = static_cast<uint32_t>(stats.max_path_length);
-    res->astar_ok_count      = static_cast<uint32_t>(stats.astar.ok_count);
-    res->astar_fail_count    = static_cast<uint32_t>(stats.astar.fail_count);
-    res->astar_avg_exp       = stats.astar.ok_count > 0
+    if (goal_handle) {
+      auto feedback = std::make_shared<SetGoalsAction::Feedback>();
+      feedback->status     = ok ? "publishing" : "failed";
+      feedback->elapsed_ms = static_cast<uint32_t>(elapsed_ms);
+      goal_handle->publish_feedback(feedback);
+    }
+
+    res->planning_time_ms   = elapsed_ms;
+    res->num_agents_planned = static_cast<uint32_t>(agents.size());
+    res->pbs_expansions     = static_cast<uint32_t>(stats.expansions);
+    res->max_path_length    = static_cast<uint32_t>(stats.max_path_length);
+    res->astar_ok_count     = static_cast<uint32_t>(stats.astar.ok_count);
+    res->astar_fail_count   = static_cast<uint32_t>(stats.astar.fail_count);
+    res->astar_avg_exp      = stats.astar.ok_count > 0
         ? static_cast<uint32_t>(stats.astar.ok_total_exp / stats.astar.ok_count) : 0;
-    res->astar_max_exp       = static_cast<uint32_t>(stats.astar.ok_max_exp);
+    res->astar_max_exp      = static_cast<uint32_t>(stats.astar.ok_max_exp);
 
     if (!ok) {
       res->success = false;
@@ -411,12 +498,9 @@ class MapfPlannerNode : public rclcpp::Node {
             fa.id, fa.start.row, fa.start.col, fa.goal.row, fa.goal.col,
             fa.footprint_radius, fa.inflation);
       }
-
-      // Per-agent dump at DEBUG level
       for (const auto& a : agents) {
         RCLCPP_DEBUG(get_logger(),
-            "  agent %zu: start=(%zu,%zu) goal=(%zu,%zu) "
-            "footprint=%.3fm inflation=%.3fm",
+            "  agent %zu: start=(%zu,%zu) goal=(%zu,%zu) footprint=%.3fm inflation=%.3fm",
             a.id, a.start.row, a.start.col, a.goal.row, a.goal.col,
             a.footprint_radius, a.inflation);
       }
@@ -429,41 +513,39 @@ class MapfPlannerNode : public rclcpp::Node {
         elapsed_ms, stats.expansions,
         stats.astar.ok_count,
         stats.astar.ok_count > 0 ? stats.astar.ok_total_exp / stats.astar.ok_count : 0,
-        stats.astar.ok_max_exp,
-        stats.astar.fail_count,
-        paths.size());
+        stats.astar.ok_max_exp, stats.astar.fail_count, paths.size());
 
-    last_planning_ms_ = elapsed_ms;
-    last_replan_time_ = now();  // cooldown applies after initial plan too
+    // ── Publish paths and update plan state (brief lock for state update) ──
+    {
+      std::lock_guard<std::mutex> pub_lk(state_mutex_);
 
-    // Publish paths and collect lengths for the response
-    const rclcpp::Time base_time = now();
-    res->path_lengths.resize(agents.size());
-    std::vector<nav_msgs::msg::Path> ros_paths(agents.size());
+      last_planning_ms_ = elapsed_ms;
+      last_replan_time_ = now();
 
-    for (size_t i = 0; i < agents.size(); ++i) {
-      const size_t robot_id = agents[i].id;
-      res->path_lengths[i] = static_cast<uint32_t>(paths[i].size());
+      const rclcpp::Time base_time = now();
+      res->path_lengths.resize(agents.size());
+      std::vector<nav_msgs::msg::Path> ros_paths(agents.size());
 
-      if (robot_id >= static_cast<size_t>(num_robots_)) {
-        RCLCPP_WARN(get_logger(), "Robot id %zu >= num_robots %d, skip publish",
-                    robot_id, num_robots_);
-        continue;
+      for (size_t i = 0; i < agents.size(); ++i) {
+        const size_t robot_id = agents[i].id;
+        res->path_lengths[i] = static_cast<uint32_t>(paths[i].size());
+        if (robot_id >= static_cast<size_t>(num_robots_)) {
+          RCLCPP_WARN(get_logger(),
+              "Robot id %zu >= num_robots %d, skip publish", robot_id, num_robots_);
+          continue;
+        }
+        ros_paths[i] = make_ros_path(paths[i], base_time, origin_x, origin_y, resolution);
+        path_pubs_[robot_id]->publish(ros_paths[i]);
+        RCLCPP_DEBUG(get_logger(), "Published path for robot_%zu: %zu waypoints",
+                     robot_id, paths[i].size());
       }
 
-      ros_paths[i] = make_ros_path(paths[i], base_time);
-      path_pubs_[robot_id]->publish(ros_paths[i]);
-
-      RCLCPP_DEBUG(get_logger(),
-          "Published path for robot_%zu: %zu waypoints", robot_id, paths[i].size());
+      active_plan_.robot_ids = plan_robot_ids;
+      active_plan_.goals     = plan_world_goals;
+      active_plan_.ros_paths = std::move(ros_paths);
+      has_active_plan_       = true;
+      start_monitoring();
     }
-
-    // Store active plan for schedule monitoring
-    active_plan_.robot_ids  = plan_robot_ids;
-    active_plan_.goals      = plan_world_goals;
-    active_plan_.ros_paths  = std::move(ros_paths);
-    has_active_plan_ = true;
-    start_monitoring();
 
     res->success = true;
     if (skipped_ids.empty()) {
@@ -479,7 +561,10 @@ class MapfPlannerNode : public rclcpp::Node {
   // Convert PBS Path -> nav_msgs::Path with timestamps
   // ------------------------------------------------------------------
   nav_msgs::msg::Path make_ros_path(const Path& pbs_path,
-                                     const rclcpp::Time& base_time) const {
+                                     const rclcpp::Time& base_time,
+                                     double origin_x, double origin_y,
+                                     double resolution) const
+  {
     nav_msgs::msg::Path ros_path;
     ros_path.header.frame_id = "map";
     ros_path.header.stamp    = base_time;
@@ -488,36 +573,26 @@ class MapfPlannerNode : public rclcpp::Node {
       geometry_msgs::msg::PoseStamped ps;
       ps.header.frame_id = "map";
 
-      // Timestamp: base + step * time_step
       const double offset_ns = step * time_step_sec_ * 1e9;
       ps.header.stamp = rclcpp::Time(
           base_time.nanoseconds() + static_cast<int64_t>(offset_ns));
 
-      // Position: cell centre
       double wx, wy;
-      cell_to_world(pbs_path[step],
-                    map_origin_x_, map_origin_y_, map_resolution_,
-                    wx, wy);
+      cell_to_world(pbs_path[step], origin_x, origin_y, resolution, wx, wy);
       ps.pose.position.x = wx;
       ps.pose.position.y = wy;
       ps.pose.position.z = 0.0;
 
-      // Orientation: face towards the next waypoint
       if (step + 1 < pbs_path.size()) {
         double nx, ny;
-        cell_to_world(pbs_path[step + 1],
-                      map_origin_x_, map_origin_y_, map_resolution_,
-                      nx, ny);
+        cell_to_world(pbs_path[step + 1], origin_x, origin_y, resolution, nx, ny);
         const double yaw = std::atan2(ny - wy, nx - wx);
         ps.pose.orientation.z = std::sin(yaw * 0.5);
         ps.pose.orientation.w = std::cos(yaw * 0.5);
+      } else if (!ros_path.poses.empty()) {
+        ps.pose.orientation = ros_path.poses.back().pose.orientation;
       } else {
-        // Last point: copy orientation from the previous one
-        if (!ros_path.poses.empty()) {
-          ps.pose.orientation = ros_path.poses.back().pose.orientation;
-        } else {
-          ps.pose.orientation.w = 1.0;
-        }
+        ps.pose.orientation.w = 1.0;
       }
 
       ros_path.poses.push_back(ps);
@@ -527,58 +602,44 @@ class MapfPlannerNode : public rclcpp::Node {
   }
 
   // ------------------------------------------------------------------
-  // Compute footprint, inflate map, validate start/goal for a single agent.
-  // Caller must set a.start and a.goal before calling.
-  //
-  // Footprint: uses Nav2-published bounding radius if available, otherwise
-  // default_robot_radius. Adds inflation_radius as a safety buffer beyond
-  // the footprint (Nav2's own inflation is a soft gradient, not a hard wall).
-  //
-  // If the goal cell is blocked on the inflated map, the agent is turned
-  // into a stationary obstacle (start = goal = current position) so that
-  // PBS routes other robots around it.
-  //
-  // Returns false if agent should be skipped entirely (start blocked).
+  // Validate a single agent's start/goal; set footprint from snapshot.
+  // Returns false if start is in wall hard-radius (skip agent entirely).
+  // Sets goal = start (stationary obstacle) if goal is in hard-radius.
   // ------------------------------------------------------------------
   bool validate_agent(Agent& a, uint32_t rid,
+                      const std::vector<double>& footprint_radii,
+                      const GridMap& grid,
+                      double resolution,
+                      double origin_x, double origin_y,
                       std::unordered_map<float, GridMap>& inflated_cache,
                       std::vector<uint32_t>& skipped_ids)
   {
-    const double base_radius = footprint_radii_[rid] > 0.0
-        ? footprint_radii_[rid] : default_robot_radius_;
+    const double base_radius = footprint_radii[rid] > 0.0
+        ? footprint_radii[rid] : default_robot_radius_;
     a.footprint_radius = static_cast<float>(base_radius);
-    a.inflation = static_cast<float>(inflation_radius_);
+    a.inflation        = static_cast<float>(inflation_radius_);
 
-    // For start/goal validation, use hard-blocked cells from gradient map.
-    // Cells in the soft zone are OK (just penalized in A*).
     const float soft = a.footprint_radius + a.inflation;
     if (soft > 0.0f && inflated_cache.find(soft) == inflated_cache.end()) {
-      inflated_cache[soft] = grid_.inflate_gradient(
-          a.footprint_radius, soft, static_cast<float>(map_resolution_));
+      inflated_cache[soft] = grid.inflate_gradient(
+          a.footprint_radius, soft, static_cast<float>(resolution));
     }
-    const auto& check_grid = (soft > 0.0f) ? inflated_cache[soft] : grid_;
+    const auto& check_grid = (soft > 0.0f) ? inflated_cache[soft] : grid;
 
-    // Convert cells back to world coords for diagnostics
     double start_wx, start_wy, goal_wx, goal_wy;
-    cell_to_world(a.start, map_origin_x_, map_origin_y_, map_resolution_,
-                  start_wx, start_wy);
-    cell_to_world(a.goal, map_origin_x_, map_origin_y_, map_resolution_,
-                  goal_wx, goal_wy);
+    cell_to_world(a.start, origin_x, origin_y, resolution, start_wx, start_wy);
+    cell_to_world(a.goal,  origin_x, origin_y, resolution, goal_wx,  goal_wy);
 
     if (check_grid.blocked[a.start.row * check_grid.cols + a.start.col]) {
       RCLCPP_DEBUG(get_logger(),
-          "Agent %u: start (%.2f, %.2f) -> cell (%zu, %zu) within hard radius "
-          "(%.3fm) of wall, skipping entirely",
-          rid, start_wx, start_wy, a.start.row, a.start.col,
-          a.footprint_radius);
+          "Agent %u: start (%.2f, %.2f) in hard-radius wall (%.3fm), skipping",
+          rid, start_wx, start_wy, a.footprint_radius);
       return false;
     }
     if (check_grid.blocked[a.goal.row * check_grid.cols + a.goal.col]) {
       RCLCPP_DEBUG(get_logger(),
-          "Agent %u: goal (%.2f, %.2f) -> cell (%zu, %zu) within hard radius "
-          "(%.3fm) of wall, including as stationary obstacle",
-          rid, goal_wx, goal_wy, a.goal.row, a.goal.col,
-          a.footprint_radius);
+          "Agent %u: goal (%.2f, %.2f) in hard-radius wall (%.3fm), making stationary",
+          rid, goal_wx, goal_wy, a.footprint_radius);
       a.goal = a.start;
       skipped_ids.push_back(rid);
     }
@@ -587,12 +648,15 @@ class MapfPlannerNode : public rclcpp::Node {
 
   // ------------------------------------------------------------------
   // Schedule monitoring
+  // Called under state_mutex_ from execute_goal / trigger_replan.
+  // Also called from executor thread (single-threaded) without lock
+  // when is_planning_ == false.
   // ------------------------------------------------------------------
 
-  void start_monitoring()
+  void start_monitoring()  // caller holds state_mutex_ or is executor-only
   {
-    if (monitor_timer_) return;          // already running
-    if (replan_check_hz_ <= 0.0) return; // monitoring disabled
+    if (monitor_timer_) return;
+    if (replan_check_hz_ <= 0.0) return;
 
     RCLCPP_INFO(get_logger(),
         "Starting schedule monitor at %.1f Hz "
@@ -600,15 +664,13 @@ class MapfPlannerNode : public rclcpp::Node {
         replan_check_hz_, replan_threshold_m_, replan_cooldown_sec_,
         replan_predict_sec_, replan_stop_mode_.c_str());
 
-    // Use the node's clock (sim-time-aware) so checks stay synchronized
-    // with path timestamps that also use sim time.
     monitor_timer_ = rclcpp::create_timer(
         this, get_clock(),
         rclcpp::Duration::from_seconds(1.0 / replan_check_hz_),
         [this]() { check_schedule(); });
   }
 
-  void stop_monitoring()
+  void stop_monitoring()  // caller holds state_mutex_
   {
     if (monitor_timer_) {
       monitor_timer_->cancel();
@@ -617,18 +679,18 @@ class MapfPlannerNode : public rclcpp::Node {
     has_active_plan_ = false;
   }
 
-  // Interpolate expected position from a timestamped path at a given time
+  // ------------------------------------------------------------------
+  // Interpolate expected position from a timestamped path at time t
+  // ------------------------------------------------------------------
   static std::pair<double, double> expected_position(
       const nav_msgs::msg::Path& path, const rclcpp::Time& t)
   {
     if (path.poses.empty()) return {0.0, 0.0};
-
     const auto& first = path.poses.front();
     const auto& last  = path.poses.back();
 
     if (t <= rclcpp::Time(first.header.stamp))
       return {first.pose.position.x, first.pose.position.y};
-
     if (t >= rclcpp::Time(last.header.stamp))
       return {last.pose.position.x, last.pose.position.y};
 
@@ -636,77 +698,81 @@ class MapfPlannerNode : public rclcpp::Node {
       const rclcpp::Time t0(path.poses[i].header.stamp);
       const rclcpp::Time t1(path.poses[i + 1].header.stamp);
       if (t >= t0 && t < t1) {
-        const double dt = (t1 - t0).seconds();
+        const double dt    = (t1 - t0).seconds();
         const double alpha = dt > 1e-9 ? (t - t0).seconds() / dt : 0.0;
-        const double x = path.poses[i].pose.position.x * (1.0 - alpha)
-                       + path.poses[i + 1].pose.position.x * alpha;
-        const double y = path.poses[i].pose.position.y * (1.0 - alpha)
-                       + path.poses[i + 1].pose.position.y * alpha;
-        return {x, y};
+        return {
+            path.poses[i].pose.position.x * (1.0 - alpha) +
+                path.poses[i + 1].pose.position.x * alpha,
+            path.poses[i].pose.position.y * (1.0 - alpha) +
+                path.poses[i + 1].pose.position.y * alpha,
+        };
       }
     }
-
     return {last.pose.position.x, last.pose.position.y};
   }
 
-  // TODO: replanning triggers too often — robots drift from schedule
-  // (too fast or too slow) and exceed threshold. Needs either:
-  //   - better path following with temporal sync (root cause)
-  //   - hysteresis / less sensitive thresholds (workaround)
+  // ------------------------------------------------------------------
+  // Periodic schedule deviation check  (executor thread)
+  // ------------------------------------------------------------------
+  // TODO: replanning triggers too often — robots drift from schedule.
+  // Needs better path-following with temporal sync (root cause) or
+  // hysteresis / less-sensitive thresholds (workaround).
   void check_schedule()
   {
+    // Skip entirely if an action goal is currently executing
+    if (is_planning_) return;
+
+    // Take a non-blocking snapshot of shared state
+    std::unique_lock<std::mutex> lk(state_mutex_, std::try_to_lock);
+    if (!lk.owns_lock()) return;  // planning thread is updating state
+
     if (!has_active_plan_ || !map_ready_) return;
 
     const rclcpp::Time now_t = now();
 
-    // Always check arrival, even during cooldown
+    // Count robots still en-route
     size_t active_count = 0;
     for (size_t i = 0; i < active_plan_.robot_ids.size(); ++i) {
       const uint32_t rid = active_plan_.robot_ids[i];
       if (rid >= static_cast<uint32_t>(num_robots_) || !have_odom_[rid]) continue;
       const auto& [ax, ay] = current_positions_[rid];
-      const double gx = active_plan_.goals[i].x;
-      const double gy = active_plan_.goals[i].y;
-      if (std::hypot(ax - gx, ay - gy) >= goal_reached_m_) ++active_count;
+      if (std::hypot(ax - active_plan_.goals[i].x,
+                     ay - active_plan_.goals[i].y) >= goal_reached_m_)
+        ++active_count;
     }
 
     if (active_count == 0) {
       RCLCPP_INFO(get_logger(),
-          "==== ALL %zu ROBOTS REACHED THEIR GOALS! Mission complete, awaiting new goals ====",
+          "==== ALL %zu ROBOTS REACHED THEIR GOALS! Awaiting new goals ====",
           active_plan_.robot_ids.size());
       stop_monitoring();
       return;
     }
 
-    // Static cooldown from end of last replan.
+    // Static cooldown from end of last replan
     if (last_replan_time_.nanoseconds() > 0 &&
-        (now_t - last_replan_time_).seconds() < replan_cooldown_sec_) {
+        (now_t - last_replan_time_).seconds() < replan_cooldown_sec_)
       return;
-    }
 
-    // Check deviations from schedule
+    // Detect deviations
     std::vector<uint32_t> deviated_ids;
     for (size_t i = 0; i < active_plan_.robot_ids.size(); ++i) {
       const uint32_t rid = active_plan_.robot_ids[i];
       if (rid >= static_cast<uint32_t>(num_robots_) || !have_odom_[rid]) continue;
 
       const auto& [ax, ay] = current_positions_[rid];
-      const double gx = active_plan_.goals[i].x;
-      const double gy = active_plan_.goals[i].y;
-
-      if (std::hypot(ax - gx, ay - gy) < goal_reached_m_) continue;
+      if (std::hypot(ax - active_plan_.goals[i].x,
+                     ay - active_plan_.goals[i].y) < goal_reached_m_) continue;
 
       if (i >= active_plan_.ros_paths.size()) continue;
       const auto& path = active_plan_.ros_paths[i];
       if (path.poses.empty()) continue;
 
       const auto [ex, ey] = expected_position(path, now_t);
-      const double deviation = std::hypot(ax - ex, ay - ey);
-
-      if (deviation > replan_threshold_m_) {
+      if (std::hypot(ax - ex, ay - ey) > replan_threshold_m_) {
         RCLCPP_DEBUG(get_logger(),
             "robot_%u: deviation=%.2fm (at %.2f,%.2f expected %.2f,%.2f)",
-            rid, deviation, ax, ay, ex, ey);
+            rid, std::hypot(ax - ex, ay - ey), ax, ay, ex, ey);
         deviated_ids.push_back(rid);
       }
     }
@@ -720,32 +786,16 @@ class MapfPlannerNode : public rclcpp::Node {
       RCLCPP_WARN(get_logger(),
           "Schedule deviation: %zu/%zu active robots off-plan [%s], triggering replan",
           deviated_ids.size(), active_count, ids_str.c_str());
-      trigger_replan(deviated_ids);
+      trigger_replan(deviated_ids, lk);   // lk is already held
     }
   }
 
   // ------------------------------------------------------------------
-  // Replanning
-  //
-  // Called when check_schedule() detects robots deviating from their
-  // PBS paths. Depending on replan_stop_mode:
-  //   "none"     — no robots are stopped; deviated use current odom,
-  //                on-schedule use predicted future positions as starts
-  //   "deviated" — only deviated robots are stopped (empty path cancel);
-  //                deviated use odom, on-schedule use prediction
-  //   "all"      — all active robots are stopped; everyone uses odom
-  //
-  // Arrived robots (within goal_reached_m) are included as stationary
-  // obstacles. Starts/goals are validated against the inflated map.
-  // After planning, new paths are published and schedule monitoring
-  // continues with the updated plan.
+  // Replanning  (executor thread, state_mutex_ already held by caller)
   // ------------------------------------------------------------------
-
-  void trigger_replan(const std::vector<uint32_t>& deviated_ids)
+  void trigger_replan(const std::vector<uint32_t>& deviated_ids,
+                      std::unique_lock<std::mutex>& lk)
   {
-    using SetGoals = iros_llm_swarm_interfaces::srv::SetGoals;
-
-    // Effective prediction offset (adaptive: use last planning time; 0 if not measured yet)
     const double predict_sec = (replan_predict_sec_ < 0.0)
         ? last_planning_ms_ / 1000.0
         : replan_predict_sec_;
@@ -753,11 +803,8 @@ class MapfPlannerNode : public rclcpp::Node {
     const rclcpp::Time predict_time =
         now() + rclcpp::Duration::from_seconds(predict_sec);
 
-    // Build set of deviated robot IDs for quick lookup
-    std::unordered_set<uint32_t> deviated_set(deviated_ids.begin(),
-                                               deviated_ids.end());
-
-    // Stop robots based on stop mode
+    const std::unordered_set<uint32_t> deviated_set(deviated_ids.begin(),
+                                                     deviated_ids.end());
     const bool stop_deviated = (replan_stop_mode_ == "deviated" || replan_stop_mode_ == "all");
     const bool stop_all      = (replan_stop_mode_ == "all");
 
@@ -765,7 +812,6 @@ class MapfPlannerNode : public rclcpp::Node {
     for (size_t i = 0; i < active_plan_.robot_ids.size(); ++i) {
       const uint32_t rid = active_plan_.robot_ids[i];
       if (rid >= static_cast<uint32_t>(num_robots_)) continue;
-
       const bool is_deviated = deviated_set.count(rid) > 0;
       if (stop_all || (stop_deviated && is_deviated)) {
         nav_msgs::msg::Path empty;
@@ -780,12 +826,10 @@ class MapfPlannerNode : public rclcpp::Node {
         "Replanning: %zu deviated, %zu stopped (mode=%s), predict_offset=%.3fs",
         deviated_ids.size(), stopped_count, replan_stop_mode_.c_str(), predict_sec);
 
-    // Build agents for replanning
     std::vector<Agent> agents;
     std::vector<uint32_t> plan_robot_ids;
     std::vector<geometry_msgs::msg::Point> plan_world_goals;
     std::vector<uint32_t> skipped_ids;
-    // TODO: duplicates inflate_gradient() work from PBSSolver::solve()
     std::unordered_map<float, GridMap> inflated_cache;
 
     for (size_t i = 0; i < active_plan_.robot_ids.size(); ++i) {
@@ -800,37 +844,33 @@ class MapfPlannerNode : public rclcpp::Node {
       const double gy = active_plan_.goals[i].y;
       const bool is_deviated = deviated_set.count(rid) > 0;
 
-      // Decide start position
       double sx, sy;
       if (std::hypot(ox - gx, oy - gy) < goal_reached_m_) {
-        // Arrived: keep original goal so it doesn't drift to an
-        // arbitrary cell that may conflict with other agents' goals.
         sx = ox; sy = oy;
         a.start = world_to_cell(sx, sy, map_origin_x_, map_origin_y_,
                                  map_resolution_, grid_.rows, grid_.cols);
-        a.goal = world_to_cell(gx, gy, map_origin_x_, map_origin_y_,
-                                map_resolution_, grid_.rows, grid_.cols);
+        a.goal  = world_to_cell(gx, gy, map_origin_x_, map_origin_y_,
+                                 map_resolution_, grid_.rows, grid_.cols);
       } else if (is_deviated || stop_all) {
-        // Stopped or deviated: use current odom (exact or close to exact)
         sx = ox; sy = oy;
         a.start = world_to_cell(sx, sy, map_origin_x_, map_origin_y_,
                                  map_resolution_, grid_.rows, grid_.cols);
-        a.goal = world_to_cell(gx, gy, map_origin_x_, map_origin_y_,
-                                map_resolution_, grid_.rows, grid_.cols);
+        a.goal  = world_to_cell(gx, gy, map_origin_x_, map_origin_y_,
+                                 map_resolution_, grid_.rows, grid_.cols);
       } else {
-        // On-schedule: predict future position from plan
-        if (i < active_plan_.ros_paths.size() && !active_plan_.ros_paths[i].poses.empty()) {
+        if (i < active_plan_.ros_paths.size() && !active_plan_.ros_paths[i].poses.empty())
           std::tie(sx, sy) = expected_position(active_plan_.ros_paths[i], predict_time);
-        } else {
-          sx = ox; sy = oy;
-        }
+        else
+          sx = ox, sy = oy;
         a.start = world_to_cell(sx, sy, map_origin_x_, map_origin_y_,
                                  map_resolution_, grid_.rows, grid_.cols);
-        a.goal = world_to_cell(gx, gy, map_origin_x_, map_origin_y_,
-                                map_resolution_, grid_.rows, grid_.cols);
+        a.goal  = world_to_cell(gx, gy, map_origin_x_, map_origin_y_,
+                                 map_resolution_, grid_.rows, grid_.cols);
       }
 
-      if (!validate_agent(a, rid, inflated_cache, skipped_ids)) continue;
+      if (!validate_agent(a, rid, footprint_radii_, grid_, map_resolution_,
+                           map_origin_x_, map_origin_y_, inflated_cache, skipped_ids))
+        continue;
 
       agents.push_back(a);
       plan_robot_ids.push_back(rid);
@@ -847,13 +887,20 @@ class MapfPlannerNode : public rclcpp::Node {
       return;
     }
 
-    auto res = std::make_shared<SetGoals::Response>();
-    do_plan(agents, plan_robot_ids, plan_world_goals, skipped_ids, res);
+    auto res = std::make_shared<SetGoalsAction::Result>();
+
+    // Release lock during long computation, re-acquire for state update
+    lk.unlock();
+    do_plan(agents, plan_robot_ids, plan_world_goals, skipped_ids, res,
+            grid_, map_origin_x_, map_origin_y_, map_resolution_,
+            nullptr /* no goal_handle for internal replan */,
+            std::chrono::steady_clock::now());
+    lk.lock();
 
     last_replan_time_ = now();
 
     if (res->success) {
-      RCLCPP_INFO(get_logger(), "Replan OK: %s (%.1fms, %u expansions)",
+      RCLCPP_INFO(get_logger(), "Replan OK: %s (%.1fms, %u PBS exp)",
                   res->message.c_str(), res->planning_time_ms, res->pbs_expansions);
     } else {
       RCLCPP_ERROR(get_logger(), "Replan FAILED: %s", res->message.c_str());
@@ -869,66 +916,72 @@ class MapfPlannerNode : public rclcpp::Node {
   double default_robot_radius_ = 0.22;
   double inflation_radius_     = 0.5;
 
-  // Replanning
-  double replan_check_hz_       = 2.0;
-  double replan_threshold_m_    = 1.0;
-  double replan_cooldown_sec_   = 5.0;
-  double replan_predict_sec_    = -1.0;
-  std::string replan_stop_mode_ = "all";
-  double goal_reached_m_        = 0.5;
-  size_t max_pbs_expansions_    = 5000;
-  size_t max_astar_expansions_  = 200000;
-  CostCurve cost_curve_         = CostCurve::Quadratic;
-  int    proximity_penalty_     = 50;
-  double max_speed_              = 0.5;
-  double urgency_       = 1.0;
+  double      replan_check_hz_      = 2.0;
+  double      replan_threshold_m_   = 1.0;
+  double      replan_cooldown_sec_  = 5.0;
+  double      replan_predict_sec_   = -1.0;
+  std::string replan_stop_mode_     = "all";
+  double      goal_reached_m_       = 0.5;
+  size_t      max_pbs_expansions_   = 5000;
+  size_t      max_astar_expansions_ = 200000;
+  CostCurve   cost_curve_           = CostCurve::Quadratic;
+  int         proximity_penalty_    = 50;
+  double      max_speed_            = 0.5;
+  double      urgency_              = 1.0;
 
   bool   map_ready_       = false;
   double map_origin_x_    = 0.0;
   double map_origin_y_    = 0.0;
-  double map_resolution_  = 0.2;   // actual PBS grid resolution (after downsampling)
+  double map_resolution_  = 0.2;
 
-  GridMap    grid_;
-  PBSSolver  solver_;
+  GridMap   grid_;
+  PBSSolver solver_;
 
-  // Per-robot odometry and footprint cache
+  // Per-robot state
   std::vector<std::pair<double, double>> current_positions_;
   std::vector<bool>   have_odom_;
-  std::vector<double> footprint_radii_;   // bounding radius from Nav2 polygon
+  std::vector<double> footprint_radii_;
+
+  // Concurrency: protects all shared mutable state above
+  std::mutex          state_mutex_;
+  std::atomic<bool>   is_planning_{false};
 
   // Subscriptions
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
-  std::vector<rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr> odom_subs_;
+  std::vector<rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr>        odom_subs_;
   std::vector<rclcpp::Subscription<geometry_msgs::msg::PolygonStamped>::SharedPtr> footprint_subs_;
 
-  // Service
-  rclcpp::Service<iros_llm_swarm_interfaces::srv::SetGoals>::SharedPtr plan_srv_;
+  // Action server
+  rclcpp_action::Server<SetGoalsAction>::SharedPtr plan_action_server_;
 
   // Path publishers
   std::vector<rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr> path_pubs_;
 
   // Schedule monitoring
   struct ActivePlan {
-    std::vector<uint32_t>                   robot_ids;
-    std::vector<geometry_msgs::msg::Point>  goals;        // original goals (world coords)
-    std::vector<nav_msgs::msg::Path>        ros_paths;    // published paths (for schedule checks)
+    std::vector<uint32_t>                  robot_ids;
+    std::vector<geometry_msgs::msg::Point> goals;
+    std::vector<nav_msgs::msg::Path>       ros_paths;
   };
   ActivePlan active_plan_;
   bool       has_active_plan_  = false;
   double     last_planning_ms_ = 0.0;
-  rclcpp::Time           last_replan_time_{0, 0, RCL_ROS_TIME};
+  rclcpp::Time             last_replan_time_{0, 0, RCL_ROS_TIME};
   rclcpp::TimerBase::SharedPtr monitor_timer_;
 };
 
 // ---------------------------------------------------------------------------
-// WARNING: This node relies on single-threaded execution (rclcpp::spin).
-// The monitor timer, service callback, and odom/map subscriptions share
-// state without locks.  Switching to MultiThreadedExecutor would require
-// adding mutexes around grid_, active_plan_, current_positions_, etc.
+// main — uses MultiThreadedExecutor so the action server's internal
+// infrastructure can run while the detached planning thread is active.
 // ---------------------------------------------------------------------------
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<MapfPlannerNode>());
+  rclcpp::executors::MultiThreadedExecutor executor(
+      rclcpp::ExecutorOptions(), 2);
+  auto node = std::make_shared<MapfPlannerNode>();
+  executor.add_node(node);
+  executor.spin();
   rclcpp::shutdown();
   return 0;
 }

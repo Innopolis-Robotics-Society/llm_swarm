@@ -94,7 +94,7 @@ def generate_launch_description():
             'replan_threshold_m':   1.5,
             'proximity_penalty':    50,
             'pbs_resolution':       0.2,
-            'replan_cooldown_sec':  30
+            'replan_cooldown_sec':  30.0
         }],
     )
 
