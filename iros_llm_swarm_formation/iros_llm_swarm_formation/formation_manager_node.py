@@ -30,7 +30,7 @@ from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 from geometry_msgs.msg import Point, Polygon, Point32
 from std_msgs.msg import Header
 
-from iros_llm_swarm_interfaces.msg import FormationConfig
+from iros_llm_swarm_interfaces.msg import FormationConfig, FormationsState
 from iros_llm_swarm_interfaces.srv import SetFormation, DisbandFormation
 
 FORMATIONS_TOPIC = "/formations/config"
@@ -106,7 +106,7 @@ class FormationManagerNode(Node):
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
             reliability=ReliabilityPolicy.RELIABLE,
         )
-        self._pub = self.create_publisher(FormationConfig, FORMATIONS_TOPIC, latched)
+        self._pub = self.create_publisher(FormationsState, FORMATIONS_TOPIC, latched)
 
         # Formation registry
         self._registry: dict[str, _Formation] = {}
@@ -124,6 +124,8 @@ class FormationManagerNode(Node):
             f"formation_manager ready  topic={FORMATIONS_TOPIC}  "
             f"formations={list(self._registry.keys())}"
         )
+
+        self._publish_all()
 
 
     # Services
@@ -154,7 +156,7 @@ class FormationManagerNode(Node):
             active=req.activate,
         )
         self._registry[fid] = formation
-        self._publish(formation)
+        self._publish_all()
 
         verb = "activated" if req.activate else "registered"
         res.success = True
@@ -172,7 +174,7 @@ class FormationManagerNode(Node):
 
         f = self._registry[fid]
         f.active = False
-        self._publish(f)
+        self._publish_all()
 
         res.success = True
         res.message = f"Formation '{fid}' disbanded"
@@ -182,17 +184,25 @@ class FormationManagerNode(Node):
 
     # Internal
 
-    def _publish(self, f: _Formation):
-        msg = f.to_msg(
-            stamp=self.get_clock().now().to_msg(),
-            padding=self._padding,
-            robot_radius=self._robot_r,
-        )
+    def _publish_all(self):
+        msg = FormationsState()
+        now = self.get_clock().now().to_msg()
+        msg.header.stamp = now
+        msg.header.frame_id = ""
+
+        for f in self._registry.values():
+            msg.formations.append(
+                f.to_msg(
+                    stamp=now,
+                    padding=self._padding,
+                    robot_radius=self._robot_r,
+                )
+            )
+
         self._pub.publish(msg)
+
         self.get_logger().debug(
-            f"published formation '{f.formation_id}'  "
-            f"active={f.active}"
-            f"leader={f.leader_ns}  followers={f.follower_ns}"
+            f"Published state: {[f.formation_id for f in self._registry.values()]}"
         )
 
     def _load_yaml(self, path: str):
@@ -218,13 +228,14 @@ class FormationManagerNode(Node):
                     active=self._auto_act,
                 )
                 self._registry[fid] = formation
-                self._publish(formation)
                 self.get_logger().info(
                     f"  loaded '{fid}': leader={leader} "
                     f"followers={ns_list} active={self._auto_act}"
                 )
             except KeyError as e:
                 self.get_logger().error(f"Malformed formation entry, missing {e}: {entry}")
+
+        self._publish_all()
 
 
 def main(args=None):

@@ -43,6 +43,7 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav2_msgs/action/follow_path.hpp"
 
+#include "iros_llm_swarm_interfaces/msg/formations_state.hpp"
 #include "iros_llm_swarm_interfaces/msg/formation_config.hpp"
 
 
@@ -51,6 +52,7 @@
 using FollowPath     = nav2_msgs::action::FollowPath;
 using GoalHandle     = rclcpp_action::ClientGoalHandle<FollowPath>;
 using FormationConfig = iros_llm_swarm_interfaces::msg::FormationConfig;
+using FormationsState = iros_llm_swarm_interfaces::msg::FormationsState;
 
 
 // Utilities
@@ -119,9 +121,9 @@ public:
 
     // Formation config (always active, single shared topic)
     auto latched = rclcpp::QoS(1).transient_local().reliable();
-    formation_sub_ = create_subscription<FormationConfig>(
+    formation_sub_ = create_subscription<FormationsState>(
       "/formations/config", latched,
-      [this](const FormationConfig::SharedPtr msg) { on_formation_config(msg); });
+      [this](const FormationsState::SharedPtr msg) { on_formations_state(msg); });
 
     // MAPF path (always subscribed, only processed in AUTONOMOUS)
     path_sub_ = create_subscription<nav_msgs::msg::Path>(
@@ -216,57 +218,65 @@ private:
   }
 
 
-  // Callbacks — formation config
+  // Callbacks — formation state
 
-  void on_formation_config(const FormationConfig::SharedPtr msg)
+  void on_formations_state(const FormationsState::SharedPtr msg)
   {
-    int my_slot = -1;
-    for (size_t i = 0; i < msg->follower_ns.size(); ++i) {
-      if (msg->follower_ns[i] == ns_) {
-        my_slot = static_cast<int>(i);
-        break;
-      }
-    }
+    bool found_my_formation = false;
 
-    if (my_slot >= 0) {
-      if (!msg->active) {
-        // Formation disbanded — go autonomous
-        if (active_formation_id_ == msg->formation_id) {
+    for (const auto & f : msg->formations) {
+
+      int my_slot = -1;
+      for (size_t i = 0; i < f.follower_ns.size(); ++i) {
+        if (f.follower_ns[i] == ns_) {
+          my_slot = static_cast<int>(i);
+          break;
+        }
+      }
+
+      if (my_slot < 0) {
+        continue; // not my formation
+      }
+
+      found_my_formation = true;
+
+      if (!f.active) {
+        if (active_formation_id_ == f.formation_id) {
           RCLCPP_INFO(get_logger(),
             "[%s] formation '%s' disbanded — returning to AUTONOMOUS",
-            ns_.c_str(), msg->formation_id.c_str());
+            ns_.c_str(), f.formation_id.c_str());
+
           active_formation_id_.clear();
           enter_autonomous();
         }
         return;
       }
 
-      // Active formation — enter/update follower mode
-      const double ox = msg->offsets[my_slot].x;
-      const double oy = msg->offsets[my_slot].y;
-      active_formation_id_ = msg->formation_id;
+      const double ox = f.offsets[my_slot].x;
+      const double oy = f.offsets[my_slot].y;
+
+      active_formation_id_ = f.formation_id;
 
       if (mode_ == Mode::FORMATION_FOLLOWER &&
-          leader_ns_ == msg->leader_ns &&
+          leader_ns_ == f.leader_ns &&
           offset_x_ == ox && offset_y_ == oy)
       {
-        // Nothing changed — no-op
-        return;
+        return; // no changes
       }
 
-      enter_formation_follower(msg->leader_ns, ox, oy);
+      enter_formation_follower(f.leader_ns, ox, oy);
       return;
     }
 
-    // If previously followed THIS formation, return to autonomous
-    if (active_formation_id_ == msg->formation_id) {
+    // Если мы раньше были в формации, но теперь нас нет ни в одной
+    if (!found_my_formation && !active_formation_id_.empty()) {
       RCLCPP_INFO(get_logger(),
         "[%s] removed from formation '%s' — returning to AUTONOMOUS",
-        ns_.c_str(), msg->formation_id.c_str());
+        ns_.c_str(), active_formation_id_.c_str());
+
       active_formation_id_.clear();
       enter_autonomous();
     }
-    // Otherwise this formation update is irrelevant — ignore
   }
 
 
@@ -521,7 +531,7 @@ private:
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr  own_odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr  leader_odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr      path_sub_;
-  rclcpp::Subscription<FormationConfig>::SharedPtr          formation_sub_;
+  rclcpp::Subscription<FormationsState>::SharedPtr          formation_sub_;
 
   // --- publisher ---
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr   cmd_vel_pub_;

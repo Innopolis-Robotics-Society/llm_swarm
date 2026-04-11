@@ -68,6 +68,13 @@ ros2 run iros_llm_swarm_mapf test_send_goals --random --radius 5.0
 ros2 run iros_llm_swarm_mapf test_send_goals --json-file goals.json
 ```
 
+### Formations and MAPF tests
+
+Launch the full stack:
+```bash
+ros2 launch iros_llm_swarm_bringup swarm_formation.launch.py
+```
+
 ## Packages
 
 ### `iros_llm_swarm_bringup`
@@ -101,11 +108,12 @@ Custom Nav2 costmap layer plugin. Provides `ResettingObstacleLayer` — a drop-i
 
 ### `iros_llm_swarm_mapf`
 
-Footprint-aware PBS (Priority-Based Search) MAPF planner. Accepts goals via `/swarm/set_goals` service (SetGoals), reads start positions from odometry and footprints from Nav2. Plans conflict-free time-indexed paths on a downsampled grid (0.2m/cell) with per-agent inflated maps and distance-based reservation tables. Path followers execute paths with temporal synchronization via Nav2 `follow_path` action.
+Footprint-aware PBS (Priority-Based Search) MAPF planner. Accepts goals via `/swarm/set_goals` service (SetGoals), reads start positions from odometry and footprints from Nav2. Plans conflict-free time-indexed paths on a downsampled grid (0.2m/cell) with per-agent inflated maps and distance-based reservation tables.
+Path followers execute paths with temporal synchronization via Nav2 `follow_path` action and follow formation if assigned to one.
 
 ### `iros_llm_swarm_formation`
 
-Leader-follower formation control with PD controllers (Kp=1.2, Kd=0.3, 20 Hz). Pre-defined formations (wedge, line, diamond) in `formations.yaml`. Runtime create/disband via `/formation/set` and `/formation/disband` services.
+Centralized management of robot formations and distributes formation configuration to all robots.
 
 ### `iros_llm_swarm_interfaces`
 

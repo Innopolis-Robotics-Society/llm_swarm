@@ -15,6 +15,7 @@ find_package(rosidl_default_generators REQUIRED)
 # ---- Custom interfaces ------------------------------------------------------
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/FormationConfig.msg"
+  "msg/FormationsState.msg"
   "srv/SetFormation.srv"
   "srv/DisbandFormation.srv"
   "srv/SetGoals.srv"

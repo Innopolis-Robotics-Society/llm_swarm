@@ -40,9 +40,6 @@ def generate_launch_description():
             FindPackageShare('iros_llm_swarm_bringup'),
             'rviz', 'swarm_20.rviz',
         ]))
-    formation_id_arg = DeclareLaunchArgument(
-        'formation_id', default_value='wedge',
-        description='Formation to activate at launch (must exist in formations.yaml)')
     formations_cfg_arg = DeclareLaunchArgument(
         'formations_cfg',
         default_value=PathJoinSubstitution([
@@ -118,8 +115,8 @@ def generate_launch_description():
         parameters=[{
             'config_file':       formations_cfg,
             'auto_activate':     True,
-            'footprint_padding': 0.3,
-            'robot_radius':      0.22,
+            'footprint_padding': 0.2,
+            'robot_radius':      0.3,
             'use_sim_time':      use_sim_time,
         }],
     )
@@ -140,7 +137,6 @@ def generate_launch_description():
         time_step_arg,
         world_file_arg,
         rviz_cfg_arg,
-        formation_id_arg,
         formations_cfg_arg,
 
         # t=0s
