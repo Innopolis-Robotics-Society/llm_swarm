@@ -33,6 +33,7 @@ target_include_directories(mapf_planner_node PUBLIC
 
 ament_target_dependencies(mapf_planner_node
   rclcpp
+  rclcpp_action
   nav_msgs
   geometry_msgs
   iros_llm_swarm_interfaces
