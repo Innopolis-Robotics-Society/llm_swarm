@@ -93,11 +93,11 @@ def generate_launch_description():
     )
 
     # ----------------------------------------- path followers (t=12s)
-    path_followers = IncludeLaunchDescription(
+    motion_controllers = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             PathJoinSubstitution([
-                FindPackageShare('iros_llm_swarm_mapf'),
-                'launch', 'path_followers.launch.py',
+                FindPackageShare('iros_llm_swarm_robot'),
+                'launch', 'motion_controllers.launch.py',
             ])
         ]),
         launch_arguments=[
@@ -158,8 +158,8 @@ def generate_launch_description():
         # t=12s — path followers and formation manager start together so that
         # robots are subscribed before the latched config message is published
         TimerAction(period=12.0, actions=[
-            LogInfo(msg='Starting path followers and formation manager...'),
-            path_followers,
+            LogInfo(msg='Starting motion controllers and formation manager...'),
+            motion_controllers,
             formation_manager,
         ]),
     ])
