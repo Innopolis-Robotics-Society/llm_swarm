@@ -150,6 +150,46 @@ geometry_msgs/Polygon footprint
 bool active  # false = formation dissolved, followers go autonomous
 ```
 
+Example:
+```text
+header:
+  stamp:
+    sec: 1710000000
+    nanosec: 0
+  frame_id: ""
+
+formations:
+- formation_id: "line"
+  leader_ns: "robot_0"
+  follower_ns: ["robot_1", "robot_2"]
+
+  offsets:
+  - {x: 1.0, y: 0.0, z: 0.0}
+  - {x: 2.0, y: 0.0, z: 0.0}
+
+  footprint:
+    points:
+    - {x: 2.5, y: 0.0, z: 0.0}
+    - {x: 1.8, y: 1.8, z: 0.0}
+    <...>
+
+  active: true
+
+- formation_id: "triangle"
+  leader_ns: "robot_3"
+  follower_ns: ["robot_4", "robot_5"]
+
+  offsets:
+  - {x: -1.0, y: 1.0, z: 0.0}
+  - {x: -1.0, y: -1.0, z: 0.0}
+
+  footprint:
+    points:
+    <...>
+
+  active: false
+```
+
 #### Services
 
 - `/formation/set`
@@ -171,6 +211,18 @@ bool success
 string message
 ```
 
+Example:
+```bash
+ros2 service call /formation/set iros_llm_swarm_interfaces/srv/SetFormation "
+formation_id: 'line'
+leader_ns: 'robot_0'
+follower_ns: ['robot_1', 'robot_2']
+offsets_x: [1.0, 2.0]
+offsets_y: [0.0, 0.0]
+activate: true
+"
+```
+
 - `/formation/disband`
 
 Type: `iros_llm_swarm_interfaces/srv/DisbandFormation`
@@ -183,6 +235,11 @@ string formation_id
 ---
 bool success
 string message
+```
+
+Example:
+```bash
+ros2 service call /formation/disband iros_llm_swarm_interfaces/srv/DisbandFormation "formation_id: 'line'"
 ```
 
 ### `iros_llm_swarm_interfaces`
