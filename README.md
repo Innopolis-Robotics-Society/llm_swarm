@@ -115,6 +115,76 @@ Path followers execute paths with temporal synchronization via Nav2 `follow_path
 
 Centralized management of robot formations and distributes formation configuration to all robots.
 
+#### Topics
+
+- `/formations/config`
+
+Type: `iros_llm_swarm_interfaces/msg/FormationsState`
+
+QoS: `TRANSIENT_LOCAL`, `RELIABLE`, `depth=1` (latched)
+
+Description: Publishes the complete state of all formations in the system.
+Each message is a full snapshot, allowing late subscribers to immediately receive the current configuration.
+
+Message Structure:
+```text
+std_msgs/Header header
+FormationConfig[] formations
+```
+
+FormationConfig.msg:
+```text
+std_msgs/Header header
+
+string   formation_id        # unique name e.g. "wedge"
+string   leader_ns           # e.g. "robot_0"
+string[] follower_ns         # e.g. ["robot_1", "robot_2"]
+
+# Per-follower offset in leader BODY frame (forward=+x, left=+y).
+# Length must match follower_ns.
+geometry_msgs/Point[] offsets
+
+# Bounding footprint for MAPF planner (Polygon in leader body frame).
+geometry_msgs/Polygon footprint
+
+bool active  # false = formation dissolved, followers go autonomous
+```
+
+#### Services
+
+- `/formation/set`
+
+Type: `iros_llm_swarm_interfaces/srv/SetFormation`
+
+Description: Creates or updates a formation. 
+
+Defenition:
+```text
+string formation_id     # unique name; if exists, updates this formation
+string leader_ns        # e.g. "robot_0"
+string[] follower_ns    # e.g. ["robot_1", "robot_2"]
+float64[] offsets_x     # parallel arrays — offset in leader body frame
+float64[] offsets_y     # length must equal follower_ns length
+bool activate           # true = activate immediately after setting
+---
+bool success
+string message
+```
+
+- `/formation/disband`
+
+Type: `iros_llm_swarm_interfaces/srv/DisbandFormation`
+
+Description: Deactivates a formation without removing it. Followers resume autonomous operation. Still be published in `/formations/config`.
+
+Defenition:
+```text
+string formation_id
+---
+bool success
+string message
+```
+
 ### `iros_llm_swarm_interfaces`
 
 Custom ROS 2 messages and services: FormationConfig, SetFormation, DisbandFormation, SetGoals.
