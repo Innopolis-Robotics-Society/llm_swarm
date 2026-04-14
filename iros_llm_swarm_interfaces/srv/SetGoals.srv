@@ -8,3 +8,7 @@ uint32 num_agents_planned
 uint32 pbs_expansions
 uint32 max_path_length
 uint32[] path_lengths           # длины путей, параллельно robot_ids
+uint32 astar_ok_count           # successful A* calls
+uint32 astar_fail_count         # failed A* calls (hit expansion cap)
+uint32 astar_avg_exp            # avg expansions per successful A* call
+uint32 astar_max_exp            # max expansions in a single successful A* call

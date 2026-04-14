@@ -1,0 +1,20 @@
+# Goal — identical to the old SetGoals.srv Request
+uint32[] robot_ids
+geometry_msgs/Point[] goals
+---
+# Result — identical to the old SetGoals.srv Response
+bool success
+string message
+float64 planning_time_ms
+uint32 num_agents_planned
+uint32 pbs_expansions
+uint32 max_path_length
+uint32[] path_lengths
+uint32 astar_ok_count
+uint32 astar_fail_count
+uint32 astar_avg_exp
+uint32 astar_max_exp
+---
+# Feedback — sent during planning so clients (e.g. BT nodes) can stay alive
+string status       # "validating" | "planning" | "publishing"
+uint32 elapsed_ms   # wall-clock ms since action was accepted
