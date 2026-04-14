@@ -6,43 +6,35 @@
 #   +x = forward, +y = left
 #   Units: metres
 
+# Initial formations loaded by formation_manager_node on startup.
+# Each entry is passed to SetFormation internally with activate: false.
+# Activate them at runtime via /formation/set service or launch argument.
+#
+# Offsets are in leader BODY frame:
+#   +x = forward, +y = left
+#   Units: metres
+
 formations:
 
-  # --- Wedge (V-shape): leader at tip, two followers behind-left and behind-right ---
   - id: "wedge"
-    leader: "robot_0"
+    leader: "robot_1"
     followers:
-      - ns: "robot_1"
+      - ns: "robot_2"
         dx: -1.0
         dy:  0.6
-      - ns: "robot_2"
+      - ns: "robot_0"
         dx: -1.0
         dy: -0.6
 
-  # --- Line: three robots in a column behind the leader ---
   - id: "line"
-    leader: "robot_0"
+    leader: "robot_5"
     followers:
-      - ns: "robot_1"
+      - ns: "robot_3"
         dx: -1.0
         dy:  0.0
-      - ns: "robot_2"
+      - ns: "robot_4"
         dx: -2.0
         dy:  0.0
-      - ns: "robot_3"
+      - ns: "robot_6"
         dx: -3.0
-        dy:  0.0
-
-  # --- Diamond: leader front, two flankers, one rear guard ---
-  - id: "diamond"
-    leader: "robot_0"
-    followers:
-      - ns: "robot_1"
-        dx:  0.0
-        dy:  1.0
-      - ns: "robot_2"
-        dx:  0.0
-        dy: -1.0
-      - ns: "robot_3"
-        dx: -1.5
         dy:  0.0

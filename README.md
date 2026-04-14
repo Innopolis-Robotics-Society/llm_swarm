@@ -74,6 +74,13 @@ ros2 run iros_llm_swarm_mapf test_send_goals --random --radius 5.0
 ros2 run iros_llm_swarm_mapf test_send_goals --json-file goals.json
 ```
 
+### Formations and MAPF tests
+
+Launch the full stack:
+```bash
+ros2 launch iros_llm_swarm_bringup swarm_formation.launch.py
+```
+
 ## Packages
 
 ### `iros_llm_swarm_bringup`
@@ -234,10 +241,139 @@ PBS failed (2709.9 ms, 1 expansions)
 | `replan_cooldown_sec`  | 15.0            | Cooldown from replan end to next replan start (s)                          |
 
 **Constraint:** `footprint_radius >= 0.7 * pbs_resolution` must hold when using the Euclidean planner. The planner asserts this at startup. With defaults (0.22m footprint, 0.2m resolution) the constraint is satisfied. Increasing `pbs_resolution` beyond `footprint_radius / 0.7` requires a proportionally larger footprint or finer resolution.
+Footprint-aware PBS (Priority-Based Search) MAPF planner. Accepts goals via `/swarm/set_goals` service (SetGoals), reads start positions from odometry and footprints from Nav2. Plans conflict-free time-indexed paths on a downsampled grid (0.2m/cell) with per-agent inflated maps and distance-based reservation tables.
+Path followers execute paths with temporal synchronization via Nav2 `follow_path` action and follow formation if assigned to one.
 
 ### `iros_llm_swarm_formation`
 
-Leader-follower formation control with PD controllers (Kp=1.2, Kd=0.3, 20 Hz). Pre-defined formations (wedge, line, diamond) in `formations.yaml`. Runtime create/disband via `/formation/set` and `/formation/disband` services.
+Centralized management of robot formations and distributes formation configuration to all robots.
+
+#### Topics
+
+- `/formations/config`
+
+Type: `iros_llm_swarm_interfaces/msg/FormationsState`
+
+QoS: `TRANSIENT_LOCAL`, `RELIABLE`, `depth=1` (latched)
+
+Description: Publishes the complete state of all formations in the system.
+Each message is a full snapshot, allowing late subscribers to immediately receive the current configuration.
+
+Message Structure:
+```text
+std_msgs/Header header
+FormationConfig[] formations
+```
+
+FormationConfig.msg:
+```text
+std_msgs/Header header
+
+string   formation_id        # unique name e.g. "wedge"
+string   leader_ns           # e.g. "robot_0"
+string[] follower_ns         # e.g. ["robot_1", "robot_2"]
+
+# Per-follower offset in leader BODY frame (forward=+x, left=+y).
+# Length must match follower_ns.
+geometry_msgs/Point[] offsets
+
+# Bounding footprint for MAPF planner (Polygon in leader body frame).
+geometry_msgs/Polygon footprint
+
+bool active  # false = formation dissolved, followers go autonomous
+```
+
+Example:
+```text
+header:
+  stamp:
+    sec: 1710000000
+    nanosec: 0
+  frame_id: ""
+
+formations:
+- formation_id: "line"
+  leader_ns: "robot_0"
+  follower_ns: ["robot_1", "robot_2"]
+
+  offsets:
+  - {x: 1.0, y: 0.0, z: 0.0}
+  - {x: 2.0, y: 0.0, z: 0.0}
+
+  footprint:
+    points:
+    - {x: 2.5, y: 0.0, z: 0.0}
+    - {x: 1.8, y: 1.8, z: 0.0}
+    <...>
+
+  active: true
+
+- formation_id: "triangle"
+  leader_ns: "robot_3"
+  follower_ns: ["robot_4", "robot_5"]
+
+  offsets:
+  - {x: -1.0, y: 1.0, z: 0.0}
+  - {x: -1.0, y: -1.0, z: 0.0}
+
+  footprint:
+    points:
+    <...>
+
+  active: false
+```
+
+#### Services
+
+- `/formation/set`
+
+Type: `iros_llm_swarm_interfaces/srv/SetFormation`
+
+Description: Creates or updates a formation. 
+
+Defenition:
+```text
+string formation_id     # unique name; if exists, updates this formation
+string leader_ns        # e.g. "robot_0"
+string[] follower_ns    # e.g. ["robot_1", "robot_2"]
+float64[] offsets_x     # parallel arrays — offset in leader body frame
+float64[] offsets_y     # length must equal follower_ns length
+bool activate           # true = activate immediately after setting
+---
+bool success
+string message
+```
+
+Example:
+```bash
+ros2 service call /formation/set iros_llm_swarm_interfaces/srv/SetFormation "
+formation_id: 'line'
+leader_ns: 'robot_0'
+follower_ns: ['robot_1', 'robot_2']
+offsets_x: [1.0, 2.0]
+offsets_y: [0.0, 0.0]
+activate: true
+"
+```
+
+- `/formation/disband`
+
+Type: `iros_llm_swarm_interfaces/srv/DisbandFormation`
+
+Description: Deactivates a formation without removing it. Followers resume autonomous operation. Still be published in `/formations/config`.
+
+Defenition:
+```text
+string formation_id
+---
+bool success
+string message
+```
+
+Example:
+```bash
+ros2 service call /formation/disband iros_llm_swarm_interfaces/srv/DisbandFormation "formation_id: 'line'"
+```
 
 ### `iros_llm_swarm_interfaces`
 
