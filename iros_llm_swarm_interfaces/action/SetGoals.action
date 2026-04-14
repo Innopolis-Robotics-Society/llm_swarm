@@ -1,8 +1,28 @@
-# Goal — identical to the old SetGoals.srv Request
+# SetGoals.action — MAPF swarm navigation action
+#
+# Lifecycle:
+#   1. Client sends goal (robot_ids + target positions)
+#   2. Server plans paths (feedback: status="planning")
+#   3. Server dispatches paths and monitors execution (feedback: status="executing")
+#   4. Server replans on deviation (feedback: status="replanning")
+#   5. Action succeeds when ALL robots arrive, or fails/is cancelled
+#
+# This action stays alive for the entire plan-execute-arrive cycle,
+# not just the planning phase.
+
+#goal definition
 uint32[] robot_ids
 geometry_msgs/Point[] goals
 ---
-# Result — identical to the old SetGoals.srv Response
+#result definition
+# Error codes
+uint16 NONE=0
+uint16 UNKNOWN=200
+uint16 NO_VALID_AGENTS=201
+uint16 PBS_FAILED=202
+uint16 TIMEOUT=203
+uint16 CANCELLED=204
+
 bool success
 string message
 float64 planning_time_ms
@@ -14,7 +34,32 @@ uint32 astar_ok_count
 uint32 astar_fail_count
 uint32 astar_avg_exp
 uint32 astar_max_exp
+uint16 error_code
+
+# Execution summary (populated when action completes after execution phase)
+uint32 total_replans
+float64 total_execution_sec
 ---
-# Feedback — sent during planning so clients (e.g. BT nodes) can stay alive
-string status       # "validating" | "planning" | "publishing"
-uint32 elapsed_ms   # wall-clock ms since action was accepted
+#feedback definition
+string status
+# "validating"  — building agents from odom/map
+# "planning"    — PBS solver running
+# "executing"   — robots following paths
+# "replanning"  — deviation detected, replanning in progress
+# "failed"      — planning failed (action will complete with error)
+
+uint32 elapsed_ms
+
+# Execution-phase fields (zero during planning phase)
+uint32 robots_arrived      # сколько доехали
+uint32 robots_active       # сколько ещё в пути
+uint32 robots_deviated     # сколько отклонились
+uint32 replans_done        # сколько реплнов произошло
+
+
+
+
+
+
+
+

@@ -149,7 +149,7 @@ private:
   {
     if (mode_ == Mode::AUTONOMOUS) return;
 
-    RCLCPP_INFO(get_logger(), "[%s] → AUTONOMOUS", ns_.c_str());
+    RCLCPP_INFO(get_logger(), "[%s] - AUTONOMOUS", ns_.c_str());
     mode_ = Mode::AUTONOMOUS;
 
     // Stop PD timer
@@ -168,7 +168,7 @@ private:
                                 double offset_x, double offset_y)
   {
     RCLCPP_INFO(get_logger(),
-      "[%s] → FORMATION_FOLLOWER  leader=%s  offset=(%.2f, %.2f)",
+      "[%s] - FORMATION_FOLLOWER  leader=%s  offset=(%.2f, %.2f)",
       ns_.c_str(), leader_ns.c_str(), offset_x, offset_y);
 
     mode_     = Mode::FORMATION_FOLLOWER;
@@ -287,8 +287,8 @@ private:
     // Empty path = cancel signal (replanner stops deviated robots)
     if (msg->poses.empty()) {
       RCLCPP_DEBUG(get_logger(), "[%s] received empty path — cancelling", ns_.c_str());
-      cancel_current();
-      pending_path_.reset();
+      cancel_nav2();
+      active_path_.reset();
       return;
     }
 
@@ -375,7 +375,7 @@ private:
     fix_orientations(chunk);
 
     RCLCPP_INFO(get_logger(),
-      "[%s] sending chunk wp %zu..%zu/%zu → (%.2f, %.2f)%s",
+      "[%s] sending chunk wp %zu..%zu/%zu - (%.2f, %.2f)%s",
       ns_.c_str(), wp_idx_, stop_idx, poses.size() - 1,
       poses[stop_idx].pose.position.x, poses[stop_idx].pose.position.y,
       stop_idx < poses.size() - 1 ? "  [hold ahead]" : "");
@@ -471,15 +471,15 @@ private:
     prev_ex_ = ex;
     prev_ey_ = ey;
 
-    // PD in world frame → project into robot body frame
+    // PD in world frame - project into robot body frame
     const double vx_w = kp_ * ex + kd_ * dex;
     const double vy_w = kp_ * ey + kd_ * dey;
 
     const double cr = std::cos(own_yaw_);
     const double sr = std::sin(own_yaw_);
 
-    // Forward component → linear velocity
-    // Lateral component → angular velocity (steers robot toward target)
+    // Forward component - linear velocity
+    // Lateral component - angular velocity (steers robot toward target)
     const double v     = clamp( cr * vx_w + sr * vy_w, -max_v_,     max_v_);
     const double omega = clamp(-sr * vx_w + cr * vy_w, -max_omega_, max_omega_);
 

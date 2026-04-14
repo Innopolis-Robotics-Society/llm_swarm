@@ -20,38 +20,32 @@
 // PBS solver (header-only library)
 #include "iros_llm_swarm_mapf/pbs_solver.hpp"
 
-// Action interface (replaces the old SetGoals service)
+// Action interface
 #include "iros_llm_swarm_interfaces/action/set_goals.hpp"
 
 // ---------------------------------------------------------------------------
-// The planner exposes the /swarm/set_goals action accepting robot_ids
-// and goal poses.  Start positions come from odometry (/robot_N/odom).
-// Footprint radii come from Nav2 (/robot_N/local_costmap/published_footprint).
+// Long-lived MAPF action server.
 //
-// Action result includes:
-//   success, message, planning_time_ms, num_agents_planned,
-//   pbs_expansions, max_path_length, path_lengths[]
+// Action lifecycle:
+//   1. Client sends goal (robot_ids + targets)
+//   2. Server plans paths              (feedback: "planning")
+//   3. Paths dispatched, monitor runs  (feedback: "executing")
+//   4. Replans on deviation            (feedback: "replanning")
+//   5. Action succeeds when ALL robots arrive at goals
+//   6. Action can be cancelled - stops all robots
 //
-// On success, the node publishes paths to per-robot topics:
-//   /robot_0/mapf_path, /robot_1/mapf_path, ...  (nav_msgs/Path)
-//
-// Each PoseStamped contains a timestamp:
-//   stamp = t_start + step_index * time_step_sec
-//
-// The path follower should reach waypoint[k] and wait until stamp[k]
-// before moving to waypoint[k+1].
+// The action stays alive for the entire plan-execute-arrive cycle.
+// BT / LLM sees this as one atomic "navigate fleet to goals" operation.
 //
 // Threading model
 // ---------------
-// Executor thread (rclcpp::spin): runs all subscription/timer callbacks.
-// Planning thread (detached):     runs execute_goal() for each accepted goal.
+// Executor threads (MultiThreadedExecutor, 2):
+//   - subscription/timer callbacks (odom, map, check_schedule)
+// Planning thread (detached):
+//   - execute_goal() for the initial plan
 //
-// Shared state is protected by state_mutex_.  Planning itself (solver.solve)
-// runs without the lock (pure computation on a grid snapshot).  The lock is
-// held only for brief snapshots at the start and state updates at the end.
-//
-// is_planning_ (atomic) prevents concurrent goal execution and makes
-// check_schedule() a no-op while planning is in progress.
+// is_planning_ (atomic): true while solver_.solve() runs (initial or replan)
+// is_active_   (atomic): true for the entire goal lifecycle
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
@@ -146,7 +140,6 @@ class MapfPlannerNode : public rclcpp::Node {
     urgency_           = get_parameter("urgency").as_double();
 
     // ------------------------------------------------------- map subscription
-    // map_server publishes with transient_local QoS — must match.
     auto map_qos = rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable();
     map_sub_ = create_subscription<nav_msgs::msg::OccupancyGrid>(
         get_parameter("map_topic").as_string(), map_qos,
@@ -216,7 +209,7 @@ class MapfPlannerNode : public rclcpp::Node {
     }
 
     RCLCPP_INFO(get_logger(),
-        "mapf_planner ready (action): %d robots, time_step=%.3f s, "
+        "mapf_planner ready (long-lived action): %d robots, time_step=%.3f s, "
         "default_radius=%.3f m, inflation=%.3f m (effective=%.3f m), "
         "replan: %.1f Hz, threshold=%.2f m, cooldown=%.1f s, "
         "predict=%.2f s, stop_mode=%s",
@@ -272,7 +265,6 @@ class MapfPlannerNode : public rclcpp::Node {
       const rclcpp_action::GoalUUID&,
       std::shared_ptr<const SetGoalsAction::Goal> goal)
   {
-    // Quick checks so we can reject before touching shared state
     if (!map_ready_) {
       RCLCPP_WARN(get_logger(), "Goal rejected: map not ready yet");
       return rclcpp_action::GoalResponse::REJECT;
@@ -285,10 +277,10 @@ class MapfPlannerNode : public rclcpp::Node {
       RCLCPP_WARN(get_logger(), "Goal rejected: empty robot_ids");
       return rclcpp_action::GoalResponse::REJECT;
     }
-    // Reject concurrent goals — PBS is not re-entrant
+    // Reject if any phase (planning or execution) is in progress
     bool expected = false;
-    if (!is_planning_.compare_exchange_strong(expected, true)) {
-      RCLCPP_WARN(get_logger(), "Goal rejected: planning already in progress");
+    if (!is_active_.compare_exchange_strong(expected, true)) {
+      RCLCPP_WARN(get_logger(), "Goal rejected: mission already in progress");
       return rclcpp_action::GoalResponse::REJECT;
     }
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
@@ -296,13 +288,30 @@ class MapfPlannerNode : public rclcpp::Node {
 
   rclcpp_action::CancelResponse handle_cancel(const std::shared_ptr<GoalHandle>)
   {
-    RCLCPP_INFO(get_logger(), "Goal cancel requested — will honour at next check");
+    RCLCPP_INFO(get_logger(), "Goal cancel requested — stopping all robots");
+
+    std::lock_guard<std::mutex> lk(state_mutex_);
+
+    // Send empty paths to stop all active robots
+    if (has_active_plan_) {
+      for (const uint32_t rid : active_plan_.robot_ids) {
+        if (rid < static_cast<uint32_t>(num_robots_)) {
+          nav_msgs::msg::Path empty;
+          empty.header.frame_id = "map";
+          empty.header.stamp = now();
+          path_pubs_[rid]->publish(empty);
+        }
+      }
+    }
+
+    stop_monitoring();
+    // Actual canceled() call happens in check_schedule() or execute_goal()
+    // when they see is_canceling() == true.
     return rclcpp_action::CancelResponse::ACCEPT;
   }
 
   void handle_accepted(const std::shared_ptr<GoalHandle> goal_handle)
   {
-    // Detach immediately so the executor thread is never blocked by planning
     std::thread([this, goal_handle]() { execute_goal(goal_handle); }).detach();
   }
 
@@ -315,6 +324,8 @@ class MapfPlannerNode : public rclcpp::Node {
     auto result   = std::make_shared<SetGoalsAction::Result>();
     auto feedback = std::make_shared<SetGoalsAction::Feedback>();
 
+    is_planning_ = true;
+
     // ── 1. Snapshot shared state (brief lock) ────────────────────────────
     std::vector<std::pair<double, double>> snap_pos;
     std::vector<bool>   snap_have_odom;
@@ -324,7 +335,7 @@ class MapfPlannerNode : public rclcpp::Node {
 
     {
       std::lock_guard<std::mutex> lk(state_mutex_);
-      stop_monitoring();            // cancel schedule timer before planning
+      stop_monitoring();
       snap_pos       = current_positions_;
       snap_have_odom = have_odom_;
       snap_footprint = footprint_radii_;
@@ -377,17 +388,21 @@ class MapfPlannerNode : public rclcpp::Node {
     }
 
     if (agents.empty()) {
-      result->success = false;
-      result->message = "No valid agents after filtering (check odom and map)";
+      result->success    = false;
+      result->message    = "No valid agents after filtering (check odom and map)";
+      result->error_code = SetGoalsAction::Result::NO_VALID_AGENTS;
       is_planning_ = false;
+      is_active_   = false;
       goal_handle->succeed(result);
       return;
     }
 
     if (goal_handle->is_canceling()) {
-      result->success = false;
-      result->message = "Cancelled before planning started";
+      result->success    = false;
+      result->message    = "Cancelled before planning started";
+      result->error_code = SetGoalsAction::Result::CANCELLED;
       is_planning_ = false;
+      is_active_   = false;
       goal_handle->canceled(result);
       return;
     }
@@ -401,34 +416,58 @@ class MapfPlannerNode : public rclcpp::Node {
             snap_grid, snap_ox, snap_oy, snap_res, goal_handle, plan_start);
 
     if (!result->success) {
+      result->error_code = SetGoalsAction::Result::PBS_FAILED;
       is_planning_ = false;
+      is_active_   = false;
       goal_handle->succeed(result);
       return;
     }
 
     if (goal_handle->is_canceling()) {
-      result->success = false;
-      result->message = "Cancelled after planning (paths already published)";
+      result->success    = false;
+      result->message    = "Cancelled after planning";
+      result->error_code = SetGoalsAction::Result::CANCELLED;
       is_planning_ = false;
+      is_active_   = false;
       goal_handle->canceled(result);
       return;
     }
 
+    // ── 4. Planning OK — enter execution phase ───────────────────────────
+    // Do NOT call goal_handle->succeed() here!
+    // check_schedule() will call succeed() when all robots arrive.
+    {
+      std::lock_guard<std::mutex> lk(state_mutex_);
+      active_goal_handle_   = goal_handle;
+      execution_start_time_ = now();
+      replan_count_         = 0;
+      initial_plan_result_  = result;
+    }
+
     is_planning_ = false;
-    goal_handle->succeed(result);
+    // is_active_ remains true — released in finish_action()
+
+    RCLCPP_INFO(get_logger(),
+        "Planning complete (%.1f ms), entering execution phase. "
+        "Action stays alive until all robots arrive.",
+        result->planning_time_ms);
+
+    auto fb = std::make_shared<SetGoalsAction::Feedback>();
+    fb->status        = "executing";
+    fb->elapsed_ms    = 0;
+    fb->robots_active = static_cast<uint32_t>(agents.size());
+    goal_handle->publish_feedback(fb);
   }
 
   // ------------------------------------------------------------------
   // Core planning and path publishing logic
-  // Called from execute_goal (detached thread, uses grid snapshot) and
-  // from trigger_replan (executor thread, uses member vars directly).
   // ------------------------------------------------------------------
   void do_plan(const std::vector<Agent>& agents,
                const std::vector<uint32_t>& plan_robot_ids,
                const std::vector<geometry_msgs::msg::Point>& plan_world_goals,
                const std::vector<uint32_t>& skipped_ids,
                SetGoalsAction::Result::SharedPtr res,
-               GridMap& grid,          // non-const: set_map() stores a raw pointer
+               GridMap& grid,
                double origin_x, double origin_y, double resolution,
                const std::shared_ptr<GoalHandle>& goal_handle,
                const std::chrono::steady_clock::time_point& plan_start)
@@ -445,8 +484,6 @@ class MapfPlannerNode : public rclcpp::Node {
     std::vector<Path> paths;
     SolveStats stats;
 
-    // Publish elapsed-time feedback while solver runs (progress ticks)
-    // The solver itself is blocking, so feedback is sent before and after.
     const bool ok = solver_.solve(agents, paths,
                                    static_cast<float>(resolution), &stats,
                                    max_pbs_expansions_,
@@ -515,7 +552,7 @@ class MapfPlannerNode : public rclcpp::Node {
         stats.astar.ok_count > 0 ? stats.astar.ok_total_exp / stats.astar.ok_count : 0,
         stats.astar.ok_max_exp, stats.astar.fail_count, paths.size());
 
-    // ── Publish paths and update plan state (brief lock for state update) ──
+    // ── Publish paths and update plan state ──
     {
       std::lock_guard<std::mutex> pub_lk(state_mutex_);
 
@@ -603,8 +640,6 @@ class MapfPlannerNode : public rclcpp::Node {
 
   // ------------------------------------------------------------------
   // Validate a single agent's start/goal; set footprint from snapshot.
-  // Returns false if start is in wall hard-radius (skip agent entirely).
-  // Sets goal = start (stationary obstacle) if goal is in hard-radius.
   // ------------------------------------------------------------------
   bool validate_agent(Agent& a, uint32_t rid,
                       const std::vector<double>& footprint_radii,
@@ -648,12 +683,9 @@ class MapfPlannerNode : public rclcpp::Node {
 
   // ------------------------------------------------------------------
   // Schedule monitoring
-  // Called under state_mutex_ from execute_goal / trigger_replan.
-  // Also called from executor thread (single-threaded) without lock
-  // when is_planning_ == false.
   // ------------------------------------------------------------------
 
-  void start_monitoring()  // caller holds state_mutex_ or is executor-only
+  void start_monitoring()  // caller holds state_mutex_
   {
     if (monitor_timer_) return;
     if (replan_check_hz_ <= 0.0) return;
@@ -677,6 +709,42 @@ class MapfPlannerNode : public rclcpp::Node {
       monitor_timer_.reset();
     }
     has_active_plan_ = false;
+  }
+
+  // ------------------------------------------------------------------
+  // Complete the action and release is_active_.  Caller holds state_mutex_.
+  // ------------------------------------------------------------------
+  void finish_action(bool success, const std::string& message,
+                     uint16_t error_code = SetGoalsAction::Result::NONE)
+  {
+    if (!active_goal_handle_) {
+      // No external client — just clean up (e.g. test_send_goals exited)
+      stop_monitoring();
+      is_active_ = false;
+      return;
+    }
+
+    auto result = initial_plan_result_
+        ? initial_plan_result_
+        : std::make_shared<SetGoalsAction::Result>();
+
+    result->success             = success;
+    result->message             = message;
+    result->error_code          = error_code;
+    result->total_replans       = replan_count_;
+    result->total_execution_sec =
+        (now() - execution_start_time_).seconds();
+
+    if (active_goal_handle_->is_canceling()) {
+      active_goal_handle_->canceled(result);
+    } else {
+      active_goal_handle_->succeed(result);
+    }
+
+    active_goal_handle_.reset();
+    initial_plan_result_.reset();
+    stop_monitoring();
+    is_active_ = false;
   }
 
   // ------------------------------------------------------------------
@@ -714,49 +782,70 @@ class MapfPlannerNode : public rclcpp::Node {
   // ------------------------------------------------------------------
   // Periodic schedule deviation check  (executor thread)
   // ------------------------------------------------------------------
-  // TODO: replanning triggers too often — robots drift from schedule.
-  // Needs better path-following with temporal sync (root cause) or
-  // hysteresis / less-sensitive thresholds (workaround).
   void check_schedule()
   {
-    // Skip entirely if an action goal is currently executing
     if (is_planning_) return;
 
-    // Take a non-blocking snapshot of shared state
     std::unique_lock<std::mutex> lk(state_mutex_, std::try_to_lock);
-    if (!lk.owns_lock()) return;  // planning thread is updating state
+    if (!lk.owns_lock()) return;
 
     if (!has_active_plan_ || !map_ready_) return;
 
+    // ── Handle cancellation ──────────────────────────────────────────
+    if (active_goal_handle_ && active_goal_handle_->is_canceling()) {
+      RCLCPP_INFO(get_logger(), "Cancellation confirmed — finishing action");
+      finish_action(false, "Cancelled during execution",
+                    SetGoalsAction::Result::CANCELLED);
+      return;
+    }
+
     const rclcpp::Time now_t = now();
 
-    // Count robots still en-route
-    size_t active_count = 0;
-    for (size_t i = 0; i < active_plan_.robot_ids.size(); ++i) {
+    // ── Count arrived / active robots ────────────────────────────────
+    size_t active_count  = 0;
+    size_t arrived_count = 0;
+    const size_t total   = active_plan_.robot_ids.size();
+
+    for (size_t i = 0; i < total; ++i) {
       const uint32_t rid = active_plan_.robot_ids[i];
       if (rid >= static_cast<uint32_t>(num_robots_) || !have_odom_[rid]) continue;
       const auto& [ax, ay] = current_positions_[rid];
       if (std::hypot(ax - active_plan_.goals[i].x,
-                     ay - active_plan_.goals[i].y) >= goal_reached_m_)
+                     ay - active_plan_.goals[i].y) < goal_reached_m_)
+        ++arrived_count;
+      else
         ++active_count;
     }
 
+    // ── All arrived - complete the action ────────────────────────────
     if (active_count == 0) {
       RCLCPP_INFO(get_logger(),
-          "==== ALL %zu ROBOTS REACHED THEIR GOALS! Awaiting new goals ====",
-          active_plan_.robot_ids.size());
-      stop_monitoring();
+          "==== ALL %zu ROBOTS REACHED THEIR GOALS! ====", total);
+      finish_action(true, "All robots arrived");
       return;
     }
 
-    // Static cooldown from end of last replan
+    // ── Publish execution feedback ───────────────────────────────────
+    if (active_goal_handle_) {
+      auto fb = std::make_shared<SetGoalsAction::Feedback>();
+      fb->status          = "executing";
+      fb->elapsed_ms      = static_cast<uint32_t>(
+          (now_t - execution_start_time_).seconds() * 1000);
+      fb->robots_arrived  = static_cast<uint32_t>(arrived_count);
+      fb->robots_active   = static_cast<uint32_t>(active_count);
+      fb->robots_deviated = 0;
+      fb->replans_done    = replan_count_;
+      active_goal_handle_->publish_feedback(fb);
+    }
+
+    // ── Cooldown check ───────────────────────────────────────────────
     if (last_replan_time_.nanoseconds() > 0 &&
         (now_t - last_replan_time_).seconds() < replan_cooldown_sec_)
       return;
 
-    // Detect deviations
+    // ── Detect deviations ────────────────────────────────────────────
     std::vector<uint32_t> deviated_ids;
-    for (size_t i = 0; i < active_plan_.robot_ids.size(); ++i) {
+    for (size_t i = 0; i < total; ++i) {
       const uint32_t rid = active_plan_.robot_ids[i];
       if (rid >= static_cast<uint32_t>(num_robots_) || !have_odom_[rid]) continue;
 
@@ -786,7 +875,22 @@ class MapfPlannerNode : public rclcpp::Node {
       RCLCPP_WARN(get_logger(),
           "Schedule deviation: %zu/%zu active robots off-plan [%s], triggering replan",
           deviated_ids.size(), active_count, ids_str.c_str());
-      trigger_replan(deviated_ids, lk);   // lk is already held
+
+      // Publish "replanning" feedback before the replan
+      if (active_goal_handle_) {
+        auto fb = std::make_shared<SetGoalsAction::Feedback>();
+        fb->status          = "replanning";
+        fb->elapsed_ms      = static_cast<uint32_t>(
+            (now_t - execution_start_time_).seconds() * 1000);
+        fb->robots_arrived  = static_cast<uint32_t>(arrived_count);
+        fb->robots_active   = static_cast<uint32_t>(active_count);
+        fb->robots_deviated = static_cast<uint32_t>(deviated_ids.size());
+        fb->replans_done    = replan_count_;
+        active_goal_handle_->publish_feedback(fb);
+      }
+
+      trigger_replan(deviated_ids, lk);
+      ++replan_count_;
     }
   }
 
@@ -796,6 +900,8 @@ class MapfPlannerNode : public rclcpp::Node {
   void trigger_replan(const std::vector<uint32_t>& deviated_ids,
                       std::unique_lock<std::mutex>& lk)
   {
+    is_planning_ = true;
+
     const double predict_sec = (replan_predict_sec_ < 0.0)
         ? last_planning_ms_ / 1000.0
         : replan_predict_sec_;
@@ -882,8 +988,10 @@ class MapfPlannerNode : public rclcpp::Node {
     }
 
     if (agents.empty()) {
-      RCLCPP_WARN(get_logger(), "Replan: no valid agents, stopping monitor");
-      stop_monitoring();
+      RCLCPP_WARN(get_logger(), "Replan: no valid agents");
+      finish_action(false, "Replan failed: no valid agents",
+                    SetGoalsAction::Result::NO_VALID_AGENTS);
+      is_planning_ = false;
       return;
     }
 
@@ -893,17 +1001,24 @@ class MapfPlannerNode : public rclcpp::Node {
     lk.unlock();
     do_plan(agents, plan_robot_ids, plan_world_goals, skipped_ids, res,
             grid_, map_origin_x_, map_origin_y_, map_resolution_,
-            nullptr /* no goal_handle for internal replan */,
+            active_goal_handle_,
             std::chrono::steady_clock::now());
     lk.lock();
 
     last_replan_time_ = now();
+    is_planning_ = false;
 
     if (res->success) {
+      if (initial_plan_result_) {
+        initial_plan_result_->planning_time_ms = res->planning_time_ms;
+        initial_plan_result_->pbs_expansions   = res->pbs_expansions;
+      }
       RCLCPP_INFO(get_logger(), "Replan OK: %s (%.1fms, %u PBS exp)",
                   res->message.c_str(), res->planning_time_ms, res->pbs_expansions);
     } else {
       RCLCPP_ERROR(get_logger(), "Replan FAILED: %s", res->message.c_str());
+      // Don't finish action on replan failure — robots keep old paths.
+      // Next check_schedule() tick will re-evaluate.
     }
   }
 
@@ -942,9 +1057,10 @@ class MapfPlannerNode : public rclcpp::Node {
   std::vector<bool>   have_odom_;
   std::vector<double> footprint_radii_;
 
-  // Concurrency: protects all shared mutable state above
+  // Concurrency
   std::mutex          state_mutex_;
-  std::atomic<bool>   is_planning_{false};
+  std::atomic<bool>   is_planning_{false};  // true while solver_.solve() runs
+  std::atomic<bool>   is_active_{false};    // true for entire goal lifecycle
 
   // Subscriptions
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
@@ -968,11 +1084,14 @@ class MapfPlannerNode : public rclcpp::Node {
   double     last_planning_ms_ = 0.0;
   rclcpp::Time             last_replan_time_{0, 0, RCL_ROS_TIME};
   rclcpp::TimerBase::SharedPtr monitor_timer_;
+
+  // Long-lived action state
+  std::shared_ptr<GoalHandle>       active_goal_handle_;
+  rclcpp::Time                      execution_start_time_{0, 0, RCL_ROS_TIME};
+  uint32_t                          replan_count_ = 0;
+  SetGoalsAction::Result::SharedPtr initial_plan_result_;
 };
 
-// ---------------------------------------------------------------------------
-// main — uses MultiThreadedExecutor so the action server's internal
-// infrastructure can run while the detached planning thread is active.
 // ---------------------------------------------------------------------------
 int main(int argc, char** argv)
 {

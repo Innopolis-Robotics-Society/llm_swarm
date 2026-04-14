@@ -180,7 +180,7 @@ def _launch_swarm(context, *args, **kwargs):
         ros_namespace = f'robot_{i}'           # ROS2 namespace  (robot_0, robot_1…)
         x, y, yaw     = positions[i]
 
-        # 2. Process xacro → URDF string
+        # 2. Process xacro - URDF string
         robot_desc = xacro.process_file(
             xacro_file,
             mappings={
@@ -220,8 +220,8 @@ def _launch_swarm(context, *args, **kwargs):
             output='screen',
         )
 
-        # 5. Bridge: Ignition sensors → ROS2
-        #    Direction syntax:  topic@ros_type[gz_type  means IGN→ROS2
+        # 5. Bridge: Ignition sensors - ROS2
+        #    Direction syntax:  topic@ros_type[gz_type  means IGN-ROS2
         #
         #    Ignition topic names come from <topic> in the xacro:
         #      /{model_name}/scan_raw   (LaserScan)

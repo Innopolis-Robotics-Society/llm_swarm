@@ -111,7 +111,7 @@ private:
   void enter_autonomous()
   {
     if (mode_ == Mode::AUTONOMOUS) return;
-    RCLCPP_INFO(get_logger(), "[%s] → AUTONOMOUS", ns_.c_str());
+    RCLCPP_INFO(get_logger(), "[%s] - AUTONOMOUS", ns_.c_str());
     mode_ = Mode::AUTONOMOUS;
     formation_->deactivate();
   }
@@ -124,7 +124,7 @@ private:
       return;
     }
     RCLCPP_INFO(get_logger(),
-      "[%s] → FORMATION_FOLLOWER  leader=%s  offset=(%.2f, %.2f)",
+      "[%s] - FORMATION_FOLLOWER  leader=%s  offset=(%.2f, %.2f)",
       ns_.c_str(), leader_ns.c_str(), ox, oy);
     mode_ = Mode::FORMATION_FOLLOWER;
     autonomous_->deactivate();
@@ -170,7 +170,7 @@ private:
       if (!f.active) {
         if (active_formation_id_ == f.formation_id) {
           RCLCPP_INFO(get_logger(),
-            "[%s] formation '%s' disbanded → AUTONOMOUS",
+            "[%s] formation '%s' disbanded - AUTONOMOUS",
             ns_.c_str(), f.formation_id.c_str());
           active_formation_id_.clear();
           enter_autonomous();
@@ -189,7 +189,7 @@ private:
     // Not found in any formation — return to autonomous if we were following one
     if (!active_formation_id_.empty()) {
       RCLCPP_INFO(get_logger(),
-        "[%s] formation '%s' gone from registry → AUTONOMOUS",
+        "[%s] formation '%s' gone from registry - AUTONOMOUS",
         ns_.c_str(), active_formation_id_.c_str());
       active_formation_id_.clear();
       enter_autonomous();

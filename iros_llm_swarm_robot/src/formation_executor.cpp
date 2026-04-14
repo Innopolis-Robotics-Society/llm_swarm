@@ -92,7 +92,7 @@ void FormationExecutor::update_offset(double ox, double oy)
   if (offset_x_ == ox && offset_y_ == oy) return;
 
   RCLCPP_INFO(node_->get_logger(),
-    "[%s][formation] offset updated (%.2f, %.2f) → (%.2f, %.2f)",
+    "[%s][formation] offset updated (%.2f, %.2f) - (%.2f, %.2f)",
     ns_.c_str(), offset_x_, offset_y_, ox, oy);
 
   offset_x_ = ox;
@@ -152,8 +152,8 @@ void FormationExecutor::pd_step()
   const double cr = std::cos(own_pose_.yaw);
   const double sr = std::sin(own_pose_.yaw);
 
-  // Forward component → linear velocity along heading
-  // Lateral component → angular velocity to steer toward target
+  // Forward component - linear velocity along heading
+  // Lateral component - angular velocity to steer toward target
   const double v     = clamp( cr * vx_w + sr * vy_w, -max_v_,     max_v_);
   const double omega = clamp(-sr * vx_w + cr * vy_w, -max_omega_, max_omega_);
 

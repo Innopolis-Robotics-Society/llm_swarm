@@ -102,7 +102,7 @@ void AutonomousExecutor::send_next_chunk()
     }
   }
 
-  // Build sub-path: current position → waypoints [wp_idx_..stop_idx]
+  // Build sub-path: current position - waypoints [wp_idx_..stop_idx]
   nav_msgs::msg::Path chunk;
   chunk.header.frame_id = frame_;
   chunk.header.stamp    = now_t;
@@ -123,7 +123,7 @@ void AutonomousExecutor::send_next_chunk()
   fix_orientations(chunk);
 
   RCLCPP_INFO(node_->get_logger(),
-    "[%s][autonomous] chunk wp %zu..%zu/%zu → (%.2f, %.2f)%s",
+    "[%s][autonomous] chunk wp %zu..%zu/%zu - (%.2f, %.2f)%s",
     ns_.c_str(), wp_idx_, stop_idx, poses.size() - 1,
     poses[stop_idx].pose.position.x,
     poses[stop_idx].pose.position.y,
