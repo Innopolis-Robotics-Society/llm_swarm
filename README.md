@@ -66,7 +66,7 @@ Launch the full MAPF stack first:
 ros2 launch iros_llm_swarm_bringup swarm_mapf.launch.py
 ```
 
-Then send goals via the `/swarm/set_goals` service:
+Then send goals via the `/swarm/set_goals` action. The action stays alive until all robots arrive at their goals (long-lived action). The test script prints feedback during execution and exits when the mission completes. Press `Ctrl+C` to cancel the mission and stop all robots.
 
 ```bash
 ros2 run iros_llm_swarm_mapf test_send_goals --goal-x 15.0 --goal-y 15.0
@@ -114,7 +114,9 @@ Custom Nav2 costmap layer plugin. Provides `ResettingObstacleLayer` — a drop-i
 
 ### `iros_llm_swarm_mapf`
 
-PBS (Priority-Based Search) MAPF planner with gradient inflation and N-connected Euclidean A\*. Header-only C++17 solver split across `mapf_types.hpp`, `euclidean_astar.hpp`, and `pbs_solver.hpp` (old 4-connected planner preserved in `space_time_astar.hpp`). Accepts goals via `/swarm/set_goals` service (SetGoals), reads start positions from odometry and footprints from Nav2. Plans conflict-free time-indexed paths on a downsampled grid (0.2m/cell).
+PBS (Priority-Based Search) MAPF planner with gradient inflation and N-connected Euclidean A\*. Plans conflict-free time-indexed paths on a downsampled grid (0.2m/cell).
+
+Path followers execute paths with temporal synchronization via Nav2 `follow_path` action and follow formation if assigned to one.
 
 #### How the solver works
 
@@ -152,19 +154,29 @@ Agents can start at positions overlapping with reservations (needed during repla
 
 Path followers chunk paths at hold points and send to Nav2 `follow_path` with temporal synchronization.
 
-#### Service API
+#### Action API
 
-Service `/swarm/set_goals` (`iros_llm_swarm_interfaces/srv/SetGoals`):
+Action `/swarm/set_goals` (`iros_llm_swarm_interfaces/action/SetGoals`) - long-lived action that covers the entire plan-execute-arrive cycle.
 
-**Request:** `uint32[] robot_ids` + `geometry_msgs/Point[] goals` (x, y in map frame, arrays must be same length). Start positions are read automatically from `/robot_{id}/odom`.
+**Lifecycle:**
 
-**Response:**
+1. Client sends goal (robot_ids + target positions)
+2. Server plans paths (feedback: `status="planning"`)
+3. Server dispatches paths to `/robot_{id}/mapf_path` and monitors execution (feedback: `status="executing"`)
+4. On schedule deviation, server replans autonomously (feedback: `status="replanning"`)
+5. Action succeeds when all robots arrive at goals
+6. Client can cancel at any time - all robots are stopped
+
+**Goal:** `uint32[] robot_ids` + `geometry_msgs/Point[] goals` (x, y in map frame, arrays must be same length). Start positions are read automatically from `/robot_{id}/odom`.
+
+**Result:**
 
 | Field                | Type     | Description                                      |
 | -------------------- | -------- | ------------------------------------------------ |
-| `success`            | bool     | Whether planning succeeded                       |
-| `message`            | string   | "OK" or warning/error description                |
-| `planning_time_ms`   | float64  | Wall-clock planning time (ms)                    |
+| `success`            | bool     | Whether the mission completed successfully       |
+| `message`            | string   | "All robots arrived" or error description        |
+| `error_code`         | uint16   | Enumerated error (NONE=0, NO_VALID_AGENTS=201, PBS_FAILED=202, TIMEOUT=203, CANCELLED=204) |
+| `planning_time_ms`   | float64  | Wall-clock planning time (ms), last plan         |
 | `num_agents_planned` | uint32   | Number of agents actually planned                |
 | `pbs_expansions`     | uint32   | PBS tree node expansions                         |
 | `max_path_length`    | uint32   | Longest path in steps                            |
@@ -173,6 +185,19 @@ Service `/swarm/set_goals` (`iros_llm_swarm_interfaces/srv/SetGoals`):
 | `astar_fail_count`   | uint32   | Failed A\* calls (hit expansion cap)             |
 | `astar_avg_exp`      | uint32   | Avg expansions per successful A\* call           |
 | `astar_max_exp`      | uint32   | Max expansions in a single successful A\* call   |
+| `total_replans`      | uint32   | Number of replans during execution               |
+| `total_execution_sec`| float64  | Total time from planning to all-arrived (s)      |
+
+**Feedback** (published periodically during all phases):
+
+| Field             | Type   | Description                                          |
+| ----------------- | ------ | ---------------------------------------------------- |
+| `status`          | string | Phase: "validating", "planning", "executing", "replanning", "failed" |
+| `elapsed_ms`      | uint32 | Milliseconds since action started                    |
+| `robots_arrived`  | uint32 | Robots that reached their goals (execution phase)    |
+| `robots_active`   | uint32 | Robots still en-route (execution phase)              |
+| `robots_deviated` | uint32 | Robots off-schedule (execution phase)                |
+| `replans_done`    | uint32 | Replan count so far (execution phase)                |
 
 Paths are published as `nav_msgs/Path` on `/robot_{id}/mapf_path`. Each `PoseStamped` contains the scheduled arrival time (`header.stamp = plan_time + step × time_step_sec`) and orientation pointing toward the next waypoint.
 
@@ -187,6 +212,9 @@ ros2 run iros_llm_swarm_mapf test_send_goals --random --radius 5.0
 
 # From JSON file
 ros2 run iros_llm_swarm_mapf test_send_goals --json-file goals.json
+
+# Custom timeout (default 600s)
+ros2 run iros_llm_swarm_mapf test_send_goals --random --timeout 300
 ```
 
 JSON format:
@@ -206,6 +234,13 @@ JSON format:
 
 ```
 PBS solved in 8267.2 ms (1 PBS exp, A*: 20 ok (avg 308227 / max 661387 exp), 0 failed), publishing 20 paths
+Planning complete (8267.2 ms), entering execution phase. Action stays alive until all robots arrive.
+```
+
+**Planner node** when all robots arrive:
+
+```
+==== ALL 20 ROBOTS REACHED THEIR GOALS! ====
 ```
 
 **Planner node** on failure:
@@ -216,10 +251,21 @@ PBS failed (2709.9 ms, 1 expansions)
   root A* failed for agent 11: start=(45,12) goal=(120,85) footprint=0.220m inflation=0.750m
 ```
 
-**test_send_goals** on success:
+**test_send_goals** output:
 
 ```
-20 agents, 8267.2 ms, 1 PBS exp, A*: 20 ok (avg 308227 / max 661387 exp), 0 failed, max path 127 steps
+[INFO] Goal accepted — mission in progress...
+[INFO]   [  8267 ms] planning
+[INFO]   [  8270 ms] publishing
+[INFO]   [     0 ms] executing: 0/20 arrived, 0 replans
+[INFO]   [  5000 ms] executing: 3/20 arrived, 0 replans
+[WARN]   [ 15000 ms] replanning: 2 deviated, 0 replans so far
+[INFO]   [ 45000 ms] executing: 20/20 arrived, 1 replans
+[INFO] === MISSION COMPLETE ===
+         20 agents, 8267.2 ms planning
+         PBS: 1 exp, A*: 20 ok (avg 308227 / max 661387), 0 failed
+         max path 127 steps
+         1 replans, 45.0 s execution
 ```
 
 #### Key parameters
@@ -241,8 +287,6 @@ PBS failed (2709.9 ms, 1 expansions)
 | `replan_cooldown_sec`  | 15.0            | Cooldown from replan end to next replan start (s)                          |
 
 **Constraint:** `footprint_radius >= 0.7 * pbs_resolution` must hold when using the Euclidean planner. The planner asserts this at startup. With defaults (0.22m footprint, 0.2m resolution) the constraint is satisfied. Increasing `pbs_resolution` beyond `footprint_radius / 0.7` requires a proportionally larger footprint or finer resolution.
-Footprint-aware PBS (Priority-Based Search) MAPF planner. Accepts goals via `/swarm/set_goals` service (SetGoals), reads start positions from odometry and footprints from Nav2. Plans conflict-free time-indexed paths on a downsampled grid (0.2m/cell) with per-agent inflated maps and distance-based reservation tables.
-Path followers execute paths with temporal synchronization via Nav2 `follow_path` action and follow formation if assigned to one.
 
 ### `iros_llm_swarm_formation`
 
@@ -377,7 +421,7 @@ ros2 service call /formation/disband iros_llm_swarm_interfaces/srv/DisbandFormat
 
 ### `iros_llm_swarm_interfaces`
 
-Custom ROS 2 messages and services: FormationConfig, SetFormation, DisbandFormation, SetGoals.
+Custom ROS 2 messages, services, and actions: FormationConfig, SetFormation, DisbandFormation, SetGoals.
 
 ### `iros_llm_swarm_simulation`
 
@@ -391,6 +435,7 @@ Gazebo Harmonic (full 3D) simulation package - prepared for later development st
 - **Namespacing:** all Nav2 nodes are pushed into `robot_N` namespaces. The `<robot_namespace>` placeholder in YAML configs is replaced at launch time via `ReplaceString`.
 - **Parameter handling:** Nav2 params are processed through `RewrittenYaml` with `root_key=<namespace>` for proper node-level scoping.
 - **Robot placement:** two groups of 10 robots on opposite sides of the warehouse (bottom-left facing up, top-right facing down).
+- **MAPF action lifecycle:** the `/swarm/set_goals` action is long-lived — it stays active from initial planning through execution until all robots arrive. Internal schedule monitoring and replanning happen autonomously within the action server. External clients (BT, LLM) see this as a single atomic "navigate fleet" operation and receive structured feedback throughout. Cancellation stops all robots immediately.
 
 ## Environment Setup
 
@@ -402,10 +447,15 @@ DDS and performance tuning scripts are in `src/scripts/`:
 ## Project Roadmap
 
 - [x] 2D Stage simulation with 20 robots + Nav2 local nav
-- [x] MAPF with PBS planner, gradient inflation, and service API
+- [x] MAPF with PBS planner, gradient inflation, and action API
 - [x] N-connected Euclidean A\* with capsule-based conflict detection
 - [x] Schedule-based replanning with static cooldown
 - [x] Formation control (leader-follower with PD controllers)
+- [x] Long-lived MAPF action (plan-execute-arrive lifecycle with feedback)
+- [ ] BT integration
+  - [ ] Swarm BT Navigator (single BT for the whole swarm)
+  - [ ] Custom BT nodes: ExecuteMAPF, ExecuteFormation, EmergencyStop
+  - [ ] Mode switching (MAPF - formation) via BT control flow
 - [ ] MAPF improvements
   - [ ] Better conflict resolution — PBS is currently brute force, needs smarter strategy (CBS, ECBS, or improved PBS heuristics)
   - [ ] Path following temporal accuracy — robots drift from planned schedule (too fast/slow), causing unnecessary replans
