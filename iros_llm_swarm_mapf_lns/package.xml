@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>iros_llm_swarm_mapf_lns</name>
+  <version>0.1.0</version>
+  <description>
+    LNS2-based Multi-Agent Path Finding planner for the iros_llm_swarm
+    simulation. Parallel alternative to the PBS-based planner in
+    iros_llm_swarm_mapf.
+  </description>
+  <maintainer email="mook@example.com">Mook</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
+  <depend>nav_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>iros_llm_swarm_interfaces</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

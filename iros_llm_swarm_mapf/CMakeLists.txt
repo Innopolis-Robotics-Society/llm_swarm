@@ -22,6 +22,25 @@ find_package(geometry_msgs REQUIRED)
 find_package(iros_llm_swarm_interfaces REQUIRED)
 
 # -------------------------------------------------------------------------
+# mapf_lns2_node  (MAPF LNS2 planner)
+# -------------------------------------------------------------------------
+add_executable(mapf_lns2_node src/mapf_lns2_node.cpp)
+
+target_include_directories(mapf_lns2_node PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+ament_target_dependencies(mapf_lns2_node
+  rclcpp
+  rclcpp_action
+  nav_msgs
+  geometry_msgs
+  iros_llm_swarm_interfaces
+)
+
+
+# -------------------------------------------------------------------------
 # mapf_planner_node  (PBS planner)
 # -------------------------------------------------------------------------
 add_executable(mapf_planner_node src/mapf_planner_node.cpp)

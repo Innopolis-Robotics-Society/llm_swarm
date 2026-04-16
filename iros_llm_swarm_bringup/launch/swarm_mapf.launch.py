@@ -132,7 +132,7 @@ def generate_launch_description():
         # launch in sequence
         stage_sim,
         TimerAction(period=1.0,  actions=[LogInfo(msg='Starting Nav2...'), local_nav2]),
-        TimerAction(period=10.0, actions=[LogInfo(msg='Starting MAPF planner...'), mapf_planner]),
+        #TimerAction(period=10.0, actions=[LogInfo(msg='Starting MAPF planner...'), mapf_planner]),
         TimerAction(period=12.0, actions=[LogInfo(msg='Starting path followers...'), path_followers]),
         TimerAction(period=15.0, actions=[LogInfo(msg='==== MAPF stack ready — send goals via /swarm/set_goals ====')]),
         rviz,

@@ -17,7 +17,7 @@ def _spawn_followers(context, *args, **kwargs):
             parameters=[{
                 'robot_id':               i,
                 'path_frame':             'map',
-                'schedule_tolerance_sec': 0.3,
+                'schedule_tolerance_sec': 5.0,
                 'use_sim_time':           use_sim_time,
             }],
         )
