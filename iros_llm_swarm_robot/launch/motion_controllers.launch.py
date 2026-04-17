@@ -18,16 +18,18 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from ament_index_python.packages import get_package_share_directory
+import os
 
 
 def _spawn_controllers(context, *args, **kwargs):
-    num_robots   = int(LaunchConfiguration("num_robots").perform(context))
-    use_sim_time = LaunchConfiguration("use_sim_time").perform(context).lower() == "true"
-    kp           = float(LaunchConfiguration("kp").perform(context))
-    kd           = float(LaunchConfiguration("kd").perform(context))
-    max_v        = float(LaunchConfiguration("max_v").perform(context))
-    max_omega    = float(LaunchConfiguration("max_omega").perform(context))
-    control_hz   = float(LaunchConfiguration("control_hz").perform(context))
+    num_robots = int(LaunchConfiguration("num_robots").perform(context))
+
+    config_file = os.path.join(
+        get_package_share_directory("iros_llm_swarm_robot"),
+        "config",
+        "motion_controller.yaml"
+    )
 
     return [
         Node(
@@ -35,16 +37,10 @@ def _spawn_controllers(context, *args, **kwargs):
             executable="motion_controller_node",
             name=f"motion_controller_{i}",
             output="screen",
-            parameters=[{
-                "robot_id":               i,
-                "use_sim_time":           use_sim_time,
-                "schedule_tolerance_sec": 0.5,
-                "kp":                     kp,
-                "kd":                     kd,
-                "max_v":                  max_v,
-                "max_omega":              max_omega,
-                "control_hz":             control_hz,
-            }],
+            parameters=[
+                config_file,
+                {"robot_id": i}
+            ],
         )
         for i in range(num_robots)
     ]
@@ -53,12 +49,6 @@ def _spawn_controllers(context, *args, **kwargs):
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument("num_robots",   default_value="20"),
-        DeclareLaunchArgument("use_sim_time", default_value="true"),
-        DeclareLaunchArgument("kp",           default_value="1.2"),
-        DeclareLaunchArgument("kd",           default_value="0.3"),
-        DeclareLaunchArgument("max_v",        default_value="0.5"),
-        DeclareLaunchArgument("max_omega",    default_value="1.0"),
-        DeclareLaunchArgument("control_hz",   default_value="20.0"),
 
         OpaqueFunction(function=_spawn_controllers),
     ])
