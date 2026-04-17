@@ -108,11 +108,11 @@ def generate_launch_description():
     )
 
     # ----------------------------------------- path followers (t=12s)
-    path_followers = IncludeLaunchDescription(
+    motion_controllers = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             PathJoinSubstitution([
-                FindPackageShare('iros_llm_swarm_mapf'),
-                'launch', 'path_followers.launch.py',
+                FindPackageShare('iros_llm_swarm_robot'),
+                'launch', 'motion_controllers.launch.py',
             ])
         ]),
         launch_arguments=[
@@ -133,7 +133,7 @@ def generate_launch_description():
         stage_sim,
         TimerAction(period=1.0,  actions=[LogInfo(msg='Starting Nav2...'), local_nav2]),
         TimerAction(period=10.0, actions=[LogInfo(msg='Starting MAPF planner...'), mapf_planner]),
-        TimerAction(period=12.0, actions=[LogInfo(msg='Starting path followers...'), path_followers]),
+        TimerAction(period=12.0, actions=[LogInfo(msg='Starting motion controllers...'), motion_controllers]),
         TimerAction(period=15.0, actions=[LogInfo(msg='==== MAPF stack ready — send goals via /swarm/set_goals ====')]),
         rviz,
     ])
