@@ -1,0 +1,11 @@
+motion_controller:
+  ros__parameters:
+    use_sim_time: true
+    schedule_tolerance_sec: 0.5
+
+    # --- PD controller ---
+    kp: 1.2
+    kd: 0.3
+    max_v: 0.5
+    max_omega: 1.0
+    control_hz: 20.0
