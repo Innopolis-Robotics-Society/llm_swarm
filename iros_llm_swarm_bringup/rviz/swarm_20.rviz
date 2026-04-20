@@ -11,6 +11,7 @@ Panels:
         - /Map2
         - /Polygon1
         - /Path7
+        - /MarkerArray1
       Splitter Ratio: 0.5
     Tree Height: 872
   - Class: rviz_common/Selection
@@ -1115,6 +1116,30 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /robot_19/received_global_plan
       Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: MarkerArray
+      Namespaces:
+        {}
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /goal_grid_array
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: MarkerArray
+      Namespaces:
+        goals: true
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /goal_markers
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -1161,25 +1186,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 28.961225509643555
+      Distance: 10.58043098449707
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 9.307107925415039
-        Y: 7.555830001831055
-        Z: 2.962898015975952
+        X: 11.351179122924805
+        Y: 12.242653846740723
+        Z: 4.43398380279541
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7797969579696655
+      Pitch: 1.514796257019043
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.408554553985596
+      Yaw: 4.7335591316223145
     Saved: ~
 Window Geometry:
   Displays:

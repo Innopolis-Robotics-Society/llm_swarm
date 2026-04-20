@@ -30,6 +30,8 @@ import rclpy
 from rclpy.action import ActionClient
 from rclpy.node import Node
 from geometry_msgs.msg import Point
+from visualization_msgs.msg import Marker, MarkerArray
+
 from iros_llm_swarm_interfaces.action import SetGoals
 
 
@@ -40,6 +42,10 @@ class GoalSender(Node):
         self.client = ActionClient(self, SetGoals, '/swarm/set_goals')
         self.goal_handle = None
 
+        # RViz publisher
+        self.marker_pub = self.create_publisher(MarkerArray, '/goal_markers', 10)
+        self._last_markers = None
+
     def send(self):
         self.get_logger().info('Waiting for /swarm/set_goals action server...')
         if not self.client.wait_for_server(timeout_sec=15.0):
@@ -47,6 +53,10 @@ class GoalSender(Node):
             return False
 
         goal_msg = self._build_goal()
+
+        # publish markers
+        self._publish_markers(goal_msg.goals)
+
         self.get_logger().info(
             f'Sending goal for {len(goal_msg.robot_ids)} robots...')
 
@@ -88,6 +98,48 @@ class GoalSender(Node):
                                              timeout_sec=5.0)
 
     # ------------------------------------------------------------------
+    # RViz markers
+    # ------------------------------------------------------------------
+
+    def _publish_markers(self, goals):
+        markers = MarkerArray()
+
+        for i, p in enumerate(goals):
+            m = Marker()
+            m.header.frame_id = "map"
+            m.header.stamp = self.get_clock().now().to_msg()
+
+            m.ns = "goals"
+            m.id = i
+            m.type = Marker.SPHERE
+            m.action = Marker.ADD
+
+            m.pose.position.x = p.x
+            m.pose.position.y = p.y
+            m.pose.position.z = 0.0
+
+            m.scale.x = 0.3
+            m.scale.y = 0.3
+            m.scale.z = 0.3
+
+            m.color.r = 0.1
+            m.color.g = 0.8
+            m.color.b = 0.2
+            m.color.a = 1.0
+
+            markers.markers.append(m)
+
+        self._last_markers = markers
+        self.marker_pub.publish(markers)
+
+        # повторная публикация (чтобы RViz не терял маркеры)
+        self.create_timer(1.0, self._republish_markers)
+
+    def _republish_markers(self):
+        if self._last_markers is not None:
+            self.marker_pub.publish(self._last_markers)
+
+    # ------------------------------------------------------------------
     # Feedback
     # ------------------------------------------------------------------
 
@@ -96,12 +148,10 @@ class GoalSender(Node):
         s = fb.status
 
         if s in ('validating', 'planning', 'publishing', 'failed'):
-            # Planning phase — simple status line
             self.get_logger().info(
                 f'  [{fb.elapsed_ms:>6} ms] {s}')
 
         elif s == 'executing':
-            # Execution phase — arrival progress
             total = fb.robots_arrived + fb.robots_active
             self.get_logger().info(
                 f'  [{fb.elapsed_ms:>6} ms] executing: '
@@ -143,7 +193,7 @@ class GoalSender(Node):
                 f'{res.message}')
 
     # ------------------------------------------------------------------
-    # Goal building (unchanged logic)
+    # Goal building
     # ------------------------------------------------------------------
 
     def _build_goal(self):
@@ -191,19 +241,18 @@ def main():
     parser.add_argument('--random',    action='store_true')
     parser.add_argument('--radius',    type=float, default=5.0)
     parser.add_argument('--json-file', type=str,   default=None)
-    parser.add_argument('--timeout',   type=float, default=600.0,
-                        help='Max seconds to wait for mission completion')
+    parser.add_argument('--timeout',   type=float, default=600.0)
     args = parser.parse_args()
 
     rclpy.init()
     node = GoalSender(args)
 
-    # Ctrl+C cancels the goal gracefully, then exits
     def sigint_handler(sig, frame):
         node.cancel()
         node.destroy_node()
         rclpy.shutdown()
         sys.exit(0)
+
     signal.signal(signal.SIGINT, sigint_handler)
 
     if not node.send():
