@@ -1,13 +1,39 @@
-<root BTCPP_format="4" main_tree_to_execute="MainTree">
-    <BehaviorTree ID="MainTree">
-        <Sequence name="SwarmMission">
-            <MapfPlan
-                robot_ids_csv="{robot_ids_csv}"
-                goal_x="{goal_x}"
-                goal_y="{goal_y}"
-                goal_spacing="1.0"
-                mapf_ok="{mapf_ok}"
-                mapf_info="{mapf_info}"/>
-        </Sequence>
-    </BehaviorTree>
+<root BTCPP_format="4" main_tree_to_execute="FleetMain">
+  <BehaviorTree ID="FleetMain">
+
+    <!-- ReactiveFallback: re-evaluates CheckMode on every tick.
+         Modes written to @mode by operator / LLM agent:
+           idle       - do nothing (any running action gets onHalted -> cancel)
+           mapf       - send fleet to @goals via /swarm/set_goals
+           formation  - configure formation via /formation/set -->
+
+    <ReactiveFallback name="ModeDispatch">
+
+      <CheckMode mode="{@mode}" expected="idle"/>
+
+      <Sequence name="MapfBranch">
+        <CheckMode mode="{@mode}" expected="mapf"/>
+        <MapfPlan
+          robot_ids="{@robot_ids}"
+          goals="{@goals}"
+          mapf_ok="{@mapf_ok}"
+          mapf_info="{@mapf_info}"/>
+      </Sequence>
+
+      <Sequence name="FormationBranch">
+        <CheckMode mode="{@mode}" expected="formation"/>
+        <SetFormation
+          formation_id="{@formation_id}"
+          leader_ns="{@leader_ns}"
+          follower_ns="{@follower_ns}"
+          offsets_x="{@offsets_x}"
+          offsets_y="{@offsets_y}"
+          activate="true"
+          formation_enabled="{@formation_enabled}"
+          active_formation="{@active_formation}"/>
+      </Sequence>
+
+    </ReactiveFallback>
+
+  </BehaviorTree>
 </root>

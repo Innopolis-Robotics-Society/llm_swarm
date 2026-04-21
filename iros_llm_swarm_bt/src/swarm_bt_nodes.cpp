@@ -1,160 +1,113 @@
 #include "iros_llm_swarm_bt/swarm_bt_nodes.hpp"
 
-#include <algorithm>
-#include <chrono>
-#include <cmath>
 #include <sstream>
 #include <string>
-#include <vector>
 
 using namespace std::chrono_literals;
 
 namespace iros_llm_swarm_bt
 {
 
-namespace
-{
-std::vector<std::string> split_csv(const std::string & s)
-{
-  std::vector<std::string> out;
-  std::stringstream ss(s);
-  std::string item;
-  while (std::getline(ss, item, ',')) {
-    item.erase(std::remove_if(item.begin(), item.end(), ::isspace), item.end());
-    if (!item.empty()) {
-      out.push_back(item);
-    }
-  }
-  return out;
-}
-
-std::vector<double> split_csv_doubles(const std::string & s)
-{
-  std::vector<double> out;
-  for (const auto & t : split_csv(s)) {
-    out.push_back(std::stod(t));
-  }
-  return out;
-}
-
-std::vector<int> split_csv_ints(const std::string & s)
-{
-  std::vector<int> out;
-  for (const auto & t : split_csv(s)) {
-    out.push_back(std::stoi(t));
-  }
-  return out;
-}
-}  // namespace
+// ===========================================================================
+// MapfPlan
+// ===========================================================================
 
 MapfPlan::MapfPlan(
   const std::string & name,
   const BT::NodeConfiguration & config)
-: BT::SyncActionNode(name, config)
+: BT::StatefulActionNode(name, config)
 {
+  auto node = config.blackboard->get<rclcpp::Node::SharedPtr>("node");
+  client_ = rclcpp_action::create_client<SetGoals>(node, "/swarm/set_goals");
 }
 
 BT::PortsList MapfPlan::providedPorts()
 {
   return {
-    BT::InputPort<double>("goal_x"),
-    BT::InputPort<double>("goal_y"),
-    BT::InputPort<double>("goal_spacing", 1.0, "Spacing between robot goal points"),
-    BT::InputPort<std::string>("robot_ids_csv"),
+    BT::InputPort<std::vector<int>>("robot_ids",
+      "Robot IDs to navigate"),
+    BT::InputPort<std::vector<geometry_msgs::msg::Point>>("goals",
+      "Target positions, one per robot_id"),
     BT::OutputPort<bool>("mapf_ok"),
-    BT::OutputPort<std::string>("mapf_info")
+    BT::OutputPort<std::string>("mapf_info"),
   };
 }
 
-BT::NodeStatus MapfPlan::tick()
+BT::NodeStatus MapfPlan::onStart()
 {
   auto node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
 
-  auto goal_x = getInput<double>("goal_x");
-  auto goal_y = getInput<double>("goal_y");
-  auto goal_spacing = getInput<double>("goal_spacing");
-  auto robot_ids_csv = getInput<std::string>("robot_ids_csv");
+  auto robot_ids = getInput<std::vector<int>>("robot_ids");
+  auto goals     = getInput<std::vector<geometry_msgs::msg::Point>>("goals");
 
-  if (!goal_x || !goal_y || !robot_ids_csv) {
+  if (!robot_ids || !goals) {
+    RCLCPP_ERROR(node->get_logger(), "MapfPlan: missing robot_ids or goals port");
     setOutput("mapf_ok", false);
-    setOutput("mapf_info", "Missing goal_x, goal_y or robot_ids_csv");
+    setOutput("mapf_info", "missing inputs");
+    return BT::NodeStatus::FAILURE;
+  }
+  if (robot_ids->size() != goals->size()) {
+    RCLCPP_ERROR(node->get_logger(),
+      "MapfPlan: robot_ids size %zu != goals size %zu",
+      robot_ids->size(), goals->size());
+    setOutput("mapf_ok", false);
+    setOutput("mapf_info", "size mismatch");
+    return BT::NodeStatus::FAILURE;
+  }
+  if (robot_ids->empty()) {
+    setOutput("mapf_ok", false);
+    setOutput("mapf_info", "empty robot_ids");
     return BT::NodeStatus::FAILURE;
   }
 
-  const double spacing = goal_spacing ? goal_spacing.value() : 1.0;
-
-  const auto robot_ids = split_csv_ints(robot_ids_csv.value());
-  if (robot_ids.empty()) {
+  if (!client_->wait_for_action_server(2s)) {
+    RCLCPP_ERROR(node->get_logger(), "MapfPlan: /swarm/set_goals not available");
     setOutput("mapf_ok", false);
-    setOutput("mapf_info", "robot_ids_csv is empty");
-    return BT::NodeStatus::FAILURE;
-  }
-
-  auto client = rclcpp_action::create_client<SetGoals>(node, "/swarm/set_goals");
-  if (!client->wait_for_action_server(5s)) {
-    RCLCPP_ERROR(node->get_logger(), "/swarm/set_goals action not available");
-    setOutput("mapf_ok", false);
-    setOutput("mapf_info", "action unavailable");
+    setOutput("mapf_info", "action server unavailable");
     return BT::NodeStatus::FAILURE;
   }
 
   SetGoals::Goal goal_msg;
+  for (auto id : robot_ids.value()) {
+    goal_msg.robot_ids.push_back(static_cast<uint32_t>(id));
+  }
+  goal_msg.goals = goals.value();
 
-  const size_t n = robot_ids.size();
-  const size_t cols_n =
-    static_cast<size_t>(std::ceil(std::sqrt(static_cast<double>(n))));
+  goal_handle_future_ = client_->async_send_goal(goal_msg);
+  goal_handle_.reset();
+  result_future_ = {};
 
-  for (size_t i = 0; i < n; ++i) {
-    const auto id = robot_ids[i];
-    goal_msg.robot_ids.push_back(id);
+  RCLCPP_INFO(node->get_logger(),
+    "MapfPlan: sent goal for %zu robots", robot_ids->size());
 
-    const size_t row_i = i / cols_n;
-    const size_t col_i = i % cols_n;
+  return BT::NodeStatus::RUNNING;
+}
 
-    geometry_msgs::msg::Point p;
-    p.x = goal_x.value() +
-      (static_cast<double>(col_i) - (static_cast<double>(cols_n) - 1.0) / 2.0) * spacing;
-    p.y = goal_y.value() +
-      (static_cast<double>(row_i) - (static_cast<double>(cols_n) - 1.0) / 2.0) * spacing;
-    p.z = 0.0;
+BT::NodeStatus MapfPlan::onRunning()
+{
+  auto node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
 
-    goal_msg.goals.push_back(p);
-
-    RCLCPP_INFO(
-      node->get_logger(),
-      "MapfPlan: robot_id=%d -> goal=(%.2f, %.2f)",
-      id, p.x, p.y);
+  // Waiting for goal handle
+  if (!goal_handle_) {
+    if (!future_ready(goal_handle_future_)) {
+      return BT::NodeStatus::RUNNING;
+    }
+    goal_handle_ = goal_handle_future_.get();
+    if (!goal_handle_) {
+      RCLCPP_ERROR(node->get_logger(), "MapfPlan: goal rejected");
+      setOutput("mapf_ok", false);
+      setOutput("mapf_info", "goal rejected");
+      return BT::NodeStatus::FAILURE;
+    }
+    result_future_ = client_->async_get_result(goal_handle_);
   }
 
-  auto goal_handle_future = client->async_send_goal(goal_msg);
-  if (rclcpp::spin_until_future_complete(node, goal_handle_future) !=
-    rclcpp::FutureReturnCode::SUCCESS)
-  {
-    RCLCPP_ERROR(node->get_logger(), "Failed sending MAPF goal");
-    setOutput("mapf_ok", false);
-    setOutput("mapf_info", "send goal failed");
-    return BT::NodeStatus::FAILURE;
+  // Waiting for result
+  if (!future_ready(result_future_)) {
+    return BT::NodeStatus::RUNNING;
   }
 
-  auto goal_handle = goal_handle_future.get();
-  if (!goal_handle) {
-    RCLCPP_ERROR(node->get_logger(), "MAPF goal rejected");
-    setOutput("mapf_ok", false);
-    setOutput("mapf_info", "goal rejected");
-    return BT::NodeStatus::FAILURE;
-  }
-
-  auto result_future = client->async_get_result(goal_handle);
-  if (rclcpp::spin_until_future_complete(node, result_future, 120s) !=
-    rclcpp::FutureReturnCode::SUCCESS)
-  {
-    RCLCPP_ERROR(node->get_logger(), "Failed waiting for MAPF result");
-    setOutput("mapf_ok", false);
-    setOutput("mapf_info", "timeout waiting for result");
-    return BT::NodeStatus::FAILURE;
-  }
-
-  auto wrapped = result_future.get();
+  auto wrapped = result_future_.get();
   if (wrapped.code != rclcpp_action::ResultCode::SUCCEEDED) {
     setOutput("mapf_ok", false);
     setOutput("mapf_info", "action did not succeed");
@@ -164,22 +117,45 @@ BT::NodeStatus MapfPlan::tick()
   const auto & res = wrapped.result;
   std::ostringstream oss;
   oss << "msg=" << res->message
-    << ", planned=" << res->num_agents_planned
-    << ", time_ms=" << res->planning_time_ms
-    << ", pbs_exp=" << res->pbs_expansions
-    << ", max_path=" << res->max_path_length;
-
+      << " planned=" << res->num_agents_planned
+      << " time_ms=" << res->planning_time_ms
+      << " replans=" << res->total_replans;
 
   setOutput("mapf_ok", res->success);
   setOutput("mapf_info", oss.str());
+
+  RCLCPP_INFO(node->get_logger(), "MapfPlan: done — %s", oss.str().c_str());
+
   return res->success ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
 }
+
+void MapfPlan::onHalted()
+{
+  auto node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
+  RCLCPP_INFO(node->get_logger(), "MapfPlan: halted — cancelling action");
+
+  if (goal_handle_) {
+    client_->async_cancel_goal(goal_handle_);
+  } else if (future_ready(goal_handle_future_)) {
+    auto gh = goal_handle_future_.get();
+    if (gh) client_->async_cancel_goal(gh);
+  }
+
+  goal_handle_.reset();
+  result_future_ = {};
+}
+
+// ===========================================================================
+// SetFormation
+// ===========================================================================
 
 SetFormation::SetFormation(
   const std::string & name,
   const BT::NodeConfiguration & config)
-: BT::SyncActionNode(name, config)
+: BT::StatefulActionNode(name, config)
 {
+  auto node = config.blackboard->get<rclcpp::Node::SharedPtr>("node");
+  client_ = node->create_client<SetFormationSrv>("/formation/set");
 }
 
 BT::PortsList SetFormation::providedPorts()
@@ -187,106 +163,164 @@ BT::PortsList SetFormation::providedPorts()
   return {
     BT::InputPort<std::string>("formation_id"),
     BT::InputPort<std::string>("leader_ns"),
-    BT::InputPort<std::string>("follower_ns_csv"),
-    BT::InputPort<std::string>("offsets_x_csv"),
-    BT::InputPort<std::string>("offsets_y_csv"),
+    BT::InputPort<std::vector<std::string>>("follower_ns"),
+    BT::InputPort<std::vector<double>>("offsets_x"),
+    BT::InputPort<std::vector<double>>("offsets_y"),
     BT::InputPort<bool>("activate", true, "Activate formation immediately"),
     BT::OutputPort<bool>("formation_enabled"),
-    BT::OutputPort<std::string>("active_formation")
+    BT::OutputPort<std::string>("active_formation"),
   };
 }
 
-BT::NodeStatus SetFormation::tick()
+BT::NodeStatus SetFormation::onStart()
 {
   auto node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
 
   auto formation_id = getInput<std::string>("formation_id");
-  auto leader_ns = getInput<std::string>("leader_ns");
-  auto follower_ns_csv = getInput<std::string>("follower_ns_csv");
-  auto offsets_x_csv = getInput<std::string>("offsets_x_csv");
-  auto offsets_y_csv = getInput<std::string>("offsets_y_csv");
-  auto activate = getInput<bool>("activate");
+  auto leader_ns    = getInput<std::string>("leader_ns");
+  auto follower_ns  = getInput<std::vector<std::string>>("follower_ns");
+  auto offsets_x    = getInput<std::vector<double>>("offsets_x");
+  auto offsets_y    = getInput<std::vector<double>>("offsets_y");
+  auto activate     = getInput<bool>("activate");
 
-  if (!formation_id || !leader_ns || !follower_ns_csv || !offsets_x_csv || !offsets_y_csv ||
-    !activate)
+  if (!formation_id || !leader_ns || !follower_ns || !offsets_x || !offsets_y || !activate) {
+    RCLCPP_ERROR(node->get_logger(), "SetFormation: missing input ports");
+    return BT::NodeStatus::FAILURE;
+  }
+  if (follower_ns->size() != offsets_x->size() ||
+      follower_ns->size() != offsets_y->size())
   {
+    RCLCPP_ERROR(node->get_logger(), "SetFormation: follower_ns / offsets size mismatch");
     return BT::NodeStatus::FAILURE;
   }
 
-  auto followers = split_csv(follower_ns_csv.value());
-  auto xs = split_csv_doubles(offsets_x_csv.value());
-  auto ys = split_csv_doubles(offsets_y_csv.value());
-  if (followers.size() != xs.size() || followers.size() != ys.size()) {
-    RCLCPP_ERROR(node->get_logger(), "SetFormation: invalid follower/offset sizes");
-    return BT::NodeStatus::FAILURE;
-  }
-
-  auto client = node->create_client<SetFormationSrv>("/formation/set");
-  if (!client->wait_for_service(5s)) {
-    RCLCPP_ERROR(node->get_logger(), "/formation/set service not available");
+  if (!client_->wait_for_service(2s)) {
+    RCLCPP_ERROR(node->get_logger(), "SetFormation: /formation/set not available");
     return BT::NodeStatus::FAILURE;
   }
 
   auto req = std::make_shared<SetFormationSrv::Request>();
   req->formation_id = formation_id.value();
-  req->leader_ns = leader_ns.value();
-  req->follower_ns = followers;
-  req->offsets_x = xs;
-  req->offsets_y = ys;
-  req->activate = activate.value();
+  req->leader_ns    = leader_ns.value();
+  req->follower_ns  = follower_ns.value();
+  req->offsets_x    = offsets_x.value();
+  req->offsets_y    = offsets_y.value();
+  req->activate     = activate.value();
 
-  auto future = client->async_send_request(req);
-  if (rclcpp::spin_until_future_complete(node, future) != rclcpp::FutureReturnCode::SUCCESS) {
-    return BT::NodeStatus::FAILURE;
+  future_ = client_->async_send_request(req).future.share();
+  return BT::NodeStatus::RUNNING;
+}
+
+BT::NodeStatus SetFormation::onRunning()
+{
+  if (!future_ready(future_)) {
+    return BT::NodeStatus::RUNNING;
   }
 
-  auto res = future.get();
-  setOutput("formation_enabled", res->success && activate.value());
-  setOutput("active_formation", formation_id.value());
+  auto res = future_.get();
+  auto formation_id = getInput<std::string>("formation_id");
+  auto activate     = getInput<bool>("activate");
+
+  setOutput("formation_enabled", res->success && activate.value_or(true));
+  setOutput("active_formation",  formation_id.value_or(""));
+
   return res->success ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
 }
+
+void SetFormation::onHalted()
+{
+  // Service calls can't be cancelled in ROS 2 — just drop the future
+  future_ = {};
+}
+
+// ===========================================================================
+// DisableFormation
+// ===========================================================================
 
 DisableFormation::DisableFormation(
   const std::string & name,
   const BT::NodeConfiguration & config)
-: BT::SyncActionNode(name, config)
+: BT::StatefulActionNode(name, config)
 {
+  auto node = config.blackboard->get<rclcpp::Node::SharedPtr>("node");
+  client_ = node->create_client<DisbandFormationSrv>("/formation/disband");
 }
 
 BT::PortsList DisableFormation::providedPorts()
 {
   return {
     BT::InputPort<std::string>("formation_id"),
-    BT::OutputPort<bool>("formation_enabled")
+    BT::OutputPort<bool>("formation_enabled"),
   };
 }
 
-BT::NodeStatus DisableFormation::tick()
+BT::NodeStatus DisableFormation::onStart()
 {
   auto node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
 
   auto formation_id = getInput<std::string>("formation_id");
   if (!formation_id) {
+    RCLCPP_ERROR(node->get_logger(), "DisableFormation: missing formation_id");
     return BT::NodeStatus::FAILURE;
   }
 
-  auto client = node->create_client<DisbandFormationSrv>("/formation/disband");
-  if (!client->wait_for_service(5s)) {
-    RCLCPP_ERROR(node->get_logger(), "/formation/disband service not available");
+  if (!client_->wait_for_service(2s)) {
+    RCLCPP_ERROR(node->get_logger(), "DisableFormation: /formation/disband not available");
     return BT::NodeStatus::FAILURE;
   }
 
   auto req = std::make_shared<DisbandFormationSrv::Request>();
   req->formation_id = formation_id.value();
 
-  auto future = client->async_send_request(req);
-  if (rclcpp::spin_until_future_complete(node, future) != rclcpp::FutureReturnCode::SUCCESS) {
-    return BT::NodeStatus::FAILURE;
+  future_ = client_->async_send_request(req).future.share();
+  return BT::NodeStatus::RUNNING;
+}
+
+BT::NodeStatus DisableFormation::onRunning()
+{
+  if (!future_ready(future_)) {
+    return BT::NodeStatus::RUNNING;
   }
 
-  auto res = future.get();
+  auto res = future_.get();
   setOutput("formation_enabled", false);
   return res->success ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
+}
+
+void DisableFormation::onHalted()
+{
+  future_ = {};
+}
+
+// ===========================================================================
+// CheckMode
+// ===========================================================================
+
+CheckMode::CheckMode(
+  const std::string & name,
+  const BT::NodeConfiguration & config)
+: BT::ConditionNode(name, config)
+{}
+
+BT::PortsList CheckMode::providedPorts()
+{
+  return {
+    BT::InputPort<std::string>("mode",     "Current mode from blackboard"),
+    BT::InputPort<std::string>("expected", "Mode to match against"),
+  };
+}
+
+BT::NodeStatus CheckMode::tick()
+{
+  auto mode     = getInput<std::string>("mode");
+  auto expected = getInput<std::string>("expected");
+
+  if (!mode || !expected) {
+    return BT::NodeStatus::FAILURE;
+  }
+  return (mode.value() == expected.value())
+    ? BT::NodeStatus::SUCCESS
+    : BT::NodeStatus::FAILURE;
 }
 
 }  // namespace iros_llm_swarm_bt
@@ -297,4 +331,5 @@ BT_REGISTER_NODES(factory)
   factory.registerNodeType<iros_llm_swarm_bt::MapfPlan>("MapfPlan");
   factory.registerNodeType<iros_llm_swarm_bt::SetFormation>("SetFormation");
   factory.registerNodeType<iros_llm_swarm_bt::DisableFormation>("DisableFormation");
+  factory.registerNodeType<iros_llm_swarm_bt::CheckMode>("CheckMode");
 }
