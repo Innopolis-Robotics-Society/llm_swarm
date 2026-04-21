@@ -76,9 +76,19 @@ ros2 run iros_llm_swarm_mapf test_send_goals --json-file goals.json
 
 ### Formations and MAPF tests
 
-Launch the full stack:
+Launch the full stack and send the goals:
 ```bash
 ros2 launch iros_llm_swarm_bringup swarm_formation.launch.py
+
+# In second terminal
+ros2 run iros_llm_swarm_mapf test_send_goals --json-file src/iros_llm_swarm_mapf/config/goals_1.json
+```
+or
+```bash
+ros2 launch iros_llm_swarm_bringup swarm_lns_formation.launch.py
+
+# In second terminal
+ros2 run iros_llm_swarm_mapf test_send_goals --json-file src/iros_llm_swarm_mapf/config/goals_2.json
 ```
 
 ## Packages
