@@ -69,7 +69,7 @@ ros2 launch iros_llm_swarm_bringup swarm_mapf.launch.py
 Then send goals via the `/swarm/set_goals` action. The action stays alive until all robots arrive at their goals (long-lived action). The test script prints feedback during execution and exits when the mission completes. Press `Ctrl+C` to cancel the mission and stop all robots.
 
 ```bash
-ros2 run iros_llm_swarm_mapf test_send_goals --goal-x 15.0 --goal-y 15.0
+ros2 run iros_llm_swarm_mapf test_send_goals --goal-x 13.5 --goal-y 16.5
 ros2 run iros_llm_swarm_mapf test_send_goals --random --radius 5.0
 ros2 run iros_llm_swarm_mapf test_send_goals --json-file goals.json
 ```

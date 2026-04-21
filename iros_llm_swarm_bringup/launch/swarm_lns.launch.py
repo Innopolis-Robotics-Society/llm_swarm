@@ -74,28 +74,17 @@ def generate_launch_description():
     # ------------------------------------------------- PBS planner (t=10s)
     # Wait 10 seconds for map_server to publish /map with transient_local
     # QoS -- mapf_planner will receive the map immediately on subscribe.
-    mapf_planner = Node(
-        package='iros_llm_swarm_mapf',
-        executable='mapf_planner_node',
-        name='mapf_planner',
-        output='screen',
-        arguments=['--ros-args', '--log-level', 'mapf_planner:=INFO'],
-        parameters=[{
-            'num_robots':           num_robots,
-            'time_step_sec':        time_step_sec,
-            'use_sim_time':         use_sim_time,
-            'map_topic':            '/map',
-            'default_robot_radius': 0.22,
-            'inflation_radius':     0.75,
-            'max_pbs_expansions':   5000,
-            'max_astar_expansions': 1000000,
-            'cost_curve':           'quadratic',
-            'urgency':              1.0,
-            'replan_threshold_m':   1.5,
-            'proximity_penalty':    50,
-            'pbs_resolution':       0.2,
-            'replan_cooldown_sec':  30.0
-        }],
+    mapf_planner = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([
+                FindPackageShare('iros_llm_swarm_mapf_lns'),
+                'launch', 'mapf_lns2.launch.py',
+            ])
+        ]),
+        launch_arguments=[
+            ('num_robots',   num_robots),
+            ('use_sim_time', use_sim_time),
+        ],
     )
 
     # ------------------------------------------------------- RViz (t=0s)
@@ -105,20 +94,6 @@ def generate_launch_description():
         arguments=['-d', rviz_cfg, '--ros-args', '--log-level', 'WARN'],
         parameters=[{'use_sim_time': use_sim_time}],
         output='log',
-    )
-
-    # ----------------------------------------- path followers (t=12s)
-    path_followers = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            PathJoinSubstitution([
-                FindPackageShare('iros_llm_swarm_mapf'),
-                'launch', 'path_followers.launch.py',
-            ])
-        ]),
-        launch_arguments=[
-            ('num_robots',   num_robots),
-            ('use_sim_time', use_sim_time),
-        ],
     )
 
     return LaunchDescription([
@@ -132,8 +107,6 @@ def generate_launch_description():
         # launch in sequence
         stage_sim,
         TimerAction(period=1.0,  actions=[LogInfo(msg='Starting Nav2...'), local_nav2]),
-        TimerAction(period=10.0, actions=[LogInfo(msg='Starting MAPF planner...'), mapf_planner]),
-        TimerAction(period=12.0, actions=[LogInfo(msg='Starting path followers...'), path_followers]),
-        TimerAction(period=15.0, actions=[LogInfo(msg='==== MAPF stack ready — send goals via /swarm/set_goals ====')]),
+        TimerAction(period=10.0, actions=[LogInfo(msg='Starting MAPF stack...'), mapf_planner]),
         rviz,
     ])
