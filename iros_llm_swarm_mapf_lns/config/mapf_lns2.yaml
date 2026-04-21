@@ -1,0 +1,44 @@
+# Parameters for mapf_lns2 node.
+# Values are starting points for a 20-robot warehouse; tune on your scenarios.
+
+mapf_lns2:
+  ros__parameters:
+    use_sim_time: true
+    # -------- Fleet / physics --------
+    num_robots:               20
+    time_step_sec:            0.5      # planning timestep (must match path_follower expectation)
+    map_topic:               "/map"
+    grid_resolution:          0.2      # meters / cell for the planner grid
+    default_robot_radius:     0.22     # used when /published_footprint hasn't arrived yet
+    inflation_radius:         0.3      # additional radius added to footprint
+    max_speed:                0.5      # informational; not used by the solver directly
+    goal_reached_m:           0.35      # arrival tolerance for "all done" check
+
+    stall_timeout_sec:        4.0         # seconds without meaningful movement before stall
+    stall_move_thresh_m:      0.15      # movement below this is "not moving"
+    progress_log_interval_sec: 3.0 # periodic summary cadence; 0 disables
+
+    empty_fails_before_unplanable: 6    # default
+    stall_iters_before_unplanable: 13   # default
+
+    # -------- LNS2 core --------
+    collision_penalty:     10000       # >> horizon_steps; see soft_astar.hpp
+    horizon_steps:           300       # hard upper bound on planning timesteps
+    max_astar_expansions: 200000       # per A* call
+    neighborhood_size:         8       # destroy set size; 40% of fleet is typical
+    time_budget_ms:          1000       # total wall time for initial plan
+    plateau_limit:           300       # iters with no improvement -> stop
+    segment_size:             50       # ALNS weight update period (iters)
+    alns_reaction:             0.1
+    diagonal_moves:        false       # 4-conn; MAPF-safer
+
+    # -------- Replan / warm-start --------
+    replan_check_hz:           2.0
+    replan_threshold_m:        2.0     # deviation distance that triggers replan
+    replan_cooldown_sec:       2.0     # min gap between consecutive replans
+    replan_time_budget_ms:   150       # budget for warm replan (shorter than cold)
+    warm_start_enabled:     true
+    warm_patch_radius_cells:   2       # how far actual pose can be from plan and still patch
+
+    max_lives: 7
+    unplanable_retry_delay_sec: 8.0

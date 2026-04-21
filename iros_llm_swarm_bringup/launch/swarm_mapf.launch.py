@@ -34,7 +34,7 @@ def generate_launch_description():
         'world_file',
         default_value=PathJoinSubstitution([
             FindPackageShare('iros_llm_swarm_simulation_lite'),
-            'stage_sim', 'warehouse.world',
+            'stage_sim', 'warehouse_four.world',
         ]))
     rviz_cfg_arg = DeclareLaunchArgument(
         'rviz_cfg',
@@ -132,8 +132,8 @@ def generate_launch_description():
         # launch in sequence
         stage_sim,
         TimerAction(period=1.0,  actions=[LogInfo(msg='Starting Nav2...'), local_nav2]),
-        TimerAction(period=10.0, actions=[LogInfo(msg='Starting MAPF planner...'), mapf_planner]),
-        TimerAction(period=12.0, actions=[LogInfo(msg='Starting path followers...'), path_followers]),
+        #TimerAction(period=10.0, actions=[LogInfo(msg='Starting MAPF planner...'), mapf_planner]),
+        #TimerAction(period=12.0, actions=[LogInfo(msg='Starting path followers...'), path_followers]),
         TimerAction(period=15.0, actions=[LogInfo(msg='==== MAPF stack ready — send goals via /swarm/set_goals ====')]),
         rviz,
     ])

@@ -1,0 +1,90 @@
+// iros_llm_swarm_mapf/lns2/soft_astar.hpp
+//
+// Space-time A* with SOFT collision costs.
+//
+// State     : (cell, t)
+// Edge cost : step_cost
+//             + penalty * (# other agents occupying next footprint cells at t+1)
+//             + penalty * (# other agents swap-traversing the edge at t)
+// h         : true distance on the static graph (precomputed backward).
+// Terminate : when f_min over OPEN >= best known total cost (g + tail).
+// Returns   : path with minimal total cost w.r.t. given CollisionTable and
+//             hold-at-goal tail. Path always ends at goal (unless horizon
+//             exceeded, which is a hard failure).
+//
+// NB: penalty must be strictly greater than horizon * step_cost, so the
+//     lex order is (collisions, path_length).
+
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+#include <limits>
+#include <unordered_map>
+#include <vector>
+
+#include "iros_llm_swarm_mapf/lns2/collision_table.hpp"
+#include "iros_llm_swarm_mapf/lns2/types.hpp"
+
+namespace lns2 {
+
+struct SoftAStarParams {
+  Cost     step_cost          = 1;
+  Cost     collision_penalty  = 10000;   // >> horizon
+  Timestep horizon            = 300;     // hard upper bound on t
+  std::size_t max_expansions  = 200000;
+  bool     diagonal_moves     = false;   // 4-conn by default; MAPF-safe
+};
+
+struct SoftAStarResult {
+  bool     success          = false;
+  Path     path;
+  Timestep arrive_t         = 0;     // index within path where goal is reached
+  Cost     cost             = kInfCost;
+  std::size_t collisions    = 0;     // # pair-collision instances along path
+  std::size_t expansions    = 0;
+};
+
+class HeuristicCache {
+ public:
+  // Returns h[cell] — the true distance from cell to goal on the static
+  // grid (ignoring agents). Cached by (goal, grid).
+  const std::vector<int>& get(const GridMap& grid, const Cell& goal,
+                                bool diagonal);
+
+  void clear() { cache_.clear(); }
+
+ private:
+  struct Key {
+    std::int32_t row, col;
+    std::size_t  rows, cols;
+    bool         diag;
+    bool operator==(const Key& o) const {
+      return row == o.row && col == o.col && rows == o.rows
+             && cols == o.cols && diag == o.diag;
+    }
+  };
+  struct KeyHash {
+    std::size_t operator()(const Key& k) const noexcept {
+      std::size_t h = std::hash<std::int64_t>{}(
+          (static_cast<std::int64_t>(k.row) << 32) | (k.col & 0xffffffff));
+      h ^= std::hash<std::size_t>{}(k.rows) + 0x9e3779b97f4a7c15ULL;
+      h ^= std::hash<std::size_t>{}(k.cols) + 0x517cc1b727220a95ULL;
+      h ^= (k.diag ? 1 : 0);
+      return h;
+    }
+  };
+
+  std::unordered_map<Key, std::vector<int>, KeyHash> cache_;
+};
+
+// The soft A* function. `table` has the FIXED agents' paths already added
+// (i.e. `agent.id`'s old path was cleared from the table before calling).
+SoftAStarResult soft_astar(
+    const Agent& agent,
+    const GridMap& grid,
+    const CollisionTable& table,
+    const SoftAStarParams& params,
+    HeuristicCache& h_cache);
+
+}  // namespace lns2

@@ -16,6 +16,9 @@ find_package(rosidl_default_generators REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/FormationConfig.msg"
   "msg/FormationsState.msg"
+  "msg/MAPFStep.msg"
+  "msg/MAPFPlan.msg"
+  "msg/FollowerStatus.msg"
   "srv/SetFormation.srv"
   "srv/DisbandFormation.srv"
   "action/SetGoals.action"

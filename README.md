@@ -205,7 +205,7 @@ Sending goals:
 
 ```bash
 # All robots to a point (distributed in grid pattern with 1m spacing)
-ros2 run iros_llm_swarm_mapf test_send_goals --goal-x 15.0 --goal-y 15.0
+ros2 run iros_llm_swarm_mapf test_send_goals --goal-x 13.5 --goal-y 16.5
 
 # Random goals within radius of map center (15, 15)
 ros2 run iros_llm_swarm_mapf test_send_goals --random --radius 5.0
