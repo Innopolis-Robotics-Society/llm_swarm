@@ -15,24 +15,26 @@ from launch_ros.substitutions import FindPackageShare
 #
 #  t=0s   Stage simulator + RViz
 #  t=1s   Nav2 (map_server + controller_server per robot)
-#  t=10s  mapf_planner      ← wait for map_server to publish /map
-#  t=12s  path_followers    ← wait for mapf_planner
-#  t=12s  formation_manager ← starts alongside path_followers, loads formation from YAML
-#                             and activates it immediately (auto_activate: true)
+#  t=10s  mapf_planner  -- wait for map_server to publish /map
+#  t=12s  path_followers -- wait for mapf_planner
+#
+# After launch, send goals via service:
+#   ros2 run iros_llm_swarm_mapf test_send_goals --goal-x 15.0 --goal-y 15.0
+
 
 def generate_launch_description():
 
     # ------------------------------------------------------------------ args
-    num_robots_arg = DeclareLaunchArgument('num_robots',     default_value='20')
+    num_robots_arg = DeclareLaunchArgument('num_robots',    default_value='20')
     use_sim_time_arg = DeclareLaunchArgument('use_sim_time', default_value='true')
     time_step_arg = DeclareLaunchArgument(
         'time_step_sec', default_value='0.4',
-        description='Seconds per grid step in PBS path')
+        description='Seconds per PBS grid step')
     world_file_arg = DeclareLaunchArgument(
         'world_file',
         default_value=PathJoinSubstitution([
             FindPackageShare('iros_llm_swarm_simulation_lite'),
-            'stage_sim', 'warehouse.world',
+            'stage_sim', 'warehouse_four.world',
         ]))
     rviz_cfg_arg = DeclareLaunchArgument(
         'rviz_cfg',
@@ -44,7 +46,7 @@ def generate_launch_description():
         'formations_cfg',
         default_value=PathJoinSubstitution([
             FindPackageShare('iros_llm_swarm_formation'),
-            'config', 'formations_1.yaml',
+            'config', 'formations_2.yaml',
         ]),
         description='Path to formations.yaml')
 
@@ -77,27 +79,14 @@ def generate_launch_description():
         launch_arguments=[('num_robots', num_robots)],
     )
 
-    # ------------------------------------------------- MAPF planner (t=10s)
-    mapf_planner = Node(
-        package='iros_llm_swarm_mapf',
-        executable='mapf_planner_node',
-        name='mapf_planner',
-        output='screen',
-        parameters=[{
-            'num_robots':           num_robots,
-            'time_step_sec':        time_step_sec,
-            'use_sim_time':         use_sim_time,
-            'map_topic':            '/map',
-            'default_robot_radius': 0.22,
-        }],
-    )
-
-    # ----------------------------------------- path followers (t=12s)
-    motion_controllers = IncludeLaunchDescription(
+    # ------------------------------------------------- PBS planner (t=10s)
+    # Wait 10 seconds for map_server to publish /map with transient_local
+    # QoS -- mapf_planner will receive the map immediately on subscribe.
+    mapf_planner = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             PathJoinSubstitution([
-                FindPackageShare('iros_llm_swarm_robot'),
-                'launch', 'motion_controllers.launch.py',
+                FindPackageShare('iros_llm_swarm_mapf_lns'),
+                'launch', 'mapf_lns2.launch.py',
             ])
         ]),
         launch_arguments=[
@@ -106,7 +95,7 @@ def generate_launch_description():
         ],
     )
 
-    # ----------------------------------------- formation manager (t=12s)
+        # ----------------------------------------- formation manager (t=12s)
     formation_manager = Node(
         package='iros_llm_swarm_formation',
         executable='formation_manager_node',
@@ -121,17 +110,17 @@ def generate_launch_description():
         }],
     )
 
-    # ---------------------------------------------------------- RViz (t=0s)
+    # ------------------------------------------------------- RViz (t=0s)
     rviz = Node(
         package='rviz2',
         executable='rviz2',
-        arguments=['-d', rviz_cfg],
+        arguments=['-d', rviz_cfg, '--ros-args', '--log-level', 'WARN'],
         parameters=[{'use_sim_time': use_sim_time}],
         output='log',
     )
 
     return LaunchDescription([
-        # args
+        # arguments
         num_robots_arg,
         use_sim_time_arg,
         time_step_arg,
@@ -139,27 +128,10 @@ def generate_launch_description():
         rviz_cfg_arg,
         formations_cfg_arg,
 
-        # t=0s
+        # launch in sequence
         stage_sim,
+        TimerAction(period=1.0,  actions=[LogInfo(msg='Starting Nav2...'), local_nav2]),
+        TimerAction(period=10.0, actions=[LogInfo(msg='Starting MAPF stack...'), mapf_planner]),
+        formation_manager,
         rviz,
-
-        # t=1s
-        TimerAction(period=1.0, actions=[
-            LogInfo(msg='Starting Nav2...'),
-            local_nav2,
-        ]),
-
-        # t=10s
-        TimerAction(period=10.0, actions=[
-            LogInfo(msg='Starting MAPF planner...'),
-            mapf_planner,
-        ]),
-
-        # t=12s — path followers and formation manager start together so that
-        # robots are subscribed before the latched config message is published
-        TimerAction(period=12.0, actions=[
-            LogInfo(msg='Starting motion controllers and formation manager...'),
-            motion_controllers,
-            formation_manager,
-        ]),
     ])

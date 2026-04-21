@@ -1,10 +1,10 @@
-motion_controller:
+/**:
   ros__parameters:
     schedule_tolerance_sec: 0.3
 
     # --- PD controller ---
-    kp: 1.2
-    kd: 0.3
-    max_v: 0.5
-    max_omega: 1.0
+    kp: 2.5
+    kd: 0.8
+    max_v: 0.8
+    max_omega: 1.8
     control_hz: 20.0
