@@ -38,21 +38,27 @@ FORMATIONS_TOPIC = "/formations/config"
 
 # Helpers
 
-def _circle_polygon(radius: float, n_pts: int = 16) -> Polygon:
+def _bounding_circle(offsets, robot_radius):
+    if not offsets:
+        return (0.0, 0.0, robot_radius)
+
+    cx = sum(dx for dx, _ in offsets) / len(offsets)
+    cy = sum(dy for _, dy in offsets) / len(offsets)
+
+    radius = max(math.hypot(dx - cx, dy - cy) for dx, dy in offsets)
+    return cx, cy, radius + robot_radius
+
+def _circle_polygon(radius: float, cx: float = 0.0, cy: float = 0.0, n_pts: int = 16) -> Polygon:
     poly = Polygon()
     for i in range(n_pts):
         a = 2.0 * math.pi * i / n_pts
-        p = Point32(x=float(radius * math.cos(a)),
-                    y=float(radius * math.sin(a)),
-                    z=0.0)
+        p = Point32(
+            x=float(cx + radius * math.cos(a)),
+            y=float(cy + radius * math.sin(a)),
+            z=0.0
+        )
         poly.points.append(p)
     return poly
-
-
-def _bounding_radius(offsets: list[tuple[float, float]], robot_radius: float) -> float:
-    if not offsets:
-        return robot_radius
-    return max(math.hypot(dx, dy) for dx, dy in offsets) + robot_radius
 
 
 # Internal formation record
@@ -80,8 +86,8 @@ class _Formation:
         for dx, dy in self.offsets:
             msg.offsets.append(Point(x=float(dx), y=float(dy), z=0.0))
 
-        radius = _bounding_radius(self.offsets, robot_radius) + padding
-        msg.footprint = _circle_polygon(radius)
+        cx, cy, radius = _bounding_circle(self.offsets, robot_radius)
+        msg.footprint = _circle_polygon(radius + padding, cx, cy)
         return msg
 
 
