@@ -1,19 +1,3 @@
-"""
-motion_controllers.launch.py
-=============================
-Spawns one motion_controller_node per robot.
-
-Launch arguments
-----------------
-  num_robots   : int    — number of robots  (default: 20)
-  use_sim_time : bool   — use simulation clock (default: true)
-  kp           : float  — PD proportional gain (default: 1.2)
-  kd           : float  — PD derivative gain   (default: 0.3)
-  max_v        : float  — max linear speed      (default: 0.5)
-  max_omega    : float  — max angular speed     (default: 1.0)
-  control_hz   : float  — PD loop rate          (default: 20.0)
-"""
-
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
@@ -24,6 +8,7 @@ import os
 
 def _spawn_controllers(context, *args, **kwargs):
     num_robots = int(LaunchConfiguration("num_robots").perform(context))
+    use_sim_time = LaunchConfiguration('use_sim_time').perform(context) == 'true'
 
     config_file = os.path.join(
         get_package_share_directory("iros_llm_swarm_robot"),
@@ -39,7 +24,10 @@ def _spawn_controllers(context, *args, **kwargs):
             output="screen",
             parameters=[
                 config_file,
-                {"robot_id": i}
+                {"robot_id":     i,
+                 'path_frame':   'map',
+                 'use_sim_time': use_sim_time,
+                }
             ],
         )
         for i in range(num_robots)
@@ -49,6 +37,7 @@ def _spawn_controllers(context, *args, **kwargs):
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument("num_robots",   default_value="20"),
+        DeclareLaunchArgument('use_sim_time', default_value='true'),
 
         OpaqueFunction(function=_spawn_controllers),
     ])
