@@ -1,0 +1,15 @@
+<root BTCPP_format="4" main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="FormationOnly">
+      <SetFormation 
+        formation_id="{formation_id}" 
+        leader_ns="{leader_ns}" 
+        follower_ns_csv="{follower_ns_csv}" 
+        offsets_x_csv="{offsets_x_csv}" 
+        offsets_y_csv="{offsets_y_csv}" 
+        activate="{activate}" 
+        formation_enabled="{formation_enabled}" 
+        active_formation="{active_formation}"/>
+    </Sequence>
+  </BehaviorTree>
+</root>
