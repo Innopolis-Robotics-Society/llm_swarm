@@ -1,14 +1,9 @@
 // mapf_lns2_node.cpp
 //
 // ROS 2 action server wrapping the LNS2 MAPF solver. API-compatible with
-// the PBS-based mapf_planner in iros_llm_swarm_mapf: same /swarm/set_goals
-// action, same /robot_<i>/mapf_path publishers, same odometry and footprint
-// subscriptions. Drop-in replacement — launch one OR the other.
-//
-// New behavior: warm-started replans. Each successful plan saves its grid
-// paths + origin time; monitor_timer() detects deviations and calls
-// trigger_replan(), which builds a warm seed from the previous plan +
-// current odom and calls LNS2Solver::solve_from() when the seed is good.
+// the PBS-based mapf_planner. Now fully supports the updated SetGoals.action
+// with rich feedback (robots_arrived, robots_active, robots_deviated, 
+// replans_done, robot_stall, info, warning) and result fields.
 
 #include <algorithm>
 #include <atomic>
@@ -274,6 +269,32 @@ class MapfLns2Node : public rclcpp::Node {
 
  private:
   // --------------------------------------------------------------------
+  // Rich feedback helper
+  // --------------------------------------------------------------------
+  void publish_rich_feedback(const std::shared_ptr<GoalHandle>& gh,
+                             const std::string& status,
+                             std::size_t arrived = 0,
+                             std::size_t active = 0,
+                             std::size_t deviated = 0,
+                             std::size_t stalled = 0,
+                             const std::string& info = "",
+                             const std::string& warning = "")
+  {
+    if (!gh) return;
+    auto fb = std::make_shared<SetGoalsAction::Feedback>();
+    fb->status          = status;
+    fb->elapsed_ms      = static_cast<uint32_t>((now() - mission_start_time_).seconds() * 1000.0);
+    fb->robots_arrived  = static_cast<uint32_t>(arrived);
+    fb->robots_active   = static_cast<uint32_t>(active);
+    fb->robots_deviated = static_cast<uint32_t>(deviated);
+    fb->replans_done    = total_replans_;
+    fb->robot_stall    = static_cast<uint32_t>(stalled);
+    fb->info            = info;
+    fb->warning         = warning;
+    gh->publish_feedback(fb);
+  }
+
+  // --------------------------------------------------------------------
   // Map callback
   // --------------------------------------------------------------------
   void on_map(const nav_msgs::msg::OccupancyGrid::SharedPtr msg)
@@ -349,6 +370,9 @@ class MapfLns2Node : public rclcpp::Node {
       std::fill(lives_remaining_.begin(), lives_remaining_.end(), max_lives_);
       unplanable_since_.clear();
       last_progress_log_time_ = rclcpp::Time{0, 0, RCL_ROS_TIME};
+
+      mission_start_time_ = now();
+      total_replans_ = 0;
     }
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
   }
@@ -369,7 +393,6 @@ class MapfLns2Node : public rclcpp::Node {
   {
     const auto& req = gh->get_goal();
     auto result = std::make_shared<SetGoalsAction::Result>();
-    auto fb = std::make_shared<SetGoalsAction::Feedback>();
 
     // Snapshot state briefly
     lns2::GridMap snap_grid;
@@ -389,32 +412,38 @@ class MapfLns2Node : public rclcpp::Node {
       snap_fp_radii   = footprint_radii_;
     }
 
-    fb->status = "validating";
-    gh->publish_feedback(fb);
+    publish_rich_feedback(gh, "validating");
 
-    // Build agent list.
+    // Build agent list with warnings
     // IMPORTANT: lns2::Agent::id must be a DENSE internal index
     // (0..agents.size()-1). The external robot_id is kept in plan_ids_ext.
     std::vector<lns2::Agent> agents;
     std::vector<uint32_t> plan_ids_ext;      // external robot_id per agent
     std::vector<geometry_msgs::msg::Point> plan_goals_world;
+    std::string validation_warnings;
 
     for (std::size_t i = 0; i < req->robot_ids.size(); ++i) {
       const uint32_t rid = req->robot_ids[i];
+
       if (rid >= static_cast<uint32_t>(num_robots_)) {
-        RCLCPP_WARN(get_logger(), "robot id %u >= num_robots, skip", rid);
+        RCLCPP_WARN(get_logger(), "robot id %u >= num_robots (%d), skip", rid, num_robots_);
+        if (!validation_warnings.empty()) validation_warnings += "; ";
+        validation_warnings += "robot id " + std::to_string(rid) + " >= num_robots";
         continue;
       }
       if (!snap_have_odom[rid]) {
         RCLCPP_WARN(get_logger(), "no odom for robot_%u, skip", rid);
+        if (!validation_warnings.empty()) validation_warnings += "; ";
+        validation_warnings += "no odom for robot_" + std::to_string(rid);
         continue;
       }
       // Previously-marked unplanable — solver already established that no
       // collision-free path exists for this robot under current conditions.
       // Keep skipping until a fresh /swarm/set_goals action resets the set.
       if (unplanable_robots_.count(rid)) {
-        RCLCPP_WARN(get_logger(),
-            "robot_%u was marked unplanable earlier, skip", rid);
+        RCLCPP_WARN(get_logger(), "robot_%u was marked unplanable earlier, skip", rid);
+        if (!validation_warnings.empty()) validation_warnings += "; ";
+        validation_warnings += "robot_" + std::to_string(rid) + " unplanable";
         continue;
       }
       lns2::Agent a;
@@ -492,10 +521,17 @@ class MapfLns2Node : public rclcpp::Node {
       plan_goals_world.push_back(req->goals[i]);
     }
 
+    //  Send warnings once
+    if (!validation_warnings.empty()) {
+      publish_rich_feedback(gh, "validating", 0, 0, 0, 0, "", validation_warnings);
+    }
+
     if (agents.empty()) {
       result->success    = false;
       result->message    = "No valid agents";
       result->error_code = SetGoalsAction::Result::NO_VALID_AGENTS;
+      result->total_replans = total_replans_;
+      result->total_execution_sec = (now() - mission_start_time_).seconds();
       is_active_ = false;
       gh->succeed(result);
       return;
@@ -534,8 +570,7 @@ class MapfLns2Node : public rclcpp::Node {
                           snap_fp_radii, snap_ox, snap_oy, snap_res);
 
     // Run solver (cold)
-    fb->status = "planning";
-    gh->publish_feedback(fb);
+    publish_rich_feedback(gh, "planning");
 
     const auto t0 = std::chrono::steady_clock::now();
     lns2::LNS2Params params = make_params(/*warm=*/false);
@@ -552,6 +587,8 @@ class MapfLns2Node : public rclcpp::Node {
       result->message    = "LNS2 failed to reach collision-free (" +
           std::to_string(stats.final_collisions) + " remaining)";
       result->error_code = SetGoalsAction::Result::PBS_FAILED;
+      result->total_replans = total_replans_;
+      result->total_execution_sec = (now() - mission_start_time_).seconds();
       RCLCPP_ERROR(get_logger(), "%s", result->message.c_str());
       is_active_ = false;
       gh->succeed(result);
@@ -590,6 +627,8 @@ class MapfLns2Node : public rclcpp::Node {
       start_monitoring();
     }
 
+    publish_rich_feedback(gh, "executing", 0, agents.size(), 0, 0);
+
     result->success = true;
     if (result->message.empty()) result->message = "OK";
     RCLCPP_INFO(get_logger(),
@@ -597,12 +636,6 @@ class MapfLns2Node : public rclcpp::Node {
                 "init_coll=%zu -> 0",
                 agents.size(), stats.wall_time_ms,
                 stats.iterations, stats.initial_collisions);
-
-    fb->status     = "executing";
-    fb->elapsed_ms = static_cast<uint32_t>(elapsed_ms);
-    fb->robots_active = static_cast<uint32_t>(agents.size());
-    gh->publish_feedback(fb);
-    // is_active_ stays true until check_schedule sees all arrived.
   }
 
   // --------------------------------------------------------------------
@@ -926,6 +959,16 @@ class MapfLns2Node : public rclcpp::Node {
             arrived_count, active_robot_ids_.size(),
             in_progress_count, holding_count, failed_count,
             stalled.size(), stale_count, unplanable_robots_.size());
+        
+  // publish rich feedback with the same counts
+  publish_rich_feedback(active_goal_handle_, "executing",
+                        arrived_count,
+                        active_robot_ids_.size(),
+                        /*deviated=*/in_progress_count,   // or 0 if you prefer
+                        /*stalled=*/stalled.size(),
+                        /*info=*/"",
+                        /*warning=*/"");
+          
         last_progress_log_time_ = t_now;
       }
     }
@@ -1063,12 +1106,20 @@ class MapfLns2Node : public rclcpp::Node {
           "replan requested: %zu stalled robots  %s",
           stalled.size(), parts.c_str());
 
+      // feedback before replan
+      publish_rich_feedback(active_goal_handle_, "replanning",
+                            arrived_count, in_progress_count, stalled.size(),
+                            unplanable_robots_.size(), "", "replan triggered by stalls");
+
       lk.unlock();
       trigger_replan();
       return;
     }
   }
 
+  // --------------------------------------------------------------------
+  // trigger_replan()
+  // --------------------------------------------------------------------
   void trigger_replan()
   {
     bool expected = false;
@@ -1292,6 +1343,11 @@ class MapfLns2Node : public rclcpp::Node {
     }
 
     const bool succeeded = (stats.final_collisions == 0);
+
+    if (succeeded) {
+      total_replans_++;
+    }
+
     if (!succeeded) {
       RCLCPP_WARN(get_logger(),
           "replan did not reach collision-free; keeping old paths");
@@ -1330,6 +1386,7 @@ class MapfLns2Node : public rclcpp::Node {
     publish_mapf_plans(paths, active_ext_ids, snap_ox, snap_oy, snap_res);
     store_active_plan(paths, active_ext_ids, planned_goals, now());
     last_replan_time_ = now();
+    publish_rich_feedback(active_goal_handle_, "executing");
     is_planning_ = false;
     (void)gh;
   }
@@ -1853,6 +1910,9 @@ class MapfLns2Node : public rclcpp::Node {
   std::vector<std::pair<double, double>> current_positions_;
   std::vector<bool>   have_odom_;
   std::vector<double> footprint_radii_;
+
+  uint32_t total_replans_ = 0;
+  rclcpp::Time mission_start_time_{0, 0, RCL_ROS_TIME};
 
   // Active plan
   std::vector<lns2::Path> prev_grid_paths_;
