@@ -55,11 +55,9 @@ uint32 robots_arrived      # сколько доехали
 uint32 robots_active       # сколько ещё в пути
 uint32 robots_deviated     # сколько отклонились
 uint32 replans_done        # сколько реплнов произошло
+uint32 robot_stall         # cколько мертвы
 
+string info   # редкая публикация раз в frequency_of_info общей информации о системе
 
-
-
-
-
-
+string warning # мгновенная публикация warning (N unplanable skipped / Robot N out of lives)
 
