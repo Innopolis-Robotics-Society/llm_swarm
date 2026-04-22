@@ -1,0 +1,40 @@
+# Initial formations loaded by formation_manager_node on startup.
+# Each entry is passed to SetFormation internally with activate: false.
+# Activate them at runtime via /formation/set service or launch argument.
+#
+# Offsets are in leader BODY frame:
+#   +x = forward, +y = left
+#   Units: metres
+
+# Initial formations loaded by formation_manager_node on startup.
+# Each entry is passed to SetFormation internally with activate: false.
+# Activate them at runtime via /formation/set service or launch argument.
+#
+# Offsets are in leader BODY frame:
+#   +x = forward, +y = left
+#   Units: metres
+
+formations:
+
+  - id: "wedge"
+    leader: "robot_1"
+    followers:
+      - ns: "robot_2"
+        dx: -1.0
+        dy:  0.6
+      - ns: "robot_0"
+        dx: -1.0
+        dy: -0.6
+
+  - id: "line"
+    leader: "robot_5"
+    followers:
+      - ns: "robot_3"
+        dx: -1.0
+        dy:  0.0
+      - ns: "robot_4"
+        dx: -2.0
+        dy:  0.0
+      - ns: "robot_6"
+        dx: -3.0
+        dy:  0.0

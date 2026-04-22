@@ -20,6 +20,35 @@ DEFAULT_INITIAL_POSES = [
     (26.0, 28.0, math.pi), (27.5, 28.0, math.pi),
 ]
 
+DEFAULT_INITIAL_POSES = [
+    # Левый нижний угол
+    (2.0, 2.0, 0.0),
+    (3.5, 2.0, 0.0),
+    (2.0, 3.5, 0.0),
+    (3.5, 3.5, 0.0),
+    (2.0, 5.0, 0.0),
+
+    # Правый нижний угол
+    (26.0, 2.0, math.pi),
+    (27.5, 2.0, math.pi),
+    (26.0, 3.5, math.pi),
+    (27.5, 3.5, math.pi),
+    (27.5, 5.0, math.pi),
+
+    # Левый верхний угол
+    (2.0, 28.0, 0.0),
+    (3.5, 28.0, 0.0),
+    (2.0, 26.5, 0.0),
+    (3.5, 26.5, 0.0),
+    (2.0, 25.0, 0.0),
+
+    # Правый верхний угол
+    (26.0, 28.0, math.pi),
+    (27.5, 28.0, math.pi),
+    (26.0, 26.5, math.pi),
+    (27.5, 26.5, math.pi),
+    (27.5, 25.0, math.pi),
+]
 
 def _parse_initial_poses(s: str):
     # format: "x,y,yaw; x,y,yaw; ..."
@@ -101,8 +130,14 @@ def _setup_robots(context, *args, **kwargs):
                 executable='static_transform_publisher',
                 name='map_to_odom',
                 namespace=ns,
-                arguments=['0', '0', '0', '0', '0', '0',
-                        'map', f'{ns}/odom'],
+                output='log',
+                arguments=[
+                    '--frame-id', 'map',
+                    '--child-frame-id', f'{ns}/odom',
+                    '--x', '0', '--y', '0', '--z', '0',
+                    '--roll', '0', '--pitch', '0', '--yaw', '0',
+                    '--ros-args', '--log-level', 'WARN',
+                ],
                 parameters=[{'use_sim_time': True}],
             ),
 
@@ -113,7 +148,7 @@ def _setup_robots(context, *args, **kwargs):
                 output='log',
                 parameters=[configured],
                 remappings=tf_remaps,
-                #arguments=['--ros-args', '--log-level', 'DEBUG'],
+                arguments=['--ros-args', '--log-level', 'WARN'],
             ),
 
             Node(
@@ -123,6 +158,7 @@ def _setup_robots(context, *args, **kwargs):
                 output='log',
                 parameters=[configured],
                 remappings=tf_remaps,
+                arguments=['--ros-args', '--log-level', 'WARN'],
             ),
 
             Node(
@@ -136,6 +172,7 @@ def _setup_robots(context, *args, **kwargs):
                     'node_names': ['controller_server', 'behavior_server'],
                     #'node_names': ['amcl', 'controller_server', 'behavior_server'],
                 }],
+                arguments=['--ros-args', '--log-level', 'WARN'],
             ),
         ])
 
@@ -189,6 +226,7 @@ def generate_launch_description():
         name='map_server',
         output='log',
         parameters=[{'yaml_filename': map_file, 'use_sim_time': True}],
+        arguments=['--ros-args', '--log-level', 'WARN'],
     ))
     ld.add_action(Node(
         package='nav2_lifecycle_manager',
@@ -196,6 +234,7 @@ def generate_launch_description():
         name='lifecycle_manager_map',
         output='log',
         parameters=[{'autostart': True, 'use_sim_time': True, 'node_names': ['map_server']}],
+        arguments=['--ros-args', '--log-level', 'WARN'],
     ))
 
     # роботы создаются через OpaqueFunction чтобы можно было прочитать LaunchConfiguration

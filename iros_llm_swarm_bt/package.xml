@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>iros_llm_swarm_bt</name>
+  <version>0.0.1</version>
+  <description>Custom Behavior Tree plugins and XML files for llm_swarm.</description>
+
+  <maintainer email="fabian@example.com">fabian</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>ament_index_cpp</depend>
+  <depend>behaviortree_cpp_v3</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
+  <depend>geometry_msgs</depend>
+  <depend>iros_llm_swarm_interfaces</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

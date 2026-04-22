@@ -1,0 +1,24 @@
+formations:
+
+  - id: "wedge"
+    leader: "robot_1"
+    followers:
+      - ns: "robot_2"
+        dx: -1.0
+        dy:  0.6
+      - ns: "robot_0"
+        dx: -1.0
+        dy: -0.6
+
+  - id: "line"
+    leader: "robot_17"
+    followers:
+      - ns: "robot_18"
+        dx: -1.0
+        dy:  0.0
+      - ns: "robot_15"
+        dx: -2.0
+        dy:  0.0
+      - ns: "robot_16"
+        dx: -3.0
+        dy:  0.0

@@ -1,0 +1,15 @@
+<root BTCPP_format="4" main_tree_to_execute="TestSetFormation">
+  <BehaviorTree ID="TestSetFormation">
+    <Sequence>
+      <SetFormation
+        formation_id="{formation_id}"
+        leader_ns="{leader_ns}"
+        follower_ns="{follower_ns}"
+        offsets_x="{offsets_x}"
+        offsets_y="{offsets_y}"
+        activate="true"
+        formation_enabled="{formation_enabled}"
+        active_formation="{active_formation}"/>
+    </Sequence>
+  </BehaviorTree>
+</root>
