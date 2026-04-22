@@ -142,31 +142,53 @@ class GoalSender(Node):
     # ------------------------------------------------------------------
     # Feedback
     # ------------------------------------------------------------------
-
     def _on_feedback(self, feedback_msg):
         fb = feedback_msg.feedback
         s = fb.status
 
-        if s in ('validating', 'planning', 'publishing', 'failed'):
-            self.get_logger().info(
-                f'  [{fb.elapsed_ms:>6} ms] {s}')
+        # Базовая информация (всегда показываем)
+        base = f'[{fb.elapsed_ms:>6} ms] {s}'
 
-        elif s == 'executing':
+        # Основная статистика выполнения
+        if s == 'executing':
             total = fb.robots_arrived + fb.robots_active
             self.get_logger().info(
-                f'  [{fb.elapsed_ms:>6} ms] executing: '
-                f'{fb.robots_arrived}/{total} arrived, '
-                f'{fb.replans_done} replans')
+                f'{base} | '
+                f'arrived: {fb.robots_arrived}/{total} | '
+                f'active: {fb.robots_active} | '
+                f'replans: {fb.replans_done}'
+            )
 
         elif s == 'replanning':
             self.get_logger().warn(
-                f'  [{fb.elapsed_ms:>6} ms] replanning: '
-                f'{fb.robots_deviated} deviated, '
-                f'{fb.replans_done} replans so far')
+                f'{base} | '
+                f'deviated: {fb.robots_deviated} | '
+                f'replans: {fb.replans_done} | '
+                f'stalled: {fb.robot_stall}'
+            )
+
+        elif s in ('validating', 'planning', 'publishing', 'failed'):
+            self.get_logger().info(base)
 
         else:
-            self.get_logger().info(
-                f'  [{fb.elapsed_ms:>6} ms] {s}')
+            self.get_logger().info(base)
+
+        # Дополнительные поля (показываем всегда, если они не пустые)
+        if fb.info:
+            self.get_logger().info(f'    INFO: {fb.info}')
+
+        if fb.warning:
+            self.get_logger().warn(f'    WARNING: {fb.warning}')
+
+        # Полная статистика (выводим в executing/replanning и при наличии stall)
+        if fb.robots_arrived or fb.robots_active or fb.robots_deviated or fb.robot_stall:
+            self.get_logger().debug(
+                f'    → arrived={fb.robots_arrived} | '
+                f'active={fb.robots_active} | '
+                f'deviated={fb.robots_deviated} | '
+                f'stalled={fb.robot_stall} | '
+                f'replans={fb.replans_done}'
+            )
 
     # ------------------------------------------------------------------
     # Result

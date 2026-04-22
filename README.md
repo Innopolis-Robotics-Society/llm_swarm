@@ -18,6 +18,13 @@ docker compose exec terminal bash
 
 Inside the container - launch the full stack:
 
+build it:
+
+```bash
+colcon build --packages-select iros_llm_swarm_interfaces iros_llm_swarm_mapf_lns
+colcon build
+```
+
 ```bash
 ros2 launch iros_llm_swarm_bringup swarm_warehouse.launch.py
 ```
