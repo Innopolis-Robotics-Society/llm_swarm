@@ -56,6 +56,14 @@ from iros_llm_swarm_interfaces.msg import (
     FormationsStatus,
 )
 
+# Helper
+
+def _yaw_from_quat(q):
+    # q = geometry_msgs.msg.Quaternion
+    # yaw (Z) from quaternion
+    siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
+    cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+    return math.atan2(siny_cosp, cosy_cosp)
 
 # Internal per-robot state
 
@@ -64,6 +72,7 @@ class _RobotState:
     ns: str
     x: float = 0.0
     y: float = 0.0
+    yaw: float = 0.0
     last_odom_t: float = -1.0          # wall-clock time of last odom msg
     error_m: float = -1.0              # current position error vs offset
     # For stuck detection: (wall_time, error_m) sampled every stuck_window_s
@@ -243,6 +252,7 @@ class FormationMonitorNode(Node):
     def _on_odom(self, msg: Odometry, ns: str):
         x = msg.pose.pose.position.x
         y = msg.pose.pose.position.y
+        yaw = _yaw_from_quat(msg.pose.pose.orientation)
         t = time.monotonic()
 
         for fid in self._ns_to_formations.get(ns, []):
@@ -253,12 +263,14 @@ class FormationMonitorNode(Node):
             if ns == fs.config.leader_ns:
                 fs.leader.x = x
                 fs.leader.y = y
+                fs.leader.yaw = yaw
                 fs.leader.last_odom_t = t
             else:
                 for fw in fs.followers:
                     if fw.ns == ns:
                         fw.x = x
                         fw.y = y
+                        fw.yaw = yaw
                         fw.last_odom_t = t
                         break
 
@@ -339,9 +351,13 @@ class FormationMonitorNode(Node):
                 continue
 
             # Expected world-frame position (distance-preserving)
-            ex = leader_x + ox - fw.x
-            ey = leader_y + oy - fw.y
-            err = math.hypot(ex, ey)
+            cy = math.cos(fs.leader.yaw)
+            sy = math.sin(fs.leader.yaw)
+
+            wx = leader_x + (cy * ox - sy * oy)
+            wy = leader_y + (sy * ox + cy * oy)
+
+            err = math.hypot(wx - fw.x, wy - fw.y)
             errors.append(err)
             fw.error_m = err
 
