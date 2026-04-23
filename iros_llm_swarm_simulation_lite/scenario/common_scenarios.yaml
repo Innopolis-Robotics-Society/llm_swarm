@@ -1,6 +1,7 @@
 scenarios:
   warehouse_2:
     world: "warehouse.world"
+    num_robots: 20
     map: "warehouse.yaml"
     initial_poses:
       - [2.0, 2.0, 0.0] 
@@ -27,6 +28,7 @@ scenarios:
   warehouse_4:
     world: "warehouse_four.world"
     map: "warehouse.yaml"
+    num_robots: 20
     initial_poses:
     # Левый нижний угол
       - [2.0, 2.0, 0.0]
@@ -58,6 +60,7 @@ scenarios:
   large_cave:
     world: "large_cave.world"
     map: "large_cave.yaml"
+    num_robots: 20
     initial_poses:
     # Зона 1
       - [-37.0, 58.5, 0.0]
@@ -91,6 +94,7 @@ scenarios:
   cave:
     world: "cave.world"
     map: "cave.yaml"
+    num_robots: 20
     initial_poses:
     # Зона 1
       - [-16.5, 28.5, 0.0]
