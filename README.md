@@ -307,7 +307,7 @@ PBS failed (2709.9 ms, 1 expansions)
 
 ### `iros_llm_swarm_formation`
 
-Centralized management of robot formations and distributes formation configuration to all robots.
+Centralized management of robot formations and distributes formation configuration to all robots. Formation Manager handles service calls and updates the formations configuration state via the `/formations/config` topic. Formation Monitor tracks the desired and actual position of a formation entries and publishes its status and positioning errors via the `/formations/status` topic.
 
 #### Topics
 
@@ -344,44 +344,54 @@ geometry_msgs/Polygon footprint
 bool active  # false = formation dissolved, followers go autonomous
 ```
 
-Example:
+- `/formations/status`
+
+Type: `iros_llm_swarm_interfaces/msg/FormationsStatus`
+
+QoS: `depth=10`
+
+Description: Publishes the complete runtime status of all formations in the system. Includes state (INACTIVE, FORMING, STABLE, DEGRADED, BROKEN), failure wornings and per-follower errors.
+
+Message Structure:
 ```text
-header:
-  stamp:
-    sec: 1710000000
-    nanosec: 0
-  frame_id: ""
+std_msgs/Header header
+FormationStatus[] formations
+```
 
-formations:
-- formation_id: "line"
-  leader_ns: "robot_0"
-  follower_ns: ["robot_1", "robot_2"]
+FormationStatus.msg:
+```text
+# State constants
+uint8 STATE_INACTIVE  = 0   # formation not active
+uint8 STATE_FORMING   = 1   # active, followers converging to offsets
+uint8 STATE_STABLE    = 2   # all followers within cohesion threshold
+uint8 STATE_DEGRADED  = 3   # some followers out of tolerance but recovering
+uint8 STATE_BROKEN    = 4   # formation cannot be maintained (follower lost/stuck)
 
-  offsets:
-  - {x: 1.0, y: 0.0, z: 0.0}
-  - {x: 2.0, y: 0.0, z: 0.0}
+# Failure code constants
+uint8 FAILURE_NONE        = 0
+uint8 FAILURE_FOLLOWER_LOST    = 1   # odom stopped arriving
+uint8 FAILURE_FOLLOWER_STUCK   = 2   # error not decreasing
+uint8 FAILURE_LEADER_LOST      = 3   # leader odom stopped arriving
 
-  footprint:
-    points:
-    - {x: 2.5, y: 0.0, z: 0.0}
-    - {x: 1.8, y: 1.8, z: 0.0}
-    <...>
+# Header 
+std_msgs/Header header
+string          formation_id
+string          leader_ns
+string[]        follower_ns
 
-  active: true
+# Discrete state 
+uint8  state           # one of STATE_* constants above
+uint8  failure_code    # one of FAILURE_* constants, FAILURE_NONE if state != BROKEN
+string failure_reason  # human-readable, empty if no failure
 
-- formation_id: "triangle"
-  leader_ns: "robot_3"
-  follower_ns: ["robot_4", "robot_5"]
+# Per-follower errors
+# Parallel to follower_ns. Position error [m] from assigned offset.
+# -1.0 = data not available for this follower.
+float32[] follower_errors_m
 
-  offsets:
-  - {x: -1.0, y: 1.0, z: 0.0}
-  - {x: -1.0, y: -1.0, z: 0.0}
-
-  footprint:
-    points:
-    <...>
-
-  active: false
+# Aggregate metrics
+float32 max_error_m   # max of follower_errors_m, -1 if unavailable
+float32 mean_error_m  # mean of follower_errors_m, -1 if unavailable
 ```
 
 #### Services

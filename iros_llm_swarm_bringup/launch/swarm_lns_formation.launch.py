@@ -118,7 +118,7 @@ def generate_launch_description():
         output='screen',
         parameters=[{
             'config_file':       formations_cfg,
-            'auto_activate':     False,
+            'auto_activate':     True,
             'footprint_padding': 0.2,
             'robot_radius':      0.3,
             'use_sim_time':      use_sim_time,
@@ -147,7 +147,7 @@ def generate_launch_description():
         stage_sim,
         TimerAction(period=1.0,  actions=[LogInfo(msg='Starting Nav2...'), local_nav2]),
         TimerAction(period=10.0, actions=[LogInfo(msg='Starting MAPF stack...'), mapf_planner]),
+        TimerAction(period=12.0, actions=[LogInfo(msg='Starting Formation manager stack...'), formation_manager]),
         formation_monitor,
-        formation_manager,
         rviz,
     ])
