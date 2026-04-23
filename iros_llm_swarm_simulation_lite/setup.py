@@ -13,6 +13,7 @@ setup(
         ('share/' + package_name + '/launch', glob('launch/*.launch.py')),
         ('share/' + package_name + '/stage_sim', glob('world/*.world')),
         ('share/' + package_name + '/stage_sim', glob('map/*')),
+        ('share/' + package_name + '/scenario', glob('scenario/*')),
         ('share/' + package_name + '/stage_sim', glob('robot_description/*.inc')),
 
     ],

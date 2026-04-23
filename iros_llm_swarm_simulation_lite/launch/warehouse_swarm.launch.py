@@ -6,22 +6,27 @@ from launch.actions import DeclareLaunchArgument, LogInfo
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
+import yaml
+from launch.actions import OpaqueFunction
 
 
-def generate_launch_description():
-    
-    pkg_dir =  FindPackageShare("iros_llm_swarm_simulation_lite")
+def setup(context, *args, **kwargs):
+    scenario = LaunchConfiguration('scenario').perform(context)
+    scenarios_file = LaunchConfiguration('scenarios_file').perform(context)
+    data = {}
+    try:
+        with open(scenarios_file, 'r') as f:
+            data = yaml.safe_load(f) or {}
+    except Exception:
+        data = {}
+    scenario_data = (data.get('scenarios') or {}).get(scenario) or {}
+    world_rel = scenario_data.get('world')
 
-    world_file_arg = DeclareLaunchArgument(
-        'world_file',
-        default_value=PathJoinSubstitution(
-            [
-                pkg_dir, "stage_sim", "warehouse.world",
-            ]
-        ))
+    if world_rel:
+        world_file = PathJoinSubstitution([FindPackageShare("iros_llm_swarm_simulation_lite"), "stage_sim", world_rel])
+    else:
+        world_file = LaunchConfiguration('world_file')
 
-    world_file = LaunchConfiguration('world_file')
-    
     stage_node = Node(
         package='stage_ros2',
         executable='stage_ros2',
@@ -36,9 +41,37 @@ def generate_launch_description():
             'base_watchdog_timeout': 0.2,
         }],
     )
+
+    return [stage_node]
+
+def generate_launch_description():
+    
+    pkg_dir =  FindPackageShare("iros_llm_swarm_simulation_lite")
+
+    scenario_arg = DeclareLaunchArgument(
+        'scenario',
+        default_value='cave',
+        description='Scenario name'
+    )
+
+    scenarios_file_arg = DeclareLaunchArgument(
+        'scenarios_file',
+        default_value=PathJoinSubstitution([FindPackageShare('iros_llm_swarm_simulation_lite'), 'scenario', 'common_scenarios.yaml']),
+        description='YAML with scenarios'
+    )
+
+    world_file_arg = DeclareLaunchArgument(
+        'world_file',
+        default_value=PathJoinSubstitution(
+            [
+                pkg_dir, "stage_sim", "cave.world",
+            ]
+        ))
     
     return LaunchDescription([
+        scenario_arg,
+        scenarios_file_arg,
         world_file_arg,
         LogInfo(msg='Launching Stage simulator...'),
-        stage_node,
+        OpaqueFunction(function=setup),
     ])
