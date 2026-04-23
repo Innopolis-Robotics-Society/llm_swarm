@@ -1,0 +1,19 @@
+# LlmDecision.action
+#
+# Sent by MapfPlan (BT node) to LlmAgentNode when a WARN or ERROR
+# arrives in MAPF feedback, or when a periodic log batch is ready.
+#
+# LlmAgentNode calls the LLM, optionally streams reasoning to the user,
+# and returns a single decision string for BT to act on.
+
+# ---- goal ----------------------------------------------------------------
+string level        # "WARN" | "ERROR" | "INFO"
+string event        # human-readable description of what happened
+string[] log_buffer # last N info lines accumulated before this event
+
+# ---- result --------------------------------------------------------------
+string decision     # "wait" | "abort" | "replan"
+string reasoning    # explanation shown to user (not used by BT)
+
+# ---- feedback ------------------------------------------------------------
+string reasoning    # LLM reasoning streamed to user while thinking
