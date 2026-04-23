@@ -8,7 +8,7 @@
 #include "behaviortree_cpp_v3/condition_node.h"
 #include "geometry_msgs/msg/point.hpp"
 #include "iros_llm_swarm_interfaces/action/set_goals.hpp"
-#include "iros_llm_swarm_interfaces/srv/disband_formation.hpp"
+#include "iros_llm_swarm_interfaces/srv/deactivate_formation.hpp"
 #include "iros_llm_swarm_interfaces/srv/set_formation.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
@@ -77,13 +77,13 @@ private:
 };
 
 // ---------------------------------------------------------------------------
-// DisableFormation — async wrapper around /formation/disband service
+// DisableFormation — async wrapper around /formation/deactivate service
 // ---------------------------------------------------------------------------
 class DisableFormation : public BT::StatefulActionNode
 {
 public:
-  using DisbandFormationSrv = iros_llm_swarm_interfaces::srv::DisbandFormation;
-  using ServiceFuture       = rclcpp::Client<DisbandFormationSrv>::SharedFuture;
+  using DeactivateFormationSrv = iros_llm_swarm_interfaces::srv::DeactivateFormation;
+  using ServiceFuture       = rclcpp::Client<DeactivateFormationSrv>::SharedFuture;
 
   DisableFormation(const std::string & name, const BT::NodeConfiguration & config);
 
@@ -94,7 +94,7 @@ public:
   void           onHalted()  override;
 
 private:
-  rclcpp::Client<DisbandFormationSrv>::SharedPtr client_;
+  rclcpp::Client<DeactivateFormationSrv>::SharedPtr client_;
   ServiceFuture                                  future_;
 };
 

@@ -37,7 +37,7 @@
  *   /<ns>/mapf_plan        (iros_llm_swarm_interfaces/MAPFPlan)
  *   /<ns>/odom             (nav_msgs/Odometry)
  *   /<leader_ns>/odom      (nav_msgs/Odometry)  [FORMATION only, dynamic]
- *   /formations/config     (FormationsState)
+ *   /formations/config     (FormationsConfig)
  *
  * Publications
  * ------------
@@ -72,7 +72,7 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav2_msgs/action/follow_path.hpp"
 
-#include "iros_llm_swarm_interfaces/msg/formations_state.hpp"
+#include "iros_llm_swarm_interfaces/msg/formations_config.hpp"
 #include "iros_llm_swarm_interfaces/msg/formation_config.hpp"
 #include "iros_llm_swarm_interfaces/msg/mapf_plan.hpp"
 #include "iros_llm_swarm_interfaces/msg/mapf_step.hpp"
@@ -84,7 +84,7 @@
 using FollowPath      = nav2_msgs::action::FollowPath;
 using GoalHandle      = rclcpp_action::ClientGoalHandle<FollowPath>;
 using FormationConfig = iros_llm_swarm_interfaces::msg::FormationConfig;
-using FormationsState = iros_llm_swarm_interfaces::msg::FormationsState;
+using FormationsConfig = iros_llm_swarm_interfaces::msg::FormationsConfig;
 using MAPFPlanMsg     = iros_llm_swarm_interfaces::msg::MAPFPlan;
 using MAPFStepMsg     = iros_llm_swarm_interfaces::msg::MAPFStep;
 using FollowerStatus  = iros_llm_swarm_interfaces::msg::FollowerStatus;
@@ -153,9 +153,9 @@ public:
 
     // Formation config (always active, single shared latched topic)
     auto latched = rclcpp::QoS(1).transient_local().reliable();
-    formation_sub_ = create_subscription<FormationsState>(
+    formation_sub_ = create_subscription<FormationsConfig>(
       "/formations/config", latched,
-      [this](const FormationsState::SharedPtr msg) { on_formations_state(msg); });
+      [this](const FormationsConfig::SharedPtr msg) { on_formations_state(msg); });
 
     // MAPF plan (always subscribed, only acted on in AUTONOMOUS mode)
     plan_sub_ = create_subscription<MAPFPlanMsg>(
@@ -272,7 +272,7 @@ private:
   // Formation mode switching
   // ---------------------------------------------------------------
 
-  void on_formations_state(const FormationsState::SharedPtr msg)
+  void on_formations_state(const FormationsConfig::SharedPtr msg)
   {
     bool found_my_formation = false;
 
@@ -752,7 +752,7 @@ private:
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr own_odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr leader_odom_sub_;
   rclcpp::Subscription<MAPFPlanMsg>::SharedPtr             plan_sub_;
-  rclcpp::Subscription<FormationsState>::SharedPtr         formation_sub_;
+  rclcpp::Subscription<FormationsConfig>::SharedPtr         formation_sub_;
 
   // Publishers
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr  cmd_vel_pub_;

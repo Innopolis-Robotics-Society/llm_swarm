@@ -15,7 +15,9 @@ find_package(rosidl_default_generators REQUIRED)
 # ---- Custom interfaces ------------------------------------------------------
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/FormationConfig.msg"
-  "msg/FormationsState.msg"
+  "msg/FormationsConfig.msg"
+  "msg/FormationStatus.msg"
+  "msg/FormationsStatus.msg"
   "msg/MAPFStep.msg"
   "msg/MAPFPlan.msg"
   "msg/FollowerStatus.msg"

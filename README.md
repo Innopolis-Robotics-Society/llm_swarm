@@ -313,7 +313,7 @@ Centralized management of robot formations and distributes formation configurati
 
 - `/formations/config`
 
-Type: `iros_llm_swarm_interfaces/msg/FormationsState`
+Type: `iros_llm_swarm_interfaces/msg/FormationsConfig`
 
 QoS: `TRANSIENT_LOCAL`, `RELIABLE`, `depth=1` (latched)
 

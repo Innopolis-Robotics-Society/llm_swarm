@@ -9,7 +9,7 @@ from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 from geometry_msgs.msg import Point, Polygon, Point32
 from std_msgs.msg import Header
 
-from iros_llm_swarm_interfaces.msg import FormationConfig, FormationsState
+from iros_llm_swarm_interfaces.msg import FormationConfig, FormationsConfig
 from iros_llm_swarm_interfaces.srv import (
     ActivateFormation,
     DeactivateFormation,
@@ -100,7 +100,7 @@ class FormationManagerNode(Node):
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
             reliability=ReliabilityPolicy.RELIABLE,
         )
-        self._pub = self.create_publisher(FormationsState, FORMATIONS_TOPIC, latched)
+        self._pub = self.create_publisher(FormationsConfig, FORMATIONS_TOPIC, latched)
 
         # Formation registry
         self._registry: dict[str, _Formation] = {}
@@ -374,7 +374,7 @@ class FormationManagerNode(Node):
     # Internal
 
     def _publish_all(self):
-        msg = FormationsState()
+        msg = FormationsConfig()
         now = self.get_clock().now().to_msg()
         msg.header.stamp = now
         msg.header.frame_id = ""

@@ -43,7 +43,7 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav2_msgs/action/follow_path.hpp"
 
-#include "iros_llm_swarm_interfaces/msg/formations_state.hpp"
+#include "iros_llm_swarm_interfaces/msg/formations_config.hpp"
 #include "iros_llm_swarm_interfaces/msg/formation_config.hpp"
 
 
@@ -52,7 +52,7 @@
 using FollowPath     = nav2_msgs::action::FollowPath;
 using GoalHandle     = rclcpp_action::ClientGoalHandle<FollowPath>;
 using FormationConfig = iros_llm_swarm_interfaces::msg::FormationConfig;
-using FormationsState = iros_llm_swarm_interfaces::msg::FormationsState;
+using FormationsConfig = iros_llm_swarm_interfaces::msg::FormationsConfig;
 
 
 // Utilities
@@ -121,9 +121,9 @@ public:
 
     // Formation config (always active, single shared topic)
     auto latched = rclcpp::QoS(1).transient_local().reliable();
-    formation_sub_ = create_subscription<FormationsState>(
+    formation_sub_ = create_subscription<FormationsConfig>(
       "/formations/config", latched,
-      [this](const FormationsState::SharedPtr msg) { on_formations_state(msg); });
+      [this](const FormationsConfig::SharedPtr msg) { on_formations_state(msg); });
 
     // MAPF path (always subscribed, only processed in AUTONOMOUS)
     path_sub_ = create_subscription<nav_msgs::msg::Path>(
@@ -220,7 +220,7 @@ private:
 
   // Callbacks — formation state
 
-  void on_formations_state(const FormationsState::SharedPtr msg)
+  void on_formations_state(const FormationsConfig::SharedPtr msg)
   {
     bool found_my_formation = false;
 
@@ -539,7 +539,7 @@ private:
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr  own_odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr  leader_odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr      path_sub_;
-  rclcpp::Subscription<FormationsState>::SharedPtr          formation_sub_;
+  rclcpp::Subscription<FormationsConfig>::SharedPtr          formation_sub_;
 
   // --- publisher ---
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr   cmd_vel_pub_;
