@@ -12,6 +12,8 @@ Panels:
         - /Polygon1
         - /Path7
         - /MarkerArray1
+        - /Map3
+        - /Map3/Topic1
       Splitter Ratio: 0.5
     Tree Height: 872
   - Class: rviz_common/Selection
@@ -1140,6 +1142,27 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /goal_markers
       Value: true
+    - Alpha: 0.699999988079071
+      Class: rviz_default_plugins/Map
+      Color Scheme: costmap
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /mapf_grid
+      Update Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /mapf_grid_updates
+      Use Timestamp: false
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -1186,16 +1209,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 10.58043098449707
+      Distance: 24.720102310180664
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 11.351179122924805
-        Y: 12.242653846740723
-        Z: 4.43398380279541
+        X: 14.252678871154785
+        Y: 7.9703168869018555
+        Z: 4.19108772277832
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

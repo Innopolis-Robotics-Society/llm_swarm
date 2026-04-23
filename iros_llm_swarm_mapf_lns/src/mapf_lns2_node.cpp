@@ -137,6 +137,7 @@ class MapfLns2Node : public rclcpp::Node {
     //     before being put back in the planning pool.
     declare_parameter("max_lives", 3);
     declare_parameter("unplanable_retry_delay_sec", 8.0);
+    declare_parameter("publish_debug_grid",      true); 
 
     num_robots_            = get_parameter("num_robots").as_int();
     time_step_sec_         = get_parameter("time_step_sec").as_double();
@@ -172,6 +173,7 @@ class MapfLns2Node : public rclcpp::Node {
         get_parameter("max_lives").as_int();
     unplanable_retry_delay_sec_ =
         get_parameter("unplanable_retry_delay_sec").as_double();
+    publish_debug_grid_ = get_parameter("publish_debug_grid").as_bool();
 
     // ---- state ----------------------------------------------------------
     current_positions_.resize(num_robots_, {0.0, 0.0});
@@ -265,6 +267,12 @@ class MapfLns2Node : public rclcpp::Node {
                 "grid_res=%.2fm, default_radius=%.2fm, warm_start=%d",
                 num_robots_, time_step_sec_, grid_resolution_,
                 default_robot_radius_, warm_start_enabled_ ? 1 : 0);
+
+    // ---- debug grid publisher -------------------------------------------
+    if (publish_debug_grid_) {
+      debug_grid_pub_ = create_publisher<nav_msgs::msg::OccupancyGrid>(
+          "/mapf_grid", rclcpp::QoS(1).transient_local().reliable());
+    }
   }
 
  private:
@@ -292,6 +300,32 @@ class MapfLns2Node : public rclcpp::Node {
     fb->info            = info;
     fb->warning         = warning;
     gh->publish_feedback(fb);
+  }
+
+  // --------------------------------------------------------------------
+  // Debug grid publisher
+  // --------------------------------------------------------------------
+  void publish_debug_grid()
+  {
+    if (!publish_debug_grid_ || !debug_grid_pub_ || !map_ready_) return;
+
+    auto msg = std::make_unique<nav_msgs::msg::OccupancyGrid>();
+    msg->header.stamp = now();
+    msg->header.frame_id = "map";
+
+    msg->info.resolution = map_resolution_;
+    msg->info.width      = static_cast<uint32_t>(grid_.cols);
+    msg->info.height     = static_cast<uint32_t>(grid_.rows);
+    msg->info.origin.position.x = map_origin_x_;
+    msg->info.origin.position.y = map_origin_y_;
+    msg->info.origin.orientation.w = 1.0;
+
+    msg->data.resize(grid_.rows * grid_.cols);
+    for (std::size_t i = 0; i < grid_.blocked.size(); ++i) {
+      msg->data[i] = grid_.blocked[i] ? 100 : 0;   // 100 = occupied, 0 = free
+    }
+
+    debug_grid_pub_->publish(std::move(msg));
   }
 
   // --------------------------------------------------------------------
@@ -328,6 +362,7 @@ class MapfLns2Node : public rclcpp::Node {
     map_origin_y_  = msg->info.origin.position.y;
     map_resolution_ = actual_res;
     map_ready_ = true;
+    publish_debug_grid();
   }
 
   // --------------------------------------------------------------------
@@ -627,6 +662,7 @@ class MapfLns2Node : public rclcpp::Node {
       start_monitoring();
     }
 
+    publish_debug_grid();
     publish_rich_feedback(gh, "executing", 0, agents.size(), 0, 0);
 
     result->success = true;
@@ -1416,6 +1452,7 @@ class MapfLns2Node : public rclcpp::Node {
     publish_mapf_plans(paths, active_ext_ids, snap_ox, snap_oy, snap_res);
     store_active_plan(paths, active_ext_ids, planned_goals, now());
     last_replan_time_ = now();
+    publish_debug_grid();
     publish_rich_feedback(active_goal_handle_, "executing");
     is_planning_ = false;
     (void)gh;
@@ -1934,6 +1971,7 @@ class MapfLns2Node : public rclcpp::Node {
   // Map / grid
   bool   map_ready_ = false;
   double map_origin_x_ = 0.0, map_origin_y_ = 0.0, map_resolution_ = 0.2;
+  bool publish_debug_grid_ = true;
   lns2::GridMap grid_;
 
   // Per-robot state
@@ -2013,6 +2051,7 @@ class MapfLns2Node : public rclcpp::Node {
   rclcpp_action::Server<SetGoalsAction>::SharedPtr plan_action_server_;
   rclcpp::TimerBase::SharedPtr monitor_timer_;
   std::shared_ptr<GoalHandle>  active_goal_handle_;
+  rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr debug_grid_pub_;
 
   // Solver
   lns2::LNS2Solver solver_;
