@@ -1068,6 +1068,11 @@ class MapfLns2Node : public rclcpp::Node {
             "robots [%s] out of lives after persistent stalls — giving "
             "up permanently. Reset with a fresh /swarm/set_goals.",
             ids_str.c_str());
+        publish_rich_feedback(active_goal_handle_, "executing",
+            arrived_count, in_progress_count, 0,
+            unplanable_robots_.size(),
+            /*info=*/"",
+            /*warning=*/"robots out of lives (stalls): " + ids_str);
       }
       stalled.erase(std::remove_if(stalled.begin(), stalled.end(),
           [this](uint32_t rid) { return unplanable_robots_.count(rid) > 0; }),
@@ -1212,6 +1217,17 @@ class MapfLns2Node : public rclcpp::Node {
         unplanable_robots_.insert(rid);
       }
       lk.unlock();
+
+      std::string ids_str;
+      for (uint32_t rid : newly_unplanable) {
+        if (!ids_str.empty()) ids_str += " ";
+        ids_str += std::to_string(rid);
+      }
+      publish_rich_feedback(gh, "executing",
+          /*arrived=*/0, /*active=*/0, /*deviated=*/0,
+          /*stalled=*/newly_unplanable.size(),
+          /*info=*/"",
+          /*warning=*/"robots have no static path, marked unplanable: " + ids_str);
     }
 
     if (agents.empty()) {
@@ -1351,6 +1367,12 @@ class MapfLns2Node : public rclcpp::Node {
     if (!succeeded) {
       RCLCPP_WARN(get_logger(),
           "replan did not reach collision-free; keeping old paths");
+      publish_rich_feedback(gh, "replanning",
+          /*arrived=*/0, /*active=*/static_cast<std::size_t>(agents.size()),
+          /*deviated=*/0, /*stalled=*/0,
+          /*info=*/"",
+          /*warning=*/"replan did not reach collision-free (" +
+              std::to_string(stats.final_collisions) + " collisions remain); keeping old paths");
       // Impose the cooldown even for a failed replan — otherwise the next
       // check_schedule tick (which will still see the same stalls that
       // triggered this one) will immediately request another replan,
@@ -1377,8 +1399,16 @@ class MapfLns2Node : public rclcpp::Node {
     // same empty prev_path -> StubNew -> same failure.
     {
       lk.lock();
-      detect_and_mark_failed(paths, active_ext_ids);
+      const std::size_t perm_failed = detect_and_mark_failed(paths, active_ext_ids);
       lk.unlock();
+      if (perm_failed > 0) {
+        publish_rich_feedback(gh, "executing",
+            /*arrived=*/0, /*active=*/static_cast<std::size_t>(agents.size()),
+            /*deviated=*/0, /*stalled=*/perm_failed,
+            /*info=*/"",
+            /*warning=*/std::to_string(perm_failed) +
+                " agent(s) out of lives after empty-path failures — permanently unplanable");
+      }
     }
 
     // Commit: publish new plans, update active plan
