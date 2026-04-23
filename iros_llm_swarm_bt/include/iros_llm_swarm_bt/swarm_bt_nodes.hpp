@@ -3,7 +3,14 @@
 #include <sstream>
 #include <string>
 
-using namespace std::chrono_literals;
+#include "behaviortree_cpp_v3/action_node.h"
+#include "behaviortree_cpp_v3/condition_node.h"
+#include "geometry_msgs/msg/point.hpp"
+#include "iros_llm_swarm_interfaces/action/set_goals.hpp"
+#include "iros_llm_swarm_interfaces/srv/deactivate_formation.hpp"
+#include "iros_llm_swarm_interfaces/srv/set_formation.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "rclcpp_action/rclcpp_action.hpp"
 
 namespace iros_llm_swarm_bt
 {
@@ -254,13 +261,15 @@ void MapfPlan::cancel_mapf()
 }
 
 // ---------------------------------------------------------------------------
-// feedback callback — called from ROS executor thread, must be lock-safe
+// DisableFormation — async wrapper around /formation/deactivate service
 // ---------------------------------------------------------------------------
 void MapfPlan::on_feedback(
   GoalHandle::SharedPtr /*gh*/,
   const std::shared_ptr<const Feedback> fb)
 {
-  auto node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
+public:
+  using DeactivateFormationSrv = iros_llm_swarm_interfaces::srv::DeactivateFormation;
+  using ServiceFuture       = rclcpp::Client<DeactivateFormationSrv>::SharedFuture;
 
   // Build a one-line summary of this feedback tick
   std::ostringstream line;
@@ -285,29 +294,10 @@ void MapfPlan::on_feedback(
     }
   }
 
-  // WARNING — immediate async LLM call (flush buffer + warning)
-  if (!fb->warning.empty()) {
-    RCLCPP_WARN(node->get_logger(), "MapfPlan feedback WARN: %s", fb->warning.c_str());
-    setOutput("mapf_warn", fb->warning);
-    send_to_llm("WARN", fb->warning);
-    return;
-  }
-
-  // INFO (periodic log) — send to LLM if interval enabled and elapsed
-  if (!fb->info.empty() && llm_log_interval_sec_ > 0.0) {
-    const auto now = node->now();
-    const bool first = (last_llm_log_time_.nanoseconds() == 0);
-    const double since = first ? llm_log_interval_sec_ + 1.0
-                                : (now - last_llm_log_time_).seconds();
-    if (since >= llm_log_interval_sec_) {
-      last_llm_log_time_ = now;
-      send_to_llm("INFO", fb->info);
-    }
-    return;
-  }
-
-  // OK — just logged into buffer, nothing more to do
-}
+private:
+  rclcpp::Client<DeactivateFormationSrv>::SharedPtr client_;
+  ServiceFuture                                  future_;
+};
 
 // ---------------------------------------------------------------------------
 // send_to_llm — async, does not block onRunning

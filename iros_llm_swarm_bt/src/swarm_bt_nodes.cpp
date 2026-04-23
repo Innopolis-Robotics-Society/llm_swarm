@@ -447,7 +447,7 @@ DisableFormation::DisableFormation(
 : BT::StatefulActionNode(name, config)
 {
   auto node = config.blackboard->get<rclcpp::Node::SharedPtr>("node");
-  client_ = node->create_client<DisbandFormationSrv>("/formation/disband");
+  client_ = node->create_client<DeactivateFormationSrv>("/formation/deactivate");
 }
 
 BT::PortsList DisableFormation::providedPorts()
@@ -469,11 +469,11 @@ BT::NodeStatus DisableFormation::onStart()
   }
 
   if (!client_->wait_for_service(2s)) {
-    RCLCPP_ERROR(node->get_logger(), "DisableFormation: /formation/disband not available");
+    RCLCPP_ERROR(node->get_logger(), "DisableFormation: /formation/deactivate not available");
     return BT::NodeStatus::FAILURE;
   }
 
-  auto req = std::make_shared<DisbandFormationSrv::Request>();
+  auto req = std::make_shared<DeactivateFormationSrv::Request>();
   req->formation_id = formation_id.value();
 
   future_ = client_->async_send_request(req).future.share();

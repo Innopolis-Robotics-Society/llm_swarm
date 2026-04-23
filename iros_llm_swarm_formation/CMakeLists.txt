@@ -25,6 +25,12 @@ install(PROGRAMS
   RENAME formation_manager_node
 )
 
+install(PROGRAMS
+  iros_llm_swarm_formation/formation_monitor_node.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME formation_monitor_node
+)
+
 # ---- Config & launch --------------------------------------------------------
 install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 

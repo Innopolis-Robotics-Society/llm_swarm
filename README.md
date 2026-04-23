@@ -313,7 +313,7 @@ Centralized management of robot formations and distributes formation configurati
 
 - `/formations/config`
 
-Type: `iros_llm_swarm_interfaces/msg/FormationsState`
+Type: `iros_llm_swarm_interfaces/msg/FormationsConfig`
 
 QoS: `TRANSIENT_LOCAL`, `RELIABLE`, `depth=1` (latched)
 
@@ -386,26 +386,38 @@ formations:
 
 #### Services
 
-- `/formation/set`
+| Service                 | Type                  | Description                                |
+| ----------------------- | --------------------- | ------------------------------------------ |
+| `/formation/set`        | `SetFormation`        | Create or update a formation               |
+| `/formation/activate`   | `ActivateFormation`   | Activate a formation                       |
+| `/formation/deactivate` | `DeactivateFormation` | Deactivate a formation                     |
+| `/formation/get`        | `GetFormation`        | Get a formation by ID                      |
+| `/formation/list`       | `ListFormations`      | List all formations                        |
+| `/formation/load`       | `LoadFormations`      | Load formations from YAML                  |
+| `/formation/save`       | `SaveFormations`      | Save formations to YAML                    |
+
+##### `/formation/set`
 
 Type: `iros_llm_swarm_interfaces/srv/SetFormation`
 
-Description: Creates or updates a formation. 
+Description: Creates or updates a formation.
 
-Defenition:
+Definition:
+
 ```text
-string formation_id     # unique name; if exists, updates this formation
-string leader_ns        # e.g. "robot_0"
-string[] follower_ns    # e.g. ["robot_1", "robot_2"]
-float64[] offsets_x     # parallel arrays — offset in leader body frame
-float64[] offsets_y     # length must equal follower_ns length
-bool activate           # true = activate immediately after setting
+string formation_id
+string leader_ns
+string[] follower_ns
+float64[] offsets_x
+float64[] offsets_y
+bool activate
 ---
 bool success
 string message
 ```
 
 Example:
+
 ```bash
 ros2 service call /formation/set iros_llm_swarm_interfaces/srv/SetFormation "
 formation_id: 'line'
@@ -417,13 +429,14 @@ activate: true
 "
 ```
 
-- `/formation/disband`
+##### `/formation/activate`
 
-Type: `iros_llm_swarm_interfaces/srv/DisbandFormation`
+Type: `iros_llm_swarm_interfaces/srv/ActivateFormation`
 
-Description: Deactivates a formation without removing it. Followers resume autonomous operation. Still be published in `/formations/config`.
+Description: Activates a formation. Followers start maintaining offsets relative to the leader.
 
-Defenition:
+Definition:
+
 ```text
 string formation_id
 ---
@@ -432,13 +445,125 @@ string message
 ```
 
 Example:
+
 ```bash
-ros2 service call /formation/disband iros_llm_swarm_interfaces/srv/DisbandFormation "formation_id: 'line'"
+ros2 service call /formation/activate iros_llm_swarm_interfaces/srv/ActivateFormation "formation_id: 'line'"
+```
+
+##### `/formation/deactivate`
+
+Type: `iros_llm_swarm_interfaces/srv/DeactivateFormation`
+
+Description: Deactivates a formation. Followers stop maintaining formation and operate independently.
+
+Definition:
+
+```text
+string formation_id
+---
+bool success
+string message
+```
+
+Example:
+
+```bash
+ros2 service call /formation/deactivate iros_llm_swarm_interfaces/srv/DeactivateFormation "formation_id: 'line'"
+```
+
+##### `/formation/get`
+
+Type: `iros_llm_swarm_interfaces/srv/GetFormation`
+
+Description: Returns a single formation by ID, including computed footprint.
+
+Definition:
+
+```text
+string formation_id
+---
+bool success
+string message
+FormationConfig formation
+```
+
+Example:
+
+```bash
+ros2 service call /formation/get iros_llm_swarm_interfaces/srv/GetFormation "formation_id: 'line'"
+```
+
+##### `/formation/list`
+
+Type: `iros_llm_swarm_interfaces/srv/ListFormations`
+
+Description: Returns all registered formations (active and inactive).
+
+Definition:
+
+```text
+---
+FormationConfig[] formations
+```
+
+Example:
+
+```bash
+ros2 service call /formation/list iros_llm_swarm_interfaces/srv/ListFormations "{}"
+```
+
+##### `/formation/load`
+
+Type: `iros_llm_swarm_interfaces/srv/LoadFormations`
+
+Description: Loads formations from a YAML file. Optionally clears existing formations and activates loaded ones.
+
+Definition:
+
+```text
+string file_path
+bool clear_existing
+bool activate
+---
+bool success
+string message
+uint32 loaded_count
+```
+
+Example:
+
+```bash
+ros2 service call /formation/load iros_llm_swarm_interfaces/srv/LoadFormations \
+"{file_path: '/path/to/formations.yaml', clear_existing: true, activate: false}"
+```
+
+##### `/formation/save`
+
+Type: `iros_llm_swarm_interfaces/srv/SaveFormations`
+
+Description: Saves current formations to a YAML file. Optionally saves only active formations.
+
+Definition:
+
+```text
+string file_path
+bool only_active
+---
+bool success
+string message
+uint32 saved_count
+```
+
+Example:
+
+```bash
+ros2 service call /formation/save iros_llm_swarm_interfaces/srv/SaveFormations \
+"{file_path: '/path/to/formations.yaml', only_active: false}"
 ```
 
 ### `iros_llm_swarm_interfaces`
 
-Custom ROS 2 messages, services, and actions: FormationConfig, SetFormation, DisbandFormation, SetGoals.
+Custom ROS 2 messages, services, and actions.
 
 ### `iros_llm_swarm_simulation`
 
