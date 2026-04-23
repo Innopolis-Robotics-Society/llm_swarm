@@ -26,7 +26,7 @@ colcon build
 ```
 
 ```bash
-ros2 launch iros_llm_swarm_bringup swarm_warehouse.launch.py
+ros2 launch iros_llm_swarm_bringup swarm_lns.launch.py
 ```
 
 > **GUI/RViz:** for graphical output make sure X11 forwarding or similar display passthrough is configured in `docker-compose.yaml` (e.g. `DISPLAY`, `/tmp/.X11-unix` volume mount, `xhost +local:docker` on the host).
@@ -35,6 +35,7 @@ ros2 launch iros_llm_swarm_bringup swarm_warehouse.launch.py
 
 | Argument       | Default           | Description                                                                                        |
 | -------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
+| `scenario`     | `cave`            | Defines the map and configuration of robots for operation. Acceptable parameters:<br>- `large_cave`: A giant `cave` map, not recommended for running on default settings due to large distances.<br>- `cave`: A medium-sized `cave` map.<br>- `warehouse_2`: A standard `warehouse` map with shelving, robots arranged in two groups in the lower left and upper right corners.<br>- `warehouse_4`: A standard `warehouse` map with shelving, robots arranged in four groups in the four corners. |
 | `num_robots`   | `20`              | Number of robots to controll by system (still spawn as many robots as there are in the world file) |
 | `world_file`   | `warehouse.world` | Stage world file path                                                                              |
 | `rviz_cfg`     | `swarm_20.rviz`   | common RViz config for 20 robots                                                                   |
