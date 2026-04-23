@@ -18,7 +18,18 @@ MapfPlan::MapfPlan(
 : BT::StatefulActionNode(name, config)
 {
   auto node = config.blackboard->get<rclcpp::Node::SharedPtr>("node");
+
   client_ = rclcpp_action::create_client<SetGoals>(node, "/swarm/set_goals");
+  llm_client_ = rclcpp_action::create_client<LlmDecision>(node, "/llm/decision");
+
+  // ROS param: how often to send periodic info log to LLM (0 = disabled)
+  node->declare_parameter("llm_log_interval_sec", 0.0);
+  llm_log_interval_sec_ = node->get_parameter("llm_log_interval_sec").as_double();
+
+  // ROS param: info ring buffer size
+  node->declare_parameter("llm_info_buffer_size", 50);
+  max_info_buffer_ = static_cast<std::size_t>(
+    node->get_parameter("llm_info_buffer_size").as_int());
 }
 
 BT::PortsList MapfPlan::providedPorts()
@@ -30,6 +41,7 @@ BT::PortsList MapfPlan::providedPorts()
       "Target positions, one per robot_id"),
     BT::OutputPort<bool>("mapf_ok"),
     BT::OutputPort<std::string>("mapf_info"),
+    BT::OutputPort<std::string>("mapf_warn"),
   };
 }
 
@@ -67,15 +79,38 @@ BT::NodeStatus MapfPlan::onStart()
     return BT::NodeStatus::FAILURE;
   }
 
+  // Reset state
+  {
+    std::lock_guard<std::mutex> lk(buffer_mutex_);
+    info_buffer_.clear();
+  }
+  {
+    std::lock_guard<std::mutex> lk(decision_mutex_);
+    pending_decision_ = "";
+  }
+  llm_pending_ = false;
+  goal_handle_.reset();
+  result_future_ = {};
+  llm_goal_handle_.reset();
+  llm_result_future_ = {};
+  last_llm_log_time_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+
+  // Build goal
   SetGoals::Goal goal_msg;
   for (auto id : robot_ids.value()) {
     goal_msg.robot_ids.push_back(static_cast<uint32_t>(id));
   }
   goal_msg.goals = goals.value();
 
-  goal_handle_future_ = client_->async_send_goal(goal_msg);
-  goal_handle_.reset();
-  result_future_ = {};
+  // Send goal with feedback callback
+  rclcpp_action::Client<SetGoals>::SendGoalOptions opts;
+  opts.feedback_callback =
+    [this](GoalHandle::SharedPtr gh,
+           const std::shared_ptr<const Feedback> fb) {
+      on_feedback(gh, fb);
+    };
+
+  goal_handle_future_ = client_->async_send_goal(goal_msg, opts);
 
   RCLCPP_INFO(node->get_logger(),
     "MapfPlan: sent goal for %zu robots", robot_ids->size());
@@ -87,7 +122,54 @@ BT::NodeStatus MapfPlan::onRunning()
 {
   auto node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
 
-  // Waiting for goal handle
+  // ---- Check pending LLM decision ------------------------------------
+  {
+    std::lock_guard<std::mutex> lk(decision_mutex_);
+    if (!pending_decision_.empty()) {
+      const std::string dec = pending_decision_;
+      pending_decision_ = "";
+      llm_pending_ = false;
+
+      if (dec == "abort") {
+        RCLCPP_WARN(node->get_logger(), "MapfPlan: LLM decision=abort");
+        setOutput("mapf_ok", false);
+        setOutput("mapf_info", "aborted by LLM");
+        cancel_mapf();
+        return BT::NodeStatus::FAILURE;
+      } else if (dec == "replan") {
+        RCLCPP_INFO(node->get_logger(), "MapfPlan: LLM decision=replan");
+        // Signal blackboard — runner will set new goal and switch mode
+        config().blackboard->set<std::string>("@mapf_decision", "replan");
+        cancel_mapf();
+        return BT::NodeStatus::FAILURE;
+      }
+      // "wait" — fall through, continue RUNNING
+      RCLCPP_INFO(node->get_logger(), "MapfPlan: LLM decision=wait, continuing");
+    }
+  }
+
+  // ---- Check LLM result future (async, non-blocking) -----------------
+  if (llm_pending_ && !llm_goal_handle_ && future_ready(llm_goal_handle_future_)) {
+    llm_goal_handle_ = llm_goal_handle_future_.get();
+    if (llm_goal_handle_) {
+      llm_result_future_ = llm_client_->async_get_result(llm_goal_handle_);
+    } else {
+      RCLCPP_WARN(node->get_logger(), "MapfPlan: LLM goal rejected");
+      llm_pending_ = false;
+    }
+  }
+  if (llm_pending_ && llm_goal_handle_ && future_ready(llm_result_future_)) {
+    auto wrapped = llm_result_future_.get();
+    if (wrapped.code == rclcpp_action::ResultCode::SUCCEEDED) {
+      std::lock_guard<std::mutex> lk(decision_mutex_);
+      pending_decision_ = wrapped.result->decision;
+    } else {
+      RCLCPP_WARN(node->get_logger(), "MapfPlan: LLM action did not succeed");
+      llm_pending_ = false;
+    }
+  }
+
+  // ---- Wait for MAPF goal handle ------------------------------------
   if (!goal_handle_) {
     if (!future_ready(goal_handle_future_)) {
       return BT::NodeStatus::RUNNING;
@@ -102,7 +184,7 @@ BT::NodeStatus MapfPlan::onRunning()
     result_future_ = client_->async_get_result(goal_handle_);
   }
 
-  // Waiting for result
+  // ---- Wait for MAPF result -----------------------------------------
   if (!future_ready(result_future_)) {
     return BT::NodeStatus::RUNNING;
   }
@@ -110,7 +192,7 @@ BT::NodeStatus MapfPlan::onRunning()
   auto wrapped = result_future_.get();
   if (wrapped.code != rclcpp_action::ResultCode::SUCCEEDED) {
     setOutput("mapf_ok", false);
-    setOutput("mapf_info", "action did not succeed");
+    setOutput("mapf_info", "action transport error");
     return BT::NodeStatus::FAILURE;
   }
 
@@ -121,28 +203,151 @@ BT::NodeStatus MapfPlan::onRunning()
       << " time_ms=" << res->planning_time_ms
       << " replans=" << res->total_replans;
 
-  setOutput("mapf_ok", res->success);
   setOutput("mapf_info", oss.str());
 
-  RCLCPP_INFO(node->get_logger(), "MapfPlan: done — %s", oss.str().c_str());
+  if (res->num_agents_planned == 0) {
+    RCLCPP_ERROR(node->get_logger(),
+      "MapfPlan: FAILURE — no agents planned. %s", oss.str().c_str());
+    setOutput("mapf_ok", false);
+    return BT::NodeStatus::FAILURE;
+  }
 
-  return res->success ? BT::NodeStatus::SUCCESS : BT::NodeStatus::FAILURE;
+  if (!res->success) {
+    RCLCPP_WARN(node->get_logger(),
+      "MapfPlan: partial plan (%u agents). %s",
+      res->num_agents_planned, oss.str().c_str());
+  } else {
+    RCLCPP_INFO(node->get_logger(), "MapfPlan: done — %s", oss.str().c_str());
+  }
+
+  setOutput("mapf_ok", true);
+  return BT::NodeStatus::SUCCESS;
 }
 
 void MapfPlan::onHalted()
 {
   auto node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
-  RCLCPP_INFO(node->get_logger(), "MapfPlan: halted — cancelling action");
+  RCLCPP_INFO(node->get_logger(), "MapfPlan: halted");
+  cancel_mapf();
+  // Cancel pending LLM call too
+  if (llm_goal_handle_) {
+    llm_client_->async_cancel_goal(llm_goal_handle_);
+    llm_goal_handle_.reset();
+  }
+  llm_pending_ = false;
+  {
+    std::lock_guard<std::mutex> lk(decision_mutex_);
+    pending_decision_ = "";
+  }
+}
 
+void MapfPlan::cancel_mapf()
+{
   if (goal_handle_) {
     client_->async_cancel_goal(goal_handle_);
+    goal_handle_.reset();
   } else if (future_ready(goal_handle_future_)) {
     auto gh = goal_handle_future_.get();
     if (gh) client_->async_cancel_goal(gh);
   }
-
-  goal_handle_.reset();
   result_future_ = {};
+}
+
+// ---------------------------------------------------------------------------
+// feedback callback — called from ROS executor thread, must be lock-safe
+// ---------------------------------------------------------------------------
+void MapfPlan::on_feedback(
+  GoalHandle::SharedPtr /*gh*/,
+  const std::shared_ptr<const Feedback> fb)
+{
+  auto node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
+
+  // Build a one-line summary of this feedback tick
+  std::ostringstream line;
+  line << "[t=" << fb->elapsed_ms << "ms"
+       << " status=" << fb->status
+       << " arrived=" << fb->robots_arrived
+       << " active=" << fb->robots_active
+       << " stall=" << fb->robot_stall
+       << " replans=" << fb->replans_done
+       << "]";
+  if (!fb->info.empty())    line << " INFO: "    << fb->info;
+  if (!fb->warning.empty()) line << " WARN: "    << fb->warning;
+
+  const std::string line_str = line.str();
+
+  // Always add to ring buffer
+  {
+    std::lock_guard<std::mutex> lk(buffer_mutex_);
+    info_buffer_.push_back(line_str);
+    while (info_buffer_.size() > max_info_buffer_) {
+      info_buffer_.pop_front();
+    }
+  }
+
+  // WARNING — immediate async LLM call (flush buffer + warning)
+  if (!fb->warning.empty()) {
+    RCLCPP_WARN(node->get_logger(), "MapfPlan feedback WARN: %s", fb->warning.c_str());
+    setOutput("mapf_warn", fb->warning);
+    send_to_llm("WARN", fb->warning);
+    return;
+  }
+
+  // INFO (periodic log) — send to LLM if interval enabled and elapsed
+  if (!fb->info.empty() && llm_log_interval_sec_ > 0.0) {
+    const auto now = node->now();
+    const bool first = (last_llm_log_time_.nanoseconds() == 0);
+    const double since = first ? llm_log_interval_sec_ + 1.0
+                                : (now - last_llm_log_time_).seconds();
+    if (since >= llm_log_interval_sec_) {
+      last_llm_log_time_ = now;
+      send_to_llm("INFO", fb->info);
+    }
+    return;
+  }
+
+  // OK — just logged into buffer, nothing more to do
+}
+
+// ---------------------------------------------------------------------------
+// send_to_llm — async, does not block onRunning
+// ---------------------------------------------------------------------------
+void MapfPlan::send_to_llm(const std::string & level, const std::string & event)
+{
+  auto node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
+
+  // Don't pile up LLM calls — skip if one is already in flight
+  if (llm_pending_) {
+    RCLCPP_WARN(node->get_logger(),
+      "MapfPlan: LLM call already in flight, skipping new %s event", level.c_str());
+    return;
+  }
+
+  if (!llm_client_->action_server_is_ready()) {
+    RCLCPP_WARN(node->get_logger(),
+      "MapfPlan: /llm/decision not available, skipping %s event", level.c_str());
+    return;
+  }
+
+  LlmDecision::Goal goal;
+  goal.level = level;
+  goal.event = event;
+
+  // Snapshot log buffer
+  {
+    std::lock_guard<std::mutex> lk(buffer_mutex_);
+    for (const auto & s : info_buffer_) {
+      goal.log_buffer.push_back(s);
+    }
+  }
+
+  llm_goal_handle_.reset();
+  llm_result_future_ = {};
+  llm_goal_handle_future_ = llm_client_->async_send_goal(goal);
+  llm_pending_ = true;
+
+  RCLCPP_INFO(node->get_logger(),
+    "MapfPlan: sent %s event to LLM (%zu log lines)", level.c_str(), goal.log_buffer.size());
 }
 
 // ===========================================================================
@@ -229,7 +434,6 @@ BT::NodeStatus SetFormation::onRunning()
 
 void SetFormation::onHalted()
 {
-  // Service calls can't be cancelled in ROS 2 — just drop the future
   future_ = {};
 }
 
