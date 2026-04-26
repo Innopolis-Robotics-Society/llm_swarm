@@ -305,7 +305,7 @@ class MapfLns2Node : public rclcpp::Node {
   // --------------------------------------------------------------------
   // Debug grid publisher
   // --------------------------------------------------------------------
-  void publish_debug_grid()
+  void publish_debug_grid(const lns2::GridMap& g)
   {
     if (!publish_debug_grid_ || !debug_grid_pub_ || !map_ready_) return;
 
@@ -314,19 +314,21 @@ class MapfLns2Node : public rclcpp::Node {
     msg->header.frame_id = "map";
 
     msg->info.resolution = map_resolution_;
-    msg->info.width      = static_cast<uint32_t>(grid_.cols);
-    msg->info.height     = static_cast<uint32_t>(grid_.rows);
+    msg->info.width      = static_cast<uint32_t>(g.cols);
+    msg->info.height     = static_cast<uint32_t>(g.rows);
     msg->info.origin.position.x = map_origin_x_;
     msg->info.origin.position.y = map_origin_y_;
     msg->info.origin.orientation.w = 1.0;
 
-    msg->data.resize(grid_.rows * grid_.cols);
-    for (std::size_t i = 0; i < grid_.blocked.size(); ++i) {
-      msg->data[i] = grid_.blocked[i] ? 100 : 0;   // 100 = occupied, 0 = free
+    msg->data.resize(g.rows * g.cols);
+    for (std::size_t i = 0; i < g.blocked.size(); ++i) {
+      msg->data[i] = g.blocked[i] ? 100 : 0;   // 100 = occupied, 0 = free
     }
 
     debug_grid_pub_->publish(std::move(msg));
   }
+
+  void publish_debug_grid() { publish_debug_grid(grid_); }
 
   // --------------------------------------------------------------------
   // Map callback
@@ -662,7 +664,7 @@ class MapfLns2Node : public rclcpp::Node {
       start_monitoring();
     }
 
-    publish_debug_grid();
+    publish_debug_grid(snap_grid);  // snap_grid has skipped-robot cells blocked
     publish_rich_feedback(gh, "executing", 0, agents.size(), 0, 0);
 
     result->success = true;
@@ -1199,10 +1201,19 @@ class MapfLns2Node : public rclcpp::Node {
     active_slot.reserve(snap_ids.size());
 
     std::vector<uint32_t> newly_unplanable;
+    std::vector<uint32_t> arrived_ext_ids;
     for (std::size_t i = 0; i < snap_ids.size(); ++i) {
       const uint32_t rid = snap_ids[i];
       if (rid >= static_cast<uint32_t>(num_robots_) || !snap_odom[rid]) continue;
       if (snap_unplanable.count(rid)) continue;  // already marked
+
+      // Arrived robots are treated as settled static obstacles.
+      if (std::hypot(snap_pos[rid].first  - snap_goals[i].x,
+                     snap_pos[rid].second - snap_goals[i].y) <= goal_reached_m_) {
+        arrived_ext_ids.push_back(rid);
+        continue;
+      }
+
       lns2::Agent a;
       a.id = static_cast<lns2::AgentId>(agents.size());
       const auto& [sx, sy] = snap_pos[rid];
@@ -1266,15 +1277,39 @@ class MapfLns2Node : public rclcpp::Node {
           /*warning=*/"robots have no static path, marked unplanable: " + ids_str);
     }
 
+    // Log and block cells of arrived robots.
+    if (!arrived_ext_ids.empty()) {
+      std::string ids;
+      for (uint32_t rid : arrived_ext_ids) {
+        if (!ids.empty()) ids += " ";
+        ids += std::to_string(rid);
+      }
+      RCLCPP_INFO(get_logger(),
+          "replan: %zu robot(s) settled at goal [%s] — marking as static obstacle",
+          arrived_ext_ids.size(), ids.c_str());
+      block_arrived_robots(snap_grid, arrived_ext_ids, snap_pos, snap_fp,
+                            snap_ox, snap_oy, snap_res);
+    }
+
     if (agents.empty()) {
       RCLCPP_WARN(get_logger(), "replan: no valid agents");
       is_planning_ = false;
       return;
     }
 
-    // Block cells of robots not in the plan (physically present obstacles)
-    block_skipped_robots(snap_grid, active_ext_ids, snap_pos, snap_odom,
-                          snap_fp, snap_ox, snap_oy, snap_res);
+    // Block non-participating robots (combine active + arrived so arrived
+    // robots are not double-logged by block_skipped_robots).
+    {
+      std::vector<uint32_t> all_accounted = active_ext_ids;
+      all_accounted.insert(all_accounted.end(),
+                           arrived_ext_ids.begin(), arrived_ext_ids.end());
+      block_skipped_robots(snap_grid, all_accounted, snap_pos, snap_odom,
+                            snap_fp, snap_ox, snap_oy, snap_res);
+    }
+
+    // Publish planning grid now — shows blocked cells for arrived/skipped
+    // robots regardless of whether the solve below succeeds.
+    publish_debug_grid(snap_grid);
 
     // ---- Try warm start ----
     bool used_warm = false;
@@ -1452,7 +1487,6 @@ class MapfLns2Node : public rclcpp::Node {
     publish_mapf_plans(paths, active_ext_ids, snap_ox, snap_oy, snap_res);
     store_active_plan(paths, active_ext_ids, planned_goals, now());
     last_replan_time_ = now();
-    publish_debug_grid();
     publish_rich_feedback(active_goal_handle_, "executing");
     is_planning_ = false;
     (void)gh;
@@ -1461,6 +1495,35 @@ class MapfLns2Node : public rclcpp::Node {
   // --------------------------------------------------------------------
   // Helpers
   // --------------------------------------------------------------------
+
+  // Block grid cells occupied by robots that have arrived at their goal.
+  // Called during replan so that active robots route around settled ones.
+  void block_arrived_robots(
+      lns2::GridMap& grid,
+      const std::vector<uint32_t>& arrived_ids,
+      const std::vector<std::pair<double, double>>& positions,
+      const std::vector<double>& fp_radii,
+      double ox, double oy, double res) const
+  {
+    for (const uint32_t rid : arrived_ids) {
+      if (rid >= static_cast<uint32_t>(num_robots_)) continue;
+      const auto& [sx, sy] = positions[rid];
+      const lns2::Cell c = world_to_cell(sx, sy, ox, oy, res,
+                                          grid.rows, grid.cols);
+      const double radius = fp_radii[rid] > 0 ? fp_radii[rid]
+                                               : default_robot_radius_;
+      // Block only the physical footprint (no inflation): the active
+      // robot's own footprint+inflation provides the safety buffer,
+      // so adding inflation here would double-count it.
+      const auto fp = lns2::FootprintModel::from_radius(radius, res);
+      for (const auto& off : fp.offsets) {
+        const lns2::Cell fc = c + off;
+        if (grid.in_bounds(fc)) {
+          grid.blocked[grid.index_of(fc)] = 1;
+        }
+      }
+    }
+  }
 
   // Block grid cells occupied by robots that have odom but are NOT in the
   // plan (e.g. skipped due to blocked goal). Other robots must route around
@@ -1490,8 +1553,7 @@ class MapfLns2Node : public rclcpp::Node {
       lns2::Cell c = world_to_cell(sx, sy, ox, oy, res, grid.rows, grid.cols);
       const double radius = fp_radii[rid] > 0 ? fp_radii[rid]
                                                : default_robot_radius_;
-      auto fp = lns2::FootprintModel::from_radius(
-          radius + inflation_radius_, res);
+      auto fp = lns2::FootprintModel::from_radius(radius, res);
       for (const auto& off : fp.offsets) {
         lns2::Cell fc = c + off;
         if (grid.in_bounds(fc)) {

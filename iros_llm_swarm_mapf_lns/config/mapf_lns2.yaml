@@ -10,7 +10,7 @@ mapf_lns2:
     map_topic:               "/map"
     grid_resolution:          0.2      # meters / cell for the planner grid
     default_robot_radius:     0.22     # used when /published_footprint hasn't arrived yet
-    inflation_radius:         0.3      # additional radius added to footprint
+    inflation_radius:         0.225      # additional radius added to footprint
     max_speed:                0.5      # informational; not used by the solver directly
     goal_reached_m:           0.35      # arrival tolerance for "all done" check
 
