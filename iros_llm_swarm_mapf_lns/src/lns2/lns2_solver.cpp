@@ -143,8 +143,17 @@ void LNS2Solver::build_initial_solution(const std::vector<Agent>& agents,
     return dist[a] < dist[b];
   });
 
+  const auto build_t0 = std::chrono::steady_clock::now();
+  const auto build_budget = (params.initial_time_budget_ms > 0)
+      ? std::chrono::milliseconds(params.initial_time_budget_ms)
+      : std::chrono::milliseconds::max();
+
   for (AgentId id : order) {
     if (dist[id] < 0) continue;   // skip unreachable (leaves path empty)
+    if (params.initial_time_budget_ms > 0 &&
+        std::chrono::steady_clock::now() - build_t0 >= build_budget) {
+      break;  // budget exhausted; repair loop handles remaining agents
+    }
     auto res = soft_astar(agents[id], grid, sol.table(), params.astar, h_cache_);
     stats.total_astar_calls += 1;
     stats.total_astar_expansions += res.expansions;

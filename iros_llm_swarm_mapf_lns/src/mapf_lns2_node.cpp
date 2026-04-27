@@ -27,6 +27,7 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/polygon_stamped.hpp"
+#include "geometry_msgs/msg/twist.hpp"
 
 #include "iros_llm_swarm_interfaces/action/set_goals.hpp"
 #include "iros_llm_swarm_interfaces/msg/mapf_plan.hpp"
@@ -98,10 +99,17 @@ class MapfLns2Node : public rclcpp::Node {
     declare_parameter("alns_reaction",           0.1);
     declare_parameter("diagonal_moves",          false);
     // Replan / warm start
-    declare_parameter("replan_check_hz",         2.0);
-    declare_parameter("replan_threshold_m",      2.0);
-    declare_parameter("replan_cooldown_sec",     2.0);
-    declare_parameter("replan_time_budget_ms",   150);
+    declare_parameter("replan_check_hz",              2.0);
+    declare_parameter("replan_threshold_m",           2.0);
+    declare_parameter("replan_cooldown_sec",          2.0);
+    declare_parameter("replan_time_budget_ms",        150);
+    // A* expansion cap for cold replans and warm repairs. Lower than the
+    // initial-solve cap to keep replan latency bounded.
+    declare_parameter("replan_max_astar_expansions",  200000);
+    // Wall-clock cap for build_initial_solution during the initial mission
+    // solve (execute_goal). When exceeded the loop stops early and the repair
+    // loop handles remaining agents. 0 = no limit.
+    declare_parameter("initial_build_time_budget_ms", 6000);
     declare_parameter("warm_start_enabled",      true);
     declare_parameter("warm_patch_radius_cells", 10);
     // Stall detection: if a robot doesn't move at least `stall_move_thresh_m`
@@ -158,8 +166,10 @@ class MapfLns2Node : public rclcpp::Node {
     replan_check_hz_       = get_parameter("replan_check_hz").as_double();
     replan_threshold_m_    = get_parameter("replan_threshold_m").as_double();
     replan_cooldown_sec_   = get_parameter("replan_cooldown_sec").as_double();
-    replan_time_budget_ms_ = get_parameter("replan_time_budget_ms").as_int();
-    warm_start_enabled_    = get_parameter("warm_start_enabled").as_bool();
+    replan_time_budget_ms_           = get_parameter("replan_time_budget_ms").as_int();
+    replan_max_astar_expansions_     = get_parameter("replan_max_astar_expansions").as_int();
+    initial_build_time_budget_ms_    = get_parameter("initial_build_time_budget_ms").as_int();
+    warm_start_enabled_           = get_parameter("warm_start_enabled").as_bool();
     warm_patch_radius_     = get_parameter("warm_patch_radius_cells").as_int();
     stall_timeout_sec_     = get_parameter("stall_timeout_sec").as_double();
     stall_move_thresh_m_   = get_parameter("stall_move_thresh_m").as_double();
@@ -201,6 +211,7 @@ class MapfLns2Node : public rclcpp::Node {
     footprint_subs_.resize(num_robots_);
     status_subs_.resize(num_robots_);
     plan_pubs_.resize(num_robots_);
+    cmd_vel_pubs_.resize(num_robots_);
     last_status_.assign(num_robots_, FollowerStatus{});
     last_status_time_.assign(num_robots_, rclcpp::Time{0, 0, RCL_ROS_TIME});
     for (int i = 0; i < num_robots_; ++i) {
@@ -246,6 +257,11 @@ class MapfLns2Node : public rclcpp::Node {
 
       plan_pubs_[i] = create_publisher<MAPFPlanMsg>(
           "/robot_" + std::to_string(i) + "/mapf_plan", 10);
+      // Best-effort latched-override publisher for emergency stop.
+      // Published only on cancel to zero out velocity before Nav2 finishes
+      // processing its cancel request (Nav2 cancel can take 1-3 s).
+      cmd_vel_pubs_[i] = create_publisher<geometry_msgs::msg::Twist>(
+          "/robot_" + std::to_string(i) + "/cmd_vel", 1);
     }
 
     // ---- action server --------------------------------------------------
@@ -259,7 +275,17 @@ class MapfLns2Node : public rclcpp::Node {
           return handle_cancel(gh);
         },
         [this](const std::shared_ptr<GoalHandle> gh) {
-          std::thread([this, gh]() { execute_goal(gh); }).detach();
+          std::thread([this, gh]() {
+            try {
+              execute_goal(gh);
+            } catch (const std::exception& e) {
+              RCLCPP_ERROR(get_logger(), "execute_goal threw: %s", e.what());
+              is_active_ = false;
+            } catch (...) {
+              RCLCPP_ERROR(get_logger(), "execute_goal threw unknown exception");
+              is_active_ = false;
+            }
+          }).detach();
         });
 
     RCLCPP_INFO(get_logger(),
@@ -415,11 +441,45 @@ class MapfLns2Node : public rclcpp::Node {
   }
 
   rclcpp_action::CancelResponse handle_cancel(
-      const std::shared_ptr<GoalHandle>)
+      const std::shared_ptr<GoalHandle> gh)
   {
-    std::lock_guard<std::mutex> lk(state_mutex_);
-    stop_monitoring();
-    publish_stop_all();
+    {
+      std::lock_guard<std::mutex> lk(state_mutex_);
+      stop_monitoring();
+      publish_stop_all();
+      active_goal_handle_.reset();
+      active_robot_ids_.clear();
+      active_goals_world_.clear();
+    }
+    // Set is_active_ = false immediately so that:
+    //  * trigger_replan's commit section skips publishing (guards concurrent solve),
+    //  * execute_goal's commit section skips publishing (guards initial-plan race),
+    //  * handle_goal rejects new missions until gh->canceled() completes.
+    is_active_ = false;
+
+    // gh->canceled() MUST be called from CANCELING state, which only exists
+    // after this function returns ACCEPT — the goal is still in EXECUTING while
+    // we are inside handle_cancel. Spawn a thread that polls until the goal
+    // transitions to CANCELING (typically <1 ms) and then completes it.
+    auto result = std::make_shared<SetGoalsAction::Result>();
+    result->success    = false;
+    result->message    = "Cancelled";
+    result->error_code = SetGoalsAction::Result::CANCELLED;
+    result->total_replans = total_replans_;
+    result->total_execution_sec = (now() - mission_start_time_).seconds();
+    std::thread([gh, result]() {
+      using namespace std::chrono_literals;
+      for (int i = 0; i < 200; ++i) {
+        if (gh->is_canceling()) {
+          gh->canceled(result);
+          return;
+        }
+        std::this_thread::sleep_for(5ms);
+      }
+      // Goal transitioned to a terminal state before CANCELING
+      // (e.g., succeed() won a race). No action needed.
+    }).detach();
+
     return rclcpp_action::CancelResponse::ACCEPT;
   }
 
@@ -565,12 +625,13 @@ class MapfLns2Node : public rclcpp::Node {
 
     if (agents.empty()) {
       result->success    = false;
-      result->message    = "No valid agents";
       result->error_code = SetGoalsAction::Result::NO_VALID_AGENTS;
       result->total_replans = total_replans_;
       result->total_execution_sec = (now() - mission_start_time_).seconds();
-      is_active_ = false;
-      gh->succeed(result);
+      if (is_active_.exchange(false)) {
+        result->message = "No valid agents";
+        gh->succeed(result);
+      }
       return;
     }
 
@@ -578,8 +639,9 @@ class MapfLns2Node : public rclcpp::Node {
       result->success    = false;
       result->message    = "Cancelled before planning";
       result->error_code = SetGoalsAction::Result::CANCELLED;
-      is_active_ = false;
-      gh->canceled(result);
+      result->total_replans = total_replans_;
+      result->total_execution_sec = (now() - mission_start_time_).seconds();
+      if (is_active_.exchange(false)) gh->canceled(result);
       return;
     }
 
@@ -606,7 +668,9 @@ class MapfLns2Node : public rclcpp::Node {
     block_skipped_robots(snap_grid, plan_ids_ext, snap_pos, snap_have_odom,
                           snap_fp_radii, snap_ox, snap_oy, snap_res);
 
-    // Run solver (cold)
+    // Run solver (cold). Uses max_astar_expansions (900000) for initial build
+    // quality; the build phase is wall-clock-capped at initial_build_time_budget_ms
+    // so pathological cases don't block new goals for tens of seconds.
     publish_rich_feedback(gh, "planning");
 
     const auto t0 = std::chrono::steady_clock::now();
@@ -627,8 +691,15 @@ class MapfLns2Node : public rclcpp::Node {
       result->total_replans = total_replans_;
       result->total_execution_sec = (now() - mission_start_time_).seconds();
       RCLCPP_ERROR(get_logger(), "%s", result->message.c_str());
-      is_active_ = false;
-      gh->succeed(result);
+      if (is_active_.exchange(false)) {
+        if (gh->is_canceling()) {
+          result->message = "Cancelled during planning";
+          result->error_code = SetGoalsAction::Result::CANCELLED;
+          gh->canceled(result);
+        } else {
+          gh->succeed(result);
+        }
+      }
       return;
     }
 
@@ -636,8 +707,9 @@ class MapfLns2Node : public rclcpp::Node {
       result->success    = false;
       result->message    = "Cancelled after planning";
       result->error_code = SetGoalsAction::Result::CANCELLED;
-      is_active_ = false;
-      gh->canceled(result);
+      result->total_replans = total_replans_;
+      result->total_execution_sec = (now() - mission_start_time_).seconds();
+      if (is_active_.exchange(false)) gh->canceled(result);
       return;
     }
 
@@ -649,15 +721,30 @@ class MapfLns2Node : public rclcpp::Node {
       result->success    = false;
       result->message    = "All agents failed planning (empty paths)";
       result->error_code = SetGoalsAction::Result::PBS_FAILED;
+      result->total_replans = total_replans_;
+      result->total_execution_sec = (now() - mission_start_time_).seconds();
       RCLCPP_ERROR(get_logger(), "%s", result->message.c_str());
-      is_active_ = false;
-      gh->succeed(result);
+      if (is_active_.exchange(false)) {
+        if (gh->is_canceling()) {
+          result->message = "Cancelled";
+          result->error_code = SetGoalsAction::Result::CANCELLED;
+          gh->canceled(result);
+        } else {
+          gh->succeed(result);
+        }
+      }
       return;
     }
 
-    // Publish & remember plan
+    // Publish & remember plan.
+    // Guard against handle_cancel winning the is_active_ race while solve ran.
     {
       std::lock_guard<std::mutex> lk(state_mutex_);
+      if (!is_active_) {
+        // Cancel was accepted while we were planning; the cancel thread will
+        // call gh->canceled() once the goal transitions to CANCELING.
+        return;
+      }
       publish_mapf_plans(paths, plan_ids_ext, snap_ox, snap_oy, snap_res);
       store_active_plan(paths, plan_ids_ext, plan_goals_world, now());
       active_goal_handle_ = gh;
@@ -711,6 +798,7 @@ class MapfLns2Node : public rclcpp::Node {
   void publish_stop_all()
   {
     ++plan_id_counter_;
+    geometry_msgs::msg::Twist zero_vel;  // all fields default to 0
     for (uint32_t rid : active_robot_ids_) {
       if (rid >= static_cast<uint32_t>(num_robots_)) continue;
       MAPFPlanMsg empty;
@@ -719,6 +807,9 @@ class MapfLns2Node : public rclcpp::Node {
       empty.plan_id         = plan_id_counter_;
       // empty.steps left empty -> follower treats this as CANCEL
       plan_pubs_[rid]->publish(empty);
+      // Direct zero-velocity override so the robot stops immediately,
+      // before the path_follower finishes cancelling its Nav2 goal.
+      cmd_vel_pubs_[rid]->publish(zero_vel);
     }
   }
 
@@ -1421,7 +1512,7 @@ class MapfLns2Node : public rclcpp::Node {
     }
 
     if (!used_warm) {
-      params = make_params(/*warm=*/false);
+      params = make_params(/*warm=*/false, /*is_replan=*/true);
       const bool ok = solver_.solve(agents, snap_grid, params, &paths, &stats);
       RCLCPP_INFO(get_logger(),
         "cold replan: iters=%zu init_coll=%zu -> %zu, %.1fms, ok=%d",
@@ -1482,8 +1573,14 @@ class MapfLns2Node : public rclcpp::Node {
       }
     }
 
-    // Commit: publish new plans, update active plan
+    // Commit: publish new plans, update active plan.
+    // Guard against cancel arriving while the solver was running.
     lk.lock();
+    if (!is_active_) {
+      // Goal was cancelled during the solve; discard results.
+      is_planning_ = false;
+      return;
+    }
     publish_mapf_plans(paths, active_ext_ids, snap_ox, snap_oy, snap_res);
     store_active_plan(paths, active_ext_ids, planned_goals, now());
     last_replan_time_ = now();
@@ -1810,20 +1907,30 @@ class MapfLns2Node : public rclcpp::Node {
     return newly_benched_cnt + newly_permanent_cnt;
   }
 
-  lns2::LNS2Params make_params(bool warm) const
+  // warm=true              → warm replan via solve_from (no initial build)
+  // warm=false, !is_replan → initial mission solve (high-quality A*, time-capped build)
+  // warm=false,  is_replan → cold replan (lower expansion cap, no build time limit)
+  lns2::LNS2Params make_params(bool warm, bool is_replan = false) const
   {
     lns2::LNS2Params p;
     p.astar.step_cost          = 1;
     p.astar.collision_penalty  = static_cast<lns2::Cost>(collision_penalty_);
     p.astar.horizon            = static_cast<lns2::Timestep>(horizon_steps_);
-    p.astar.max_expansions     = static_cast<std::size_t>(max_astar_expansions_);
+    p.astar.max_expansions     = (warm || is_replan)
+        ? static_cast<std::size_t>(replan_max_astar_expansions_)
+        : static_cast<std::size_t>(max_astar_expansions_);
     p.astar.diagonal_moves     = diagonal_moves_;
     p.neighborhood_size        = static_cast<std::size_t>(neighborhood_size_);
     p.time_budget_ms           = warm ? static_cast<std::size_t>(replan_time_budget_ms_)
-                                        : static_cast<std::size_t>(time_budget_ms_);
+                                      : static_cast<std::size_t>(time_budget_ms_);
     p.plateau_limit            = static_cast<std::size_t>(plateau_limit_);
     p.segment_size             = static_cast<std::size_t>(segment_size_);
     p.alns_reaction            = alns_reaction_;
+    // Time-cap the initial build phase. Only set for the initial mission solve;
+    // cold replans are already bounded per-A*-call by replan_max_astar_expansions_.
+    p.initial_time_budget_ms   = (!warm && !is_replan)
+        ? static_cast<std::size_t>(initial_build_time_budget_ms_)
+        : 0;
     p.seed                     = 0;  // nondeterministic per run
     return p;
   }
@@ -2020,6 +2127,8 @@ class MapfLns2Node : public rclcpp::Node {
   double replan_threshold_m_;
   double replan_cooldown_sec_;
   int    replan_time_budget_ms_;
+  int    replan_max_astar_expansions_;
+  int    initial_build_time_budget_ms_;
   bool   warm_start_enabled_;
   int    warm_patch_radius_;
   double stall_timeout_sec_;
@@ -2110,6 +2219,7 @@ class MapfLns2Node : public rclcpp::Node {
   std::vector<rclcpp::Subscription<geometry_msgs::msg::PolygonStamped>::SharedPtr> footprint_subs_;
   std::vector<rclcpp::Subscription<FollowerStatus>::SharedPtr>               status_subs_;
   std::vector<rclcpp::Publisher<MAPFPlanMsg>::SharedPtr>                     plan_pubs_;
+  std::vector<rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr>       cmd_vel_pubs_;
   rclcpp_action::Server<SetGoalsAction>::SharedPtr plan_action_server_;
   rclcpp::TimerBase::SharedPtr monitor_timer_;
   std::shared_ptr<GoalHandle>  active_goal_handle_;
