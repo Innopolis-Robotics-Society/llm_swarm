@@ -103,6 +103,7 @@ class MapfLns2Node : public rclcpp::Node {
     declare_parameter("replan_threshold_m",           2.0);
     declare_parameter("replan_cooldown_sec",          2.0);
     declare_parameter("replan_time_budget_ms",        150);
+    declare_parameter("replan_segment_size",          8);
     // A* expansion cap for cold replans and warm repairs. Lower than the
     // initial-solve cap to keep replan latency bounded.
     declare_parameter("replan_max_astar_expansions",  200000);
@@ -110,8 +111,12 @@ class MapfLns2Node : public rclcpp::Node {
     // solve (execute_goal). When exceeded the loop stops early and the repair
     // loop handles remaining agents. 0 = no limit.
     declare_parameter("initial_build_time_budget_ms", 6000);
-    declare_parameter("warm_start_enabled",      true);
-    declare_parameter("warm_patch_radius_cells", 10);
+    declare_parameter("warm_start_enabled",            true);
+    declare_parameter("warm_patch_radius_cells",       10);
+    // Seed rejection threshold: max collisions per agent before falling back
+    // to cold start. Lower values are conservative but cause unnecessary cold
+    // replans when stubs (StubFar) are present.
+    declare_parameter("warm_max_collisions_per_agent", 4);
     // Stall detection: if a robot doesn't move at least `stall_move_thresh_m`
     // over `stall_timeout_sec` and hasn't arrived at its goal, force a replan.
     // This catches the case where ros_path's expected position equals the
@@ -167,10 +172,12 @@ class MapfLns2Node : public rclcpp::Node {
     replan_threshold_m_    = get_parameter("replan_threshold_m").as_double();
     replan_cooldown_sec_   = get_parameter("replan_cooldown_sec").as_double();
     replan_time_budget_ms_           = get_parameter("replan_time_budget_ms").as_int();
+    replan_segment_size_             = get_parameter("replan_segment_size").as_int();
     replan_max_astar_expansions_     = get_parameter("replan_max_astar_expansions").as_int();
     initial_build_time_budget_ms_    = get_parameter("initial_build_time_budget_ms").as_int();
-    warm_start_enabled_           = get_parameter("warm_start_enabled").as_bool();
-    warm_patch_radius_     = get_parameter("warm_patch_radius_cells").as_int();
+    warm_start_enabled_              = get_parameter("warm_start_enabled").as_bool();
+    warm_patch_radius_               = get_parameter("warm_patch_radius_cells").as_int();
+    warm_max_coll_per_agent_         = get_parameter("warm_max_collisions_per_agent").as_int();
     stall_timeout_sec_     = get_parameter("stall_timeout_sec").as_double();
     stall_move_thresh_m_   = get_parameter("stall_move_thresh_m").as_double();
     progress_log_interval_sec_ =
@@ -195,6 +202,7 @@ class MapfLns2Node : public rclcpp::Node {
     last_movement_time_.assign(num_robots_, rclcpp::Time{0, 0, RCL_ROS_TIME});
     consecutive_empty_fails_.assign(num_robots_, 0);
     consecutive_stall_iters_.assign(num_robots_, 0);
+    consecutive_failed_ticks_.assign(num_robots_, 0);
     lives_remaining_.assign(num_robots_, max_lives_);
 
     // ---- map subscription (transient local) -----------------------------
@@ -430,6 +438,8 @@ class MapfLns2Node : public rclcpp::Node {
                 consecutive_empty_fails_.end(), 0);
       std::fill(consecutive_stall_iters_.begin(),
                 consecutive_stall_iters_.end(), 0);
+      std::fill(consecutive_failed_ticks_.begin(),
+                consecutive_failed_ticks_.end(), 0);
       std::fill(lives_remaining_.begin(), lives_remaining_.end(), max_lives_);
       unplanable_since_.clear();
       last_progress_log_time_ = rclcpp::Time{0, 0, RCL_ROS_TIME};
@@ -601,17 +611,24 @@ class MapfLns2Node : public rclcpp::Node {
       // to goal on the static map alone? If not, the LNS2 solver will fail
       // silently on this agent (empty path, claimed as success) and we'll
       // be stuck in a replan loop forever. Mark unplanable up front.
-      if (!static_path_exists(snap_grid, a.start, a.goal, a.footprint)) {
-        RCLCPP_ERROR(get_logger(),
-            "robot_%u: no static path from start grid(%d,%d) to goal grid(%d,%d) "
-            "exists on the current map (footprint won't fit through). "
-            "Marking unplanable.",
-            rid, a.start.row, a.start.col, a.goal.row, a.goal.col);
-        {
-          std::lock_guard<std::mutex> lk(state_mutex_);
-          unplanable_robots_.insert(rid);
+      // Use physical radius only (no inflation): inflation is a safety margin
+      // for temporal planning, not a hard geometric constraint. Using the
+      // inflated footprint here rejects paths through corridors the robot can
+      // physically traverse, causing false-positive unplanable markings.
+      {
+        const auto check_fp = lns2::FootprintModel::from_radius(radius, snap_res);
+        if (!static_path_exists(snap_grid, a.start, a.goal, check_fp)) {
+          RCLCPP_ERROR(get_logger(),
+              "robot_%u: no static path from start grid(%d,%d) to goal grid(%d,%d) "
+              "exists on the current map (footprint won't fit through). "
+              "Marking unplanable.",
+              rid, a.start.row, a.start.col, a.goal.row, a.goal.col);
+          {
+            std::lock_guard<std::mutex> lk(state_mutex_);
+            unplanable_robots_.insert(rid);
+          }
+          continue;
         }
-        continue;
       }
       agents.push_back(std::move(a));
       plan_ids_ext.push_back(rid);
@@ -892,6 +909,7 @@ class MapfLns2Node : public rclcpp::Node {
           unplanable_robots_.erase(rid);
           consecutive_stall_iters_[rid] = 0;
           consecutive_empty_fails_[rid] = 0;
+          consecutive_failed_ticks_[rid] = 0;
           if (have_odom_[rid]) {
             last_movement_pos_[rid] = current_positions_[rid];
           }
@@ -953,6 +971,7 @@ class MapfLns2Node : public rclcpp::Node {
         last_movement_pos_[rid]  = {cx, cy};
         last_movement_time_[rid] = t_now;
         consecutive_stall_iters_[rid] = 0;
+        consecutive_failed_ticks_[rid] = 0;
         continue;
       }
 
@@ -968,6 +987,7 @@ class MapfLns2Node : public rclcpp::Node {
         last_movement_pos_[rid]  = {cx, cy};
         last_movement_time_[rid] = t_now;
         consecutive_stall_iters_[rid] = 0;
+        consecutive_failed_ticks_[rid] = 0;
       }
 
       // Look at the most recent FollowerStatus for this robot.
@@ -1005,11 +1025,13 @@ class MapfLns2Node : public rclcpp::Node {
           // old staleness.
           last_movement_time_[rid] = t_now;
           consecutive_stall_iters_[rid] = 0;
+          consecutive_failed_ticks_[rid] = 0;
           break;
         }
         case FollowerStatus::STATE_NAVIGATING: {
           // Odom-based: if navigating but not moving for too long,
           // something is physically stuck (Nav2 spin, obstacle, etc.).
+          consecutive_failed_ticks_[rid] = 0;
           if (last_movement_time_[rid].nanoseconds() == 0) {
             last_movement_time_[rid] = t_now;
             break;
@@ -1025,9 +1047,18 @@ class MapfLns2Node : public rclcpp::Node {
         }
         case FollowerStatus::STATE_FAILED: {
           ++failed_count;
-          stalled.push_back(rid);
-          stall_reason_fail.push_back(rid);
-          consecutive_stall_iters_[rid] += 1;
+          consecutive_failed_ticks_[rid] += 1;
+          // Grace period: don't escalate to "stalled" on the first FAILED
+          // tick. Path follower's Layer B retry already fires, so an
+          // immediate FAILED often self-resolves within 0.6s. Wait for 2
+          // consecutive FAILED ticks (~1.0s at status_pub_hz=2.0) before
+          // treating as a genuine stall requiring MAPF intervention.
+          static constexpr int kFailGraceTicks = 2;
+          if (consecutive_failed_ticks_[rid] >= kFailGraceTicks) {
+            stalled.push_back(rid);
+            stall_reason_fail.push_back(rid);
+            consecutive_stall_iters_[rid] += 1;
+          }
           break;
         }
         case FollowerStatus::STATE_PLAN_COMPLETE: {
@@ -1333,14 +1364,19 @@ class MapfLns2Node : public rclcpp::Node {
         a.goal = rescued;
       }
       if (a.start.row == a.goal.row && a.start.col == a.goal.col) continue;
-      // Static reachability (same rationale as execute_goal).
-      if (!static_path_exists(snap_grid, a.start, a.goal, a.footprint)) {
-        RCLCPP_ERROR(get_logger(),
-            "replan: robot_%u has no static path start(%d,%d) -> goal(%d,%d), "
-            "marking unplanable",
-            rid, a.start.row, a.start.col, a.goal.row, a.goal.col);
-        newly_unplanable.push_back(rid);
-        continue;
+      // Static reachability — use physical radius only (no inflation); see
+      // execute_goal comment. Inflated footprint causes false-positive
+      // unplanable marks for tight-but-navigable corridors.
+      {
+        const auto check_fp = lns2::FootprintModel::from_radius(radius, snap_res);
+        if (!static_path_exists(snap_grid, a.start, a.goal, check_fp)) {
+          RCLCPP_ERROR(get_logger(),
+              "replan: robot_%u has no static path start(%d,%d) -> goal(%d,%d), "
+              "marking unplanable",
+              rid, a.start.row, a.start.col, a.goal.row, a.goal.col);
+          newly_unplanable.push_back(rid);
+          continue;
+        }
       }
       agents.push_back(std::move(a));
       active_ext_ids.push_back(rid);
@@ -1495,7 +1531,8 @@ class MapfLns2Node : public rclcpp::Node {
         return;
       }
 
-      if (lns2::should_warm_start(rep, agents.size())) {
+      if (lns2::should_warm_start(rep, agents.size(),
+              static_cast<std::size_t>(warm_max_coll_per_agent_))) {
         params = make_params(/*warm=*/true);
         const bool ok = solver_.solve_from(std::move(seed), agents, snap_grid,
                                             params, &paths, &stats);
@@ -1921,10 +1958,13 @@ class MapfLns2Node : public rclcpp::Node {
         : static_cast<std::size_t>(max_astar_expansions_);
     p.astar.diagonal_moves     = diagonal_moves_;
     p.neighborhood_size        = static_cast<std::size_t>(neighborhood_size_);
-    p.time_budget_ms           = warm ? static_cast<std::size_t>(replan_time_budget_ms_)
-                                      : static_cast<std::size_t>(time_budget_ms_);
+    p.time_budget_ms           = (warm || is_replan)
+        ? static_cast<std::size_t>(replan_time_budget_ms_)
+        : static_cast<std::size_t>(time_budget_ms_);
     p.plateau_limit            = static_cast<std::size_t>(plateau_limit_);
-    p.segment_size             = static_cast<std::size_t>(segment_size_);
+    p.segment_size             = (warm || is_replan)
+        ? static_cast<std::size_t>(replan_segment_size_)
+        : static_cast<std::size_t>(segment_size_);
     p.alns_reaction            = alns_reaction_;
     // Time-cap the initial build phase. Only set for the initial mission solve;
     // cold replans are already bounded per-A*-call by replan_max_astar_expansions_.
@@ -2127,10 +2167,12 @@ class MapfLns2Node : public rclcpp::Node {
   double replan_threshold_m_;
   double replan_cooldown_sec_;
   int    replan_time_budget_ms_;
+  int    replan_segment_size_;
   int    replan_max_astar_expansions_;
   int    initial_build_time_budget_ms_;
   bool   warm_start_enabled_;
   int    warm_patch_radius_;
+  int    warm_max_coll_per_agent_;
   double stall_timeout_sec_;
   double stall_move_thresh_m_;
   double progress_log_interval_sec_;
@@ -2192,6 +2234,7 @@ class MapfLns2Node : public rclcpp::Node {
   // unplanable mark when the counter crosses its threshold.
   std::vector<int>  consecutive_empty_fails_;
   std::vector<int>  consecutive_stall_iters_;
+  std::vector<int>  consecutive_failed_ticks_;
 
   // Remaining "lives" per robot. Decremented each time a robot is
   // marked unplanable. While > 0, the robot is returned to the

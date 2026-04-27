@@ -350,11 +350,12 @@ private:
     // Adopt the new plan wholesale — any previous plan and Nav2 goal
     // are cancelled; counters reset.
     cancel_nav2();
-    plan_          = msg;
-    plan_id_       = msg->plan_id;
-    current_step_  = 0;
-    nav2_failures_ = 0;
-    last_fail_     = FollowerStatus::FAIL_NONE;
+    plan_               = msg;
+    plan_id_            = msg->plan_id;
+    current_step_       = 0;
+    nav2_failures_      = 0;
+    local_retries_used_ = 0;
+    last_fail_          = FollowerStatus::FAIL_NONE;
 
     // If odom hasn't arrived yet, we'll start from on_own_odom.
     if (!have_own_odom_) {
@@ -532,18 +533,40 @@ private:
   void on_nav2_result(rclcpp_action::ResultCode code, size_t seg_end)
   {
     if (code != rclcpp_action::ResultCode::SUCCEEDED) {
-      // Any non-success (ABORTED, CANCELED) from Nav2 means the segment
-      // didn't complete. Report FAILED and wait for MAPF to replan.
       ++nav2_failures_;
       last_fail_ = FollowerStatus::FAIL_NAV2_ABORTED;
+
+      // Local retry: re-issue the same goal from the current pose after a
+      // short delay. Handles transient aborts (another robot in the RPP
+      // carrot lookahead window) without escalating to MAPF.
+      // Retries are capped per segment dispatch and reset on success or
+      // plan replacement — cannot livelock.
+      if (local_retries_used_ < kMaxLocalRetries && plan_ && have_own_odom_) {
+        ++local_retries_used_;
+        RCLCPP_WARN(get_logger(),
+          "[%s] Nav2 segment aborted (result code=%d, failures=%u) — retry %u/%u in %.1fs",
+          ns_.c_str(), static_cast<int>(code), nav2_failures_,
+          local_retries_used_, kMaxLocalRetries, kRetryDelaySec);
+        pending_seg_end_ = seg_end;
+        // Publish NAVIGATING so MAPF's odom-stall watchdog (stall_timeout_sec=4.0)
+        // is the upper bound; MAPF doesn't see hidden retries until they exhaust.
+        set_state(FollowerStatus::STATE_NAVIGATING);
+        retry_timer_ = create_wall_timer(
+          std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::duration<double>(kRetryDelaySec)),
+          [this]() { do_retry(); });
+        return;
+      }
+
       RCLCPP_WARN(get_logger(),
-        "[%s] Nav2 segment aborted (result code=%d, failures=%u) — FAILED",
+        "[%s] Nav2 segment aborted (result code=%d, failures=%u) — FAILED (retries exhausted)",
         ns_.c_str(), static_cast<int>(code), nav2_failures_);
       set_state(FollowerStatus::STATE_FAILED);
       return;
     }
 
-    // Segment succeeded. Advance to the last step of the segment.
+    // Segment succeeded. Reset retry counter and advance.
+    local_retries_used_ = 0;
     current_step_ = seg_end;
 
     if (!plan_ || current_step_ >= plan_->steps.size()) {
@@ -568,6 +591,16 @@ private:
     set_state(FollowerStatus::STATE_PLAN_COMPLETE);
   }
 
+  void do_retry()
+  {
+    if (retry_timer_) { retry_timer_->cancel(); retry_timer_.reset(); }
+    // Guard: if a new plan arrived during the wait, don't replay the stale segment.
+    if (!plan_ || state_ == FollowerStatus::STATE_IDLE) return;
+    // start_next_segment rebuilds from current odom, so position drift during
+    // the wait is naturally accounted for.
+    start_next_segment();
+  }
+
   void on_hold_expired()
   {
     if (hold_timer_) { hold_timer_->cancel(); hold_timer_.reset(); }
@@ -590,7 +623,8 @@ private:
 
   void cancel_nav2()
   {
-    if (hold_timer_) { hold_timer_->cancel(); hold_timer_.reset(); }
+    if (retry_timer_) { retry_timer_->cancel(); retry_timer_.reset(); }
+    if (hold_timer_)  { hold_timer_->cancel();  hold_timer_.reset(); }
     if (current_gh_) {
       nav2_ac_->async_cancel_goal(current_gh_);
       current_gh_.reset();
@@ -603,6 +637,7 @@ private:
     plan_id_            = 0;
     current_step_       = 0;
     nav2_failures_      = 0;
+    local_retries_used_ = 0;
     last_fail_          = FollowerStatus::FAIL_NONE;
     hold_remaining_sec_ = 0.0f;
     set_state(FollowerStatus::STATE_IDLE);
@@ -714,6 +749,14 @@ private:
   // skipping real intermediate waypoints around corners.
   static constexpr double kSkipRadiusNear = 0.3;
 
+  // Local retry: on Nav2 abort re-issue the same goal from the current
+  // pose after kRetryDelaySec. Handles transient near-miss aborts caused
+  // by another robot passing through the RPP carrot lookahead window.
+  // Bounded by kMaxLocalRetries per segment dispatch; resets on success
+  // or plan replacement, so it cannot livelock.
+  static constexpr uint32_t kMaxLocalRetries = 2;    // 3 total attempts
+  static constexpr double   kRetryDelaySec   = 0.6;
+
   // Identity
   std::string ns_, frame_;
 
@@ -748,6 +791,10 @@ private:
 
   GoalHandle::SharedPtr current_gh_;
 
+  // Local retry state (reset alongside nav2_failures_ on plan adoption)
+  uint32_t local_retries_used_ = 0;
+  size_t   pending_seg_end_    = 0;
+
   // Subscribers
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr own_odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr leader_odom_sub_;
@@ -764,6 +811,7 @@ private:
   // Timers
   rclcpp::TimerBase::SharedPtr pd_timer_;
   rclcpp::TimerBase::SharedPtr hold_timer_;
+  rclcpp::TimerBase::SharedPtr retry_timer_;
   rclcpp::TimerBase::SharedPtr status_heartbeat_timer_;
 };
 

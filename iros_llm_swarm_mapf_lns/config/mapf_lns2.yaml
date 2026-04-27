@@ -10,7 +10,7 @@ mapf_lns2:
     map_topic:               "/map"
     grid_resolution:          0.2      # meters / cell for the planner grid
     default_robot_radius:     0.22     # used when /published_footprint hasn't arrived yet
-    inflation_radius:         0.225    # additional radius added to footprint
+    inflation_radius:         0.3    # additional radius added to footprint
     max_speed:                0.5      # informational; not used by the solver directly
     goal_reached_m:           0.35     # arrival tolerance for "all done" check
 
@@ -42,12 +42,14 @@ mapf_lns2:
     replan_check_hz:           2.0
     replan_threshold_m:        2.0     # deviation distance that triggers replan
     replan_cooldown_sec:       2.0     # min gap between consecutive replans
-    replan_time_budget_ms:   300       # budget for warm replan (shorter than cold)
+    replan_time_budget_ms:  1500       # budget for both warm and cold replans (was 300 warm-only)
+    replan_segment_size:       8       # ALNS weight update period for replans (was segment_size=50)
     replan_max_astar_expansions: 200000  # A* cap for cold replans (trigger_replan).
                                          # Lower than max_astar_expansions to keep
                                          # cold-replan latency under a few seconds.
     warm_start_enabled:     true
-    warm_patch_radius_cells:   2       # how far actual pose can be from plan and still patch
+    warm_patch_radius_cells:  10       # how far actual pose can be from plan and still patch (was 2 = 0.4m)
+    warm_max_collisions_per_agent: 4   # seed rejection threshold per agent (was 2)
 
-    max_lives: 4
-    unplanable_retry_delay_sec: 4.0
+    max_lives: 6
+    unplanable_retry_delay_sec: 5.0
