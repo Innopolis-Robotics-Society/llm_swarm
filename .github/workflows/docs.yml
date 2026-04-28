@@ -1,0 +1,65 @@
+name: Build & Deploy Docs
+
+on:
+  push:
+    branches:
+      - dev
+      - dev_docs
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y doxygen python3-pip
+
+      - name: Install documentation dependencies
+        run: |
+          pip3 install rosdoc2 sphinx breathe exhale furo
+
+      - name: Build package documentation
+        run: |
+          BASE_URL="https://innopolis-robotics-society.github.io/llm_swarm"
+          CROSS_REF="$(pwd)/cross_reference"
+          OUTPUT="$(pwd)/docs_output"
+
+          for pkg_path in $(find . -name package.xml \
+              -not -path "*/build/*" \
+              -not -path "*/install/*" \
+              -not -path "*/log/*" \
+              -not -path "*/iros_llm_swarm_docs/*" \
+              | xargs -I{} dirname {}); do
+            echo ">>> Building: $pkg_path"
+            rosdoc2 build -p "$pkg_path" -o "$OUTPUT" -c "$CROSS_REF" -u "$BASE_URL"
+          done
+
+      - name: Build documentation index
+        run: |
+          BASE_URL="https://innopolis-robotics-society.github.io/llm_swarm"
+
+          rosdoc2 build \
+            -p ./iros_llm_swarm_docs \
+            -o "$(pwd)/docs_output" \
+            -c "$(pwd)/cross_reference" \
+            -u "$BASE_URL"
+
+      - name: Prepare GitHub Pages output
+        run: |
+          touch docs_output/.nojekyll
+          echo '<meta http-equiv="refresh" content="0; url=iros_llm_swarm_docs/index.html">' > docs_output/index.html
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs_output
