@@ -1,0 +1,315 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Class Solution &mdash; iros_llm_swarm_mapf_lns 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/collapsible-lists/css/tree_view.css?v=a885cde7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js?v=73120307"></script>
+      <script src="../_static/collapsible-lists/js/apply-collapsible-lists.js?v=660e4f45"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Enum DestroyOp" href="enum_destroy__operators_8hpp_1af0a95e907be6ea5b79fa7fb81054cd73.html" />
+    <link rel="prev" title="Class LNS2Solver" href="classlns2_1_1LNS2Solver.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            iros_llm_swarm_mapf_lns
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">C++ API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="index.html#class-hierarchy">Class Hierarchy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#file-hierarchy">File Hierarchy</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html#full-c-api">Full C++ API</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="index.html#namespaces">Namespaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="namespace_lns2.html">Namespace lns2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="namespace_std.html">Namespace std</a></li>
+</ul>
+</li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html#classes-and-structs">Classes and Structs</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1ActualState.html">Struct ActualState</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1Agent.html">Struct Agent</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1Cell.html">Struct Cell</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1CellOffset.html">Struct CellOffset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1CellTime.html">Struct CellTime</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1Collision.html">Struct Collision</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1EdgeKey.html">Struct EdgeKey</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1FootprintModel.html">Struct FootprintModel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1GridMap.html">Struct GridMap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1HeuristicCache_1_1Key.html">Struct HeuristicCache::Key</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1HeuristicCache_1_1KeyHash.html">Struct HeuristicCache::KeyHash</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1LNS2Params.html">Struct LNS2Params</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1LNS2Stats.html">Struct LNS2Stats</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1PreviousPlan.html">Struct PreviousPlan</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1Snapshot.html">Struct Snapshot</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1SoftAStarParams.html">Struct SoftAStarParams</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1SoftAStarResult.html">Struct SoftAStarResult</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1WarmStartParams.html">Struct WarmStartParams</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1WarmStartReport.html">Struct WarmStartReport</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structstd_1_1hash_3_01lns2_1_1Cell_01_4.html">Template Struct hash&lt; lns2::Cell &gt;</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structstd_1_1hash_3_01lns2_1_1CellTime_01_4.html">Template Struct hash&lt; lns2::CellTime &gt;</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structstd_1_1hash_3_01lns2_1_1EdgeKey_01_4.html">Template Struct hash&lt; lns2::EdgeKey &gt;</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlns2_1_1ALNSWeights.html">Class ALNSWeights</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlns2_1_1CollisionTable.html">Class CollisionTable</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlns2_1_1DestroyOperator.html">Class DestroyOperator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlns2_1_1HeuristicCache.html">Class HeuristicCache</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlns2_1_1LNS2Solver.html">Class LNS2Solver</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Class Solution</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#enums">Enums</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="enum_destroy__operators_8hpp_1af0a95e907be6ea5b79fa7fb81054cd73.html">Enum DestroyOp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="enum_warm__start_8hpp_1a31817eac241af59ecb472b6d600cba84.html">Enum SeedStatus</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#functions">Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="function_warm__start_8hpp_1a6f7b0fc44c20cc4b7956f3e4c0d08e35.html">Function lns2::build_warm_seed</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_destroy__operators_8hpp_1a665c7e6d8b93215c39bd0d4e2010e86c.html">Function lns2::make_bottleneck</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_destroy__operators_8hpp_1a7c7fab41c8874ba5cf99bbc7cf187c75.html">Function lns2::make_collision_based</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_destroy__operators_8hpp_1ab02d4b00f95bd6344953235091be59a3.html">Function lns2::make_random</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_destroy__operators_8hpp_1a9076b68e80015aa7e4a61cbd38e5862a.html">Function lns2::make_random_walk</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_types_8hpp_1a2379149130506eb849516adf8188b882.html">Function lns2::operator+</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_warm__start_8hpp_1ad67d515eb13f8135a09aaa2798f51396.html">Function lns2::should_warm_start</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_soft__astar_8hpp_1a157f76b1ed7d471f08d4531b4f3b2f0c.html">Function lns2::soft_astar</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#variables">Variables</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="variable_types_8hpp_1a0dd6b37ae0daef091c8dd95a7a55c503.html">Variable lns2::kInfCost</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#typedefs">Typedefs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="typedef_types_8hpp_1af07bce8111d165ff0f159c527205e387.html">Typedef lns2::AgentId</a></li>
+<li class="toctree-l4"><a class="reference internal" href="typedef_types_8hpp_1a1251592ce7d75f2f9dcf16ba3a24e611.html">Typedef lns2::CellIdx</a></li>
+<li class="toctree-l4"><a class="reference internal" href="typedef_types_8hpp_1a840101fcf1db63833977992c19066ce2.html">Typedef lns2::Cost</a></li>
+<li class="toctree-l4"><a class="reference internal" href="typedef_types_8hpp_1a819df591d490f96409eb2078427c1234.html">Typedef lns2::Path</a></li>
+<li class="toctree-l4"><a class="reference internal" href="typedef_types_8hpp_1a51846c73fc61aed02eae0928510f983f.html">Typedef lns2::Timestep</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#directories">Directories</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dir_include.html">Directory include</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dir_include_iros_llm_swarm_mapf.html">Directory iros_llm_swarm_mapf</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dir_include_iros_llm_swarm_mapf_lns2.html">Directory lns2</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#files">Files</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_lns2_collision_table.hpp.html">File collision_table.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_lns2_destroy_operators.hpp.html">File destroy_operators.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_lns2_lns2_solver.hpp.html">File lns2_solver.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_lns2_soft_astar.hpp.html">File soft_astar.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_lns2_solution.hpp.html">File solution.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_lns2_types.hpp.html">File types.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_lns2_warm_start.hpp.html">File warm_start.hpp</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../standards.html">Standard Documents</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../standard_docs/PACKAGE.html">PACKAGE</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../genindex.html">Index</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">iros_llm_swarm_mapf_lns</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">C++ API</a></li>
+      <li class="breadcrumb-item active">Class Solution</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/classlns2_1_1Solution.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="class-solution">
+<span id="exhale-class-classlns2-1-1solution"></span><h1>Class Solution<a class="headerlink" href="#class-solution" title="Link to this heading"></a></h1>
+<ul class="simple">
+<li><p>Defined in <a class="reference internal" href="file_include_iros_llm_swarm_mapf_lns2_solution.hpp.html#file-include-iros-llm-swarm-mapf-lns2-solution-hpp"><span class="std std-ref">File solution.hpp</span></a></p></li>
+</ul>
+<section id="class-documentation">
+<h2>Class Documentation<a class="headerlink" href="#class-documentation" title="Link to this heading"></a></h2>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4lns28SolutionE">
+<span id="_CPPv3N4lns28SolutionE"></span><span id="_CPPv2N4lns28SolutionE"></span><span id="lns2::Solution"></span><span class="target" id="classlns2_1_1Solution"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Solution</span></span></span><a class="headerlink" href="#_CPPv4N4lns28SolutionE" title="Link to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4lns28Solution8SolutionEv">
+<span id="_CPPv3N4lns28Solution8SolutionEv"></span><span id="_CPPv2N4lns28Solution8SolutionEv"></span><span id="lns2::Solution::Solution"></span><span class="target" id="classlns2_1_1Solution_1a6f4647a5c95fae3c51ea1adf9516f537"></span><span class="sig-name descname"><span class="n"><span class="pre">Solution</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N4lns28Solution8SolutionEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4lns28Solution4initERKNSt6vectorI5AgentEEPK7GridMap">
+<span id="_CPPv3N4lns28Solution4initERKNSt6vectorI5AgentEEPK7GridMap"></span><span id="_CPPv2N4lns28Solution4initERKNSt6vectorI5AgentEEPK7GridMap"></span><span id="lns2::Solution::init__std::vector:Agent:CR.GridMapCP"></span><span class="target" id="classlns2_1_1Solution_1ad71fb9606927194c6db060ce9b032c4a"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">init</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="structlns2_1_1Agent.html#_CPPv4N4lns25AgentE" title="lns2::Agent"><span class="n"><span class="pre">Agent</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">agents</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="structlns2_1_1GridMap.html#_CPPv4N4lns27GridMapE" title="lns2::GridMap"><span class="n"><span class="pre">GridMap</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">grid</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4lns28Solution4initERKNSt6vectorI5AgentEEPK7GridMap" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4lns28Solution10num_agentsEv">
+<span id="_CPPv3NK4lns28Solution10num_agentsEv"></span><span id="_CPPv2NK4lns28Solution10num_agentsEv"></span><span id="lns2::Solution::num_agentsC"></span><span class="target" id="classlns2_1_1Solution_1aed3cfbaeb417af4968f34878ec7324b0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_agents</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4lns28Solution10num_agentsEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4lns28Solution4pathE7AgentId">
+<span id="_CPPv3NK4lns28Solution4pathE7AgentId"></span><span id="_CPPv2NK4lns28Solution4pathE7AgentId"></span><span id="lns2::Solution::path__AgentIdC"></span><span class="target" id="classlns2_1_1Solution_1a9ea9a69d9a36f52521c5dcd5ca837802"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="typedef_types_8hpp_1a819df591d490f96409eb2078427c1234.html#_CPPv4N4lns24PathE" title="lns2::Path"><span class="n"><span class="pre">Path</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">path</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="typedef_types_8hpp_1af07bce8111d165ff0f159c527205e387.html#_CPPv4N4lns27AgentIdE" title="lns2::AgentId"><span class="n"><span class="pre">AgentId</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4lns28Solution4pathE7AgentId" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4lns28Solution9footprintE7AgentId">
+<span id="_CPPv3NK4lns28Solution9footprintE7AgentId"></span><span id="_CPPv2NK4lns28Solution9footprintE7AgentId"></span><span id="lns2::Solution::footprint__AgentIdC"></span><span class="target" id="classlns2_1_1Solution_1a096bf838ef0a614aee01db8aeb821528"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="structlns2_1_1FootprintModel.html#_CPPv4N4lns214FootprintModelE" title="lns2::FootprintModel"><span class="n"><span class="pre">FootprintModel</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">footprint</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="typedef_types_8hpp_1af07bce8111d165ff0f159c527205e387.html#_CPPv4N4lns27AgentIdE" title="lns2::AgentId"><span class="n"><span class="pre">AgentId</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4lns28Solution9footprintE7AgentId" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4lns28Solution10hold_untilE7AgentId">
+<span id="_CPPv3NK4lns28Solution10hold_untilE7AgentId"></span><span id="_CPPv2NK4lns28Solution10hold_untilE7AgentId"></span><span id="lns2::Solution::hold_until__AgentIdC"></span><span class="target" id="classlns2_1_1Solution_1ac7909ac1e516316b83b5fd17334003bf"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="typedef_types_8hpp_1a51846c73fc61aed02eae0928510f983f.html#_CPPv4N4lns28TimestepE" title="lns2::Timestep"><span class="n"><span class="pre">Timestep</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">hold_until</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="typedef_types_8hpp_1af07bce8111d165ff0f159c527205e387.html#_CPPv4N4lns27AgentIdE" title="lns2::AgentId"><span class="n"><span class="pre">AgentId</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4lns28Solution10hold_untilE7AgentId" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4lns28Solution5tableEv">
+<span id="_CPPv3NK4lns28Solution5tableEv"></span><span id="_CPPv2NK4lns28Solution5tableEv"></span><span id="lns2::Solution::tableC"></span><span class="target" id="classlns2_1_1Solution_1a3fadbac285203c19ff3cf1b104daf80e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="classlns2_1_1CollisionTable.html#_CPPv4N4lns214CollisionTableE" title="lns2::CollisionTable"><span class="n"><span class="pre">CollisionTable</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">table</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4lns28Solution5tableEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4lns28Solution13mutable_tableEv">
+<span id="_CPPv3N4lns28Solution13mutable_tableEv"></span><span id="_CPPv2N4lns28Solution13mutable_tableEv"></span><span id="lns2::Solution::mutable_table"></span><span class="target" id="classlns2_1_1Solution_1a6e9e4ef383df6417d86ae41db44b0d27"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="classlns2_1_1CollisionTable.html#_CPPv4N4lns214CollisionTableE" title="lns2::CollisionTable"><span class="n"><span class="pre">CollisionTable</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">mutable_table</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4lns28Solution13mutable_tableEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4lns28Solution14num_collisionsEv">
+<span id="_CPPv3NK4lns28Solution14num_collisionsEv"></span><span id="_CPPv2NK4lns28Solution14num_collisionsEv"></span><span id="lns2::Solution::num_collisionsC"></span><span class="target" id="classlns2_1_1Solution_1a1cbfcf5e006cb1ede83c4830fdf13a81"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">num_collisions</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4lns28Solution14num_collisionsEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4lns28Solution17is_collision_freeEv">
+<span id="_CPPv3NK4lns28Solution17is_collision_freeEv"></span><span id="_CPPv2NK4lns28Solution17is_collision_freeEv"></span><span id="lns2::Solution::is_collision_freeC"></span><span class="target" id="classlns2_1_1Solution_1a14b8d937d7e6cc73076230fe03a492d8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_collision_free</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4lns28Solution17is_collision_freeEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4lns28Solution5pathsEv">
+<span id="_CPPv3NK4lns28Solution5pathsEv"></span><span id="_CPPv2NK4lns28Solution5pathsEv"></span><span id="lns2::Solution::pathsC"></span><span class="target" id="classlns2_1_1Solution_1ac65528257b5efce26ea677c2095e8687"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="typedef_types_8hpp_1a819df591d490f96409eb2078427c1234.html#_CPPv4N4lns24PathE" title="lns2::Path"><span class="n"><span class="pre">Path</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">paths</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4lns28Solution5pathsEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4lns28Solution10footprintsEv">
+<span id="_CPPv3NK4lns28Solution10footprintsEv"></span><span id="_CPPv2NK4lns28Solution10footprintsEv"></span><span id="lns2::Solution::footprintsC"></span><span class="target" id="classlns2_1_1Solution_1a63ba912b5fe2245a574f2b6844fc35ec"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="structlns2_1_1FootprintModel.html#_CPPv4N4lns214FootprintModelE" title="lns2::FootprintModel"><span class="n"><span class="pre">FootprintModel</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">footprints</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4lns28Solution10footprintsEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4lns28Solution5holdsEv">
+<span id="_CPPv3NK4lns28Solution5holdsEv"></span><span id="_CPPv2NK4lns28Solution5holdsEv"></span><span id="lns2::Solution::holdsC"></span><span class="target" id="classlns2_1_1Solution_1aa73a2e52f74fcd2c4b403798dc1833a3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="typedef_types_8hpp_1a51846c73fc61aed02eae0928510f983f.html#_CPPv4N4lns28TimestepE" title="lns2::Timestep"><span class="n"><span class="pre">Timestep</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">holds</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4lns28Solution5holdsEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4lns28Solution8set_pathE7AgentId4Path8Timestep">
+<span id="_CPPv3N4lns28Solution8set_pathE7AgentId4Path8Timestep"></span><span id="_CPPv2N4lns28Solution8set_pathE7AgentId4Path8Timestep"></span><span id="lns2::Solution::set_path__AgentId.Path.Timestep"></span><span class="target" id="classlns2_1_1Solution_1a6fff1bc7762c829e51c674a88866ff74"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_path</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="typedef_types_8hpp_1af07bce8111d165ff0f159c527205e387.html#_CPPv4N4lns27AgentIdE" title="lns2::AgentId"><span class="n"><span class="pre">AgentId</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span>, <a class="reference internal" href="typedef_types_8hpp_1a819df591d490f96409eb2078427c1234.html#_CPPv4N4lns24PathE" title="lns2::Path"><span class="n"><span class="pre">Path</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">new_path</span></span>, <a class="reference internal" href="typedef_types_8hpp_1a51846c73fc61aed02eae0928510f983f.html#_CPPv4N4lns28TimestepE" title="lns2::Timestep"><span class="n"><span class="pre">Timestep</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">new_hold_until</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4lns28Solution8set_pathE7AgentId4Path8Timestep" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4lns28Solution10clear_pathE7AgentId">
+<span id="_CPPv3N4lns28Solution10clear_pathE7AgentId"></span><span id="_CPPv2N4lns28Solution10clear_pathE7AgentId"></span><span id="lns2::Solution::clear_path__AgentId"></span><span class="target" id="classlns2_1_1Solution_1ad302e1df3ad7632e23be270dfd1884cc"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">clear_path</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="typedef_types_8hpp_1af07bce8111d165ff0f159c527205e387.html#_CPPv4N4lns27AgentIdE" title="lns2::AgentId"><span class="n"><span class="pre">AgentId</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">id</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4lns28Solution10clear_pathE7AgentId" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4lns28Solution15set_global_holdE8Timestep">
+<span id="_CPPv3N4lns28Solution15set_global_holdE8Timestep"></span><span id="_CPPv2N4lns28Solution15set_global_holdE8Timestep"></span><span id="lns2::Solution::set_global_hold__Timestep"></span><span class="target" id="classlns2_1_1Solution_1afabc753e8313e404914fde9164b14ed4"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set_global_hold</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="typedef_types_8hpp_1a51846c73fc61aed02eae0928510f983f.html#_CPPv4N4lns28TimestepE" title="lns2::Timestep"><span class="n"><span class="pre">Timestep</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">h</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4lns28Solution15set_global_holdE8Timestep" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4lns28Solution14take_and_clearERKNSt6vectorI7AgentIdEE">
+<span id="_CPPv3N4lns28Solution14take_and_clearERKNSt6vectorI7AgentIdEE"></span><span id="_CPPv2N4lns28Solution14take_and_clearERKNSt6vectorI7AgentIdEE"></span><span id="lns2::Solution::take_and_clear__std::vector:AgentId:CR"></span><span class="target" id="classlns2_1_1Solution_1a65b1bfb3be0adea42696c4e318f3a1bc"></span><a class="reference internal" href="structlns2_1_1Snapshot.html#_CPPv4N4lns28SnapshotE" title="lns2::Snapshot"><span class="n"><span class="pre">Snapshot</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">take_and_clear</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="typedef_types_8hpp_1af07bce8111d165ff0f159c527205e387.html#_CPPv4N4lns27AgentIdE" title="lns2::AgentId"><span class="n"><span class="pre">AgentId</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ids</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4lns28Solution14take_and_clearERKNSt6vectorI7AgentIdEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4lns28Solution7restoreERR8Snapshot">
+<span id="_CPPv3N4lns28Solution7restoreERR8Snapshot"></span><span id="_CPPv2N4lns28Solution7restoreERR8Snapshot"></span><span id="lns2::Solution::restore__SnapshotRR"></span><span class="target" id="classlns2_1_1Solution_1a75370a31dc00ff75225e62204bb4972d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">restore</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="structlns2_1_1Snapshot.html#_CPPv4N4lns28SnapshotE" title="lns2::Snapshot"><span class="n"><span class="pre">Snapshot</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">snap</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4lns28Solution7restoreERR8Snapshot" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4lns28Solution16debug_consistentEv">
+<span id="_CPPv3NK4lns28Solution16debug_consistentEv"></span><span id="_CPPv2NK4lns28Solution16debug_consistentEv"></span><span id="lns2::Solution::debug_consistentC"></span><span class="target" id="classlns2_1_1Solution_1a5e8d433e1ffed7d73d94da3b5517d837"></span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">debug_consistent</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4lns28Solution16debug_consistentEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="classlns2_1_1LNS2Solver.html" class="btn btn-neutral float-left" title="Class LNS2Solver" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="enum_destroy__operators_8hpp_1af0a95e907be6ea5b79fa7fb81054cd73.html" class="btn btn-neutral float-right" title="Enum DestroyOp" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright The &lt;iros_llm_swarm_mapf_lns&gt; Contributors. License: MIT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

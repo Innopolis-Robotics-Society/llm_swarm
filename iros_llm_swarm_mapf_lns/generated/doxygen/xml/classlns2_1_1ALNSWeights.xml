@@ -1,0 +1,213 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classlns2_1_1ALNSWeights" kind="class" language="C++" prot="public">
+    <compoundname>lns2::ALNSWeights</compoundname>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classlns2_1_1ALNSWeights_1a187c1e33b9b58d3a624007a592ab1af7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr std::size_t</type>
+        <definition>constexpr std::size_t lns2::ALNSWeights::N</definition>
+        <argsstring></argsstring>
+        <name>N</name>
+        <initializer>= static_cast&lt;std::size_t&gt;(DestroyOp::COUNT)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="41" column="32" bodyfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classlns2_1_1ALNSWeights_1a7836531ae3f741720b382193d2d3ac4e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr double</type>
+        <definition>constexpr double lns2::ALNSWeights::R_IMPROVE_BEST</definition>
+        <argsstring></argsstring>
+        <name>R_IMPROVE_BEST</name>
+        <initializer>= 10.0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="44" column="27" bodyfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classlns2_1_1ALNSWeights_1a9567ac6bc787ee42ba2f8f10ec210b2a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr double</type>
+        <definition>constexpr double lns2::ALNSWeights::R_IMPROVE_LOCAL</definition>
+        <argsstring></argsstring>
+        <name>R_IMPROVE_LOCAL</name>
+        <initializer>= 5.0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="45" column="27" bodyfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classlns2_1_1ALNSWeights_1a2737706e4216b6611c6da29657850416" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr double</type>
+        <definition>constexpr double lns2::ALNSWeights::R_NO_CHANGE</definition>
+        <argsstring></argsstring>
+        <name>R_NO_CHANGE</name>
+        <initializer>= 1.0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="46" column="27" bodyfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classlns2_1_1ALNSWeights_1a0228e8adaa1b19c8a89d05d12b23588a" prot="private" static="no" mutable="no">
+        <type>std::array&lt; double, N &gt;</type>
+        <definition>std::array&lt;double, N&gt; lns2::ALNSWeights::w_</definition>
+        <argsstring></argsstring>
+        <name>w_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="89" column="14" bodyfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classlns2_1_1ALNSWeights_1a46dbe23a660c22ce40fb728113e4d07d" prot="private" static="no" mutable="no">
+        <type>std::array&lt; double, N &gt;</type>
+        <definition>std::array&lt;double, N&gt; lns2::ALNSWeights::sum_r_</definition>
+        <argsstring></argsstring>
+        <name>sum_r_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="90" column="14" bodyfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classlns2_1_1ALNSWeights_1a16abe451d71d1e3d91b436eb77da1106" prot="private" static="no" mutable="no">
+        <type>std::array&lt; std::size_t, N &gt;</type>
+        <definition>std::array&lt;std::size_t, N&gt; lns2::ALNSWeights::cnt_</definition>
+        <argsstring></argsstring>
+        <name>cnt_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="91" column="14" bodyfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classlns2_1_1ALNSWeights_1aa429e0c5bfdde59d261b651c415b7df7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>lns2::ALNSWeights::ALNSWeights</definition>
+        <argsstring>()</argsstring>
+        <name>ALNSWeights</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="48" column="3" bodyfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" bodystart="48" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="function" id="classlns2_1_1ALNSWeights_1ae087e9298d5a6752dbe44a36ef0797cd" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>DestroyOp</type>
+        <definition>DestroyOp lns2::ALNSWeights::sample</definition>
+        <argsstring>(std::mt19937 &amp;rng) const</argsstring>
+        <name>sample</name>
+        <param>
+          <type>std::mt19937 &amp;</type>
+          <declname>rng</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="54" column="13" bodyfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" bodystart="54" bodyend="66"/>
+      </memberdef>
+      <memberdef kind="function" id="classlns2_1_1ALNSWeights_1a6b46421e9c10f962bfbe84b322abacfb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void lns2::ALNSWeights::record</definition>
+        <argsstring>(DestroyOp op, double reward)</argsstring>
+        <name>record</name>
+        <param>
+          <type>DestroyOp</type>
+          <declname>op</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>reward</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="68" column="8" bodyfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" bodystart="68" bodyend="72"/>
+      </memberdef>
+      <memberdef kind="function" id="classlns2_1_1ALNSWeights_1a5eb7762c9d91ca3fb031c716023fc8bd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void lns2::ALNSWeights::flush_segment</definition>
+        <argsstring>(double reaction=0.1, double w_min=0.1)</argsstring>
+        <name>flush_segment</name>
+        <param>
+          <type>double</type>
+          <declname>reaction</declname>
+          <defval>0.1</defval>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>w_min</declname>
+          <defval>0.1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="75" column="8" bodyfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" bodystart="75" bodyend="84"/>
+      </memberdef>
+      <memberdef kind="function" id="classlns2_1_1ALNSWeights_1a488673266b7893caed71ae0c2ed15267" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const std::array&lt; double, N &gt; &amp;</type>
+        <definition>const std::array&lt;double, N&gt;&amp; lns2::ALNSWeights::weights</definition>
+        <argsstring>() const</argsstring>
+        <name>weights</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="86" column="20" bodyfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" bodystart="86" bodyend="86"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="39" column="1" bodyfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" bodystart="39" bodyend="92"/>
+    <listofallmembers>
+      <member refid="classlns2_1_1ALNSWeights_1aa429e0c5bfdde59d261b651c415b7df7" prot="public" virt="non-virtual"><scope>lns2::ALNSWeights</scope><name>ALNSWeights</name></member>
+      <member refid="classlns2_1_1ALNSWeights_1a16abe451d71d1e3d91b436eb77da1106" prot="private" virt="non-virtual"><scope>lns2::ALNSWeights</scope><name>cnt_</name></member>
+      <member refid="classlns2_1_1ALNSWeights_1a5eb7762c9d91ca3fb031c716023fc8bd" prot="public" virt="non-virtual"><scope>lns2::ALNSWeights</scope><name>flush_segment</name></member>
+      <member refid="classlns2_1_1ALNSWeights_1a187c1e33b9b58d3a624007a592ab1af7" prot="public" virt="non-virtual"><scope>lns2::ALNSWeights</scope><name>N</name></member>
+      <member refid="classlns2_1_1ALNSWeights_1a7836531ae3f741720b382193d2d3ac4e" prot="public" virt="non-virtual"><scope>lns2::ALNSWeights</scope><name>R_IMPROVE_BEST</name></member>
+      <member refid="classlns2_1_1ALNSWeights_1a9567ac6bc787ee42ba2f8f10ec210b2a" prot="public" virt="non-virtual"><scope>lns2::ALNSWeights</scope><name>R_IMPROVE_LOCAL</name></member>
+      <member refid="classlns2_1_1ALNSWeights_1a2737706e4216b6611c6da29657850416" prot="public" virt="non-virtual"><scope>lns2::ALNSWeights</scope><name>R_NO_CHANGE</name></member>
+      <member refid="classlns2_1_1ALNSWeights_1a6b46421e9c10f962bfbe84b322abacfb" prot="public" virt="non-virtual"><scope>lns2::ALNSWeights</scope><name>record</name></member>
+      <member refid="classlns2_1_1ALNSWeights_1ae087e9298d5a6752dbe44a36ef0797cd" prot="public" virt="non-virtual"><scope>lns2::ALNSWeights</scope><name>sample</name></member>
+      <member refid="classlns2_1_1ALNSWeights_1a46dbe23a660c22ce40fb728113e4d07d" prot="private" virt="non-virtual"><scope>lns2::ALNSWeights</scope><name>sum_r_</name></member>
+      <member refid="classlns2_1_1ALNSWeights_1a0228e8adaa1b19c8a89d05d12b23588a" prot="private" virt="non-virtual"><scope>lns2::ALNSWeights</scope><name>w_</name></member>
+      <member refid="classlns2_1_1ALNSWeights_1a488673266b7893caed71ae0c2ed15267" prot="public" virt="non-virtual"><scope>lns2::ALNSWeights</scope><name>weights</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,69 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structReservationTable_1_1Entry" kind="struct" language="C++" prot="private">
+    <compoundname>ReservationTable::Entry</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structReservationTable_1_1Entry_1a0b2382dac0fc5dfd2349d04c4d6e1940" prot="public" static="no" mutable="no">
+        <type><ref refid="structCell" kindref="compound">Cell</ref></type>
+        <definition>Cell ReservationTable::Entry::cell</definition>
+        <argsstring></argsstring>
+        <name>cell</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/space_time_astar.hpp" line="142" column="10" bodyfile="include/iros_llm_swarm_mapf/space_time_astar.hpp" bodystart="142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structReservationTable_1_1Entry_1a2fb5974ec3735646ae1965f37e007c6b" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ReservationTable::Entry::footprint_cells</definition>
+        <argsstring></argsstring>
+        <name>footprint_cells</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/space_time_astar.hpp" line="143" column="11" bodyfile="include/iros_llm_swarm_mapf/space_time_astar.hpp" bodystart="143" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structReservationTable_1_1Entry_1ac6d2a0d7c55a4182139d76cb4f8a542c" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ReservationTable::Entry::soft_radius_cells</definition>
+        <argsstring></argsstring>
+        <name>soft_radius_cells</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/space_time_astar.hpp" line="144" column="11" bodyfile="include/iros_llm_swarm_mapf/space_time_astar.hpp" bodystart="144" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>Cell</label>
+        <link refid="structCell"/>
+      </node>
+      <node id="1">
+        <label>ReservationTable::Entry</label>
+        <childnode refid="2" relation="usage">
+          <edgelabel>cell</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="include/iros_llm_swarm_mapf/space_time_astar.hpp" line="141" column="3" bodyfile="include/iros_llm_swarm_mapf/space_time_astar.hpp" bodystart="141" bodyend="145"/>
+    <listofallmembers>
+      <member refid="structReservationTable_1_1Entry_1a0b2382dac0fc5dfd2349d04c4d6e1940" prot="public" virt="non-virtual"><scope>ReservationTable::Entry</scope><name>cell</name></member>
+      <member refid="structReservationTable_1_1Entry_1a2fb5974ec3735646ae1965f37e007c6b" prot="public" virt="non-virtual"><scope>ReservationTable::Entry</scope><name>footprint_cells</name></member>
+      <member refid="structReservationTable_1_1Entry_1ac6d2a0d7c55a4182139d76cb4f8a542c" prot="public" virt="non-virtual"><scope>ReservationTable::Entry</scope><name>soft_radius_cells</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

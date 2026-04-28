@@ -1,0 +1,269 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classlns2_1_1LNS2Solver" kind="class" language="C++" prot="public">
+    <compoundname>lns2::LNS2Solver</compoundname>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classlns2_1_1LNS2Solver_1af56a044f87723dc292390d9e7a8d9711" prot="private" static="no" mutable="no">
+        <type>std::unique_ptr&lt; <ref refid="classlns2_1_1DestroyOperator" kindref="compound">DestroyOperator</ref> &gt;</type>
+        <definition>std::unique_ptr&lt;DestroyOperator&gt; lns2::LNS2Solver::ops_[static_cast&lt; std::size_t &gt;(DestroyOp::COUNT)]</definition>
+        <argsstring>[static_cast&lt; std::size_t &gt;(DestroyOp::COUNT)]</argsstring>
+        <name>ops_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="107" column="19" bodyfile="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" bodystart="107" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classlns2_1_1LNS2Solver_1a98234cb53df2d3ec37cc699a9708e8ca" prot="private" static="no" mutable="no">
+        <type><ref refid="classlns2_1_1ALNSWeights" kindref="compound">ALNSWeights</ref></type>
+        <definition>ALNSWeights lns2::LNS2Solver::weights_</definition>
+        <argsstring></argsstring>
+        <name>weights_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="108" column="15" bodyfile="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" bodystart="108" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classlns2_1_1LNS2Solver_1a8e29d7e2aab52eea0571490ca5352951" prot="private" static="no" mutable="no">
+        <type>std::mt19937</type>
+        <definition>std::mt19937 lns2::LNS2Solver::rng_</definition>
+        <argsstring></argsstring>
+        <name>rng_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="109" column="16" bodyfile="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" bodystart="109" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classlns2_1_1LNS2Solver_1ad5c3d583ab3397dc4e8dbcdab9746e74" prot="private" static="no" mutable="no">
+        <type><ref refid="classlns2_1_1HeuristicCache" kindref="compound">HeuristicCache</ref></type>
+        <definition>HeuristicCache lns2::LNS2Solver::h_cache_</definition>
+        <argsstring></argsstring>
+        <name>h_cache_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="110" column="18" bodyfile="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" bodystart="110" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classlns2_1_1LNS2Solver_1a65041c92d754a23780a8a9c61054b7b1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>lns2::LNS2Solver::LNS2Solver</definition>
+        <argsstring>()</argsstring>
+        <name>LNS2Solver</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="66" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classlns2_1_1LNS2Solver_1adab61bcfe2352e2e79b9b20fe786a4be" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool lns2::LNS2Solver::solve</definition>
+        <argsstring>(const std::vector&lt; Agent &gt; &amp;agents, const GridMap &amp;grid, const LNS2Params &amp;params, std::vector&lt; Path &gt; *out_paths, LNS2Stats *stats=nullptr)</argsstring>
+        <name>solve</name>
+        <param>
+          <type>const std::vector&lt; <ref refid="structlns2_1_1Agent" kindref="compound">Agent</ref> &gt; &amp;</type>
+          <declname>agents</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1GridMap" kindref="compound">GridMap</ref> &amp;</type>
+          <declname>grid</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1LNS2Params" kindref="compound">LNS2Params</ref> &amp;</type>
+          <declname>params</declname>
+        </param>
+        <param>
+          <type>std::vector&lt; Path &gt; *</type>
+          <declname>out_paths</declname>
+        </param>
+        <param>
+          <type><ref refid="structlns2_1_1LNS2Stats" kindref="compound">LNS2Stats</ref> *</type>
+          <declname>stats</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="69" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classlns2_1_1LNS2Solver_1ad9c306a8610804cdd5494f1972d1cba0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool lns2::LNS2Solver::solve_from</definition>
+        <argsstring>(Solution &amp;&amp;seed, const std::vector&lt; Agent &gt; &amp;agents, const GridMap &amp;grid, const LNS2Params &amp;params, std::vector&lt; Path &gt; *out_paths, LNS2Stats *stats=nullptr)</argsstring>
+        <name>solve_from</name>
+        <param>
+          <type><ref refid="classlns2_1_1Solution" kindref="compound">Solution</ref> &amp;&amp;</type>
+          <declname>seed</declname>
+        </param>
+        <param>
+          <type>const std::vector&lt; <ref refid="structlns2_1_1Agent" kindref="compound">Agent</ref> &gt; &amp;</type>
+          <declname>agents</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1GridMap" kindref="compound">GridMap</ref> &amp;</type>
+          <declname>grid</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1LNS2Params" kindref="compound">LNS2Params</ref> &amp;</type>
+          <declname>params</declname>
+        </param>
+        <param>
+          <type>std::vector&lt; Path &gt; *</type>
+          <declname>out_paths</declname>
+        </param>
+        <param>
+          <type><ref refid="structlns2_1_1LNS2Stats" kindref="compound">LNS2Stats</ref> *</type>
+          <declname>stats</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="76" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classlns2_1_1LNS2Solver_1abc4750de1fab06dff98393337cef33f8" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void lns2::LNS2Solver::build_initial_solution</definition>
+        <argsstring>(const std::vector&lt; Agent &gt; &amp;agents, const GridMap &amp;grid, const LNS2Params &amp;params, Solution &amp;sol, LNS2Stats &amp;stats)</argsstring>
+        <name>build_initial_solution</name>
+        <param>
+          <type>const std::vector&lt; <ref refid="structlns2_1_1Agent" kindref="compound">Agent</ref> &gt; &amp;</type>
+          <declname>agents</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1GridMap" kindref="compound">GridMap</ref> &amp;</type>
+          <declname>grid</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1LNS2Params" kindref="compound">LNS2Params</ref> &amp;</type>
+          <declname>params</declname>
+        </param>
+        <param>
+          <type><ref refid="classlns2_1_1Solution" kindref="compound">Solution</ref> &amp;</type>
+          <declname>sol</declname>
+        </param>
+        <param>
+          <type><ref refid="structlns2_1_1LNS2Stats" kindref="compound">LNS2Stats</ref> &amp;</type>
+          <declname>stats</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="86" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classlns2_1_1LNS2Solver_1ac2b2079ef9db24edfcf993fec292b816" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void lns2::LNS2Solver::repair_loop</definition>
+        <argsstring>(const std::vector&lt; Agent &gt; &amp;agents, const GridMap &amp;grid, const LNS2Params &amp;params, Solution &amp;sol, LNS2Stats &amp;stats)</argsstring>
+        <name>repair_loop</name>
+        <param>
+          <type>const std::vector&lt; <ref refid="structlns2_1_1Agent" kindref="compound">Agent</ref> &gt; &amp;</type>
+          <declname>agents</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1GridMap" kindref="compound">GridMap</ref> &amp;</type>
+          <declname>grid</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1LNS2Params" kindref="compound">LNS2Params</ref> &amp;</type>
+          <declname>params</declname>
+        </param>
+        <param>
+          <type><ref refid="classlns2_1_1Solution" kindref="compound">Solution</ref> &amp;</type>
+          <declname>sol</declname>
+        </param>
+        <param>
+          <type><ref refid="structlns2_1_1LNS2Stats" kindref="compound">LNS2Stats</ref> &amp;</type>
+          <declname>stats</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="93" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classlns2_1_1LNS2Solver_1a5b113bd424697d50cdf09eb08e60922c" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool lns2::LNS2Solver::iterate</definition>
+        <argsstring>(const std::vector&lt; Agent &gt; &amp;agents, const GridMap &amp;grid, const LNS2Params &amp;params, Solution &amp;sol, LNS2Stats &amp;stats, DestroyOp &amp;op_used_out)</argsstring>
+        <name>iterate</name>
+        <param>
+          <type>const std::vector&lt; <ref refid="structlns2_1_1Agent" kindref="compound">Agent</ref> &gt; &amp;</type>
+          <declname>agents</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1GridMap" kindref="compound">GridMap</ref> &amp;</type>
+          <declname>grid</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1LNS2Params" kindref="compound">LNS2Params</ref> &amp;</type>
+          <declname>params</declname>
+        </param>
+        <param>
+          <type><ref refid="classlns2_1_1Solution" kindref="compound">Solution</ref> &amp;</type>
+          <declname>sol</declname>
+        </param>
+        <param>
+          <type><ref refid="structlns2_1_1LNS2Stats" kindref="compound">LNS2Stats</ref> &amp;</type>
+          <declname>stats</declname>
+        </param>
+        <param>
+          <type>DestroyOp &amp;</type>
+          <declname>op_used_out</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="100" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="64" column="1" bodyfile="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" bodystart="64" bodyend="111"/>
+    <listofallmembers>
+      <member refid="classlns2_1_1LNS2Solver_1abc4750de1fab06dff98393337cef33f8" prot="private" virt="non-virtual"><scope>lns2::LNS2Solver</scope><name>build_initial_solution</name></member>
+      <member refid="classlns2_1_1LNS2Solver_1ad5c3d583ab3397dc4e8dbcdab9746e74" prot="private" virt="non-virtual"><scope>lns2::LNS2Solver</scope><name>h_cache_</name></member>
+      <member refid="classlns2_1_1LNS2Solver_1a5b113bd424697d50cdf09eb08e60922c" prot="private" virt="non-virtual"><scope>lns2::LNS2Solver</scope><name>iterate</name></member>
+      <member refid="classlns2_1_1LNS2Solver_1a65041c92d754a23780a8a9c61054b7b1" prot="public" virt="non-virtual"><scope>lns2::LNS2Solver</scope><name>LNS2Solver</name></member>
+      <member refid="classlns2_1_1LNS2Solver_1af56a044f87723dc292390d9e7a8d9711" prot="private" virt="non-virtual"><scope>lns2::LNS2Solver</scope><name>ops_</name></member>
+      <member refid="classlns2_1_1LNS2Solver_1ac2b2079ef9db24edfcf993fec292b816" prot="private" virt="non-virtual"><scope>lns2::LNS2Solver</scope><name>repair_loop</name></member>
+      <member refid="classlns2_1_1LNS2Solver_1a8e29d7e2aab52eea0571490ca5352951" prot="private" virt="non-virtual"><scope>lns2::LNS2Solver</scope><name>rng_</name></member>
+      <member refid="classlns2_1_1LNS2Solver_1adab61bcfe2352e2e79b9b20fe786a4be" prot="public" virt="non-virtual"><scope>lns2::LNS2Solver</scope><name>solve</name></member>
+      <member refid="classlns2_1_1LNS2Solver_1ad9c306a8610804cdd5494f1972d1cba0" prot="public" virt="non-virtual"><scope>lns2::LNS2Solver</scope><name>solve_from</name></member>
+      <member refid="classlns2_1_1LNS2Solver_1a98234cb53df2d3ec37cc699a9708e8ca" prot="private" virt="non-virtual"><scope>lns2::LNS2Solver</scope><name>weights_</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

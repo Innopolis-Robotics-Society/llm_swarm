@@ -1,0 +1,250 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="warm__start_8hpp" kind="file" language="C++">
+    <compoundname>warm_start.hpp</compoundname>
+    <includes local="no">cstddef</includes>
+    <includes local="no">cstdint</includes>
+    <includes local="no">vector</includes>
+    <includes refid="solution_8hpp" local="yes">iros_llm_swarm_mapf/lns2/solution.hpp</includes>
+    <includes refid="types_8hpp" local="yes">iros_llm_swarm_mapf/lns2/types.hpp</includes>
+    <incdepgraph>
+      <node id="13">
+        <label>iros_llm_swarm_mapf/lns2/types.hpp</label>
+        <link refid="types_8hpp_source"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+      </node>
+      <node id="14">
+        <label>functional</label>
+      </node>
+      <node id="15">
+        <label>limits</label>
+      </node>
+      <node id="3">
+        <label>cstdint</label>
+      </node>
+      <node id="1">
+        <label>include/iros_llm_swarm_mapf/lns2/warm_start.hpp</label>
+        <link refid="warm__start_8hpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>unordered_set</label>
+      </node>
+      <node id="7">
+        <label>iros_llm_swarm_mapf/lns2/collision_table.hpp</label>
+        <link refid="collision__table_8hpp_source"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+      <node id="10">
+        <label>random</label>
+      </node>
+      <node id="9">
+        <label>optional</label>
+      </node>
+      <node id="4">
+        <label>vector</label>
+      </node>
+      <node id="6">
+        <label>utility</label>
+      </node>
+      <node id="2">
+        <label>cstddef</label>
+      </node>
+      <node id="11">
+        <label>unordered_map</label>
+      </node>
+      <node id="8">
+        <label>algorithm</label>
+      </node>
+      <node id="5">
+        <label>iros_llm_swarm_mapf/lns2/solution.hpp</label>
+        <link refid="solution_8hpp_source"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structlns2_1_1PreviousPlan" prot="public">lns2::PreviousPlan</innerclass>
+    <innerclass refid="structlns2_1_1ActualState" prot="public">lns2::ActualState</innerclass>
+    <innerclass refid="structlns2_1_1WarmStartParams" prot="public">lns2::WarmStartParams</innerclass>
+    <innerclass refid="structlns2_1_1WarmStartReport" prot="public">lns2::WarmStartReport</innerclass>
+    <innernamespace refid="namespacelns2">lns2</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>iros_llm_swarm_mapf/lns2/warm_start.hpp</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Build<sp/>a<sp/>warm-start<sp/>Solution<sp/>for<sp/>LNS2Solver::solve_from()<sp/>from<sp/>the<sp/>paths</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//<sp/>of<sp/>a<sp/>previous<sp/>plan,<sp/>shifted<sp/>forward<sp/>in<sp/>time<sp/>and<sp/>patched<sp/>to<sp/>match<sp/>current</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="comment">//<sp/>robot<sp/>positions.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Design<sp/>(v2<sp/>—<sp/>fixes<sp/>the<sp/>&quot;per-agent<sp/>k-shift&quot;<sp/>bug):</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/>*<sp/>A<sp/>COMMON<sp/>time<sp/>shift<sp/>=<sp/>delta_steps<sp/>is<sp/>applied<sp/>to<sp/>ALL<sp/>agents.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/>Previously,<sp/>each<sp/>agent<sp/>was<sp/>shifted<sp/>by<sp/>the<sp/>index<sp/>at<sp/>which<sp/>its<sp/>actual</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/>cell<sp/>was<sp/>found<sp/>on<sp/>its<sp/>own<sp/>prev_path<sp/>(&quot;find_actual_on_path&quot;).<sp/>That</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/>destroyed<sp/>the<sp/>relative<sp/>timing<sp/>of<sp/>the<sp/>schedule:<sp/>a<sp/>robot<sp/>that<sp/>fell</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/>behind<sp/>got<sp/>its<sp/>path<sp/>indexed<sp/>earlier<sp/>than<sp/>a<sp/>robot<sp/>that<sp/>kept<sp/>pace,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/>and<sp/>the<sp/>resulting<sp/>seed<sp/>appeared<sp/>to<sp/>have<sp/>many<sp/>&quot;new&quot;<sp/>collisions<sp/>that</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/>did<sp/>not<sp/>exist<sp/>in<sp/>the<sp/>original<sp/>plan.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/>*<sp/>For<sp/>agents<sp/>still<sp/>on-plan<sp/>at<sp/>t=delta:<sp/>the<sp/>tail<sp/>of<sp/>the<sp/>prev_path<sp/>is</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/>used<sp/>directly<sp/>as<sp/>the<sp/>seed.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/>*<sp/>For<sp/>agents<sp/>near-but-off<sp/>the<sp/>expected<sp/>cell:<sp/>a<sp/>short<sp/>BFS<sp/>splice<sp/>is</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/>produced<sp/>that<sp/>joins<sp/>actual_cell<sp/>back<sp/>onto<sp/>the<sp/>tail<sp/>within<sp/>a<sp/>few</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/>steps.<sp/>Falls<sp/>back<sp/>to<sp/>a<sp/>one-cell<sp/>hold<sp/>if<sp/>the<sp/>splice<sp/>can&apos;t<sp/>be<sp/>found.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/>*<sp/>For<sp/>agents<sp/>that<sp/>diverged<sp/>far<sp/>from<sp/>the<sp/>plan,<sp/>have<sp/>a<sp/>changed<sp/>goal,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/>are<sp/>newly<sp/>introduced,<sp/>or<sp/>whose<sp/>prev_path<sp/>is<sp/>no<sp/>longer<sp/>valid<sp/>on<sp/>the</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/>current<sp/>map<sp/>—<sp/>a<sp/>stub<sp/>(one-cell<sp/>hold)<sp/>is<sp/>emitted<sp/>with<sp/>an<sp/>explicit</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/><sp/><sp/>reason.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="comment">//<sp/>This<sp/>is<sp/>stateless;<sp/>the<sp/>caller<sp/>provides<sp/>everything.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cstddef&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cstdint&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;vector&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;iros_llm_swarm_mapf/lns2/solution.hpp&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;iros_llm_swarm_mapf/lns2/types.hpp&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">lns2<sp/>{</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Previous<sp/>plan:<sp/>what<sp/>each<sp/>active<sp/>agent<sp/>was<sp/>executing.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="structlns2_1_1PreviousPlan" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structlns2_1_1PreviousPlan" kindref="compound">PreviousPlan</ref><sp/>{</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>For<sp/>each<sp/>agent<sp/>id<sp/>(full<sp/>range<sp/>[0,<sp/>num_agents)),<sp/>the<sp/>previously<sp/>planned</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>grid<sp/>path.<sp/>Empty<sp/>vector<sp/>for<sp/>agents<sp/>that<sp/>were<sp/>not<sp/>in<sp/>the<sp/>plan.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>std::vector&lt;Path&gt;<sp/>paths;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Timesteps<sp/>to<sp/>which<sp/>the<sp/>plan&apos;s<sp/>path<sp/>extends<sp/>with<sp/>hold-at-goal.<sp/>Typically</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>equal<sp/>to<sp/>params.astar.horizon<sp/>from<sp/>the<sp/>time<sp/>the<sp/>plan<sp/>was<sp/>built.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/>std::vector&lt;Timestep&gt;<sp/>hold_until;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>How<sp/>many<sp/>discrete<sp/>timesteps<sp/>elapsed<sp/>since<sp/>the<sp/>plan<sp/>was<sp/>constructed.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>delta_steps<sp/>=<sp/>floor((t_now<sp/>-<sp/>plan_origin_time)<sp/>/<sp/>time_step_sec).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>This<sp/>is<sp/>applied<sp/>UNIFORMLY<sp/>to<sp/>every<sp/>agent<sp/>—<sp/>see<sp/>header<sp/>comment.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>Timestep<sp/>delta_steps<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="structlns2_1_1ActualState" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structlns2_1_1ActualState" kindref="compound">ActualState</ref><sp/>{</highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>current_cells[i]<sp/>=<sp/>where<sp/>the<sp/>robot<sp/>actually<sp/>is<sp/>right<sp/>now<sp/>(grid<sp/>cell).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/>std::vector&lt;Cell&gt;<sp/>current_cells;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>have_odom[i]<sp/>=<sp/>whether<sp/>current_cells[i]<sp/>is<sp/>valid.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/>std::vector&lt;std::uint8_t&gt;<sp/>have_odom;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>goals[i]<sp/>=<sp/>the<sp/>target<sp/>cell<sp/>for<sp/>this<sp/>agent<sp/>right<sp/>now<sp/>(may<sp/>have<sp/>changed</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>since<sp/>the<sp/>previous<sp/>plan).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>std::vector&lt;Cell&gt;<sp/>goals;</highlight></codeline>
+<codeline lineno="60"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="structlns2_1_1WarmStartParams" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structlns2_1_1WarmStartParams" kindref="compound">WarmStartParams</ref><sp/>{</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Max<sp/>L-infty<sp/>distance<sp/>(in<sp/>cells)<sp/>between<sp/>expected<sp/>cell<sp/>and<sp/>actual<sp/>cell</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="64"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>for<sp/>&quot;on-track&quot;<sp/>classification<sp/>(splice<sp/>rather<sp/>than<sp/>stub).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/>std::int32_t<sp/>patch_radius_cells<sp/>=<sp/>10;</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Max<sp/>BFS<sp/>expansions<sp/>when<sp/>trying<sp/>to<sp/>splice<sp/>actual<sp/>-&gt;<sp/>expected.<sp/>0<sp/>disables</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>splice<sp/>(forces<sp/>stub<sp/>for<sp/>any<sp/>off-track<sp/>agent).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"><sp/><sp/>std::size_t<sp/><sp/>splice_max_expansions<sp/>=<sp/>2000;</highlight></codeline>
+<codeline lineno="70"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"></highlight></codeline>
+<codeline lineno="72"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Per-agent<sp/>classification<sp/>of<sp/>how<sp/>the<sp/>seed<sp/>was<sp/>produced.<sp/>Useful<sp/>both<sp/>for</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73"><highlight class="normal"></highlight><highlight class="comment">//<sp/>diagnostics<sp/>and<sp/>for<sp/>deciding<sp/>which<sp/>agents<sp/>to<sp/>freeze/hard-block<sp/>in<sp/>repair.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight><highlight class="keyword">enum<sp/>class</highlight><highlight class="normal"><sp/>SeedStatus<sp/>:<sp/>std::uint8_t<sp/>{</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/>OnTrack<sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>0,<sp/><sp/></highlight><highlight class="comment">//<sp/>actual<sp/>==<sp/>expected;<sp/>tail<sp/>of<sp/>prev_path<sp/>used<sp/>directly</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/>Spliced<sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>1,<sp/><sp/></highlight><highlight class="comment">//<sp/>actual<sp/>near<sp/>expected;<sp/>short<sp/>BFS<sp/>splice<sp/>prepended</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/>StubFar<sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>2,<sp/><sp/></highlight><highlight class="comment">//<sp/>actual<sp/>far<sp/>from<sp/>expected;<sp/>one-cell<sp/>hold<sp/>(&quot;frozen&quot;)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/>StubNew<sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>3,<sp/><sp/></highlight><highlight class="comment">//<sp/>agent<sp/>was<sp/>not<sp/>in<sp/>prev<sp/>plan;<sp/>one-cell<sp/>hold<sp/>at<sp/>actual</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/>StubGoal<sp/><sp/><sp/><sp/><sp/>=<sp/>4,<sp/><sp/></highlight><highlight class="comment">//<sp/>goal<sp/>changed<sp/>since<sp/>prev<sp/>plan;<sp/>one-cell<sp/>hold<sp/>at<sp/>actual</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/>StubInvalid<sp/><sp/>=<sp/>5,<sp/><sp/></highlight><highlight class="comment">//<sp/>prev_path<sp/>no<sp/>longer<sp/>statically<sp/>valid;<sp/>one-cell<sp/>hold</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/>StubArrived<sp/><sp/>=<sp/>6,<sp/><sp/></highlight><highlight class="comment">//<sp/>prev<sp/>plan<sp/>fully<sp/>elapsed<sp/>and<sp/>robot<sp/>is<sp/>at<sp/>goal</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/>Missing<sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>7,<sp/><sp/></highlight><highlight class="comment">//<sp/>no<sp/>odometry;<sp/>left<sp/>empty<sp/>(not<sp/>in<sp/>repair<sp/>set)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"></highlight></codeline>
+<codeline lineno="85" refid="structlns2_1_1WarmStartReport" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structlns2_1_1WarmStartReport" kindref="compound">WarmStartReport</ref><sp/>{</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Per-agent<sp/>seed<sp/>status,<sp/>indexed<sp/>by<sp/>agent&apos;s<sp/>position<sp/>in<sp/>the<sp/>`agents`</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>vector<sp/>(dense<sp/>internal<sp/>id).<sp/>Size<sp/>==<sp/>agents.size()<sp/>after<sp/>build.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/>std::vector&lt;SeedStatus&gt;<sp/>status;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"></highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Aggregate<sp/>counts<sp/>for<sp/>logging<sp/>/<sp/>heuristic<sp/>decisions.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/>std::size_t<sp/>agents_on_track<sp/><sp/><sp/><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/>std::size_t<sp/>agents_spliced<sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><sp/><sp/>std::size_t<sp/>agents_stubbed_far<sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/>std::size_t<sp/>agents_new<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/>std::size_t<sp/>agents_goal_changed<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/>std::size_t<sp/>agents_invalid<sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/>std::size_t<sp/>agents_arrived<sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/>std::size_t<sp/>agents_missing<sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Seed<sp/>collision<sp/>count<sp/>(after<sp/>all<sp/>paths<sp/>placed<sp/>in<sp/>the<sp/>CollisionTable).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="101"><highlight class="normal"><sp/><sp/>std::size_t<sp/>seed_collisions<sp/><sp/><sp/><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="102"><highlight class="normal"></highlight></codeline>
+<codeline lineno="103"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Convenience:<sp/>total<sp/>stubs<sp/>that<sp/>the<sp/>repair<sp/>must<sp/>actively<sp/>resolve<sp/>(i.e.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>excludes<sp/>OnTrack/Spliced/Arrived/Missing).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/>std::size_t<sp/>active_stubs()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>agents_stubbed_far<sp/>+<sp/>agents_new<sp/>+</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>agents_goal_changed<sp/>+<sp/>agents_invalid;</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="109"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"></highlight></codeline>
+<codeline lineno="111"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Build<sp/>a<sp/>warm-start<sp/>Solution<sp/>from<sp/>the<sp/>given<sp/>inputs.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight><highlight class="comment">//<sp/>`agents`<sp/>is<sp/>the<sp/>full<sp/>list<sp/>for<sp/>the<sp/>upcoming<sp/>plan<sp/>(with<sp/>their<sp/>goals).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight><highlight class="comment">//<sp/>The<sp/>agents&apos;<sp/>ids<sp/>MUST<sp/>be<sp/>dense<sp/>indices<sp/>[0,<sp/>agents.size())<sp/>—<sp/>same<sp/>contract</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight><highlight class="comment">//<sp/>as<sp/>Solution::init.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>build_warm_seed(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::vector&lt;Agent&gt;&amp;<sp/>agents,</highlight></codeline>
+<codeline lineno="116"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1GridMap" kindref="compound">GridMap</ref>&amp;<sp/>grid,</highlight></codeline>
+<codeline lineno="117"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1PreviousPlan" kindref="compound">PreviousPlan</ref>&amp;<sp/>prev,</highlight></codeline>
+<codeline lineno="118"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1ActualState" kindref="compound">ActualState</ref>&amp;<sp/>actual,</highlight></codeline>
+<codeline lineno="119"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1WarmStartParams" kindref="compound">WarmStartParams</ref>&amp;<sp/>params,</highlight></codeline>
+<codeline lineno="120"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>Timestep<sp/>horizon,</highlight></codeline>
+<codeline lineno="121"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="classlns2_1_1Solution" kindref="compound">Solution</ref>*<sp/>out_solution,</highlight></codeline>
+<codeline lineno="122"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><ref refid="structlns2_1_1WarmStartReport" kindref="compound">WarmStartReport</ref>*<sp/>out_report);</highlight></codeline>
+<codeline lineno="123"><highlight class="normal"></highlight></codeline>
+<codeline lineno="124"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Decide<sp/>whether<sp/>the<sp/>seed<sp/>is<sp/>worth<sp/>using<sp/>versus<sp/>cold<sp/>start.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="125"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>should_warm_start(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1WarmStartReport" kindref="compound">WarmStartReport</ref>&amp;<sp/>rep,</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>std::size_t<sp/>num_agents,</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>std::size_t<sp/>max_collisions_per_agent<sp/>=<sp/>2,</highlight></codeline>
+<codeline lineno="128"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">double</highlight><highlight class="normal"><sp/>max_stubs_ratio<sp/>=<sp/>0.5);</highlight></codeline>
+<codeline lineno="129"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal">}<sp/><sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>lns2</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="include/iros_llm_swarm_mapf/lns2/warm_start.hpp"/>
+  </compounddef>
+</doxygen>

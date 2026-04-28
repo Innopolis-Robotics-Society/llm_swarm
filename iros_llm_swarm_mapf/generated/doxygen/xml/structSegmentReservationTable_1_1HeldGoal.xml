@@ -1,0 +1,83 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structSegmentReservationTable_1_1HeldGoal" kind="struct" language="C++" prot="private">
+    <compoundname>SegmentReservationTable::HeldGoal</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structSegmentReservationTable_1_1HeldGoal_1a508eb5af3420eb4e9db102656b8df0bc" prot="public" static="no" mutable="no">
+        <type><ref refid="structCell" kindref="compound">Cell</ref></type>
+        <definition>Cell SegmentReservationTable::HeldGoal::cell</definition>
+        <argsstring></argsstring>
+        <name>cell</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="420" column="12" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="420" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSegmentReservationTable_1_1HeldGoal_1a5c3b4f041c2a09fbbea056ac18b40b16" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float SegmentReservationTable::HeldGoal::footprint_cells</definition>
+        <argsstring></argsstring>
+        <name>footprint_cells</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="421" column="12" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="421" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSegmentReservationTable_1_1HeldGoal_1adfe8bb0a8fa04d435053b18a6b2679af" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float SegmentReservationTable::HeldGoal::soft_radius_cells</definition>
+        <argsstring></argsstring>
+        <name>soft_radius_cells</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="422" column="12" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="422" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSegmentReservationTable_1_1HeldGoal_1abc692893e30374e9e11c93d9508b5ea3" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t SegmentReservationTable::HeldGoal::from_time</definition>
+        <argsstring></argsstring>
+        <name>from_time</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="423" column="12" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="423" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>SegmentReservationTable::HeldGoal</label>
+        <childnode refid="2" relation="usage">
+          <edgelabel>cell</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>Cell</label>
+        <link refid="structCell"/>
+      </node>
+    </collaborationgraph>
+    <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="419" column="3" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="419" bodyend="424"/>
+    <listofallmembers>
+      <member refid="structSegmentReservationTable_1_1HeldGoal_1a508eb5af3420eb4e9db102656b8df0bc" prot="public" virt="non-virtual"><scope>SegmentReservationTable::HeldGoal</scope><name>cell</name></member>
+      <member refid="structSegmentReservationTable_1_1HeldGoal_1a5c3b4f041c2a09fbbea056ac18b40b16" prot="public" virt="non-virtual"><scope>SegmentReservationTable::HeldGoal</scope><name>footprint_cells</name></member>
+      <member refid="structSegmentReservationTable_1_1HeldGoal_1abc692893e30374e9e11c93d9508b5ea3" prot="public" virt="non-virtual"><scope>SegmentReservationTable::HeldGoal</scope><name>from_time</name></member>
+      <member refid="structSegmentReservationTable_1_1HeldGoal_1adfe8bb0a8fa04d435053b18a6b2679af" prot="public" virt="non-virtual"><scope>SegmentReservationTable::HeldGoal</scope><name>soft_radius_cells</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

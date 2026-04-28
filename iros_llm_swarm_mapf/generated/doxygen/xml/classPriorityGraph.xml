@@ -1,0 +1,240 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classPriorityGraph" kind="class" language="C++" prot="public">
+    <compoundname>PriorityGraph</compoundname>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classPriorityGraph_1a307e1ad925c0d64aab1a466991ef1a61" prot="private" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t PriorityGraph::n_</definition>
+        <argsstring></argsstring>
+        <name>n_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="174" column="10" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="174" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPriorityGraph_1a0247084a3358e7cfbaa50a0772160c94" prot="private" static="no" mutable="no">
+        <type>std::vector&lt; uint8_t &gt;</type>
+        <definition>std::vector&lt;uint8_t&gt; PriorityGraph::m_</definition>
+        <argsstring></argsstring>
+        <name>m_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="175" column="15" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="175" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classPriorityGraph_1ac0ddf4de0d65a9e0b8d91cf1255f0ea1" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>PriorityGraph::PriorityGraph</definition>
+        <argsstring>(size_t n=0)</argsstring>
+        <name>PriorityGraph</name>
+        <param>
+          <type>size_t</type>
+          <declname>n</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="110" column="12" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="110" bodyend="110"/>
+      </memberdef>
+      <memberdef kind="function" id="classPriorityGraph_1a910a1045900a2acf3fc77ebbde3fe132" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t PriorityGraph::size</definition>
+        <argsstring>() const</argsstring>
+        <name>size</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="112" column="10" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="112" bodyend="112"/>
+      </memberdef>
+      <memberdef kind="function" id="classPriorityGraph_1a153b7569b7e1f62dfac3e7e2c097f02a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool PriorityGraph::has</definition>
+        <argsstring>(size_t hi, size_t lo) const</argsstring>
+        <name>has</name>
+        <param>
+          <type>size_t</type>
+          <declname>hi</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>lo</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="114" column="8" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="114" bodyend="114"/>
+      </memberdef>
+      <memberdef kind="function" id="classPriorityGraph_1a6fa7192882c6a52d612957d3de2bef93" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool PriorityGraph::add</definition>
+        <argsstring>(size_t hi, size_t lo)</argsstring>
+        <name>add</name>
+        <param>
+          <type>size_t</type>
+          <declname>hi</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>lo</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="116" column="8" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="116" bodyend="127"/>
+      </memberdef>
+      <memberdef kind="function" id="classPriorityGraph_1a779a34b7877755931a8bb22d6e1e59eb" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>std::vector&lt; size_t &gt;</type>
+        <definition>std::vector&lt;size_t&gt; PriorityGraph::higher_than</definition>
+        <argsstring>(size_t a) const</argsstring>
+        <name>higher_than</name>
+        <param>
+          <type>size_t</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="129" column="15" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="129" bodyend="133"/>
+      </memberdef>
+      <memberdef kind="function" id="classPriorityGraph_1a683897195f56730bf1f7f78ececb4650" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>std::vector&lt; size_t &gt;</type>
+        <definition>std::vector&lt;size_t&gt; PriorityGraph::topo_from</definition>
+        <argsstring>(size_t root) const</argsstring>
+        <name>topo_from</name>
+        <param>
+          <type>size_t</type>
+          <declname>root</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="135" column="15" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="135" bodyend="158"/>
+      </memberdef>
+      <memberdef kind="function" id="classPriorityGraph_1aeabc7392058169564c1fb44560817016" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t PriorityGraph::hash</definition>
+        <argsstring>() const</argsstring>
+        <name>hash</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="160" column="10" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="160" bodyend="169"/>
+      </memberdef>
+      <memberdef kind="function" id="classPriorityGraph_1ad9432043ba5dc957976aa240bd691de1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool PriorityGraph::operator==</definition>
+        <argsstring>(const PriorityGraph &amp;o) const</argsstring>
+        <name>operator==</name>
+        <param>
+          <type>const <ref refid="classPriorityGraph" kindref="compound">PriorityGraph</ref> &amp;</type>
+          <declname>o</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="171" column="8" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="171" bodyend="171"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classPriorityGraph_1aea784ee835f44695c50060c1c9819542" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint8_t</type>
+        <definition>uint8_t PriorityGraph::at</definition>
+        <argsstring>(size_t i, size_t j) const</argsstring>
+        <name>at</name>
+        <param>
+          <type>size_t</type>
+          <declname>i</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>j</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="177" column="11" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="177" bodyend="177"/>
+      </memberdef>
+      <memberdef kind="function" id="classPriorityGraph_1a49dcbdcfb294acc90d638f383383e251" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PriorityGraph::set</definition>
+        <argsstring>(size_t i, size_t j, uint8_t v)</argsstring>
+        <name>set</name>
+        <param>
+          <type>size_t</type>
+          <declname>i</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>j</declname>
+        </param>
+        <param>
+          <type>uint8_t</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="178" column="11" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="178" bodyend="178"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="108" column="1" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="108" bodyend="179"/>
+    <listofallmembers>
+      <member refid="classPriorityGraph_1a6fa7192882c6a52d612957d3de2bef93" prot="public" virt="non-virtual"><scope>PriorityGraph</scope><name>add</name></member>
+      <member refid="classPriorityGraph_1aea784ee835f44695c50060c1c9819542" prot="private" virt="non-virtual"><scope>PriorityGraph</scope><name>at</name></member>
+      <member refid="classPriorityGraph_1a153b7569b7e1f62dfac3e7e2c097f02a" prot="public" virt="non-virtual"><scope>PriorityGraph</scope><name>has</name></member>
+      <member refid="classPriorityGraph_1aeabc7392058169564c1fb44560817016" prot="public" virt="non-virtual"><scope>PriorityGraph</scope><name>hash</name></member>
+      <member refid="classPriorityGraph_1a779a34b7877755931a8bb22d6e1e59eb" prot="public" virt="non-virtual"><scope>PriorityGraph</scope><name>higher_than</name></member>
+      <member refid="classPriorityGraph_1a0247084a3358e7cfbaa50a0772160c94" prot="private" virt="non-virtual"><scope>PriorityGraph</scope><name>m_</name></member>
+      <member refid="classPriorityGraph_1a307e1ad925c0d64aab1a466991ef1a61" prot="private" virt="non-virtual"><scope>PriorityGraph</scope><name>n_</name></member>
+      <member refid="classPriorityGraph_1ad9432043ba5dc957976aa240bd691de1" prot="public" virt="non-virtual"><scope>PriorityGraph</scope><name>operator==</name></member>
+      <member refid="classPriorityGraph_1ac0ddf4de0d65a9e0b8d91cf1255f0ea1" prot="public" virt="non-virtual"><scope>PriorityGraph</scope><name>PriorityGraph</name></member>
+      <member refid="classPriorityGraph_1a49dcbdcfb294acc90d638f383383e251" prot="private" virt="non-virtual"><scope>PriorityGraph</scope><name>set</name></member>
+      <member refid="classPriorityGraph_1a910a1045900a2acf3fc77ebbde3fe132" prot="public" virt="non-virtual"><scope>PriorityGraph</scope><name>size</name></member>
+      <member refid="classPriorityGraph_1a683897195f56730bf1f7f78ececb4650" prot="public" virt="non-virtual"><scope>PriorityGraph</scope><name>topo_from</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

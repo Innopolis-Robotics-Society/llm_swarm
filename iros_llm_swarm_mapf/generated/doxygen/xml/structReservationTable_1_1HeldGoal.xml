@@ -1,0 +1,83 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structReservationTable_1_1HeldGoal" kind="struct" language="C++" prot="private">
+    <compoundname>ReservationTable::HeldGoal</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structReservationTable_1_1HeldGoal_1a08894beb201996eb2d082359c08f191a" prot="public" static="no" mutable="no">
+        <type><ref refid="structCell" kindref="compound">Cell</ref></type>
+        <definition>Cell ReservationTable::HeldGoal::cell</definition>
+        <argsstring></argsstring>
+        <name>cell</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/space_time_astar.hpp" line="147" column="10" bodyfile="include/iros_llm_swarm_mapf/space_time_astar.hpp" bodystart="147" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structReservationTable_1_1HeldGoal_1abf521fd37f1007fde8678acd8ffe265f" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ReservationTable::HeldGoal::footprint_cells</definition>
+        <argsstring></argsstring>
+        <name>footprint_cells</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/space_time_astar.hpp" line="148" column="11" bodyfile="include/iros_llm_swarm_mapf/space_time_astar.hpp" bodystart="148" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structReservationTable_1_1HeldGoal_1a4b4ceffc65da3dd1d19fc4175a95d878" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ReservationTable::HeldGoal::soft_radius_cells</definition>
+        <argsstring></argsstring>
+        <name>soft_radius_cells</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/space_time_astar.hpp" line="149" column="11" bodyfile="include/iros_llm_swarm_mapf/space_time_astar.hpp" bodystart="149" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structReservationTable_1_1HeldGoal_1ab364a27f5fcd64d4612458aca9a052e7" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t ReservationTable::HeldGoal::from_time</definition>
+        <argsstring></argsstring>
+        <name>from_time</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/space_time_astar.hpp" line="150" column="12" bodyfile="include/iros_llm_swarm_mapf/space_time_astar.hpp" bodystart="150" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>Cell</label>
+        <link refid="structCell"/>
+      </node>
+      <node id="1">
+        <label>ReservationTable::HeldGoal</label>
+        <childnode refid="2" relation="usage">
+          <edgelabel>cell</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="include/iros_llm_swarm_mapf/space_time_astar.hpp" line="146" column="3" bodyfile="include/iros_llm_swarm_mapf/space_time_astar.hpp" bodystart="146" bodyend="151"/>
+    <listofallmembers>
+      <member refid="structReservationTable_1_1HeldGoal_1a08894beb201996eb2d082359c08f191a" prot="public" virt="non-virtual"><scope>ReservationTable::HeldGoal</scope><name>cell</name></member>
+      <member refid="structReservationTable_1_1HeldGoal_1abf521fd37f1007fde8678acd8ffe265f" prot="public" virt="non-virtual"><scope>ReservationTable::HeldGoal</scope><name>footprint_cells</name></member>
+      <member refid="structReservationTable_1_1HeldGoal_1ab364a27f5fcd64d4612458aca9a052e7" prot="public" virt="non-virtual"><scope>ReservationTable::HeldGoal</scope><name>from_time</name></member>
+      <member refid="structReservationTable_1_1HeldGoal_1a4b4ceffc65da3dd1d19fc4175a95d878" prot="public" virt="non-virtual"><scope>ReservationTable::HeldGoal</scope><name>soft_radius_cells</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

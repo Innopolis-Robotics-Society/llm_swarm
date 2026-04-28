@@ -1,0 +1,208 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SetGoals &mdash; iros_llm_swarm_interfaces 0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Standard Documents" href="../../standards.html" />
+    <link rel="prev" title="LlmDecision" href="LlmDecision.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            iros_llm_swarm_interfaces
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../message_definitions.html">Message Definitions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../msg/FollowerStatus.html">FollowerStatus</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../msg/FormationConfig.html">FormationConfig</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../msg/FormationStatus.html">FormationStatus</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../msg/FormationsConfig.html">FormationsConfig</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../msg/FormationsStatus.html">FormationsStatus</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../msg/MAPFPlan.html">MAPFPlan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../msg/MAPFStep.html">MAPFStep</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../service_definitions.html">Service Definitions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../srv/ActivateFormation.html">ActivateFormation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../srv/DeactivateFormation.html">DeactivateFormation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../srv/GetFormation.html">GetFormation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../srv/ListFormations.html">ListFormations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../srv/LoadFormations.html">LoadFormations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../srv/RemoveFormation.html">RemoveFormation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../srv/SaveFormations.html">SaveFormations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../srv/SetFormation.html">SetFormation</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="../action_definitions.html">Action Definitions</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="LlmDecision.html">LlmDecision</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">SetGoals</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../standards.html">Standard Documents</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../standard_docs/PACKAGE.html">PACKAGE</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../genindex.html">Index</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">iros_llm_swarm_interfaces</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../action_definitions.html">Action Definitions</a></li>
+      <li class="breadcrumb-item active">SetGoals</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/interfaces/action/SetGoals.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="setgoals">
+<h1>SetGoals<a class="headerlink" href="#setgoals" title="Link to this heading"></a></h1>
+<p>This is a ROS action definition.</p>
+<p><strong>Source</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># SetGoals.action — MAPF swarm navigation action</span>
+<span class="c1">#</span>
+<span class="c1"># Lifecycle:</span>
+<span class="c1">#   1. Client sends goal (robot_ids + target positions)</span>
+<span class="c1">#   2. Server plans paths (feedback: status=&quot;planning&quot;)</span>
+<span class="c1">#   3. Server dispatches paths and monitors execution (feedback: status=&quot;executing&quot;)</span>
+<span class="c1">#   4. Server replans on deviation (feedback: status=&quot;replanning&quot;)</span>
+<span class="c1">#   5. Action succeeds when ALL robots arrive, or fails/is cancelled</span>
+<span class="c1">#</span>
+<span class="c1"># This action stays alive for the entire plan-execute-arrive cycle,</span>
+<span class="c1"># not just the planning phase.</span>
+
+<span class="c1">#goal definition</span>
+<span class="n">uint32</span><span class="p">[]</span> <span class="n">robot_ids</span>
+<span class="n">geometry_msgs</span><span class="o">/</span><span class="n">Point</span><span class="p">[]</span> <span class="n">goals</span>
+<span class="o">---</span>
+<span class="c1">#result definition</span>
+<span class="c1"># Error codes</span>
+<span class="n">uint16</span> <span class="n">NONE</span><span class="o">=</span><span class="mi">0</span>
+<span class="n">uint16</span> <span class="n">UNKNOWN</span><span class="o">=</span><span class="mi">200</span>
+<span class="n">uint16</span> <span class="n">NO_VALID_AGENTS</span><span class="o">=</span><span class="mi">201</span>
+<span class="n">uint16</span> <span class="n">PBS_FAILED</span><span class="o">=</span><span class="mi">202</span>
+<span class="n">uint16</span> <span class="n">TIMEOUT</span><span class="o">=</span><span class="mi">203</span>
+<span class="n">uint16</span> <span class="n">CANCELLED</span><span class="o">=</span><span class="mi">204</span>
+
+<span class="nb">bool</span> <span class="n">success</span>
+<span class="n">string</span> <span class="n">message</span>
+<span class="n">float64</span> <span class="n">planning_time_ms</span>
+<span class="n">uint32</span> <span class="n">num_agents_planned</span>
+<span class="n">uint32</span> <span class="n">pbs_expansions</span>
+<span class="n">uint32</span> <span class="n">max_path_length</span>
+<span class="n">uint32</span><span class="p">[]</span> <span class="n">path_lengths</span>
+<span class="n">uint32</span> <span class="n">astar_ok_count</span>
+<span class="n">uint32</span> <span class="n">astar_fail_count</span>
+<span class="n">uint32</span> <span class="n">astar_avg_exp</span>
+<span class="n">uint32</span> <span class="n">astar_max_exp</span>
+<span class="n">uint16</span> <span class="n">error_code</span>
+
+<span class="c1"># Execution summary (populated when action completes after execution phase)</span>
+<span class="n">uint32</span> <span class="n">total_replans</span>
+<span class="n">float64</span> <span class="n">total_execution_sec</span>
+<span class="o">---</span>
+<span class="c1">#feedback definition</span>
+<span class="n">string</span> <span class="n">status</span>
+<span class="c1"># &quot;validating&quot;  — building agents from odom/map</span>
+<span class="c1"># &quot;planning&quot;    — PBS solver running</span>
+<span class="c1"># &quot;executing&quot;   — robots following paths</span>
+<span class="c1"># &quot;replanning&quot;  — deviation detected, replanning in progress</span>
+<span class="c1"># &quot;failed&quot;      — planning failed (action will complete with error)</span>
+
+<span class="n">uint32</span> <span class="n">elapsed_ms</span>
+
+<span class="c1"># Execution-phase fields (zero during planning phase)</span>
+<span class="n">uint32</span> <span class="n">robots_arrived</span>      <span class="c1"># сколько доехали</span>
+<span class="n">uint32</span> <span class="n">robots_active</span>       <span class="c1"># сколько ещё в пути</span>
+<span class="n">uint32</span> <span class="n">robots_deviated</span>     <span class="c1"># сколько отклонились</span>
+<span class="n">uint32</span> <span class="n">replans_done</span>        <span class="c1"># сколько реплнов произошло</span>
+<span class="n">uint32</span> <span class="n">robot_stall</span>         <span class="c1"># cколько мертвы</span>
+
+<span class="n">string</span> <span class="n">info</span>   <span class="c1"># редкая публикация раз в frequency_of_info общей информации о системе</span>
+
+<span class="n">string</span> <span class="n">warning</span> <span class="c1"># мгновенная публикация warning (N unplanable skipped / Robot N out of lives)</span>
+
+</pre></div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="LlmDecision.html" class="btn btn-neutral float-left" title="LlmDecision" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../../standards.html" class="btn btn-neutral float-right" title="Standard Documents" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright The &lt;iros_llm_swarm_interfaces&gt; Contributors. License: TODO: License declaration.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

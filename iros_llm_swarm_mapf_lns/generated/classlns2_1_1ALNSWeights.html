@@ -1,0 +1,268 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Class ALNSWeights &mdash; iros_llm_swarm_mapf_lns 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/collapsible-lists/css/tree_view.css?v=a885cde7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js?v=73120307"></script>
+      <script src="../_static/collapsible-lists/js/apply-collapsible-lists.js?v=660e4f45"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Class CollisionTable" href="classlns2_1_1CollisionTable.html" />
+    <link rel="prev" title="Template Struct hash&lt; lns2::EdgeKey &gt;" href="structstd_1_1hash_3_01lns2_1_1EdgeKey_01_4.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            iros_llm_swarm_mapf_lns
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">C++ API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="index.html#class-hierarchy">Class Hierarchy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#file-hierarchy">File Hierarchy</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html#full-c-api">Full C++ API</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="index.html#namespaces">Namespaces</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="namespace_lns2.html">Namespace lns2</a></li>
+<li class="toctree-l4"><a class="reference internal" href="namespace_std.html">Namespace std</a></li>
+</ul>
+</li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html#classes-and-structs">Classes and Structs</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1ActualState.html">Struct ActualState</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1Agent.html">Struct Agent</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1Cell.html">Struct Cell</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1CellOffset.html">Struct CellOffset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1CellTime.html">Struct CellTime</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1Collision.html">Struct Collision</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1EdgeKey.html">Struct EdgeKey</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1FootprintModel.html">Struct FootprintModel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1GridMap.html">Struct GridMap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1HeuristicCache_1_1Key.html">Struct HeuristicCache::Key</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1HeuristicCache_1_1KeyHash.html">Struct HeuristicCache::KeyHash</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1LNS2Params.html">Struct LNS2Params</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1LNS2Stats.html">Struct LNS2Stats</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1PreviousPlan.html">Struct PreviousPlan</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1Snapshot.html">Struct Snapshot</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1SoftAStarParams.html">Struct SoftAStarParams</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1SoftAStarResult.html">Struct SoftAStarResult</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1WarmStartParams.html">Struct WarmStartParams</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structlns2_1_1WarmStartReport.html">Struct WarmStartReport</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structstd_1_1hash_3_01lns2_1_1Cell_01_4.html">Template Struct hash&lt; lns2::Cell &gt;</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structstd_1_1hash_3_01lns2_1_1CellTime_01_4.html">Template Struct hash&lt; lns2::CellTime &gt;</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structstd_1_1hash_3_01lns2_1_1EdgeKey_01_4.html">Template Struct hash&lt; lns2::EdgeKey &gt;</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Class ALNSWeights</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlns2_1_1CollisionTable.html">Class CollisionTable</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlns2_1_1DestroyOperator.html">Class DestroyOperator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlns2_1_1HeuristicCache.html">Class HeuristicCache</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlns2_1_1LNS2Solver.html">Class LNS2Solver</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classlns2_1_1Solution.html">Class Solution</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#enums">Enums</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="enum_destroy__operators_8hpp_1af0a95e907be6ea5b79fa7fb81054cd73.html">Enum DestroyOp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="enum_warm__start_8hpp_1a31817eac241af59ecb472b6d600cba84.html">Enum SeedStatus</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#functions">Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="function_warm__start_8hpp_1a6f7b0fc44c20cc4b7956f3e4c0d08e35.html">Function lns2::build_warm_seed</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_destroy__operators_8hpp_1a665c7e6d8b93215c39bd0d4e2010e86c.html">Function lns2::make_bottleneck</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_destroy__operators_8hpp_1a7c7fab41c8874ba5cf99bbc7cf187c75.html">Function lns2::make_collision_based</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_destroy__operators_8hpp_1ab02d4b00f95bd6344953235091be59a3.html">Function lns2::make_random</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_destroy__operators_8hpp_1a9076b68e80015aa7e4a61cbd38e5862a.html">Function lns2::make_random_walk</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_types_8hpp_1a2379149130506eb849516adf8188b882.html">Function lns2::operator+</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_warm__start_8hpp_1ad67d515eb13f8135a09aaa2798f51396.html">Function lns2::should_warm_start</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_soft__astar_8hpp_1a157f76b1ed7d471f08d4531b4f3b2f0c.html">Function lns2::soft_astar</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#variables">Variables</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="variable_types_8hpp_1a0dd6b37ae0daef091c8dd95a7a55c503.html">Variable lns2::kInfCost</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#typedefs">Typedefs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="typedef_types_8hpp_1af07bce8111d165ff0f159c527205e387.html">Typedef lns2::AgentId</a></li>
+<li class="toctree-l4"><a class="reference internal" href="typedef_types_8hpp_1a1251592ce7d75f2f9dcf16ba3a24e611.html">Typedef lns2::CellIdx</a></li>
+<li class="toctree-l4"><a class="reference internal" href="typedef_types_8hpp_1a840101fcf1db63833977992c19066ce2.html">Typedef lns2::Cost</a></li>
+<li class="toctree-l4"><a class="reference internal" href="typedef_types_8hpp_1a819df591d490f96409eb2078427c1234.html">Typedef lns2::Path</a></li>
+<li class="toctree-l4"><a class="reference internal" href="typedef_types_8hpp_1a51846c73fc61aed02eae0928510f983f.html">Typedef lns2::Timestep</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#directories">Directories</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dir_include.html">Directory include</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dir_include_iros_llm_swarm_mapf.html">Directory iros_llm_swarm_mapf</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dir_include_iros_llm_swarm_mapf_lns2.html">Directory lns2</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#files">Files</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_lns2_collision_table.hpp.html">File collision_table.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_lns2_destroy_operators.hpp.html">File destroy_operators.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_lns2_lns2_solver.hpp.html">File lns2_solver.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_lns2_soft_astar.hpp.html">File soft_astar.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_lns2_solution.hpp.html">File solution.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_lns2_types.hpp.html">File types.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_lns2_warm_start.hpp.html">File warm_start.hpp</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../standards.html">Standard Documents</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../standard_docs/PACKAGE.html">PACKAGE</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../genindex.html">Index</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">iros_llm_swarm_mapf_lns</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">C++ API</a></li>
+      <li class="breadcrumb-item active">Class ALNSWeights</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/classlns2_1_1ALNSWeights.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="class-alnsweights">
+<span id="exhale-class-classlns2-1-1alnsweights"></span><h1>Class ALNSWeights<a class="headerlink" href="#class-alnsweights" title="Link to this heading"></a></h1>
+<ul class="simple">
+<li><p>Defined in <a class="reference internal" href="file_include_iros_llm_swarm_mapf_lns2_destroy_operators.hpp.html#file-include-iros-llm-swarm-mapf-lns2-destroy-operators-hpp"><span class="std std-ref">File destroy_operators.hpp</span></a></p></li>
+</ul>
+<section id="class-documentation">
+<h2>Class Documentation<a class="headerlink" href="#class-documentation" title="Link to this heading"></a></h2>
+<dl class="cpp class">
+<dt class="sig sig-object cpp" id="_CPPv4N4lns211ALNSWeightsE">
+<span id="_CPPv3N4lns211ALNSWeightsE"></span><span id="_CPPv2N4lns211ALNSWeightsE"></span><span id="lns2::ALNSWeights"></span><span class="target" id="classlns2_1_1ALNSWeights"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ALNSWeights</span></span></span><a class="headerlink" href="#_CPPv4N4lns211ALNSWeightsE" title="Link to this definition"></a><br /></dt>
+<dd><div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4lns211ALNSWeights11ALNSWeightsEv">
+<span id="_CPPv3N4lns211ALNSWeights11ALNSWeightsEv"></span><span id="_CPPv2N4lns211ALNSWeights11ALNSWeightsEv"></span><span id="lns2::ALNSWeights::ALNSWeights"></span><span class="target" id="classlns2_1_1ALNSWeights_1aa429e0c5bfdde59d261b651c415b7df7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ALNSWeights</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4lns211ALNSWeights11ALNSWeightsEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4lns211ALNSWeights6sampleERNSt7mt19937E">
+<span id="_CPPv3NK4lns211ALNSWeights6sampleERNSt7mt19937E"></span><span id="_CPPv2NK4lns211ALNSWeights6sampleERNSt7mt19937E"></span><span id="lns2::ALNSWeights::sample__std::mt19937RC"></span><span class="target" id="classlns2_1_1ALNSWeights_1ae087e9298d5a6752dbe44a36ef0797cd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="enum_destroy__operators_8hpp_1af0a95e907be6ea5b79fa7fb81054cd73.html#_CPPv4N4lns29DestroyOpE" title="lns2::DestroyOp"><span class="n"><span class="pre">DestroyOp</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">sample</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">mt19937</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">rng</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4lns211ALNSWeights6sampleERNSt7mt19937E" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4lns211ALNSWeights6recordE9DestroyOpd">
+<span id="_CPPv3N4lns211ALNSWeights6recordE9DestroyOpd"></span><span id="_CPPv2N4lns211ALNSWeights6recordE9DestroyOpd"></span><span id="lns2::ALNSWeights::record__DestroyOp.double"></span><span class="target" id="classlns2_1_1ALNSWeights_1a6b46421e9c10f962bfbe84b322abacfb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">record</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="enum_destroy__operators_8hpp_1af0a95e907be6ea5b79fa7fb81054cd73.html#_CPPv4N4lns29DestroyOpE" title="lns2::DestroyOp"><span class="n"><span class="pre">DestroyOp</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">op</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reward</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4lns211ALNSWeights6recordE9DestroyOpd" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N4lns211ALNSWeights13flush_segmentEdd">
+<span id="_CPPv3N4lns211ALNSWeights13flush_segmentEdd"></span><span id="_CPPv2N4lns211ALNSWeights13flush_segmentEdd"></span><span id="lns2::ALNSWeights::flush_segment__double.double"></span><span class="target" id="classlns2_1_1ALNSWeights_1a5eb7762c9d91ca3fb031c716023fc8bd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flush_segment</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reaction</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.1</span></span>, <span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">w_min</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0.1</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N4lns211ALNSWeights13flush_segmentEdd" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK4lns211ALNSWeights7weightsEv">
+<span id="_CPPv3NK4lns211ALNSWeights7weightsEv"></span><span id="_CPPv2NK4lns211ALNSWeights7weightsEv"></span><span id="lns2::ALNSWeights::weightsC"></span><span class="target" id="classlns2_1_1ALNSWeights_1a488673266b7893caed71ae0c2ed15267"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">array</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N4lns211ALNSWeights1NE" title="lns2::ALNSWeights::N"><span class="n"><span class="pre">N</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">weights</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK4lns211ALNSWeights7weightsEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-attributes">Public Static Attributes</p>
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4lns211ALNSWeights1NE">
+<span id="_CPPv3N4lns211ALNSWeights1NE"></span><span id="_CPPv2N4lns211ALNSWeights1NE"></span><span id="lns2::ALNSWeights::N__std::s"></span><span class="target" id="classlns2_1_1ALNSWeights_1a187c1e33b9b58d3a624007a592ab1af7"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">N</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">static_cast</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">(</span></span><a class="reference internal" href="enum_destroy__operators_8hpp_1af0a95e907be6ea5b79fa7fb81054cd73.html#_CPPv4N4lns29DestroyOpE" title="lns2::DestroyOp"><span class="n"><span class="pre">DestroyOp</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="enum_destroy__operators_8hpp_1af0a95e907be6ea5b79fa7fb81054cd73.html#_CPPv4N4lns29DestroyOp5COUNTE" title="lns2::DestroyOp::COUNT"><span class="n"><span class="pre">COUNT</span></span></a><span class="p"><span class="pre">)</span></span><a class="headerlink" href="#_CPPv4N4lns211ALNSWeights1NE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4lns211ALNSWeights14R_IMPROVE_BESTE">
+<span id="_CPPv3N4lns211ALNSWeights14R_IMPROVE_BESTE"></span><span id="_CPPv2N4lns211ALNSWeights14R_IMPROVE_BESTE"></span><span id="lns2::ALNSWeights::R_IMPROVE_BEST__double"></span><span class="target" id="classlns2_1_1ALNSWeights_1a7836531ae3f741720b382193d2d3ac4e"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">R_IMPROVE_BEST</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">10.0</span></span><a class="headerlink" href="#_CPPv4N4lns211ALNSWeights14R_IMPROVE_BESTE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4lns211ALNSWeights15R_IMPROVE_LOCALE">
+<span id="_CPPv3N4lns211ALNSWeights15R_IMPROVE_LOCALE"></span><span id="_CPPv2N4lns211ALNSWeights15R_IMPROVE_LOCALE"></span><span id="lns2::ALNSWeights::R_IMPROVE_LOCAL__double"></span><span class="target" id="classlns2_1_1ALNSWeights_1a9567ac6bc787ee42ba2f8f10ec210b2a"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">R_IMPROVE_LOCAL</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">5.0</span></span><a class="headerlink" href="#_CPPv4N4lns211ALNSWeights15R_IMPROVE_LOCALE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp var">
+<dt class="sig sig-object cpp" id="_CPPv4N4lns211ALNSWeights11R_NO_CHANGEE">
+<span id="_CPPv3N4lns211ALNSWeights11R_NO_CHANGEE"></span><span id="_CPPv2N4lns211ALNSWeights11R_NO_CHANGEE"></span><span id="lns2::ALNSWeights::R_NO_CHANGE__double"></span><span class="target" id="classlns2_1_1ALNSWeights_1a2737706e4216b6611c6da29657850416"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">R_NO_CHANGE</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">1.0</span></span><a class="headerlink" href="#_CPPv4N4lns211ALNSWeights11R_NO_CHANGEE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="structstd_1_1hash_3_01lns2_1_1EdgeKey_01_4.html" class="btn btn-neutral float-left" title="Template Struct hash&lt; lns2::EdgeKey &gt;" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="classlns2_1_1CollisionTable.html" class="btn btn-neutral float-right" title="Class CollisionTable" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright The &lt;iros_llm_swarm_mapf_lns&gt; Contributors. License: MIT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

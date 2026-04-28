@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structMoveSet" kind="struct" language="C++" prot="public">
+    <compoundname>MoveSet</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structMoveSet_1a045e3934946634d4fb9a558ba72629b3" prot="public" static="no" mutable="no">
+        <type>std::vector&lt; <ref refid="structMove" kindref="compound">Move</ref> &gt;</type>
+        <definition>std::vector&lt;Move&gt; MoveSet::moves</definition>
+        <argsstring></argsstring>
+        <name>moves</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="233" column="15" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="233" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structMoveSet_1a20a7fc4a17e41b59199481fa5963fa88" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structMoveSet" kindref="compound">MoveSet</ref></type>
+        <definition>static MoveSet MoveSet::generate</definition>
+        <argsstring>(float max_speed, float time_step_sec, float resolution)</argsstring>
+        <name>generate</name>
+        <param>
+          <type>float</type>
+          <declname>max_speed</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>time_step_sec</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>resolution</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="238" column="18" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="238" bodyend="254"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="232" column="1" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="232" bodyend="255"/>
+    <listofallmembers>
+      <member refid="structMoveSet_1a20a7fc4a17e41b59199481fa5963fa88" prot="public" virt="non-virtual"><scope>MoveSet</scope><name>generate</name></member>
+      <member refid="structMoveSet_1a045e3934946634d4fb9a558ba72629b3" prot="public" virt="non-virtual"><scope>MoveSet</scope><name>moves</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

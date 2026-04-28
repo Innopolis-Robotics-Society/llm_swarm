@@ -1,0 +1,106 @@
+
+.. _program_listing_file_include_iros_llm_swarm_mapf_lns2_destroy_operators.hpp:
+
+Program Listing for File destroy_operators.hpp
+==============================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_include_iros_llm_swarm_mapf_lns2_destroy_operators.hpp>` (``include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   // iros_llm_swarm_mapf/lns2/destroy_operators.hpp
+   
+   #pragma once
+   
+   #include <array>
+   #include <cstdint>
+   #include <memory>
+   #include <random>
+   #include <vector>
+   
+   #include "iros_llm_swarm_mapf/lns2/solution.hpp"
+   #include "iros_llm_swarm_mapf/lns2/types.hpp"
+   
+   namespace lns2 {
+   
+   enum class DestroyOp : std::uint8_t {
+     CollisionBased = 0,
+     RandomWalk     = 1,
+     Random         = 2,
+     Bottleneck     = 3,
+     COUNT          = 4
+   };
+   
+   class DestroyOperator {
+    public:
+     virtual ~DestroyOperator() = default;
+     virtual DestroyOp id() const = 0;
+     virtual std::vector<AgentId> select(const Solution& sol,
+                                           std::size_t N,
+                                           std::mt19937& rng) = 0;
+   };
+   
+   std::unique_ptr<DestroyOperator> make_collision_based();
+   std::unique_ptr<DestroyOperator> make_random_walk();
+   std::unique_ptr<DestroyOperator> make_random();
+   std::unique_ptr<DestroyOperator> make_bottleneck();
+   
+   // Adaptive weights with segment-based reaction update.
+   class ALNSWeights {
+    public:
+     static constexpr std::size_t N = static_cast<std::size_t>(DestroyOp::COUNT);
+   
+     // Rewards:
+     static constexpr double R_IMPROVE_BEST  = 10.0;  // better than any previous
+     static constexpr double R_IMPROVE_LOCAL = 5.0;   // better than before this step
+     static constexpr double R_NO_CHANGE     = 1.0;   // rollback
+   
+     ALNSWeights() {
+       w_.fill(1.0);
+       sum_r_.fill(0.0);
+       cnt_.fill(0);
+     }
+   
+     DestroyOp sample(std::mt19937& rng) const {
+       double total = 0.0;
+       for (double v : w_) total += v;
+       if (total <= 0.0) return DestroyOp::Random;
+       std::uniform_real_distribution<double> U(0.0, total);
+       double r = U(rng);
+       double acc = 0.0;
+       for (std::size_t i = 0; i < N; ++i) {
+         acc += w_[i];
+         if (r <= acc) return static_cast<DestroyOp>(i);
+       }
+       return DestroyOp::Random;
+     }
+   
+     void record(DestroyOp op, double reward) {
+       const std::size_t i = static_cast<std::size_t>(op);
+       sum_r_[i] += reward;
+       cnt_[i]   += 1;
+     }
+   
+     // Flush accumulated rewards into weights.
+     void flush_segment(double reaction = 0.1, double w_min = 0.1) {
+       for (std::size_t i = 0; i < N; ++i) {
+         if (cnt_[i] == 0) continue;
+         const double avg = sum_r_[i] / static_cast<double>(cnt_[i]);
+         w_[i] = (1.0 - reaction) * w_[i] + reaction * avg;
+         if (w_[i] < w_min) w_[i] = w_min;
+         sum_r_[i] = 0.0;
+         cnt_[i]   = 0;
+       }
+     }
+   
+     const std::array<double, N>& weights() const { return w_; }
+   
+    private:
+     std::array<double, N> w_;
+     std::array<double, N> sum_r_;
+     std::array<std::size_t, N> cnt_;
+   };
+   
+   }  // namespace lns2

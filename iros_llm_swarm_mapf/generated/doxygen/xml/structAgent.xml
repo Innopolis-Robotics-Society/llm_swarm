@@ -1,0 +1,102 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structAgent" kind="struct" language="C++" prot="public">
+    <compoundname>Agent</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structAgent_1aeb102b6478f816ef954921e5c7afd03f" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t Agent::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="33" column="10" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structAgent_1a3bb8aa64a025a200b3405d04c79a3674" prot="public" static="no" mutable="no">
+        <type><ref refid="structCell" kindref="compound">Cell</ref></type>
+        <definition>Cell Agent::start</definition>
+        <argsstring></argsstring>
+        <name>start</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="34" column="8" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structAgent_1a1047c3c659341246428ff7ce5b1975cd" prot="public" static="no" mutable="no">
+        <type><ref refid="structCell" kindref="compound">Cell</ref></type>
+        <definition>Cell Agent::goal</definition>
+        <argsstring></argsstring>
+        <name>goal</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="35" column="8" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structAgent_1a5589ca1fe6a8280ad6aba0a101febc34" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Agent::footprint_radius</definition>
+        <argsstring></argsstring>
+        <name>footprint_radius</name>
+        <initializer>= 0.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="36" column="9" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structAgent_1abed7bd661ce4eac051293ae4acf1322c" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Agent::inflation</definition>
+        <argsstring></argsstring>
+        <name>inflation</name>
+        <initializer>= 0.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="37" column="9" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>Cell</label>
+        <link refid="structCell"/>
+      </node>
+      <node id="1">
+        <label>Agent</label>
+        <link refid="structAgent"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>goal</edgelabel>
+          <edgelabel>start</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="32" column="1" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="32" bodyend="38"/>
+    <listofallmembers>
+      <member refid="structAgent_1a5589ca1fe6a8280ad6aba0a101febc34" prot="public" virt="non-virtual"><scope>Agent</scope><name>footprint_radius</name></member>
+      <member refid="structAgent_1a1047c3c659341246428ff7ce5b1975cd" prot="public" virt="non-virtual"><scope>Agent</scope><name>goal</name></member>
+      <member refid="structAgent_1aeb102b6478f816ef954921e5c7afd03f" prot="public" virt="non-virtual"><scope>Agent</scope><name>id</name></member>
+      <member refid="structAgent_1abed7bd661ce4eac051293ae4acf1322c" prot="public" virt="non-virtual"><scope>Agent</scope><name>inflation</name></member>
+      <member refid="structAgent_1a3bb8aa64a025a200b3405d04c79a3674" prot="public" virt="non-virtual"><scope>Agent</scope><name>start</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

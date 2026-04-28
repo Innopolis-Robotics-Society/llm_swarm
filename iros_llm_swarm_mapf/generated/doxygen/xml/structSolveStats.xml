@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structSolveStats" kind="struct" language="C++" prot="public">
+    <compoundname>SolveStats</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structSolveStats_1a04d85fa2b379c6c30b0c1f1eb1a35a53" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t SolveStats::expansions</definition>
+        <argsstring></argsstring>
+        <name>expansions</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="124" column="10" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="124" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSolveStats_1a79351e6412f628782e1259f021d5fd3c" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t SolveStats::max_path_length</definition>
+        <argsstring></argsstring>
+        <name>max_path_length</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="125" column="10" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="125" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSolveStats_1aff97650cd241aebd4ac3dcc304a21458" prot="public" static="no" mutable="no">
+        <type><ref refid="structAStarStats" kindref="compound">AStarStats</ref></type>
+        <definition>AStarStats SolveStats::astar</definition>
+        <argsstring></argsstring>
+        <name>astar</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="126" column="14" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="126" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSolveStats_1a40f665a7b8886fb6bdd330b05ed490f9" prot="public" static="no" mutable="no">
+        <type><ref refid="structSolveDiagnostics" kindref="compound">SolveDiagnostics</ref></type>
+        <definition>SolveDiagnostics SolveStats::diag</definition>
+        <argsstring></argsstring>
+        <name>diag</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="127" column="20" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="127" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>AStarStats</label>
+        <link refid="structAStarStats"/>
+      </node>
+      <node id="3">
+        <label>SolveDiagnostics</label>
+        <link refid="structSolveDiagnostics"/>
+      </node>
+      <node id="1">
+        <label>SolveStats</label>
+        <link refid="structSolveStats"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>astar</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>diag</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="123" column="1" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="123" bodyend="128"/>
+    <listofallmembers>
+      <member refid="structSolveStats_1aff97650cd241aebd4ac3dcc304a21458" prot="public" virt="non-virtual"><scope>SolveStats</scope><name>astar</name></member>
+      <member refid="structSolveStats_1a40f665a7b8886fb6bdd330b05ed490f9" prot="public" virt="non-virtual"><scope>SolveStats</scope><name>diag</name></member>
+      <member refid="structSolveStats_1a04d85fa2b379c6c30b0c1f1eb1a35a53" prot="public" virt="non-virtual"><scope>SolveStats</scope><name>expansions</name></member>
+      <member refid="structSolveStats_1a79351e6412f628782e1259f021d5fd3c" prot="public" virt="non-virtual"><scope>SolveStats</scope><name>max_path_length</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

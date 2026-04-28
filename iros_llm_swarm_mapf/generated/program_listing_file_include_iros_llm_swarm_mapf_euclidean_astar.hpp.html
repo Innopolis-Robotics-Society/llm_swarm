@@ -1,0 +1,477 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Program Listing for File euclidean_astar.hpp &mdash; iros_llm_swarm_mapf 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/collapsible-lists/css/tree_view.css?v=a885cde7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js?v=73120307"></script>
+      <script src="../_static/collapsible-lists/js/apply-collapsible-lists.js?v=660e4f45"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="File mapf_types.hpp" href="file_include_iros_llm_swarm_mapf_mapf_types.hpp.html" />
+    <link rel="prev" title="File euclidean_astar.hpp" href="file_include_iros_llm_swarm_mapf_euclidean_astar.hpp.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            iros_llm_swarm_mapf
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">C++ API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="index.html#class-hierarchy">Class Hierarchy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#file-hierarchy">File Hierarchy</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html#full-c-api">Full C++ API</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="index.html#classes-and-structs">Classes and Structs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="structAgent.html">Struct Agent</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structAStarStats.html">Struct AStarStats</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structCell.html">Struct Cell</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structConflict.html">Struct Conflict</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structEuclideanAStarPlanner_1_1Node.html">Struct EuclideanAStarPlanner::Node</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structEuclideanAStarPlanner_1_1NodeCmp.html">Struct EuclideanAStarPlanner::NodeCmp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structGridMap.html">Struct GridMap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structMove.html">Struct Move</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structMoveSet.html">Struct MoveSet</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structPBSSolver_1_1NodeKey.html">Struct PBSSolver::NodeKey</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structPBSSolver_1_1NodeKeyHash.html">Struct PBSSolver::NodeKeyHash</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structPBSSolver_1_1PBSNode.html">Struct PBSSolver::PBSNode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structPBSSolver_1_1PBSNodeCmp.html">Struct PBSSolver::PBSNodeCmp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structReservationTable_1_1Entry.html">Struct ReservationTable::Entry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structReservationTable_1_1HeldGoal.html">Struct ReservationTable::HeldGoal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structSegment.html">Struct Segment</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structSegmentReservationTable_1_1HeldGoal.html">Struct SegmentReservationTable::HeldGoal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structSegmentReservationTable_1_1SegEntry.html">Struct SegmentReservationTable::SegEntry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structSolveDiagnostics.html">Struct SolveDiagnostics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structSolveStats.html">Struct SolveStats</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structSpaceTimeAStarPlanner_1_1Node.html">Struct SpaceTimeAStarPlanner::Node</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structSpaceTimeAStarPlanner_1_1NodeCmp.html">Struct SpaceTimeAStarPlanner::NodeCmp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classConflictDetector.html">Class ConflictDetector</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classEuclideanAStarPlanner.html">Class EuclideanAStarPlanner</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classPBSSolver.html">Class PBSSolver</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classPriorityGraph.html">Class PriorityGraph</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classReservationTable.html">Class ReservationTable</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classSegmentReservationTable.html">Class SegmentReservationTable</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classSpaceTimeAStarPlanner.html">Class SpaceTimeAStarPlanner</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#enums">Enums</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="enum_mapf__types_8hpp_1ac1b81ff8d2f95d70bc857e186aa508c8.html">Enum CostCurve</a></li>
+<li class="toctree-l4"><a class="reference internal" href="enum_mapf__types_8hpp_1a37f2a4656fcc87e06882ed874a8884f8.html">Enum FailReason</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#functions">Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="function_mapf__types_8hpp_1a2901db8b17c607141017be92199d561b.html">Function apply_curve</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_mapf__types_8hpp_1a301400bf30384cf641a0c865ed5ddf52.html">Template Function bresenham_trace</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_mapf__types_8hpp_1a68ebe472b6f982a7271a2d320ae9527f.html">Function capsule_overlap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_mapf__types_8hpp_1a06b4bb1d2387a398058ae4dabc9cc1c8.html">Function capsule_penalty</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_euclidean__astar_8hpp_1a1d535177213a0de7f5a4e946233f5304.html">Function dijkstra_from</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_mapf__types_8hpp_1a09d08e5d4a717f627a1feed9eb6c1f55.html">Function segment_segment_dist_sq</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_mapf__types_8hpp_1a65e17c761e924933d9fcfa18cd2d5cf6.html">Function trace_move</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#typedefs">Typedefs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="typedef_mapf__types_8hpp_1a5ebe6bfbcc40e51e20d1500aa9b4c9fe.html">Typedef Path</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#directories">Directories</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dir_include.html">Directory include</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dir_include_iros_llm_swarm_mapf.html">Directory iros_llm_swarm_mapf</a></li>
+</ul>
+</li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html#files">Files</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_euclidean_astar.hpp.html">File euclidean_astar.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_mapf_types.hpp.html">File mapf_types.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_pbs_solver.hpp.html">File pbs_solver.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_space_time_astar.hpp.html">File space_time_astar.hpp</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../standards.html">Standard Documents</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../standard_docs/PACKAGE.html">PACKAGE</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../genindex.html">Index</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">iros_llm_swarm_mapf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">C++ API</a></li>
+          <li class="breadcrumb-item"><a href="file_include_iros_llm_swarm_mapf_euclidean_astar.hpp.html">File euclidean_astar.hpp</a></li>
+      <li class="breadcrumb-item active">Program Listing for File euclidean_astar.hpp</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/program_listing_file_include_iros_llm_swarm_mapf_euclidean_astar.hpp.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="program-listing-for-file-euclidean-astar-hpp">
+<span id="program-listing-file-include-iros-llm-swarm-mapf-euclidean-astar-hpp"></span><h1>Program Listing for File euclidean_astar.hpp<a class="headerlink" href="#program-listing-for-file-euclidean-astar-hpp" title="Link to this heading"></a></h1>
+<p>↰ <a class="reference internal" href="file_include_iros_llm_swarm_mapf_euclidean_astar.hpp.html#file-include-iros-llm-swarm-mapf-euclidean-astar-hpp"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">include/iros_llm_swarm_mapf/euclidean_astar.hpp</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#pragma once</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;iros_llm_swarm_mapf/mapf_types.hpp&quot;</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;queue&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;unordered_map&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;vector&gt;</span>
+
+<span class="c1">// ---------------------------------------------------------------------------</span>
+<span class="c1">// Euclidean Space-Time A* with N-connected movement</span>
+<span class="c1">//</span>
+<span class="c1">// Replaces the 4-connected SpaceTimeAStarPlanner with a connectivity-</span>
+<span class="c1">// agnostic planner. The move set is auto-generated from physical</span>
+<span class="c1">// parameters (speed, timestep, resolution) via MoveSet::generate().</span>
+<span class="c1">//</span>
+<span class="c1">// Key differences from the classic planner:</span>
+<span class="c1">//   - Float g-values (Euclidean move costs instead of integer step costs)</span>
+<span class="c1">//   - Dijkstra heuristic (replaces BFS — correct for non-uniform costs)</span>
+<span class="c1">//   - Move loop over MoveSet instead of hardcoded cardinal neighbors</span>
+<span class="c1">//   - Bresenham trace validates multi-cell jumps (blocked check + wall penalty sum)</span>
+<span class="c1">//   - Segment-based reservation checks via SegmentReservationTable</span>
+<span class="c1">//     (replaces separate vertex_penalty + is_edge_blocked)</span>
+<span class="c1">// ---------------------------------------------------------------------------</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">EuclideanAStarPlanner</span><span class="w"> </span><span class="p">{</span>
+<span class="w"> </span><span class="k">public</span><span class="o">:</span>
+<span class="w">  </span><span class="n">EuclideanAStarPlanner</span><span class="p">()</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">default</span><span class="p">;</span>
+
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">reset_map</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">GridMap</span><span class="o">*</span><span class="w"> </span><span class="n">map</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">map_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">map</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">GridMap</span><span class="o">*</span><span class="w"> </span><span class="nf">current_map</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">map_</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">set_goal_dists</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;*</span><span class="w"> </span><span class="n">d</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">goal_dists_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">d</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="nf">last_expansions</span><span class="p">()</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">last_expansions_</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">set_move_set</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">MoveSet</span><span class="o">&amp;</span><span class="w"> </span><span class="n">ms</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="n">moves_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ms</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">set_cost_params</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">time_cost</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">resolution</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">time_cost_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">time_cost</span><span class="p">;</span>
+<span class="w">    </span><span class="n">resolution_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">resolution</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">find_path</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Cell</span><span class="o">&amp;</span><span class="w"> </span><span class="n">start</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Cell</span><span class="o">&amp;</span><span class="w"> </span><span class="n">goal</span><span class="p">,</span>
+<span class="w">                 </span><span class="k">const</span><span class="w"> </span><span class="n">SegmentReservationTable</span><span class="o">&amp;</span><span class="w"> </span><span class="n">reservations</span><span class="p">,</span>
+<span class="w">                 </span><span class="kt">float</span><span class="w"> </span><span class="n">my_footprint_cells</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">my_soft_cells</span><span class="p">,</span>
+<span class="w">                 </span><span class="kt">size_t</span><span class="w"> </span><span class="n">max_time</span><span class="p">,</span><span class="w"> </span><span class="n">Path</span><span class="o">&amp;</span><span class="w"> </span><span class="n">path</span><span class="p">,</span>
+<span class="w">                 </span><span class="n">CostCurve</span><span class="w"> </span><span class="n">cost_curve</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CostCurve</span><span class="o">::</span><span class="n">Quadratic</span><span class="p">,</span>
+<span class="w">                 </span><span class="kt">int</span><span class="w"> </span><span class="n">proximity_penalty</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">50</span><span class="p">,</span>
+<span class="w">                 </span><span class="kt">size_t</span><span class="w"> </span><span class="n">max_astar_expansions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">my_footprint_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">my_footprint_cells</span><span class="p">;</span>
+<span class="w">    </span><span class="n">my_soft_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">my_soft_cells</span><span class="p">;</span>
+<span class="w">    </span><span class="n">cost_curve_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cost_curve</span><span class="p">;</span>
+<span class="w">    </span><span class="n">proximity_penalty_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">proximity_penalty</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">path</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">map_</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">is_blocked</span><span class="p">(</span><span class="n">start</span><span class="p">.</span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="n">start</span><span class="p">.</span><span class="n">col</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">is_blocked</span><span class="p">(</span><span class="n">goal</span><span class="p">.</span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="n">goal</span><span class="p">.</span><span class="n">col</span><span class="p">))</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">spatial</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">map_</span><span class="o">-&gt;</span><span class="n">rows</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">map_</span><span class="o">-&gt;</span><span class="n">cols</span><span class="p">;</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">state_count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">spatial</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">max_time</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">ensure_capacity</span><span class="p">(</span><span class="n">state_count</span><span class="p">);</span>
+<span class="w">    </span><span class="n">next_generation</span><span class="p">();</span>
+
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">start_idx</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">idx</span><span class="p">(</span><span class="n">start</span><span class="p">.</span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="n">start</span><span class="p">.</span><span class="n">col</span><span class="p">);</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">goal_idx</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">idx</span><span class="p">(</span><span class="n">goal</span><span class="p">.</span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="n">goal</span><span class="p">.</span><span class="n">col</span><span class="p">);</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">start_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">state_idx</span><span class="p">(</span><span class="n">start_idx</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">spatial</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// Don&#39;t reject starts overlapping reservations at t=0 — during</span>
+<span class="w">    </span><span class="c1">// replanning agents must be allowed to start at their physical position.</span>
+<span class="w">    </span><span class="n">set_g</span><span class="p">(</span><span class="n">start_state</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">);</span>
+<span class="w">    </span><span class="n">parent_</span><span class="p">[</span><span class="n">start_state</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">INVALID</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">priority_queue</span><span class="o">&lt;</span><span class="n">Node</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">NodeCmp</span><span class="o">&gt;</span><span class="w"> </span><span class="n">open</span><span class="p">;</span>
+<span class="w">    </span><span class="n">open</span><span class="p">.</span><span class="n">push</span><span class="p">({</span><span class="n">start_idx</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="n">heuristic</span><span class="p">(</span><span class="n">start</span><span class="p">,</span><span class="w"> </span><span class="n">goal</span><span class="p">)});</span>
+
+<span class="w">    </span><span class="n">last_expansions_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">open</span><span class="p">.</span><span class="n">empty</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="o">++</span><span class="n">last_expansions_</span><span class="p">;</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">max_astar_expansions</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">last_expansions_</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">max_astar_expansions</span><span class="p">)</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="n">Node</span><span class="w"> </span><span class="n">cur</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">open</span><span class="p">.</span><span class="n">top</span><span class="p">();</span><span class="w"> </span><span class="n">open</span><span class="p">.</span><span class="n">pop</span><span class="p">();</span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">cs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">state_idx</span><span class="p">(</span><span class="n">cur</span><span class="p">.</span><span class="n">idx</span><span class="p">,</span><span class="w"> </span><span class="n">cur</span><span class="p">.</span><span class="n">t</span><span class="p">,</span><span class="w"> </span><span class="n">spatial</span><span class="p">);</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">is_closed</span><span class="p">(</span><span class="n">cs</span><span class="p">))</span><span class="w"> </span><span class="k">continue</span><span class="p">;</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">is_alive</span><span class="p">(</span><span class="n">cs</span><span class="p">)</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">cur</span><span class="p">.</span><span class="n">g</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">g_</span><span class="p">[</span><span class="n">cs</span><span class="p">])</span><span class="w"> </span><span class="k">continue</span><span class="p">;</span>
+<span class="w">      </span><span class="n">mark_closed</span><span class="p">(</span><span class="n">cs</span><span class="p">);</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">cur</span><span class="p">.</span><span class="n">idx</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">goal_idx</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">reservations</span><span class="p">.</span><span class="n">can_hold_goal</span><span class="p">(</span><span class="n">goal</span><span class="p">.</span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="n">goal</span><span class="p">.</span><span class="n">col</span><span class="p">,</span><span class="w"> </span><span class="n">cur</span><span class="p">.</span><span class="n">t</span><span class="p">,</span>
+<span class="w">                                        </span><span class="n">max_time</span><span class="p">,</span><span class="w"> </span><span class="n">my_footprint_cells</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">          </span><span class="n">restore</span><span class="p">(</span><span class="n">cs</span><span class="p">,</span><span class="w"> </span><span class="n">spatial</span><span class="p">,</span><span class="w"> </span><span class="n">path</span><span class="p">);</span>
+<span class="w">          </span><span class="k">return</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">      </span><span class="p">}</span>
+
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">cur</span><span class="p">.</span><span class="n">t</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">max_time</span><span class="p">)</span><span class="w"> </span><span class="k">continue</span><span class="p">;</span>
+
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="n">Cell</span><span class="w"> </span><span class="n">from</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cell</span><span class="p">(</span><span class="n">cur</span><span class="p">.</span><span class="n">idx</span><span class="p">);</span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">nt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cur</span><span class="p">.</span><span class="n">t</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+
+<span class="w">      </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">mv</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">moves_</span><span class="p">.</span><span class="n">moves</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">relax</span><span class="p">(</span><span class="n">cur</span><span class="p">.</span><span class="n">idx</span><span class="p">,</span><span class="w"> </span><span class="n">cur</span><span class="p">.</span><span class="n">t</span><span class="p">,</span><span class="w"> </span><span class="n">from</span><span class="p">,</span><span class="w"> </span><span class="n">mv</span><span class="p">,</span><span class="w"> </span><span class="n">nt</span><span class="p">,</span><span class="w"> </span><span class="n">goal</span><span class="p">,</span><span class="w"> </span><span class="n">reservations</span><span class="p">,</span><span class="w"> </span><span class="n">open</span><span class="p">,</span><span class="w"> </span><span class="n">spatial</span><span class="p">);</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w"> </span><span class="k">private</span><span class="o">:</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">INF_F</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">numeric_limits</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;::</span><span class="n">max</span><span class="p">()</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">4.0f</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">INVALID</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">numeric_limits</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;::</span><span class="n">max</span><span class="p">();</span>
+
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">Node</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">idx</span><span class="p">,</span><span class="w"> </span><span class="n">t</span><span class="p">;</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">g</span><span class="p">,</span><span class="w"> </span><span class="n">f</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">NodeCmp</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="k">const</span><span class="w"> </span><span class="n">Node</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Node</span><span class="o">&amp;</span><span class="w"> </span><span class="n">b</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">a</span><span class="p">.</span><span class="n">f</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">f</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">a</span><span class="p">.</span><span class="n">f</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">f</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">a</span><span class="p">.</span><span class="n">g</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">g</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">};</span>
+
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">GridMap</span><span class="o">*</span><span class="w"> </span><span class="n">map_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">;</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;*</span><span class="w"> </span><span class="n">goal_dists_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">;</span>
+<span class="w">  </span><span class="n">MoveSet</span><span class="w"> </span><span class="n">moves_</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">my_footprint_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">my_soft_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="w">  </span><span class="n">CostCurve</span><span class="w"> </span><span class="n">cost_curve_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">CostCurve</span><span class="o">::</span><span class="n">Quadratic</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">proximity_penalty_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">50</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">time_cost_</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">;</span><span class="w">   </span><span class="c1">// urgency * max_speed * time_step_sec</span>
+<span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="n">resolution_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">;</span><span class="w">   </span><span class="c1">// PBS grid cell size in metres</span>
+<span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="n">last_expansions_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w">    </span><span class="n">g_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="w">   </span><span class="n">parent_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint8_t</span><span class="o">&gt;</span><span class="w">  </span><span class="n">closed_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">gen_</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">current_gen_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+
+<span class="w">  </span><span class="kt">size_t</span><span class="w"> </span><span class="nf">idx</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">r</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">map_</span><span class="o">-&gt;</span><span class="n">cols</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">c</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="n">Cell</span><span class="w"> </span><span class="nf">cell</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">i</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="p">{</span><span class="n">i</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">map_</span><span class="o">-&gt;</span><span class="n">cols</span><span class="p">,</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">map_</span><span class="o">-&gt;</span><span class="n">cols</span><span class="p">};</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="nf">state_idx</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">ci</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">t</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">sp</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">t</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">sp</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">ci</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="nf">state_cell</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">si</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">sp</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">si</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">sp</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="nf">is_blocked</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">r</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">map_</span><span class="o">-&gt;</span><span class="n">blocked</span><span class="p">[</span><span class="n">idx</span><span class="p">(</span><span class="n">r</span><span class="p">,</span><span class="w"> </span><span class="n">c</span><span class="p">)]</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Dijkstra-precomputed distance from this cell to the goal.</span>
+<span class="w">  </span><span class="c1">// Falls back to 0 if no heuristic is set (still correct, just slower).</span>
+<span class="w">  </span><span class="kt">float</span><span class="w"> </span><span class="nf">heuristic</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">Cell</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Cell</span><span class="o">&amp;</span><span class="w"> </span><span class="cm">/*goal*/</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">goal_dists_</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">goal_dists_</span><span class="p">)[</span><span class="n">idx</span><span class="p">(</span><span class="n">a</span><span class="p">.</span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="n">a</span><span class="p">.</span><span class="n">col</span><span class="p">)];</span>
+<span class="w">      </span><span class="k">return</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">INF_F</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">INF_F</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">ensure_capacity</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">g_</span><span class="p">.</span><span class="n">size</span><span class="p">()</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">n</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="n">g_</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="n">INF_F</span><span class="p">);</span>
+<span class="w">    </span><span class="n">parent_</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="n">INVALID</span><span class="p">);</span>
+<span class="w">    </span><span class="n">closed_</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">gen_</span><span class="p">.</span><span class="n">resize</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="c1">// Lazy reset: instead of clearing g_/closed_ arrays (expensive for</span>
+<span class="w">  </span><span class="c1">// large state spaces), bump a generation counter. States from prior</span>
+<span class="w">  </span><span class="c1">// generations are treated as unvisited. Wraps at uint32 overflow.</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">next_generation</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">++</span><span class="n">current_gen_</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">current_gen_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">fill</span><span class="p">(</span><span class="n">gen_</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">gen_</span><span class="p">.</span><span class="n">end</span><span class="p">(),</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="kt">bool</span><span class="w">   </span><span class="nf">is_alive</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">s</span><span class="p">)</span><span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">gen_</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">current_gen_</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="kt">float</span><span class="w">  </span><span class="nf">get_g</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">s</span><span class="p">)</span><span class="w">     </span><span class="k">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">is_alive</span><span class="p">(</span><span class="n">s</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">g_</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">INF_F</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="kt">void</span><span class="w">   </span><span class="nf">set_g</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">s</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">v</span><span class="p">)</span><span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="n">gen_</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">current_gen_</span><span class="p">;</span><span class="w"> </span><span class="n">g_</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v</span><span class="p">;</span><span class="w"> </span><span class="n">closed_</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w">   </span><span class="nf">is_closed</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">s</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">is_alive</span><span class="p">(</span><span class="n">s</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">closed_</span><span class="p">[</span><span class="n">s</span><span class="p">];</span><span class="w"> </span><span class="p">}</span>
+<span class="w">  </span><span class="kt">void</span><span class="w">   </span><span class="nf">mark_closed</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">s</span><span class="p">)</span><span class="w">     </span><span class="p">{</span><span class="w"> </span><span class="n">closed_</span><span class="p">[</span><span class="n">s</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w"> </span><span class="p">}</span>
+
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">relax</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">ci</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">ct</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Cell</span><span class="o">&amp;</span><span class="w"> </span><span class="n">from</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Move</span><span class="o">&amp;</span><span class="w"> </span><span class="n">mv</span><span class="p">,</span>
+<span class="w">             </span><span class="kt">size_t</span><span class="w"> </span><span class="n">nt</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Cell</span><span class="o">&amp;</span><span class="w"> </span><span class="n">goal</span><span class="p">,</span>
+<span class="w">             </span><span class="k">const</span><span class="w"> </span><span class="n">SegmentReservationTable</span><span class="o">&amp;</span><span class="w"> </span><span class="n">res</span><span class="p">,</span>
+<span class="w">             </span><span class="n">std</span><span class="o">::</span><span class="n">priority_queue</span><span class="o">&lt;</span><span class="n">Node</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">Node</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">NodeCmp</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">open</span><span class="p">,</span>
+<span class="w">             </span><span class="kt">size_t</span><span class="w"> </span><span class="n">sp</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Compute target cell</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">nr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">from</span><span class="p">.</span><span class="n">row</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">mv</span><span class="p">.</span><span class="n">dr</span><span class="p">;</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">nc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">from</span><span class="p">.</span><span class="n">col</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">mv</span><span class="p">.</span><span class="n">dc</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nr</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">nr</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">map_</span><span class="o">-&gt;</span><span class="n">rows</span><span class="p">))</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nc</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">nc</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">map_</span><span class="o">-&gt;</span><span class="n">cols</span><span class="p">))</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">ni</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">idx</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">nr</span><span class="p">),</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">nc</span><span class="p">));</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">moving</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">ni</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">ci</span><span class="p">);</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="n">Cell</span><span class="w"> </span><span class="n">to_cell</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">nr</span><span class="p">),</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">nc</span><span class="p">)};</span>
+
+<span class="w">    </span><span class="c1">// Trace the move: check blocked cells and sum wall penalties</span>
+<span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">wall_pen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">moving</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="p">[</span><span class="n">valid</span><span class="p">,</span><span class="w"> </span><span class="n">wpen</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">trace_move</span><span class="p">(</span><span class="o">*</span><span class="n">map_</span><span class="p">,</span><span class="w"> </span><span class="n">from</span><span class="p">.</span><span class="n">row</span><span class="p">,</span><span class="w"> </span><span class="n">from</span><span class="p">.</span><span class="n">col</span><span class="p">,</span><span class="w"> </span><span class="n">mv</span><span class="p">.</span><span class="n">dr</span><span class="p">,</span><span class="w"> </span><span class="n">mv</span><span class="p">.</span><span class="n">dc</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">valid</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+<span class="w">      </span><span class="n">wall_pen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">wpen</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Segment-based reservation check (replaces vertex_penalty + is_edge_blocked)</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">agent_pen</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">res</span><span class="p">.</span><span class="n">segment_penalty</span><span class="p">(</span>
+<span class="w">        </span><span class="n">from</span><span class="p">,</span><span class="w"> </span><span class="n">to_cell</span><span class="p">,</span><span class="w"> </span><span class="n">nt</span><span class="p">,</span><span class="w"> </span><span class="n">my_footprint_</span><span class="p">,</span><span class="w"> </span><span class="n">my_soft_</span><span class="p">,</span>
+<span class="w">        </span><span class="n">proximity_penalty_</span><span class="p">,</span><span class="w"> </span><span class="n">cost_curve_</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">agent_pen</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">cs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">state_idx</span><span class="p">(</span><span class="n">ci</span><span class="p">,</span><span class="w"> </span><span class="n">ct</span><span class="p">,</span><span class="w"> </span><span class="n">sp</span><span class="p">);</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">ns</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">state_idx</span><span class="p">(</span><span class="n">ni</span><span class="p">,</span><span class="w"> </span><span class="n">nt</span><span class="p">,</span><span class="w"> </span><span class="n">sp</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">is_closed</span><span class="p">(</span><span class="n">ns</span><span class="p">))</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+
+<span class="w">    </span><span class="c1">// Cost = time (opportunity cost) + distance (metres) + wall gradient</span>
+<span class="w">    </span><span class="c1">//        (sum along trace, normalized to metres) + agent proximity</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">tg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">get_g</span><span class="p">(</span><span class="n">cs</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">time_cost_</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">resolution_</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">mv</span><span class="p">.</span><span class="n">cost</span>
+<span class="w">                     </span><span class="o">+</span><span class="w"> </span><span class="n">wall_pen</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">resolution_</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">agent_pen</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">tg</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">get_g</span><span class="p">(</span><span class="n">ns</span><span class="p">))</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="n">set_g</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span><span class="w"> </span><span class="n">tg</span><span class="p">);</span>
+<span class="w">      </span><span class="n">parent_</span><span class="p">[</span><span class="n">ns</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cs</span><span class="p">;</span>
+<span class="w">      </span><span class="n">open</span><span class="p">.</span><span class="n">push</span><span class="p">({</span><span class="n">ni</span><span class="p">,</span><span class="w"> </span><span class="n">nt</span><span class="p">,</span><span class="w"> </span><span class="n">tg</span><span class="p">,</span><span class="w"> </span><span class="n">tg</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">heuristic</span><span class="p">(</span><span class="n">to_cell</span><span class="p">,</span><span class="w"> </span><span class="n">goal</span><span class="p">)});</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">restore</span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">goal_state</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">sp</span><span class="p">,</span><span class="w"> </span><span class="n">Path</span><span class="o">&amp;</span><span class="w"> </span><span class="n">path</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">cur</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">goal_state</span><span class="p">;</span><span class="w"> </span><span class="n">cur</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">INVALID</span><span class="p">;</span><span class="w"> </span><span class="n">cur</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">parent_</span><span class="p">[</span><span class="n">cur</span><span class="p">])</span>
+<span class="w">      </span><span class="n">path</span><span class="p">.</span><span class="n">push_back</span><span class="p">(</span><span class="n">cell</span><span class="p">(</span><span class="n">state_cell</span><span class="p">(</span><span class="n">cur</span><span class="p">,</span><span class="w"> </span><span class="n">sp</span><span class="p">)));</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">reverse</span><span class="p">(</span><span class="n">path</span><span class="p">.</span><span class="n">begin</span><span class="p">(),</span><span class="w"> </span><span class="n">path</span><span class="p">.</span><span class="n">end</span><span class="p">());</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">};</span>
+
+<span class="c1">// ---------------------------------------------------------------------------</span>
+<span class="c1">// Dijkstra heuristic precomputation</span>
+<span class="c1">//</span>
+<span class="c1">// Backward Dijkstra from goal using the same MoveSet as A*.</span>
+<span class="c1">// Produces correct minimum-cost distances for any connectivity.</span>
+<span class="c1">// With 4-connected integer costs, degenerates to BFS.</span>
+<span class="c1">// One-time cost per unique goal on the downsampled PBS grid.</span>
+<span class="c1">// ---------------------------------------------------------------------------</span>
+
+<span class="kr">inline</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">dijkstra_from</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">GridMap</span><span class="o">&amp;</span><span class="w"> </span><span class="n">map</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">Cell</span><span class="o">&amp;</span><span class="w"> </span><span class="n">goal</span><span class="p">,</span>
+<span class="w">                                         </span><span class="k">const</span><span class="w"> </span><span class="n">MoveSet</span><span class="o">&amp;</span><span class="w"> </span><span class="n">moves</span><span class="p">,</span>
+<span class="w">                                         </span><span class="kt">float</span><span class="w"> </span><span class="n">time_cost</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">resolution</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">INF_F</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">numeric_limits</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;::</span><span class="n">max</span><span class="p">()</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">4.0f</span><span class="p">;</span>
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">map</span><span class="p">.</span><span class="n">rows</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">map</span><span class="p">.</span><span class="n">cols</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="w"> </span><span class="n">dist</span><span class="p">(</span><span class="n">N</span><span class="p">,</span><span class="w"> </span><span class="n">INF_F</span><span class="p">);</span>
+
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">DNode</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">idx</span><span class="p">;</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">d</span><span class="p">;</span><span class="w"> </span><span class="p">};</span>
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">DCmp</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="nf">operator</span><span class="p">()(</span><span class="k">const</span><span class="w"> </span><span class="n">DNode</span><span class="o">&amp;</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">DNode</span><span class="o">&amp;</span><span class="w"> </span><span class="n">b</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">a</span><span class="p">.</span><span class="n">d</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">d</span><span class="p">;</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">};</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">priority_queue</span><span class="o">&lt;</span><span class="n">DNode</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">DNode</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="n">DCmp</span><span class="o">&gt;</span><span class="w"> </span><span class="n">pq</span><span class="p">;</span>
+
+<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">gi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">goal</span><span class="p">.</span><span class="n">row</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">map</span><span class="p">.</span><span class="n">cols</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">goal</span><span class="p">.</span><span class="n">col</span><span class="p">;</span>
+<span class="w">  </span><span class="n">dist</span><span class="p">[</span><span class="n">gi</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">;</span>
+<span class="w">  </span><span class="n">pq</span><span class="p">.</span><span class="n">push</span><span class="p">({</span><span class="n">gi</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0f</span><span class="p">});</span>
+
+<span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">pq</span><span class="p">.</span><span class="n">empty</span><span class="p">())</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="p">[</span><span class="n">ci</span><span class="p">,</span><span class="w"> </span><span class="n">d</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">pq</span><span class="p">.</span><span class="n">top</span><span class="p">();</span><span class="w"> </span><span class="n">pq</span><span class="p">.</span><span class="n">pop</span><span class="p">();</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">d</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">dist</span><span class="p">[</span><span class="n">ci</span><span class="p">])</span><span class="w"> </span><span class="k">continue</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ci</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">map</span><span class="p">.</span><span class="n">cols</span><span class="p">;</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ci</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="n">map</span><span class="p">.</span><span class="n">cols</span><span class="p">;</span>
+
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">mv</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">moves</span><span class="p">.</span><span class="n">moves</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">mv</span><span class="p">.</span><span class="n">dr</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">mv</span><span class="p">.</span><span class="n">dc</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">continue</span><span class="p">;</span><span class="w">  </span><span class="c1">// skip wait</span>
+<span class="w">      </span><span class="c1">// Reverse direction: expanding backwards from goal</span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">nr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">r</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">mv</span><span class="p">.</span><span class="n">dr</span><span class="p">;</span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">nc</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">c</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">mv</span><span class="p">.</span><span class="n">dc</span><span class="p">;</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nr</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">nr</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">map</span><span class="p">.</span><span class="n">rows</span><span class="p">))</span><span class="w"> </span><span class="k">continue</span><span class="p">;</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nc</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">nc</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="p">(</span><span class="n">map</span><span class="p">.</span><span class="n">cols</span><span class="p">))</span><span class="w"> </span><span class="k">continue</span><span class="p">;</span>
+
+<span class="w">      </span><span class="c1">// Validate the reversed move doesn&#39;t cross blocked cells</span>
+<span class="w">      </span><span class="k">auto</span><span class="w"> </span><span class="p">[</span><span class="n">valid</span><span class="p">,</span><span class="w"> </span><span class="n">_wpen</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">trace_move</span><span class="p">(</span><span class="n">map</span><span class="p">,</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">nr</span><span class="p">),</span>
+<span class="w">                                        </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">nc</span><span class="p">),</span><span class="w"> </span><span class="n">mv</span><span class="p">.</span><span class="n">dr</span><span class="p">,</span><span class="w"> </span><span class="n">mv</span><span class="p">.</span><span class="n">dc</span><span class="p">);</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">valid</span><span class="p">)</span><span class="w"> </span><span class="k">continue</span><span class="p">;</span>
+
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">ni</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">nr</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">map</span><span class="p">.</span><span class="n">cols</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">size_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">nc</span><span class="p">);</span>
+<span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">nd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">time_cost</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">resolution</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">mv</span><span class="p">.</span><span class="n">cost</span><span class="p">;</span>
+<span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">nd</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">dist</span><span class="p">[</span><span class="n">ni</span><span class="p">])</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">dist</span><span class="p">[</span><span class="n">ni</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">nd</span><span class="p">;</span>
+<span class="w">        </span><span class="n">pq</span><span class="p">.</span><span class="n">push</span><span class="p">({</span><span class="n">ni</span><span class="p">,</span><span class="w"> </span><span class="n">nd</span><span class="p">});</span>
+<span class="w">      </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">dist</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="file_include_iros_llm_swarm_mapf_euclidean_astar.hpp.html" class="btn btn-neutral float-left" title="File euclidean_astar.hpp" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="file_include_iros_llm_swarm_mapf_mapf_types.hpp.html" class="btn btn-neutral float-right" title="File mapf_types.hpp" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright The &lt;iros_llm_swarm_mapf&gt; Contributors. License: MIT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

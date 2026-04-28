@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structPBSSolver_1_1PBSNode" kind="struct" language="C++" prot="private">
+    <compoundname>PBSSolver::PBSNode</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structPBSSolver_1_1PBSNode_1a0c2e5b815407f875e5b67166f4225501" prot="public" static="no" mutable="no">
+        <type><ref refid="classPriorityGraph" kindref="compound">PriorityGraph</ref></type>
+        <definition>PriorityGraph PBSSolver::PBSNode::pg</definition>
+        <argsstring></argsstring>
+        <name>pg</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="434" column="22" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="434" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPBSSolver_1_1PBSNode_1a917b67a79a5a63ba81b8d74e9d93c34a" prot="public" static="no" mutable="no">
+        <type>std::vector&lt; Path &gt;</type>
+        <definition>std::vector&lt;Path&gt; PBSSolver::PBSNode::paths</definition>
+        <argsstring></argsstring>
+        <name>paths</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="435" column="17" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="435" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPBSSolver_1_1PBSNode_1a736abb723c5a2954722d579c94cd82c5" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t PBSSolver::PBSNode::cost</definition>
+        <argsstring></argsstring>
+        <name>cost</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="436" column="22" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="436" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>PBSSolver::PBSNode</label>
+        <childnode refid="2" relation="usage">
+          <edgelabel>pg</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>PriorityGraph</label>
+        <link refid="classPriorityGraph"/>
+      </node>
+    </collaborationgraph>
+    <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="433" column="3" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="433" bodyend="437"/>
+    <listofallmembers>
+      <member refid="structPBSSolver_1_1PBSNode_1a736abb723c5a2954722d579c94cd82c5" prot="public" virt="non-virtual"><scope>PBSSolver::PBSNode</scope><name>cost</name></member>
+      <member refid="structPBSSolver_1_1PBSNode_1a917b67a79a5a63ba81b8d74e9d93c34a" prot="public" virt="non-virtual"><scope>PBSSolver::PBSNode</scope><name>paths</name></member>
+      <member refid="structPBSSolver_1_1PBSNode_1a0c2e5b815407f875e5b67166f4225501" prot="public" virt="non-virtual"><scope>PBSSolver::PBSNode</scope><name>pg</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

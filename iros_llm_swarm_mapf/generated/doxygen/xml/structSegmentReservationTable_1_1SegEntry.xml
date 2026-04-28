@@ -1,0 +1,84 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structSegmentReservationTable_1_1SegEntry" kind="struct" language="C++" prot="private">
+    <compoundname>SegmentReservationTable::SegEntry</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structSegmentReservationTable_1_1SegEntry_1ae27829e081475f36097289c5cc98a4a3" prot="public" static="no" mutable="no">
+        <type><ref refid="structCell" kindref="compound">Cell</ref></type>
+        <definition>Cell SegmentReservationTable::SegEntry::from</definition>
+        <argsstring></argsstring>
+        <name>from</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="414" column="11" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="414" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSegmentReservationTable_1_1SegEntry_1abdd32fbc35accb5622cc321cf698eb7f" prot="public" static="no" mutable="no">
+        <type><ref refid="structCell" kindref="compound">Cell</ref></type>
+        <definition>Cell SegmentReservationTable::SegEntry::to</definition>
+        <argsstring></argsstring>
+        <name>to</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="415" column="11" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="415" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSegmentReservationTable_1_1SegEntry_1a8f8d5044464152cdfaff32a1b922e8c3" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float SegmentReservationTable::SegEntry::footprint_cells</definition>
+        <argsstring></argsstring>
+        <name>footprint_cells</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="416" column="11" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="416" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSegmentReservationTable_1_1SegEntry_1a2e1ebfb77a0c142f65fdb3a088e93bb2" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float SegmentReservationTable::SegEntry::soft_radius_cells</definition>
+        <argsstring></argsstring>
+        <name>soft_radius_cells</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="417" column="11" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="417" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="2">
+        <label>Cell</label>
+        <link refid="structCell"/>
+      </node>
+      <node id="1">
+        <label>SegmentReservationTable::SegEntry</label>
+        <childnode refid="2" relation="usage">
+          <edgelabel>from</edgelabel>
+          <edgelabel>to</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="413" column="3" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="413" bodyend="418"/>
+    <listofallmembers>
+      <member refid="structSegmentReservationTable_1_1SegEntry_1a8f8d5044464152cdfaff32a1b922e8c3" prot="public" virt="non-virtual"><scope>SegmentReservationTable::SegEntry</scope><name>footprint_cells</name></member>
+      <member refid="structSegmentReservationTable_1_1SegEntry_1ae27829e081475f36097289c5cc98a4a3" prot="public" virt="non-virtual"><scope>SegmentReservationTable::SegEntry</scope><name>from</name></member>
+      <member refid="structSegmentReservationTable_1_1SegEntry_1a2e1ebfb77a0c142f65fdb3a088e93bb2" prot="public" virt="non-virtual"><scope>SegmentReservationTable::SegEntry</scope><name>soft_radius_cells</name></member>
+      <member refid="structSegmentReservationTable_1_1SegEntry_1abdd32fbc35accb5622cc321cf698eb7f" prot="public" virt="non-virtual"><scope>SegmentReservationTable::SegEntry</scope><name>to</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

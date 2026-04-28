@@ -1,0 +1,69 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classlns2_1_1DestroyOperator" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>lns2::DestroyOperator</compoundname>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classlns2_1_1DestroyOperator_1a31e1c7b39e1cc540b4f144b6382b3da9" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>virtual lns2::DestroyOperator::~DestroyOperator</definition>
+        <argsstring>()=default</argsstring>
+        <name>~DestroyOperator</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="26" column="11"/>
+      </memberdef>
+      <memberdef kind="function" id="classlns2_1_1DestroyOperator_1a807ec765af6861dc6bd224d816703cfb" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>DestroyOp</type>
+        <definition>virtual DestroyOp lns2::DestroyOperator::id</definition>
+        <argsstring>() const =0</argsstring>
+        <name>id</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="27" column="21"/>
+      </memberdef>
+      <memberdef kind="function" id="classlns2_1_1DestroyOperator_1ab8f1faf92f033d2bdf061916ec960b2d" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>std::vector&lt; AgentId &gt;</type>
+        <definition>virtual std::vector&lt;AgentId&gt; lns2::DestroyOperator::select</definition>
+        <argsstring>(const Solution &amp;sol, std::size_t N, std::mt19937 &amp;rng)=0</argsstring>
+        <name>select</name>
+        <param>
+          <type>const <ref refid="classlns2_1_1Solution" kindref="compound">Solution</ref> &amp;</type>
+          <declname>sol</declname>
+        </param>
+        <param>
+          <type>std::size_t</type>
+          <declname>N</declname>
+        </param>
+        <param>
+          <type>std::mt19937 &amp;</type>
+          <declname>rng</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="28" column="23"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="24" column="1" bodyfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" bodystart="24" bodyend="31"/>
+    <listofallmembers>
+      <member refid="classlns2_1_1DestroyOperator_1a807ec765af6861dc6bd224d816703cfb" prot="public" virt="pure-virtual"><scope>lns2::DestroyOperator</scope><name>id</name></member>
+      <member refid="classlns2_1_1DestroyOperator_1ab8f1faf92f033d2bdf061916ec960b2d" prot="public" virt="pure-virtual"><scope>lns2::DestroyOperator</scope><name>select</name></member>
+      <member refid="classlns2_1_1DestroyOperator_1a31e1c7b39e1cc540b4f144b6382b3da9" prot="public" virt="virtual"><scope>lns2::DestroyOperator</scope><name>~DestroyOperator</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

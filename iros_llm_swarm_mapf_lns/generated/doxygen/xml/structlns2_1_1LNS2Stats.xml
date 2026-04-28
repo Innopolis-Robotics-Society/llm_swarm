@@ -1,0 +1,195 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structlns2_1_1LNS2Stats" kind="struct" language="C++" prot="public">
+    <compoundname>lns2::LNS2Stats</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structlns2_1_1LNS2Stats_1a187428b37d1d37f8a7676eb5733b3e43" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool lns2::LNS2Stats::warm_started</definition>
+        <argsstring></argsstring>
+        <name>warm_started</name>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="48" column="15" bodyfile="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlns2_1_1LNS2Stats_1ac555682343434dc309a1c305561b6cbc" prot="public" static="no" mutable="no">
+        <type>std::size_t</type>
+        <definition>std::size_t lns2::LNS2Stats::iterations</definition>
+        <argsstring></argsstring>
+        <name>iterations</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="49" column="15" bodyfile="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlns2_1_1LNS2Stats_1ab309318c70505890e5aabe8a928ca486" prot="public" static="no" mutable="no">
+        <type>std::size_t</type>
+        <definition>std::size_t lns2::LNS2Stats::accepted_iterations</definition>
+        <argsstring></argsstring>
+        <name>accepted_iterations</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="50" column="15" bodyfile="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlns2_1_1LNS2Stats_1aca60d8567c1a323d381954f1d5dc9a44" prot="public" static="no" mutable="no">
+        <type>std::size_t</type>
+        <definition>std::size_t lns2::LNS2Stats::initial_collisions</definition>
+        <argsstring></argsstring>
+        <name>initial_collisions</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="51" column="15" bodyfile="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlns2_1_1LNS2Stats_1af16aacfd34cb5a4c91375562681a16b9" prot="public" static="no" mutable="no">
+        <type>std::size_t</type>
+        <definition>std::size_t lns2::LNS2Stats::final_collisions</definition>
+        <argsstring></argsstring>
+        <name>final_collisions</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="52" column="15" bodyfile="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlns2_1_1LNS2Stats_1a77163a679ba2b10f499d5c49a7e20ebb" prot="public" static="no" mutable="no">
+        <type>std::size_t</type>
+        <definition>std::size_t lns2::LNS2Stats::total_astar_calls</definition>
+        <argsstring></argsstring>
+        <name>total_astar_calls</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="53" column="15" bodyfile="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlns2_1_1LNS2Stats_1aecc8a28c2e6815a68bf40dae1450a215" prot="public" static="no" mutable="no">
+        <type>std::size_t</type>
+        <definition>std::size_t lns2::LNS2Stats::total_astar_expansions</definition>
+        <argsstring></argsstring>
+        <name>total_astar_expansions</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="54" column="15" bodyfile="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlns2_1_1LNS2Stats_1a6d6b6b5ab34a71987f9f8d12cf4b75e9" prot="public" static="no" mutable="no">
+        <type>std::size_t</type>
+        <definition>std::size_t lns2::LNS2Stats::total_astar_fails</definition>
+        <argsstring></argsstring>
+        <name>total_astar_fails</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="55" column="15" bodyfile="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlns2_1_1LNS2Stats_1ad427cc48677b14cea385d0eec8e805a3" prot="public" static="no" mutable="no">
+        <type>double</type>
+        <definition>double lns2::LNS2Stats::wall_time_ms</definition>
+        <argsstring></argsstring>
+        <name>wall_time_ms</name>
+        <initializer>= 0.0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="56" column="15" bodyfile="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlns2_1_1LNS2Stats_1ab7fd8a045eefe407ef29becf6548b41d" prot="public" static="no" mutable="no">
+        <type>std::array&lt; std::size_t, static_cast&lt; std::size_t &gt;DestroyOp::COUNT)&gt;</type>
+        <definition>std::array&lt;std::size_t, static_cast&lt;std::size_t&gt;DestroyOp::COUNT)&gt; lns2::LNS2Stats::op_used</definition>
+        <argsstring></argsstring>
+        <name>op_used</name>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="59" column="16" bodyfile="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlns2_1_1LNS2Stats_1a2d92d913555239befd36d92389bbc7b0" prot="public" static="no" mutable="no">
+        <type>std::array&lt; std::size_t, static_cast&lt; std::size_t &gt;DestroyOp::COUNT)&gt;</type>
+        <definition>std::array&lt;std::size_t, static_cast&lt;std::size_t&gt;DestroyOp::COUNT)&gt; lns2::LNS2Stats::op_improved</definition>
+        <argsstring></argsstring>
+        <name>op_improved</name>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="60" column="16" bodyfile="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlns2_1_1LNS2Stats_1a8793ef120b5dce2c6b56a2bc215c2411" prot="public" static="no" mutable="no">
+        <type>std::array&lt; double, static_cast&lt; std::size_t &gt;DestroyOp::COUNT)&gt;</type>
+        <definition>std::array&lt;double, static_cast&lt;std::size_t&gt;DestroyOp::COUNT)&gt; lns2::LNS2Stats::op_final_weight</definition>
+        <argsstring></argsstring>
+        <name>op_final_weight</name>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="61" column="16" bodyfile="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" line="47" column="1" bodyfile="include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp" bodystart="47" bodyend="62"/>
+    <listofallmembers>
+      <member refid="structlns2_1_1LNS2Stats_1ab309318c70505890e5aabe8a928ca486" prot="public" virt="non-virtual"><scope>lns2::LNS2Stats</scope><name>accepted_iterations</name></member>
+      <member refid="structlns2_1_1LNS2Stats_1af16aacfd34cb5a4c91375562681a16b9" prot="public" virt="non-virtual"><scope>lns2::LNS2Stats</scope><name>final_collisions</name></member>
+      <member refid="structlns2_1_1LNS2Stats_1aca60d8567c1a323d381954f1d5dc9a44" prot="public" virt="non-virtual"><scope>lns2::LNS2Stats</scope><name>initial_collisions</name></member>
+      <member refid="structlns2_1_1LNS2Stats_1ac555682343434dc309a1c305561b6cbc" prot="public" virt="non-virtual"><scope>lns2::LNS2Stats</scope><name>iterations</name></member>
+      <member refid="structlns2_1_1LNS2Stats_1a8793ef120b5dce2c6b56a2bc215c2411" prot="public" virt="non-virtual"><scope>lns2::LNS2Stats</scope><name>op_final_weight</name></member>
+      <member refid="structlns2_1_1LNS2Stats_1a2d92d913555239befd36d92389bbc7b0" prot="public" virt="non-virtual"><scope>lns2::LNS2Stats</scope><name>op_improved</name></member>
+      <member refid="structlns2_1_1LNS2Stats_1ab7fd8a045eefe407ef29becf6548b41d" prot="public" virt="non-virtual"><scope>lns2::LNS2Stats</scope><name>op_used</name></member>
+      <member refid="structlns2_1_1LNS2Stats_1a77163a679ba2b10f499d5c49a7e20ebb" prot="public" virt="non-virtual"><scope>lns2::LNS2Stats</scope><name>total_astar_calls</name></member>
+      <member refid="structlns2_1_1LNS2Stats_1aecc8a28c2e6815a68bf40dae1450a215" prot="public" virt="non-virtual"><scope>lns2::LNS2Stats</scope><name>total_astar_expansions</name></member>
+      <member refid="structlns2_1_1LNS2Stats_1a6d6b6b5ab34a71987f9f8d12cf4b75e9" prot="public" virt="non-virtual"><scope>lns2::LNS2Stats</scope><name>total_astar_fails</name></member>
+      <member refid="structlns2_1_1LNS2Stats_1ad427cc48677b14cea385d0eec8e805a3" prot="public" virt="non-virtual"><scope>lns2::LNS2Stats</scope><name>wall_time_ms</name></member>
+      <member refid="structlns2_1_1LNS2Stats_1a187428b37d1d37f8a7676eb5733b3e43" prot="public" virt="non-virtual"><scope>lns2::LNS2Stats</scope><name>warm_started</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

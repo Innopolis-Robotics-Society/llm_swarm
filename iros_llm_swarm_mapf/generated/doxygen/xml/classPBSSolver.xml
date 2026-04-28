@@ -1,0 +1,493 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classPBSSolver" kind="class" language="C++" prot="public">
+    <compoundname>PBSSolver</compoundname>
+    <innerclass refid="structPBSSolver_1_1NodeKey" prot="private">PBSSolver::NodeKey</innerclass>
+    <innerclass refid="structPBSSolver_1_1NodeKeyHash" prot="private">PBSSolver::NodeKeyHash</innerclass>
+    <innerclass refid="structPBSSolver_1_1PBSNode" prot="private">PBSSolver::PBSNode</innerclass>
+    <innerclass refid="structPBSSolver_1_1PBSNodeCmp" prot="private">PBSSolver::PBSNodeCmp</innerclass>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classPBSSolver_1a2510e8d671b1ec5b0a5b905a10b78ca0" prot="private" static="no" mutable="no">
+        <type>const <ref refid="structGridMap" kindref="compound">GridMap</ref> *</type>
+        <definition>const GridMap* PBSSolver::map_</definition>
+        <argsstring></argsstring>
+        <name>map_</name>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="454" column="25" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="454" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPBSSolver_1ae959c96bdda423e51025790d63f215e8" prot="private" static="no" mutable="no">
+        <type><ref refid="classEuclideanAStarPlanner" kindref="compound">EuclideanAStarPlanner</ref></type>
+        <definition>EuclideanAStarPlanner PBSSolver::low_level_</definition>
+        <argsstring></argsstring>
+        <name>low_level_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="455" column="26" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="455" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPBSSolver_1adab5de9dd3689d12c6feb9be4ce50ddd" prot="private" static="no" mutable="no">
+        <type><ref refid="structMoveSet" kindref="compound">MoveSet</ref></type>
+        <definition>MoveSet PBSSolver::move_set_</definition>
+        <argsstring></argsstring>
+        <name>move_set_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="456" column="26" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="456" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPBSSolver_1a52917f459f0742ebc3c3d539ffabc12b" prot="private" static="no" mutable="no">
+        <type>float</type>
+        <definition>float PBSSolver::time_cost_</definition>
+        <argsstring></argsstring>
+        <name>time_cost_</name>
+        <initializer>= 1.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="457" column="26" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="457" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPBSSolver_1a641c8d917f911ebdc563ad62fabcd96d" prot="private" static="no" mutable="no">
+        <type>float</type>
+        <definition>float PBSSolver::resolution_</definition>
+        <argsstring></argsstring>
+        <name>resolution_</name>
+        <initializer>= 1.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="458" column="26" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="458" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPBSSolver_1a1ebc31141731efcd313d4b471abac402" prot="private" static="no" mutable="no">
+        <type><ref refid="structSolveStats" kindref="compound">SolveStats</ref> *</type>
+        <definition>SolveStats* PBSSolver::stats_</definition>
+        <argsstring></argsstring>
+        <name>stats_</name>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="459" column="25" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="459" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPBSSolver_1a9f217d00c3174950824f7782d81667b4" prot="private" static="no" mutable="no">
+        <type>CostCurve</type>
+        <definition>CostCurve PBSSolver::cost_curve_</definition>
+        <argsstring></argsstring>
+        <name>cost_curve_</name>
+        <initializer>= CostCurve::Quadratic</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="460" column="26" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="460" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPBSSolver_1aa88c0cec6f074036fb012a2f42d6eff9" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int PBSSolver::proximity_penalty_</definition>
+        <argsstring></argsstring>
+        <name>proximity_penalty_</name>
+        <initializer>= 50</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="461" column="26" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="461" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPBSSolver_1af1c2e5bbb17478c3bed1a9c55db0d408" prot="private" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t PBSSolver::max_astar_expansions_</definition>
+        <argsstring></argsstring>
+        <name>max_astar_expansions_</name>
+        <initializer>= 200000</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="462" column="26" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="462" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPBSSolver_1ab19963f2103966246d094aa29b5eee93" prot="private" static="no" mutable="no">
+        <type>std::vector&lt; float &gt;</type>
+        <definition>std::vector&lt;float&gt; PBSSolver::footprint_cells_</definition>
+        <argsstring></argsstring>
+        <name>footprint_cells_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="476" column="19" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="476" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPBSSolver_1aa45aaf35c8a631c50aeeadc36cea0eb6" prot="private" static="no" mutable="no">
+        <type>std::vector&lt; float &gt;</type>
+        <definition>std::vector&lt;float&gt; PBSSolver::soft_cells_</definition>
+        <argsstring></argsstring>
+        <name>soft_cells_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="477" column="19" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="477" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPBSSolver_1afe390b31891a28b3ac47a977bb201678" prot="private" static="no" mutable="no">
+        <type>std::vector&lt; size_t &gt;</type>
+        <definition>std::vector&lt;size_t&gt; PBSSolver::agent_dists_</definition>
+        <argsstring></argsstring>
+        <name>agent_dists_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="478" column="18" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="478" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPBSSolver_1ac86dd3ee643f3ab3374b523b5ff23e44" prot="private" static="no" mutable="no">
+        <type>std::vector&lt; const std::vector&lt; float &gt; * &gt;</type>
+        <definition>std::vector&lt;const std::vector&lt;float&gt;*&gt; PBSSolver::agent_goal_dists_</definition>
+        <argsstring></argsstring>
+        <name>agent_goal_dists_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="479" column="15" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="479" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPBSSolver_1a15df84cff0a70d27b047da84e0f338e3" prot="private" static="no" mutable="no">
+        <type>std::unordered_map&lt; float, <ref refid="structGridMap" kindref="compound">GridMap</ref> &gt;</type>
+        <definition>std::unordered_map&lt;float, GridMap&gt; PBSSolver::inflated_cache_</definition>
+        <argsstring></argsstring>
+        <name>inflated_cache_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="482" column="22" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="482" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classPBSSolver_1aba6c6c3f51bbc5047b03c0440744ff83" prot="private" static="no" mutable="no">
+        <type>std::unordered_map&lt; size_t, std::vector&lt; float &gt; &gt;</type>
+        <definition>std::unordered_map&lt;size_t, std::vector&lt;float&gt; &gt; PBSSolver::dist_cache_</definition>
+        <argsstring></argsstring>
+        <name>dist_cache_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="486" column="22" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="486" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classPBSSolver_1ac52fbfd7f82531a104ac3dc6f29082b8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>PBSSolver::PBSSolver</definition>
+        <argsstring>()=default</argsstring>
+        <name>PBSSolver</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="187" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classPBSSolver_1a36aea2e1fe3c31a2a2dcd6ab550a9eba" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PBSSolver::set_map</definition>
+        <argsstring>(const GridMap *map)</argsstring>
+        <name>set_map</name>
+        <param>
+          <type>const <ref refid="structGridMap" kindref="compound">GridMap</ref> *</type>
+          <declname>map</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="189" column="8" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="189" bodyend="193"/>
+      </memberdef>
+      <memberdef kind="function" id="classPBSSolver_1a04c027d89bcc7ad9d8b755163ea815ee" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PBSSolver::set_movement_params</definition>
+        <argsstring>(float max_speed, float time_step_sec, float resolution, float urgency=1.0f)</argsstring>
+        <name>set_movement_params</name>
+        <param>
+          <type>float</type>
+          <declname>max_speed</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>time_step_sec</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>resolution</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>urgency</declname>
+          <defval>1.0f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="197" column="8" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="197" bodyend="204"/>
+      </memberdef>
+      <memberdef kind="function" id="classPBSSolver_1a74bfa2c74e557cd5d1012a309f4ecca4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool PBSSolver::solve</definition>
+        <argsstring>(const std::vector&lt; Agent &gt; &amp;agents, std::vector&lt; Path &gt; &amp;solution, float resolution=0.0f, SolveStats *stats=nullptr, size_t max_expansions=5000, CostCurve cost_curve=CostCurve::Quadratic, int proximity_penalty=50, size_t max_astar_expansions=200000)</argsstring>
+        <name>solve</name>
+        <param>
+          <type>const std::vector&lt; <ref refid="structAgent" kindref="compound">Agent</ref> &gt; &amp;</type>
+          <declname>agents</declname>
+        </param>
+        <param>
+          <type>std::vector&lt; Path &gt; &amp;</type>
+          <declname>solution</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>resolution</declname>
+          <defval>0.0f</defval>
+        </param>
+        <param>
+          <type><ref refid="structSolveStats" kindref="compound">SolveStats</ref> *</type>
+          <declname>stats</declname>
+          <defval>nullptr</defval>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>max_expansions</declname>
+          <defval>5000</defval>
+        </param>
+        <param>
+          <type>CostCurve</type>
+          <declname>cost_curve</declname>
+          <defval>CostCurve::Quadratic</defval>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>proximity_penalty</declname>
+          <defval>50</defval>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>max_astar_expansions</declname>
+          <defval>200000</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="213" column="8" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="213" bodyend="430"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classPBSSolver_1ab2249d5d0908e08858e1884eb58fc59a" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PBSSolver::record_astar</definition>
+        <argsstring>(bool ok)</argsstring>
+        <name>record_astar</name>
+        <param>
+          <type>bool</type>
+          <declname>ok</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="465" column="8" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="465" bodyend="475"/>
+      </memberdef>
+      <memberdef kind="function" id="classPBSSolver_1a51df58f6bb25b0950217dbf88371aa44" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void PBSSolver::set_agent_map</definition>
+        <argsstring>(const Agent &amp;a)</argsstring>
+        <name>set_agent_map</name>
+        <param>
+          <type>const <ref refid="structAgent" kindref="compound">Agent</ref> &amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="491" column="8" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="491" bodyend="500"/>
+      </memberdef>
+      <memberdef kind="function" id="classPBSSolver_1a70b549f7dae7dcf4ddcac51fe10f0538" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool PBSSolver::branch</definition>
+        <argsstring>(const std::vector&lt; Agent &gt; &amp;agents, size_t hi, size_t lo, size_t max_t, PBSNode &amp;node)</argsstring>
+        <name>branch</name>
+        <param>
+          <type>const std::vector&lt; <ref refid="structAgent" kindref="compound">Agent</ref> &gt; &amp;</type>
+          <declname>agents</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>hi</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>lo</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>max_t</declname>
+        </param>
+        <param>
+          <type>PBSNode &amp;</type>
+          <declname>node</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="514" column="8" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="514" bodyend="518"/>
+      </memberdef>
+      <memberdef kind="function" id="classPBSSolver_1ae4eb76401ce7134da4e051b14a709220" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool PBSSolver::replan</definition>
+        <argsstring>(const std::vector&lt; Agent &gt; &amp;agents, size_t changed, size_t max_t, PBSNode &amp;node)</argsstring>
+        <name>replan</name>
+        <param>
+          <type>const std::vector&lt; <ref refid="structAgent" kindref="compound">Agent</ref> &gt; &amp;</type>
+          <declname>agents</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>changed</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>max_t</declname>
+        </param>
+        <param>
+          <type>PBSNode &amp;</type>
+          <declname>node</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="520" column="8" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="520" bodyend="552"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-func">
+      <memberdef kind="function" id="classPBSSolver_1a53b1d25d3e53c2167b219ba317591c8a" prot="private" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>size_t</type>
+        <definition>static size_t PBSSolver::cost</definition>
+        <argsstring>(const std::vector&lt; Path &gt; &amp;ps)</argsstring>
+        <name>cost</name>
+        <param>
+          <type>const std::vector&lt; Path &gt; &amp;</type>
+          <declname>ps</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="502" column="17" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="502" bodyend="506"/>
+      </memberdef>
+      <memberdef kind="function" id="classPBSSolver_1a419ccd3270ee0f2f8411403c95a5b853" prot="private" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>NodeKey</type>
+        <definition>static NodeKey PBSSolver::make_key</definition>
+        <argsstring>(const PBSNode &amp;n)</argsstring>
+        <name>make_key</name>
+        <param>
+          <type>const PBSNode &amp;</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="508" column="18" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="508" bodyend="512"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="185" column="1" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="185" bodyend="553"/>
+    <listofallmembers>
+      <member refid="classPBSSolver_1afe390b31891a28b3ac47a977bb201678" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>agent_dists_</name></member>
+      <member refid="classPBSSolver_1ac86dd3ee643f3ab3374b523b5ff23e44" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>agent_goal_dists_</name></member>
+      <member refid="classPBSSolver_1a70b549f7dae7dcf4ddcac51fe10f0538" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>branch</name></member>
+      <member refid="classPBSSolver_1a53b1d25d3e53c2167b219ba317591c8a" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>cost</name></member>
+      <member refid="classPBSSolver_1a9f217d00c3174950824f7782d81667b4" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>cost_curve_</name></member>
+      <member refid="classPBSSolver_1aba6c6c3f51bbc5047b03c0440744ff83" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>dist_cache_</name></member>
+      <member refid="classPBSSolver_1ab19963f2103966246d094aa29b5eee93" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>footprint_cells_</name></member>
+      <member refid="classPBSSolver_1a15df84cff0a70d27b047da84e0f338e3" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>inflated_cache_</name></member>
+      <member refid="classPBSSolver_1ae959c96bdda423e51025790d63f215e8" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>low_level_</name></member>
+      <member refid="classPBSSolver_1a419ccd3270ee0f2f8411403c95a5b853" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>make_key</name></member>
+      <member refid="classPBSSolver_1a2510e8d671b1ec5b0a5b905a10b78ca0" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>map_</name></member>
+      <member refid="classPBSSolver_1af1c2e5bbb17478c3bed1a9c55db0d408" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>max_astar_expansions_</name></member>
+      <member refid="classPBSSolver_1adab5de9dd3689d12c6feb9be4ce50ddd" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>move_set_</name></member>
+      <member refid="classPBSSolver_1ac52fbfd7f82531a104ac3dc6f29082b8" prot="public" virt="non-virtual"><scope>PBSSolver</scope><name>PBSSolver</name></member>
+      <member refid="classPBSSolver_1aa88c0cec6f074036fb012a2f42d6eff9" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>proximity_penalty_</name></member>
+      <member refid="classPBSSolver_1ab2249d5d0908e08858e1884eb58fc59a" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>record_astar</name></member>
+      <member refid="classPBSSolver_1ae4eb76401ce7134da4e051b14a709220" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>replan</name></member>
+      <member refid="classPBSSolver_1a641c8d917f911ebdc563ad62fabcd96d" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>resolution_</name></member>
+      <member refid="classPBSSolver_1a51df58f6bb25b0950217dbf88371aa44" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>set_agent_map</name></member>
+      <member refid="classPBSSolver_1a36aea2e1fe3c31a2a2dcd6ab550a9eba" prot="public" virt="non-virtual"><scope>PBSSolver</scope><name>set_map</name></member>
+      <member refid="classPBSSolver_1a04c027d89bcc7ad9d8b755163ea815ee" prot="public" virt="non-virtual"><scope>PBSSolver</scope><name>set_movement_params</name></member>
+      <member refid="classPBSSolver_1aa45aaf35c8a631c50aeeadc36cea0eb6" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>soft_cells_</name></member>
+      <member refid="classPBSSolver_1a74bfa2c74e557cd5d1012a309f4ecca4" prot="public" virt="non-virtual"><scope>PBSSolver</scope><name>solve</name></member>
+      <member refid="classPBSSolver_1a1ebc31141731efcd313d4b471abac402" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>stats_</name></member>
+      <member refid="classPBSSolver_1a52917f459f0742ebc3c3d539ffabc12b" prot="private" virt="non-virtual"><scope>PBSSolver</scope><name>time_cost_</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

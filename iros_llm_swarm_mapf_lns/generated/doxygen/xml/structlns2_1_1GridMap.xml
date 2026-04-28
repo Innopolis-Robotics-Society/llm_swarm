@@ -1,0 +1,133 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structlns2_1_1GridMap" kind="struct" language="C++" prot="public">
+    <compoundname>lns2::GridMap</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structlns2_1_1GridMap_1a5cbafc631991b06e11245b31a44b422d" prot="public" static="no" mutable="no">
+        <type>std::size_t</type>
+        <definition>std::size_t lns2::GridMap::rows</definition>
+        <argsstring></argsstring>
+        <name>rows</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="58" column="15" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlns2_1_1GridMap_1aac4ed13c33bfb7b7747dd9c563ad8cc4" prot="public" static="no" mutable="no">
+        <type>std::size_t</type>
+        <definition>std::size_t lns2::GridMap::cols</definition>
+        <argsstring></argsstring>
+        <name>cols</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="59" column="15" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlns2_1_1GridMap_1af0e4266e103fe8a84ca64ef7a5a9a743" prot="public" static="no" mutable="no">
+        <type>std::vector&lt; std::uint8_t &gt;</type>
+        <definition>std::vector&lt;std::uint8_t&gt; lns2::GridMap::blocked</definition>
+        <argsstring></argsstring>
+        <name>blocked</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="60" column="15" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structlns2_1_1GridMap_1a4592f250afad17ac262501ce409c44e0" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool lns2::GridMap::in_bounds</definition>
+        <argsstring>(const Cell &amp;c) const</argsstring>
+        <name>in_bounds</name>
+        <param>
+          <type>const <ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref> &amp;</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="62" column="8" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="62" bodyend="66"/>
+      </memberdef>
+      <memberdef kind="function" id="structlns2_1_1GridMap_1a54ce1f18b6fbee6ee510e9b9833f2425" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool lns2::GridMap::is_blocked</definition>
+        <argsstring>(const Cell &amp;c) const</argsstring>
+        <name>is_blocked</name>
+        <param>
+          <type>const <ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref> &amp;</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="68" column="8" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="68" bodyend="72"/>
+      </memberdef>
+      <memberdef kind="function" id="structlns2_1_1GridMap_1a61d74adf8b1ce11a28e2c86333256ea0" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>CellIdx</type>
+        <definition>CellIdx lns2::GridMap::index_of</definition>
+        <argsstring>(const Cell &amp;c) const</argsstring>
+        <name>index_of</name>
+        <param>
+          <type>const <ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref> &amp;</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="74" column="11" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="74" bodyend="77"/>
+      </memberdef>
+      <memberdef kind="function" id="structlns2_1_1GridMap_1acfdf4a70344d8de7e07acd6270e5ea90" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref></type>
+        <definition>Cell lns2::GridMap::cell_of</definition>
+        <argsstring>(CellIdx idx) const</argsstring>
+        <name>cell_of</name>
+        <param>
+          <type>CellIdx</type>
+          <declname>idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="79" column="8" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="79" bodyend="82"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="57" column="1" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="57" bodyend="83"/>
+    <listofallmembers>
+      <member refid="structlns2_1_1GridMap_1af0e4266e103fe8a84ca64ef7a5a9a743" prot="public" virt="non-virtual"><scope>lns2::GridMap</scope><name>blocked</name></member>
+      <member refid="structlns2_1_1GridMap_1acfdf4a70344d8de7e07acd6270e5ea90" prot="public" virt="non-virtual"><scope>lns2::GridMap</scope><name>cell_of</name></member>
+      <member refid="structlns2_1_1GridMap_1aac4ed13c33bfb7b7747dd9c563ad8cc4" prot="public" virt="non-virtual"><scope>lns2::GridMap</scope><name>cols</name></member>
+      <member refid="structlns2_1_1GridMap_1a4592f250afad17ac262501ce409c44e0" prot="public" virt="non-virtual"><scope>lns2::GridMap</scope><name>in_bounds</name></member>
+      <member refid="structlns2_1_1GridMap_1a61d74adf8b1ce11a28e2c86333256ea0" prot="public" virt="non-virtual"><scope>lns2::GridMap</scope><name>index_of</name></member>
+      <member refid="structlns2_1_1GridMap_1a54ce1f18b6fbee6ee510e9b9833f2425" prot="public" virt="non-virtual"><scope>lns2::GridMap</scope><name>is_blocked</name></member>
+      <member refid="structlns2_1_1GridMap_1a5cbafc631991b06e11245b31a44b422d" prot="public" virt="non-virtual"><scope>lns2::GridMap</scope><name>rows</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

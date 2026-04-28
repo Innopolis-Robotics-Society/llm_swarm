@@ -1,0 +1,200 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Function capsule_penalty &mdash; iros_llm_swarm_mapf 0.1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/collapsible-lists/css/tree_view.css?v=a885cde7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js?v=73120307"></script>
+      <script src="../_static/collapsible-lists/js/apply-collapsible-lists.js?v=660e4f45"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Function dijkstra_from" href="function_euclidean__astar_8hpp_1a1d535177213a0de7f5a4e946233f5304.html" />
+    <link rel="prev" title="Function capsule_overlap" href="function_mapf__types_8hpp_1a68ebe472b6f982a7271a2d320ae9527f.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            iros_llm_swarm_mapf
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">C++ API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="index.html#class-hierarchy">Class Hierarchy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#file-hierarchy">File Hierarchy</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html#full-c-api">Full C++ API</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="index.html#classes-and-structs">Classes and Structs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="structAgent.html">Struct Agent</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structAStarStats.html">Struct AStarStats</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structCell.html">Struct Cell</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structConflict.html">Struct Conflict</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structEuclideanAStarPlanner_1_1Node.html">Struct EuclideanAStarPlanner::Node</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structEuclideanAStarPlanner_1_1NodeCmp.html">Struct EuclideanAStarPlanner::NodeCmp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structGridMap.html">Struct GridMap</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structMove.html">Struct Move</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structMoveSet.html">Struct MoveSet</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structPBSSolver_1_1NodeKey.html">Struct PBSSolver::NodeKey</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structPBSSolver_1_1NodeKeyHash.html">Struct PBSSolver::NodeKeyHash</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structPBSSolver_1_1PBSNode.html">Struct PBSSolver::PBSNode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structPBSSolver_1_1PBSNodeCmp.html">Struct PBSSolver::PBSNodeCmp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structReservationTable_1_1Entry.html">Struct ReservationTable::Entry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structReservationTable_1_1HeldGoal.html">Struct ReservationTable::HeldGoal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structSegment.html">Struct Segment</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structSegmentReservationTable_1_1HeldGoal.html">Struct SegmentReservationTable::HeldGoal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structSegmentReservationTable_1_1SegEntry.html">Struct SegmentReservationTable::SegEntry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structSolveDiagnostics.html">Struct SolveDiagnostics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structSolveStats.html">Struct SolveStats</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structSpaceTimeAStarPlanner_1_1Node.html">Struct SpaceTimeAStarPlanner::Node</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structSpaceTimeAStarPlanner_1_1NodeCmp.html">Struct SpaceTimeAStarPlanner::NodeCmp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classConflictDetector.html">Class ConflictDetector</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classEuclideanAStarPlanner.html">Class EuclideanAStarPlanner</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classPBSSolver.html">Class PBSSolver</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classPriorityGraph.html">Class PriorityGraph</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classReservationTable.html">Class ReservationTable</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classSegmentReservationTable.html">Class SegmentReservationTable</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classSpaceTimeAStarPlanner.html">Class SpaceTimeAStarPlanner</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#enums">Enums</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="enum_mapf__types_8hpp_1ac1b81ff8d2f95d70bc857e186aa508c8.html">Enum CostCurve</a></li>
+<li class="toctree-l4"><a class="reference internal" href="enum_mapf__types_8hpp_1a37f2a4656fcc87e06882ed874a8884f8.html">Enum FailReason</a></li>
+</ul>
+</li>
+<li class="toctree-l3 current"><a class="reference internal" href="index.html#functions">Functions</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="function_mapf__types_8hpp_1a2901db8b17c607141017be92199d561b.html">Function apply_curve</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_mapf__types_8hpp_1a301400bf30384cf641a0c865ed5ddf52.html">Template Function bresenham_trace</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_mapf__types_8hpp_1a68ebe472b6f982a7271a2d320ae9527f.html">Function capsule_overlap</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Function capsule_penalty</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_euclidean__astar_8hpp_1a1d535177213a0de7f5a4e946233f5304.html">Function dijkstra_from</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_mapf__types_8hpp_1a09d08e5d4a717f627a1feed9eb6c1f55.html">Function segment_segment_dist_sq</a></li>
+<li class="toctree-l4"><a class="reference internal" href="function_mapf__types_8hpp_1a65e17c761e924933d9fcfa18cd2d5cf6.html">Function trace_move</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#typedefs">Typedefs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="typedef_mapf__types_8hpp_1a5ebe6bfbcc40e51e20d1500aa9b4c9fe.html">Typedef Path</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#directories">Directories</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="dir_include.html">Directory include</a></li>
+<li class="toctree-l4"><a class="reference internal" href="dir_include_iros_llm_swarm_mapf.html">Directory iros_llm_swarm_mapf</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#files">Files</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_euclidean_astar.hpp.html">File euclidean_astar.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_mapf_types.hpp.html">File mapf_types.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_pbs_solver.hpp.html">File pbs_solver.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_swarm_mapf_space_time_astar.hpp.html">File space_time_astar.hpp</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../standards.html">Standard Documents</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../standard_docs/PACKAGE.html">PACKAGE</a></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../genindex.html">Index</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">iros_llm_swarm_mapf</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">C++ API</a></li>
+      <li class="breadcrumb-item active">Function capsule_penalty</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/function_mapf__types_8hpp_1a06b4bb1d2387a398058ae4dabc9cc1c8.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="function-capsule-penalty">
+<span id="exhale-function-mapf-types-8hpp-1a06b4bb1d2387a398058ae4dabc9cc1c8"></span><h1>Function capsule_penalty<a class="headerlink" href="#function-capsule-penalty" title="Link to this heading"></a></h1>
+<ul class="simple">
+<li><p>Defined in <a class="reference internal" href="file_include_iros_llm_swarm_mapf_mapf_types.hpp.html#file-include-iros-llm-swarm-mapf-mapf-types-hpp"><span class="std std-ref">File mapf_types.hpp</span></a></p></li>
+</ul>
+<section id="function-documentation">
+<h2>Function Documentation<a class="headerlink" href="#function-documentation" title="Link to this heading"></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv415capsule_penaltyRK7SegmentffRK7Segmentffi9CostCurve">
+<span id="_CPPv315capsule_penaltyRK7SegmentffRK7Segmentffi9CostCurve"></span><span id="_CPPv215capsule_penaltyRK7SegmentffRK7Segmentffi9CostCurve"></span><span id="capsule_penalty__SegmentCR.float.float.SegmentCR.float.float.i.CostCurve"></span><span class="target" id="mapf__types_8hpp_1a06b4bb1d2387a398058ae4dabc9cc1c8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">capsule_penalty</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="structSegment.html#_CPPv47Segment" title="Segment"><span class="n"><span class="pre">Segment</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">a</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">hard_a</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">soft_a</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="structSegment.html#_CPPv47Segment" title="Segment"><span class="n"><span class="pre">Segment</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">b</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">hard_b</span></span>, <span class="kt"><span class="pre">float</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">soft_b</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">max_penalty</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">50</span></span>, <a class="reference internal" href="enum_mapf__types_8hpp_1ac1b81ff8d2f95d70bc857e186aa508c8.html#_CPPv49CostCurve" title="CostCurve"><span class="n"><span class="pre">CostCurve</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">cost_curve</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="enum_mapf__types_8hpp_1ac1b81ff8d2f95d70bc857e186aa508c8.html#_CPPv49CostCurve" title="CostCurve"><span class="n"><span class="pre">CostCurve</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="enum_mapf__types_8hpp_1ac1b81ff8d2f95d70bc857e186aa508c8.html#_CPPv4N9CostCurve9QuadraticE" title="CostCurve::Quadratic"><span class="n"><span class="pre">Quadratic</span></span></a><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv415capsule_penaltyRK7SegmentffRK7Segmentffi9CostCurve" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="function_mapf__types_8hpp_1a68ebe472b6f982a7271a2d320ae9527f.html" class="btn btn-neutral float-left" title="Function capsule_overlap" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="function_euclidean__astar_8hpp_1a1d535177213a0de7f5a4e946233f5304.html" class="btn btn-neutral float-right" title="Function dijkstra_from" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright The &lt;iros_llm_swarm_mapf&gt; Contributors. License: MIT.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

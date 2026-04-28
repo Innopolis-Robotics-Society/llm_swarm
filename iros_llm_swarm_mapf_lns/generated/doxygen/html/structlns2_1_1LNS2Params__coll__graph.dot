@@ -1,0 +1,9 @@
+digraph "lns2::LNS2Params"
+{
+ // LATEX_PDF_SIZE
+  edge [fontname="Helvetica",fontsize="10",labelfontname="Helvetica",labelfontsize="10"];
+  node [fontname="Helvetica",fontsize="10",shape=record];
+  Node1 [label="lns2::LNS2Params",height=0.2,width=0.4,color="black", fillcolor="grey75", style="filled", fontcolor="black",tooltip=" "];
+  Node2 -> Node1 [dir="back",color="darkorchid3",fontsize="10",style="dashed",label=" astar" ,fontname="Helvetica"];
+  Node2 [label="lns2::SoftAStarParams",height=0.2,width=0.4,color="black", fillcolor="white", style="filled",URL="$structlns2_1_1SoftAStarParams.html",tooltip=" "];
+}

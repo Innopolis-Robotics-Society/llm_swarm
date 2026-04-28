@@ -1,0 +1,174 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classSegmentReservationTable" kind="class" language="C++" prot="public">
+    <compoundname>SegmentReservationTable</compoundname>
+    <innerclass refid="structSegmentReservationTable_1_1HeldGoal" prot="private">SegmentReservationTable::HeldGoal</innerclass>
+    <innerclass refid="structSegmentReservationTable_1_1SegEntry" prot="private">SegmentReservationTable::SegEntry</innerclass>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classSegmentReservationTable_1a1a92e300eef2493836e4a07af50f0eb1" prot="private" static="no" mutable="no">
+        <type>std::unordered_map&lt; size_t, std::vector&lt; SegEntry &gt; &gt;</type>
+        <definition>std::unordered_map&lt;size_t, std::vector&lt;SegEntry&gt; &gt; SegmentReservationTable::entries_</definition>
+        <argsstring></argsstring>
+        <name>entries_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="426" column="22" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="426" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classSegmentReservationTable_1afe2f57e1694e8791515e96d989469416" prot="private" static="no" mutable="no">
+        <type>std::vector&lt; HeldGoal &gt;</type>
+        <definition>std::vector&lt;HeldGoal&gt; SegmentReservationTable::held_goals_</definition>
+        <argsstring></argsstring>
+        <name>held_goals_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="427" column="15" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="427" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classSegmentReservationTable_1aec8d2e99dfdad456f09ba873a2a18943" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void SegmentReservationTable::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="319" column="8" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="319" bodyend="322"/>
+      </memberdef>
+      <memberdef kind="function" id="classSegmentReservationTable_1ac3bfe55f671cde2ec571eace608ee946" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void SegmentReservationTable::reserve_path</definition>
+        <argsstring>(const Path &amp;path, size_t hold_goal_until_time, float footprint_cells, float soft_radius_cells, size_t skip_until=0)</argsstring>
+        <name>reserve_path</name>
+        <param>
+          <type>const Path &amp;</type>
+          <declname>path</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>hold_goal_until_time</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>footprint_cells</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>soft_radius_cells</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>skip_until</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="328" column="8" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="328" bodyend="346"/>
+      </memberdef>
+      <memberdef kind="function" id="classSegmentReservationTable_1a18a0a664d0d70c378d5aebf3e9bb595a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int SegmentReservationTable::segment_penalty</definition>
+        <argsstring>(const Cell &amp;from, const Cell &amp;to, size_t time, float my_footprint, float my_soft, int max_penalty=50, CostCurve cost_curve=CostCurve::Quadratic) const</argsstring>
+        <name>segment_penalty</name>
+        <param>
+          <type>const <ref refid="structCell" kindref="compound">Cell</ref> &amp;</type>
+          <declname>from</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structCell" kindref="compound">Cell</ref> &amp;</type>
+          <declname>to</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>time</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>my_footprint</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>my_soft</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_penalty</declname>
+          <defval>50</defval>
+        </param>
+        <param>
+          <type>CostCurve</type>
+          <declname>cost_curve</declname>
+          <defval>CostCurve::Quadratic</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="350" column="7" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="350" bodyend="389"/>
+      </memberdef>
+      <memberdef kind="function" id="classSegmentReservationTable_1a70095831347bb76a7ae00fdadbb33cba" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool SegmentReservationTable::can_hold_goal</definition>
+        <argsstring>(size_t row, size_t col, size_t from_time, size_t max_time, float my_footprint_cells) const</argsstring>
+        <name>can_hold_goal</name>
+        <param>
+          <type>size_t</type>
+          <declname>row</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>col</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>from_time</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>max_time</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>my_footprint_cells</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="392" column="8" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="392" bodyend="410"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="317" column="1" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="317" bodyend="428"/>
+    <listofallmembers>
+      <member refid="classSegmentReservationTable_1a70095831347bb76a7ae00fdadbb33cba" prot="public" virt="non-virtual"><scope>SegmentReservationTable</scope><name>can_hold_goal</name></member>
+      <member refid="classSegmentReservationTable_1aec8d2e99dfdad456f09ba873a2a18943" prot="public" virt="non-virtual"><scope>SegmentReservationTable</scope><name>clear</name></member>
+      <member refid="classSegmentReservationTable_1a1a92e300eef2493836e4a07af50f0eb1" prot="private" virt="non-virtual"><scope>SegmentReservationTable</scope><name>entries_</name></member>
+      <member refid="classSegmentReservationTable_1afe2f57e1694e8791515e96d989469416" prot="private" virt="non-virtual"><scope>SegmentReservationTable</scope><name>held_goals_</name></member>
+      <member refid="classSegmentReservationTable_1ac3bfe55f671cde2ec571eace608ee946" prot="public" virt="non-virtual"><scope>SegmentReservationTable</scope><name>reserve_path</name></member>
+      <member refid="classSegmentReservationTable_1a18a0a664d0d70c378d5aebf3e9bb595a" prot="public" virt="non-virtual"><scope>SegmentReservationTable</scope><name>segment_penalty</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

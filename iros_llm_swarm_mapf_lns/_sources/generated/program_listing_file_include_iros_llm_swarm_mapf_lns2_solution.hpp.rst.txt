@@ -1,0 +1,91 @@
+
+.. _program_listing_file_include_iros_llm_swarm_mapf_lns2_solution.hpp:
+
+Program Listing for File solution.hpp
+=====================================
+
+|exhale_lsh| :ref:`Return to documentation for file <file_include_iros_llm_swarm_mapf_lns2_solution.hpp>` (``include/iros_llm_swarm_mapf/lns2/solution.hpp``)
+
+.. |exhale_lsh| unicode:: U+021B0 .. UPWARDS ARROW WITH TIP LEFTWARDS
+
+.. code-block:: cpp
+
+   // iros_llm_swarm_mapf/lns2/solution.hpp
+   //
+   // Thin wrapper over std::vector<Path> + CollisionTable. All mutations go
+   // through set_path / clear_path, which keeps the table consistent.
+   //
+   // Hold-at-goal model:
+   //   For each agent, a hold_until_ timestep is maintained. The collision
+   //   table vertex-occupies path.back() for all t in [path.size()-1, hold_until].
+   //   hold_until is set by the solver to the global horizon after repair so
+   //   that agents that finished early still block their goal.
+   
+   #pragma once
+   
+   #include <cstddef>
+   #include <utility>
+   #include <vector>
+   
+   #include "iros_llm_swarm_mapf/lns2/collision_table.hpp"
+   #include "iros_llm_swarm_mapf/lns2/types.hpp"
+   
+   namespace lns2 {
+   
+   struct Snapshot {
+     std::vector<AgentId> ids;
+     std::vector<Path>    old_paths;
+     std::vector<Timestep> old_holds;
+     std::size_t collisions_before = 0;
+   };
+   
+   class Solution {
+    public:
+     Solution() = default;
+   
+     // Initialize empty solution for `agents` on `grid`. Footprints are copied.
+     void init(const std::vector<Agent>& agents, const GridMap* grid);
+   
+     // Accessors
+     std::size_t num_agents() const { return paths_.size(); }
+     const Path& path(AgentId id) const { return paths_[id]; }
+     const FootprintModel& footprint(AgentId id) const { return footprints_[id]; }
+     Timestep hold_until(AgentId id) const { return hold_until_[id]; }
+   
+     const CollisionTable& table() const { return table_; }
+     CollisionTable& mutable_table() { return table_; }
+     std::size_t num_collisions() const { return table_.total_collisions(); }
+     bool is_collision_free() const { return num_collisions() == 0; }
+   
+     const std::vector<Path>& paths() const { return paths_; }
+     const std::vector<FootprintModel>& footprints() const { return footprints_; }
+     const std::vector<Timestep>& holds() const { return hold_until_; }
+   
+     // Mutators — the only way to change paths.
+     void set_path(AgentId id, Path new_path, Timestep new_hold_until);
+     void clear_path(AgentId id);
+   
+     // Adjusts hold_until for ALL agents to `h` (typically max path length - 1
+     // across the subset being repaired or across the whole solution).
+     void set_global_hold(Timestep h);
+   
+     // ---- Snapshot / restore ------------------------------------------------
+   
+     // Take snapshot of `ids` (deep copies paths + holds), then clear them.
+     Snapshot take_and_clear(const std::vector<AgentId>& ids);
+   
+     // Restore the snapshot: re-install saved paths and holds.
+     void restore(Snapshot&& snap);
+   
+     // Debug: verify invariants.
+     bool debug_consistent() const;
+   
+    private:
+     const GridMap* grid_ = nullptr;
+     std::vector<Path> paths_;
+     std::vector<FootprintModel> footprints_;
+     std::vector<Timestep> hold_until_;
+     CollisionTable table_;
+   };
+   
+   }  // namespace lns2

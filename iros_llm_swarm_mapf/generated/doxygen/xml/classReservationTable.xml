@@ -1,0 +1,252 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classReservationTable" kind="class" language="C++" prot="public">
+    <compoundname>ReservationTable</compoundname>
+    <innerclass refid="structReservationTable_1_1Entry" prot="private">ReservationTable::Entry</innerclass>
+    <innerclass refid="structReservationTable_1_1HeldGoal" prot="private">ReservationTable::HeldGoal</innerclass>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classReservationTable_1aa05662fdf47f9d1d9e579aeb1de1e992" prot="private" static="no" mutable="no">
+        <type>std::unordered_map&lt; size_t, std::vector&lt; Entry &gt; &gt;</type>
+        <definition>std::unordered_map&lt;size_t, std::vector&lt;Entry&gt; &gt; ReservationTable::entries_</definition>
+        <argsstring></argsstring>
+        <name>entries_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/space_time_astar.hpp" line="153" column="22" bodyfile="include/iros_llm_swarm_mapf/space_time_astar.hpp" bodystart="153" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classReservationTable_1acdaeaa6c7537b7cc91b674272ee81083" prot="private" static="no" mutable="no">
+        <type>std::vector&lt; HeldGoal &gt;</type>
+        <definition>std::vector&lt;HeldGoal&gt; ReservationTable::held_goals_</definition>
+        <argsstring></argsstring>
+        <name>held_goals_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/space_time_astar.hpp" line="154" column="15" bodyfile="include/iros_llm_swarm_mapf/space_time_astar.hpp" bodystart="154" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classReservationTable_1abfb7d1d0fcb9c0dd887ed95bb2b10f4c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ReservationTable::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/space_time_astar.hpp" line="20" column="8" bodyfile="include/iros_llm_swarm_mapf/space_time_astar.hpp" bodystart="20" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classReservationTable_1ad195496869a970480355ff7b1ddac502" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ReservationTable::reserve_path</definition>
+        <argsstring>(const Path &amp;path, size_t hold_goal_until_time, float footprint_cells, float soft_radius_cells, size_t skip_until=0)</argsstring>
+        <name>reserve_path</name>
+        <param>
+          <type>const Path &amp;</type>
+          <declname>path</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>hold_goal_until_time</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>footprint_cells</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>soft_radius_cells</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>skip_until</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/space_time_astar.hpp" line="30" column="8" bodyfile="include/iros_llm_swarm_mapf/space_time_astar.hpp" bodystart="30" bodyend="43"/>
+      </memberdef>
+      <memberdef kind="function" id="classReservationTable_1a149bf5991b3115cff02459f76d7d1bee" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ReservationTable::vertex_penalty</definition>
+        <argsstring>(size_t row, size_t col, size_t time, float my_footprint, float my_soft, int max_penalty=50, CostCurve cost_curve=CostCurve::Quadratic) const</argsstring>
+        <name>vertex_penalty</name>
+        <param>
+          <type>size_t</type>
+          <declname>row</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>col</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>time</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>my_footprint</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>my_soft</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_penalty</declname>
+          <defval>50</defval>
+        </param>
+        <param>
+          <type>CostCurve</type>
+          <declname>cost_curve</declname>
+          <defval>CostCurve::Quadratic</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/space_time_astar.hpp" line="50" column="7" bodyfile="include/iros_llm_swarm_mapf/space_time_astar.hpp" bodystart="50" bodyend="87"/>
+      </memberdef>
+      <memberdef kind="function" id="classReservationTable_1ac9c05b7a0eddb74315f0c40c22518845" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ReservationTable::is_edge_blocked</definition>
+        <argsstring>(size_t fr, size_t fc, size_t tr, size_t tc, size_t time, float my_footprint_cells) const</argsstring>
+        <name>is_edge_blocked</name>
+        <param>
+          <type>size_t</type>
+          <declname>fr</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>fc</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>tr</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>tc</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>time</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>my_footprint_cells</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/space_time_astar.hpp" line="91" column="8" bodyfile="include/iros_llm_swarm_mapf/space_time_astar.hpp" bodystart="91" bodyend="116"/>
+      </memberdef>
+      <memberdef kind="function" id="classReservationTable_1af89a44e767c2fb2524406f3262124810" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ReservationTable::can_hold_goal</definition>
+        <argsstring>(size_t row, size_t col, size_t from_time, size_t max_time, float my_footprint_cells) const</argsstring>
+        <name>can_hold_goal</name>
+        <param>
+          <type>size_t</type>
+          <declname>row</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>col</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>from_time</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>max_time</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>my_footprint_cells</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/space_time_astar.hpp" line="121" column="8" bodyfile="include/iros_llm_swarm_mapf/space_time_astar.hpp" bodystart="121" bodyend="138"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-func">
+      <memberdef kind="function" id="classReservationTable_1a3a425cad777705311f795e995fcb70bb" prot="private" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool ReservationTable::cells_conflict</definition>
+        <argsstring>(size_t r1, size_t c1, float rad1, size_t r2, size_t c2, float rad2)</argsstring>
+        <name>cells_conflict</name>
+        <param>
+          <type>size_t</type>
+          <declname>r1</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>c1</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>rad1</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>r2</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>c2</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>rad2</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/space_time_astar.hpp" line="158" column="15" bodyfile="include/iros_llm_swarm_mapf/space_time_astar.hpp" bodystart="158" bodyend="167"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="include/iros_llm_swarm_mapf/space_time_astar.hpp" line="18" column="1" bodyfile="include/iros_llm_swarm_mapf/space_time_astar.hpp" bodystart="18" bodyend="168"/>
+    <listofallmembers>
+      <member refid="classReservationTable_1af89a44e767c2fb2524406f3262124810" prot="public" virt="non-virtual"><scope>ReservationTable</scope><name>can_hold_goal</name></member>
+      <member refid="classReservationTable_1a3a425cad777705311f795e995fcb70bb" prot="private" virt="non-virtual"><scope>ReservationTable</scope><name>cells_conflict</name></member>
+      <member refid="classReservationTable_1abfb7d1d0fcb9c0dd887ed95bb2b10f4c" prot="public" virt="non-virtual"><scope>ReservationTable</scope><name>clear</name></member>
+      <member refid="classReservationTable_1aa05662fdf47f9d1d9e579aeb1de1e992" prot="private" virt="non-virtual"><scope>ReservationTable</scope><name>entries_</name></member>
+      <member refid="classReservationTable_1acdaeaa6c7537b7cc91b674272ee81083" prot="private" virt="non-virtual"><scope>ReservationTable</scope><name>held_goals_</name></member>
+      <member refid="classReservationTable_1ac9c05b7a0eddb74315f0c40c22518845" prot="public" virt="non-virtual"><scope>ReservationTable</scope><name>is_edge_blocked</name></member>
+      <member refid="classReservationTable_1ad195496869a970480355ff7b1ddac502" prot="public" virt="non-virtual"><scope>ReservationTable</scope><name>reserve_path</name></member>
+      <member refid="classReservationTable_1a149bf5991b3115cff02459f76d7d1bee" prot="public" virt="non-virtual"><scope>ReservationTable</scope><name>vertex_penalty</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

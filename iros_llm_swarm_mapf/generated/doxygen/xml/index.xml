@@ -1,0 +1,293 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygenindex xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="index.xsd" version="1.9.1" xml:lang="en-US">
+  <compound refid="structAgent" kind="struct"><name>Agent</name>
+    <member refid="structAgent_1aeb102b6478f816ef954921e5c7afd03f" kind="variable"><name>id</name></member>
+    <member refid="structAgent_1a3bb8aa64a025a200b3405d04c79a3674" kind="variable"><name>start</name></member>
+    <member refid="structAgent_1a1047c3c659341246428ff7ce5b1975cd" kind="variable"><name>goal</name></member>
+    <member refid="structAgent_1a5589ca1fe6a8280ad6aba0a101febc34" kind="variable"><name>footprint_radius</name></member>
+    <member refid="structAgent_1abed7bd661ce4eac051293ae4acf1322c" kind="variable"><name>inflation</name></member>
+  </compound>
+  <compound refid="structAStarStats" kind="struct"><name>AStarStats</name>
+    <member refid="structAStarStats_1afdefb05c6b760cf087f845c62dcb0f58" kind="variable"><name>ok_total_exp</name></member>
+    <member refid="structAStarStats_1abdebcb232d6443940d709a497e153bf0" kind="variable"><name>ok_max_exp</name></member>
+    <member refid="structAStarStats_1a60df2daafbc92788a24925036e112e6e" kind="variable"><name>ok_count</name></member>
+    <member refid="structAStarStats_1a51b35b083aa5a1c70c4c2fb3785b7726" kind="variable"><name>fail_count</name></member>
+  </compound>
+  <compound refid="structCell" kind="struct"><name>Cell</name>
+    <member refid="structCell_1a6b07a4c3dc12bd1067caf9e4ea42a732" kind="variable"><name>row</name></member>
+    <member refid="structCell_1a856070b140bb7f06c55d388b5dfcc9e3" kind="variable"><name>col</name></member>
+  </compound>
+  <compound refid="structConflict" kind="struct"><name>Conflict</name>
+    <member refid="structConflict_1a202c78783691564fb2a576d1bd6fe0b5" kind="variable"><name>agent1</name></member>
+    <member refid="structConflict_1ad8ecb104ed7c27c703e26187d96defa6" kind="variable"><name>agent2</name></member>
+    <member refid="structConflict_1a6c30b73da2e6bf9c4d470d75fba65af7" kind="variable"><name>time</name></member>
+  </compound>
+  <compound refid="classConflictDetector" kind="class"><name>ConflictDetector</name>
+    <member refid="classConflictDetector_1aec747e4e851785160becd235af36b0a1" kind="function"><name>find_first</name></member>
+    <member refid="classConflictDetector_1ab9b4d7f263aa304130173d803511cded" kind="function"><name>start_grace</name></member>
+    <member refid="classConflictDetector_1ab14bfc981bac053a69c2a4788a755321" kind="function"><name>at</name></member>
+    <member refid="classConflictDetector_1acf8e90358c88bad97f43dd3e5fedc42c" kind="function"><name>max_len</name></member>
+  </compound>
+  <compound refid="structReservationTable_1_1Entry" kind="struct"><name>ReservationTable::Entry</name>
+    <member refid="structReservationTable_1_1Entry_1a0b2382dac0fc5dfd2349d04c4d6e1940" kind="variable"><name>cell</name></member>
+    <member refid="structReservationTable_1_1Entry_1a2fb5974ec3735646ae1965f37e007c6b" kind="variable"><name>footprint_cells</name></member>
+    <member refid="structReservationTable_1_1Entry_1ac6d2a0d7c55a4182139d76cb4f8a542c" kind="variable"><name>soft_radius_cells</name></member>
+  </compound>
+  <compound refid="classEuclideanAStarPlanner" kind="class"><name>EuclideanAStarPlanner</name>
+    <member refid="classEuclideanAStarPlanner_1a8504b8ffc048fa584772f6850a66ed95" kind="variable"><name>INF_F</name></member>
+    <member refid="classEuclideanAStarPlanner_1a8cf1bc200fb2230263d68f8056c121ec" kind="variable"><name>INVALID</name></member>
+    <member refid="classEuclideanAStarPlanner_1a4ee52108fe9250ae11fe69718805eb60" kind="variable"><name>map_</name></member>
+    <member refid="classEuclideanAStarPlanner_1aca021408c2d0b84854f521d4b8cd5246" kind="variable"><name>goal_dists_</name></member>
+    <member refid="classEuclideanAStarPlanner_1a352c3d7c865553ada3975837c1a89a89" kind="variable"><name>moves_</name></member>
+    <member refid="classEuclideanAStarPlanner_1a10bb8ec399b421fd4ca0a78a674406c7" kind="variable"><name>my_footprint_</name></member>
+    <member refid="classEuclideanAStarPlanner_1aeb10cfb70463a8c9ff3d6fa1c87dd61f" kind="variable"><name>my_soft_</name></member>
+    <member refid="classEuclideanAStarPlanner_1a35b76b74c014cb708f544cbacd69ded4" kind="variable"><name>cost_curve_</name></member>
+    <member refid="classEuclideanAStarPlanner_1a9b6d77ada554cc2086e651433cdb5021" kind="variable"><name>proximity_penalty_</name></member>
+    <member refid="classEuclideanAStarPlanner_1a5e5064956fa322bf49c2bf23fc3c11d4" kind="variable"><name>time_cost_</name></member>
+    <member refid="classEuclideanAStarPlanner_1a0cd8f3f4a17285a781789c186ec1c9b4" kind="variable"><name>resolution_</name></member>
+    <member refid="classEuclideanAStarPlanner_1a03ad45edd5e68c8c8de4a6b0663a77e7" kind="variable"><name>last_expansions_</name></member>
+    <member refid="classEuclideanAStarPlanner_1a18dfd02a412d3c8f08e79cfd02db0cc5" kind="variable"><name>g_</name></member>
+    <member refid="classEuclideanAStarPlanner_1a8e661cb39c410fad5d0bd9d26cb6888e" kind="variable"><name>parent_</name></member>
+    <member refid="classEuclideanAStarPlanner_1a50d3f0def3a6268f51f78ba96752bb03" kind="variable"><name>closed_</name></member>
+    <member refid="classEuclideanAStarPlanner_1a63a39b3a5662d15c076f380849424704" kind="variable"><name>gen_</name></member>
+    <member refid="classEuclideanAStarPlanner_1a86e0191838285bfd0208a48a19ce464f" kind="variable"><name>current_gen_</name></member>
+    <member refid="classEuclideanAStarPlanner_1aa3ff9f97dc94df62ae7e63cbe7fb9740" kind="function"><name>EuclideanAStarPlanner</name></member>
+    <member refid="classEuclideanAStarPlanner_1a5a2e209210c162bf846abd4dbb9b88f4" kind="function"><name>reset_map</name></member>
+    <member refid="classEuclideanAStarPlanner_1a5f14c1f3327d5e77d5a75b1992c6f757" kind="function"><name>current_map</name></member>
+    <member refid="classEuclideanAStarPlanner_1a89d0b6eb4011775d44a96860e436a489" kind="function"><name>set_goal_dists</name></member>
+    <member refid="classEuclideanAStarPlanner_1aedc8360c9c60b574804e913345b1968d" kind="function"><name>last_expansions</name></member>
+    <member refid="classEuclideanAStarPlanner_1ae694b3cb12e0be6b9add4779f479ea86" kind="function"><name>set_move_set</name></member>
+    <member refid="classEuclideanAStarPlanner_1a7ef3ca31e645c841f077f24c0d96e6f0" kind="function"><name>set_cost_params</name></member>
+    <member refid="classEuclideanAStarPlanner_1a50b4561f723d01aa3a66d15ed4c3170b" kind="function"><name>find_path</name></member>
+    <member refid="classEuclideanAStarPlanner_1abe8e5b7250eb1bb5bb344f2699eab49c" kind="function"><name>idx</name></member>
+    <member refid="classEuclideanAStarPlanner_1a8ece02baf9251d9e821f67bb4b791ed2" kind="function"><name>cell</name></member>
+    <member refid="classEuclideanAStarPlanner_1adb06063cee047088b4d6d7227bbee80e" kind="function"><name>is_blocked</name></member>
+    <member refid="classEuclideanAStarPlanner_1a947528cd8b90c8551d9eea5a6f2ea77d" kind="function"><name>heuristic</name></member>
+    <member refid="classEuclideanAStarPlanner_1a197cd674685f4dfff07ad4bcc79f15a7" kind="function"><name>ensure_capacity</name></member>
+    <member refid="classEuclideanAStarPlanner_1a7e22f0fe9d8e7d87e8ead9719416d464" kind="function"><name>next_generation</name></member>
+    <member refid="classEuclideanAStarPlanner_1a0f70cd22739b64934398682418b8aa2e" kind="function"><name>is_alive</name></member>
+    <member refid="classEuclideanAStarPlanner_1a2d3b1641da9aa6d1b23e247bc9ec0d9d" kind="function"><name>get_g</name></member>
+    <member refid="classEuclideanAStarPlanner_1a6198be0e79f9a3588e580c851395e63b" kind="function"><name>set_g</name></member>
+    <member refid="classEuclideanAStarPlanner_1a0df8d67ea83d6a9d0e2c3f4d09e7d5ae" kind="function"><name>is_closed</name></member>
+    <member refid="classEuclideanAStarPlanner_1a241a84d4f39853547034c7ba89c17aff" kind="function"><name>mark_closed</name></member>
+    <member refid="classEuclideanAStarPlanner_1a329e77c8a6ab9b4313c0de1d3ae00111" kind="function"><name>relax</name></member>
+    <member refid="classEuclideanAStarPlanner_1a78b06ff30f16266e7cce780f6577a1ff" kind="function"><name>restore</name></member>
+    <member refid="classEuclideanAStarPlanner_1a36691f642bcaaf6645ad49b05338367c" kind="function"><name>state_idx</name></member>
+    <member refid="classEuclideanAStarPlanner_1a4f314bdadbaf9ca87e718b2e0fd8dabf" kind="function"><name>state_cell</name></member>
+  </compound>
+  <compound refid="structGridMap" kind="struct"><name>GridMap</name>
+    <member refid="structGridMap_1a77547e2043bee248eced4f7368fd12b9" kind="variable"><name>rows</name></member>
+    <member refid="structGridMap_1a9d82a9274be19cd3b40691a197876992" kind="variable"><name>cols</name></member>
+    <member refid="structGridMap_1acdc5e54b51c1887f4449474578de2999" kind="variable"><name>blocked</name></member>
+    <member refid="structGridMap_1ab798b25589b5fd3b78645c91c19a2151" kind="variable"><name>wall_cost</name></member>
+    <member refid="structGridMap_1aeb8ddf66e9b75b15dd37d4b90ef8920e" kind="function"><name>inflate_gradient</name></member>
+  </compound>
+  <compound refid="structReservationTable_1_1HeldGoal" kind="struct"><name>ReservationTable::HeldGoal</name>
+    <member refid="structReservationTable_1_1HeldGoal_1a08894beb201996eb2d082359c08f191a" kind="variable"><name>cell</name></member>
+    <member refid="structReservationTable_1_1HeldGoal_1abf521fd37f1007fde8678acd8ffe265f" kind="variable"><name>footprint_cells</name></member>
+    <member refid="structReservationTable_1_1HeldGoal_1a4b4ceffc65da3dd1d19fc4175a95d878" kind="variable"><name>soft_radius_cells</name></member>
+    <member refid="structReservationTable_1_1HeldGoal_1ab364a27f5fcd64d4612458aca9a052e7" kind="variable"><name>from_time</name></member>
+  </compound>
+  <compound refid="structSegmentReservationTable_1_1HeldGoal" kind="struct"><name>SegmentReservationTable::HeldGoal</name>
+    <member refid="structSegmentReservationTable_1_1HeldGoal_1a508eb5af3420eb4e9db102656b8df0bc" kind="variable"><name>cell</name></member>
+    <member refid="structSegmentReservationTable_1_1HeldGoal_1a5c3b4f041c2a09fbbea056ac18b40b16" kind="variable"><name>footprint_cells</name></member>
+    <member refid="structSegmentReservationTable_1_1HeldGoal_1adfe8bb0a8fa04d435053b18a6b2679af" kind="variable"><name>soft_radius_cells</name></member>
+    <member refid="structSegmentReservationTable_1_1HeldGoal_1abc692893e30374e9e11c93d9508b5ea3" kind="variable"><name>from_time</name></member>
+  </compound>
+  <compound refid="structMove" kind="struct"><name>Move</name>
+    <member refid="structMove_1afb11956e45d57be140057180903ef264" kind="variable"><name>dr</name></member>
+    <member refid="structMove_1a1f70cba983b2b7b20d88b884f4353c11" kind="variable"><name>dc</name></member>
+    <member refid="structMove_1a64981ebd1a758bfe826282b5fc33967f" kind="variable"><name>cost</name></member>
+  </compound>
+  <compound refid="structMoveSet" kind="struct"><name>MoveSet</name>
+    <member refid="structMoveSet_1a045e3934946634d4fb9a558ba72629b3" kind="variable"><name>moves</name></member>
+    <member refid="structMoveSet_1a20a7fc4a17e41b59199481fa5963fa88" kind="function"><name>generate</name></member>
+  </compound>
+  <compound refid="structEuclideanAStarPlanner_1_1Node" kind="struct"><name>EuclideanAStarPlanner::Node</name>
+    <member refid="structEuclideanAStarPlanner_1_1Node_1ad5b3ba8f5d816055bbd40c6f4264d906" kind="variable"><name>idx</name></member>
+    <member refid="structEuclideanAStarPlanner_1_1Node_1af5644b45e95ed767f0585b4144a0bbe9" kind="variable"><name>t</name></member>
+    <member refid="structEuclideanAStarPlanner_1_1Node_1aef861708ff9f0b68b1b7de4ba55999fb" kind="variable"><name>g</name></member>
+    <member refid="structEuclideanAStarPlanner_1_1Node_1a179cb8a2b58e4a28ad06042175ba19c8" kind="variable"><name>f</name></member>
+  </compound>
+  <compound refid="structSpaceTimeAStarPlanner_1_1Node" kind="struct"><name>SpaceTimeAStarPlanner::Node</name>
+    <member refid="structSpaceTimeAStarPlanner_1_1Node_1a73fd40a5ce8d87845f085c2b581f3a65" kind="variable"><name>idx</name></member>
+    <member refid="structSpaceTimeAStarPlanner_1_1Node_1a35befcdf59bb5edf52cea718a8d9e01c" kind="variable"><name>t</name></member>
+    <member refid="structSpaceTimeAStarPlanner_1_1Node_1a26b31e097ce8c74c20652d40eedc493f" kind="variable"><name>g</name></member>
+    <member refid="structSpaceTimeAStarPlanner_1_1Node_1ae2f1e4da9244419fdc9be23fbe485cf4" kind="variable"><name>f</name></member>
+  </compound>
+  <compound refid="structEuclideanAStarPlanner_1_1NodeCmp" kind="struct"><name>EuclideanAStarPlanner::NodeCmp</name>
+    <member refid="structEuclideanAStarPlanner_1_1NodeCmp_1a7505fa2e8c83f57734594b8daacc8666" kind="function"><name>operator()</name></member>
+  </compound>
+  <compound refid="structSpaceTimeAStarPlanner_1_1NodeCmp" kind="struct"><name>SpaceTimeAStarPlanner::NodeCmp</name>
+    <member refid="structSpaceTimeAStarPlanner_1_1NodeCmp_1ada55880aff36ab1d777e39f0c4278450" kind="function"><name>operator()</name></member>
+  </compound>
+  <compound refid="structPBSSolver_1_1NodeKey" kind="struct"><name>PBSSolver::NodeKey</name>
+    <member refid="structPBSSolver_1_1NodeKey_1ae1ea9be6dc0c29877bdf63087b3703af" kind="variable"><name>gh</name></member>
+    <member refid="structPBSSolver_1_1NodeKey_1a44e7b3b00f7f34c0f85ced970cd7c9d4" kind="variable"><name>lens</name></member>
+    <member refid="structPBSSolver_1_1NodeKey_1a77d5f6bde13ff95d1216836a786b101b" kind="function"><name>operator==</name></member>
+  </compound>
+  <compound refid="structPBSSolver_1_1NodeKeyHash" kind="struct"><name>PBSSolver::NodeKeyHash</name>
+    <member refid="structPBSSolver_1_1NodeKeyHash_1a3466197c8b8e09d0ff7dd7386d9f45e4" kind="function"><name>operator()</name></member>
+  </compound>
+  <compound refid="structPBSSolver_1_1PBSNode" kind="struct"><name>PBSSolver::PBSNode</name>
+    <member refid="structPBSSolver_1_1PBSNode_1a0c2e5b815407f875e5b67166f4225501" kind="variable"><name>pg</name></member>
+    <member refid="structPBSSolver_1_1PBSNode_1a917b67a79a5a63ba81b8d74e9d93c34a" kind="variable"><name>paths</name></member>
+    <member refid="structPBSSolver_1_1PBSNode_1a736abb723c5a2954722d579c94cd82c5" kind="variable"><name>cost</name></member>
+  </compound>
+  <compound refid="structPBSSolver_1_1PBSNodeCmp" kind="struct"><name>PBSSolver::PBSNodeCmp</name>
+    <member refid="structPBSSolver_1_1PBSNodeCmp_1aa3616bea21deb0da92dca96afa7b3d2c" kind="function"><name>operator()</name></member>
+  </compound>
+  <compound refid="classPBSSolver" kind="class"><name>PBSSolver</name>
+    <member refid="classPBSSolver_1a2510e8d671b1ec5b0a5b905a10b78ca0" kind="variable"><name>map_</name></member>
+    <member refid="classPBSSolver_1ae959c96bdda423e51025790d63f215e8" kind="variable"><name>low_level_</name></member>
+    <member refid="classPBSSolver_1adab5de9dd3689d12c6feb9be4ce50ddd" kind="variable"><name>move_set_</name></member>
+    <member refid="classPBSSolver_1a52917f459f0742ebc3c3d539ffabc12b" kind="variable"><name>time_cost_</name></member>
+    <member refid="classPBSSolver_1a641c8d917f911ebdc563ad62fabcd96d" kind="variable"><name>resolution_</name></member>
+    <member refid="classPBSSolver_1a1ebc31141731efcd313d4b471abac402" kind="variable"><name>stats_</name></member>
+    <member refid="classPBSSolver_1a9f217d00c3174950824f7782d81667b4" kind="variable"><name>cost_curve_</name></member>
+    <member refid="classPBSSolver_1aa88c0cec6f074036fb012a2f42d6eff9" kind="variable"><name>proximity_penalty_</name></member>
+    <member refid="classPBSSolver_1af1c2e5bbb17478c3bed1a9c55db0d408" kind="variable"><name>max_astar_expansions_</name></member>
+    <member refid="classPBSSolver_1ab19963f2103966246d094aa29b5eee93" kind="variable"><name>footprint_cells_</name></member>
+    <member refid="classPBSSolver_1aa45aaf35c8a631c50aeeadc36cea0eb6" kind="variable"><name>soft_cells_</name></member>
+    <member refid="classPBSSolver_1afe390b31891a28b3ac47a977bb201678" kind="variable"><name>agent_dists_</name></member>
+    <member refid="classPBSSolver_1ac86dd3ee643f3ab3374b523b5ff23e44" kind="variable"><name>agent_goal_dists_</name></member>
+    <member refid="classPBSSolver_1a15df84cff0a70d27b047da84e0f338e3" kind="variable"><name>inflated_cache_</name></member>
+    <member refid="classPBSSolver_1aba6c6c3f51bbc5047b03c0440744ff83" kind="variable"><name>dist_cache_</name></member>
+    <member refid="classPBSSolver_1ac52fbfd7f82531a104ac3dc6f29082b8" kind="function"><name>PBSSolver</name></member>
+    <member refid="classPBSSolver_1a36aea2e1fe3c31a2a2dcd6ab550a9eba" kind="function"><name>set_map</name></member>
+    <member refid="classPBSSolver_1a04c027d89bcc7ad9d8b755163ea815ee" kind="function"><name>set_movement_params</name></member>
+    <member refid="classPBSSolver_1a74bfa2c74e557cd5d1012a309f4ecca4" kind="function"><name>solve</name></member>
+    <member refid="classPBSSolver_1ab2249d5d0908e08858e1884eb58fc59a" kind="function"><name>record_astar</name></member>
+    <member refid="classPBSSolver_1a51df58f6bb25b0950217dbf88371aa44" kind="function"><name>set_agent_map</name></member>
+    <member refid="classPBSSolver_1a70b549f7dae7dcf4ddcac51fe10f0538" kind="function"><name>branch</name></member>
+    <member refid="classPBSSolver_1ae4eb76401ce7134da4e051b14a709220" kind="function"><name>replan</name></member>
+    <member refid="classPBSSolver_1a53b1d25d3e53c2167b219ba317591c8a" kind="function"><name>cost</name></member>
+    <member refid="classPBSSolver_1a419ccd3270ee0f2f8411403c95a5b853" kind="function"><name>make_key</name></member>
+  </compound>
+  <compound refid="classPriorityGraph" kind="class"><name>PriorityGraph</name>
+    <member refid="classPriorityGraph_1a307e1ad925c0d64aab1a466991ef1a61" kind="variable"><name>n_</name></member>
+    <member refid="classPriorityGraph_1a0247084a3358e7cfbaa50a0772160c94" kind="variable"><name>m_</name></member>
+    <member refid="classPriorityGraph_1ac0ddf4de0d65a9e0b8d91cf1255f0ea1" kind="function"><name>PriorityGraph</name></member>
+    <member refid="classPriorityGraph_1a910a1045900a2acf3fc77ebbde3fe132" kind="function"><name>size</name></member>
+    <member refid="classPriorityGraph_1a153b7569b7e1f62dfac3e7e2c097f02a" kind="function"><name>has</name></member>
+    <member refid="classPriorityGraph_1a6fa7192882c6a52d612957d3de2bef93" kind="function"><name>add</name></member>
+    <member refid="classPriorityGraph_1a779a34b7877755931a8bb22d6e1e59eb" kind="function"><name>higher_than</name></member>
+    <member refid="classPriorityGraph_1a683897195f56730bf1f7f78ececb4650" kind="function"><name>topo_from</name></member>
+    <member refid="classPriorityGraph_1aeabc7392058169564c1fb44560817016" kind="function"><name>hash</name></member>
+    <member refid="classPriorityGraph_1ad9432043ba5dc957976aa240bd691de1" kind="function"><name>operator==</name></member>
+    <member refid="classPriorityGraph_1aea784ee835f44695c50060c1c9819542" kind="function"><name>at</name></member>
+    <member refid="classPriorityGraph_1a49dcbdcfb294acc90d638f383383e251" kind="function"><name>set</name></member>
+  </compound>
+  <compound refid="classReservationTable" kind="class"><name>ReservationTable</name>
+    <member refid="classReservationTable_1aa05662fdf47f9d1d9e579aeb1de1e992" kind="variable"><name>entries_</name></member>
+    <member refid="classReservationTable_1acdaeaa6c7537b7cc91b674272ee81083" kind="variable"><name>held_goals_</name></member>
+    <member refid="classReservationTable_1abfb7d1d0fcb9c0dd887ed95bb2b10f4c" kind="function"><name>clear</name></member>
+    <member refid="classReservationTable_1ad195496869a970480355ff7b1ddac502" kind="function"><name>reserve_path</name></member>
+    <member refid="classReservationTable_1a149bf5991b3115cff02459f76d7d1bee" kind="function"><name>vertex_penalty</name></member>
+    <member refid="classReservationTable_1ac9c05b7a0eddb74315f0c40c22518845" kind="function"><name>is_edge_blocked</name></member>
+    <member refid="classReservationTable_1af89a44e767c2fb2524406f3262124810" kind="function"><name>can_hold_goal</name></member>
+    <member refid="classReservationTable_1a3a425cad777705311f795e995fcb70bb" kind="function"><name>cells_conflict</name></member>
+  </compound>
+  <compound refid="structSegmentReservationTable_1_1SegEntry" kind="struct"><name>SegmentReservationTable::SegEntry</name>
+    <member refid="structSegmentReservationTable_1_1SegEntry_1ae27829e081475f36097289c5cc98a4a3" kind="variable"><name>from</name></member>
+    <member refid="structSegmentReservationTable_1_1SegEntry_1abdd32fbc35accb5622cc321cf698eb7f" kind="variable"><name>to</name></member>
+    <member refid="structSegmentReservationTable_1_1SegEntry_1a8f8d5044464152cdfaff32a1b922e8c3" kind="variable"><name>footprint_cells</name></member>
+    <member refid="structSegmentReservationTable_1_1SegEntry_1a2e1ebfb77a0c142f65fdb3a088e93bb2" kind="variable"><name>soft_radius_cells</name></member>
+  </compound>
+  <compound refid="structSegment" kind="struct"><name>Segment</name>
+    <member refid="structSegment_1afe52ce95c7676493c9621565f796b405" kind="variable"><name>r0</name></member>
+    <member refid="structSegment_1a679513a197cf948a9780df6639fe95cd" kind="variable"><name>c0</name></member>
+    <member refid="structSegment_1a17d06ce9e1295a1e9703830190314e53" kind="variable"><name>r1</name></member>
+    <member refid="structSegment_1a2c3d0b53e77708ab1367dcdb0fcafd85" kind="variable"><name>c1</name></member>
+    <member refid="structSegment_1a574ac57b82e29579ea9f29c3d30493c3" kind="function"><name>from_cells</name></member>
+    <member refid="structSegment_1a942d7b096f102b6f61fba522ae14f09a" kind="function"><name>from_cell</name></member>
+  </compound>
+  <compound refid="classSegmentReservationTable" kind="class"><name>SegmentReservationTable</name>
+    <member refid="classSegmentReservationTable_1a1a92e300eef2493836e4a07af50f0eb1" kind="variable"><name>entries_</name></member>
+    <member refid="classSegmentReservationTable_1afe2f57e1694e8791515e96d989469416" kind="variable"><name>held_goals_</name></member>
+    <member refid="classSegmentReservationTable_1aec8d2e99dfdad456f09ba873a2a18943" kind="function"><name>clear</name></member>
+    <member refid="classSegmentReservationTable_1ac3bfe55f671cde2ec571eace608ee946" kind="function"><name>reserve_path</name></member>
+    <member refid="classSegmentReservationTable_1a18a0a664d0d70c378d5aebf3e9bb595a" kind="function"><name>segment_penalty</name></member>
+    <member refid="classSegmentReservationTable_1a70095831347bb76a7ae00fdadbb33cba" kind="function"><name>can_hold_goal</name></member>
+  </compound>
+  <compound refid="structSolveDiagnostics" kind="struct"><name>SolveDiagnostics</name>
+    <member refid="structSolveDiagnostics_1ada072b696049c6e70f015780cf2a86ad" kind="variable"><name>fail_reason</name></member>
+    <member refid="structSolveDiagnostics_1a59d22c483fdade2feed255ee1a60ad4e" kind="variable"><name>fail_agent</name></member>
+    <member refid="structSolveDiagnostics_1a2dd3a82bf5f05d72ef8caa99fc128828" kind="variable"><name>max_t_used</name></member>
+    <member refid="structSolveDiagnostics_1afe26475762ca29c8a3e528edd7b105ee" kind="variable"><name>branches_tried</name></member>
+    <member refid="structSolveDiagnostics_1a4d25a755dd1e05e79acf017ced15c927" kind="variable"><name>branches_failed</name></member>
+  </compound>
+  <compound refid="structSolveStats" kind="struct"><name>SolveStats</name>
+    <member refid="structSolveStats_1a04d85fa2b379c6c30b0c1f1eb1a35a53" kind="variable"><name>expansions</name></member>
+    <member refid="structSolveStats_1a79351e6412f628782e1259f021d5fd3c" kind="variable"><name>max_path_length</name></member>
+    <member refid="structSolveStats_1aff97650cd241aebd4ac3dcc304a21458" kind="variable"><name>astar</name></member>
+    <member refid="structSolveStats_1a40f665a7b8886fb6bdd330b05ed490f9" kind="variable"><name>diag</name></member>
+  </compound>
+  <compound refid="classSpaceTimeAStarPlanner" kind="class"><name>SpaceTimeAStarPlanner</name>
+    <member refid="classSpaceTimeAStarPlanner_1a3089b29393003c043b63a8070bbc7c8a" kind="variable"><name>INF</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a4c33aa58d78f4d4ad18edd802235384c" kind="variable"><name>INVALID</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1abbbd70caf0112e00faac3697d609ae12" kind="variable"><name>map_</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1ab78aa620f6ac559f51af9666329c96c3" kind="variable"><name>goal_dists_</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1ad3638a39eff74dbac3f169ea121ecebd" kind="variable"><name>my_footprint_</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a8e14073e754857f324c4e94c93bf0422" kind="variable"><name>my_soft_</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1aba254ff2b8e5c9d35ea0f69e6b8c1dc3" kind="variable"><name>cost_curve_</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a0c11968838081328717f4e40fb302746" kind="variable"><name>proximity_penalty_</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1afa685ea157fdb9e2d46e03447fcd119b" kind="variable"><name>last_expansions_</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a40e8b8d8724b51ac27fb2b86388c7f0f" kind="variable"><name>g_</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a2f5449328583b606127712276088aae2" kind="variable"><name>parent_</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a26911ab4a498d650fb906b78f9251603" kind="variable"><name>closed_</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1aca7805bb6a6f7411859b9600062a213f" kind="variable"><name>gen_</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1ad2795ec9ac4aa287aac35a57999acb2a" kind="variable"><name>current_gen_</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a125731f5096046c4fc7d0c119a9853b4" kind="function"><name>SpaceTimeAStarPlanner</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a3a58f29cbf8e3f0cb1d964206008e693" kind="function"><name>reset_map</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a9c0db116e1639eb138ef7b5ff45859dc" kind="function"><name>current_map</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a61a412c54e4f376f7bb242484ffa9b66" kind="function"><name>set_goal_dists</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a685abfe8c9e87e5acbe80273769cb5f2" kind="function"><name>last_expansions</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a94af50a82da3cc096e58fb1860493836" kind="function"><name>find_path</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a74234009f72a6b51b57ba5aca0e8f02e" kind="function"><name>idx</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a93646838d64593ab7e5b8e75685d0e2a" kind="function"><name>cell</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1aee200ec5330ee3569490acaf8c6cc0a8" kind="function"><name>is_blocked</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1aa4f894434f5519ff62ee8b6c07925536" kind="function"><name>wall_penalty</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a48020c6a03007211d3af703dac3b7a90" kind="function"><name>heuristic</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a94987550fb5a19bbc88f3f3debd77f93" kind="function"><name>ensure_capacity</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a3421eb3ed95e3749ebca513c5330d64e" kind="function"><name>next_generation</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a579eeb701224cb05cabafcb28a9478ee" kind="function"><name>is_alive</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a1ae4de7b38068a7d6d4765fb4817bb23" kind="function"><name>get_g</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1aa17ed6f9a908054b2d007e402ec7eae7" kind="function"><name>set_g</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1ad2bd3bb38aa60abd83fda9ee49cfa54d" kind="function"><name>is_closed</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a960ce50e7e4c1a1182c209f429c01d66" kind="function"><name>mark_closed</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a528e43abbca13923637b1714ff711006" kind="function"><name>relax</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1a9b9a541712503baf7f6eed5bba431d86" kind="function"><name>restore</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1af268879faf1797cb8f2ecd9dbf28a391" kind="function"><name>state_idx</name></member>
+    <member refid="classSpaceTimeAStarPlanner_1af4e0f6ee7b91e5872743a94c69256509" kind="function"><name>state_cell</name></member>
+  </compound>
+  <compound refid="euclidean__astar_8hpp" kind="file"><name>euclidean_astar.hpp</name>
+    <member refid="euclidean__astar_8hpp_1a1d535177213a0de7f5a4e946233f5304" kind="function"><name>dijkstra_from</name></member>
+  </compound>
+  <compound refid="mapf__types_8hpp" kind="file"><name>mapf_types.hpp</name>
+    <member refid="mapf__types_8hpp_1ac1b81ff8d2f95d70bc857e186aa508c8" kind="enum"><name>CostCurve</name></member>
+    <member refid="mapf__types_8hpp_1ac1b81ff8d2f95d70bc857e186aa508c8a32a843da6ea40ab3b17a3421ccdf671b" kind="enumvalue"><name>Linear</name></member>
+    <member refid="mapf__types_8hpp_1ac1b81ff8d2f95d70bc857e186aa508c8a8b2972385ed28d0e199ae2985d6fea4c" kind="enumvalue"><name>Quadratic</name></member>
+    <member refid="mapf__types_8hpp_1ac1b81ff8d2f95d70bc857e186aa508c8aec6b5414eb175379ff9efc9b3eef5814" kind="enumvalue"><name>Cubic</name></member>
+    <member refid="mapf__types_8hpp_1a37f2a4656fcc87e06882ed874a8884f8" kind="enum"><name>FailReason</name></member>
+    <member refid="mapf__types_8hpp_1a37f2a4656fcc87e06882ed874a8884f8a6adf97f83acf6453d4a6a4b1070f3754" kind="enumvalue"><name>None</name></member>
+    <member refid="mapf__types_8hpp_1a37f2a4656fcc87e06882ed874a8884f8a19dbd745315b6a8778b30042d7846890" kind="enumvalue"><name>RootPathFailed</name></member>
+    <member refid="mapf__types_8hpp_1a37f2a4656fcc87e06882ed874a8884f8a2ba8d4f5c1d008cec9f8c796a4058442" kind="enumvalue"><name>BranchExhausted</name></member>
+    <member refid="mapf__types_8hpp_1a37f2a4656fcc87e06882ed874a8884f8aae93ecaa8e7f05d7a58421eb77415470" kind="enumvalue"><name>MaxExpansions</name></member>
+    <member refid="mapf__types_8hpp_1a5ebe6bfbcc40e51e20d1500aa9b4c9fe" kind="typedef"><name>Path</name></member>
+    <member refid="mapf__types_8hpp_1a2901db8b17c607141017be92199d561b" kind="function"><name>apply_curve</name></member>
+    <member refid="mapf__types_8hpp_1a09d08e5d4a717f627a1feed9eb6c1f55" kind="function"><name>segment_segment_dist_sq</name></member>
+    <member refid="mapf__types_8hpp_1a68ebe472b6f982a7271a2d320ae9527f" kind="function"><name>capsule_overlap</name></member>
+    <member refid="mapf__types_8hpp_1a06b4bb1d2387a398058ae4dabc9cc1c8" kind="function"><name>capsule_penalty</name></member>
+    <member refid="mapf__types_8hpp_1a301400bf30384cf641a0c865ed5ddf52" kind="function"><name>bresenham_trace</name></member>
+    <member refid="mapf__types_8hpp_1a65e17c761e924933d9fcfa18cd2d5cf6" kind="function"><name>trace_move</name></member>
+  </compound>
+  <compound refid="pbs__solver_8hpp" kind="file"><name>pbs_solver.hpp</name>
+  </compound>
+  <compound refid="space__time__astar_8hpp" kind="file"><name>space_time_astar.hpp</name>
+  </compound>
+  <compound refid="dir_d44c64559bbebec7f509842c48db8b23" kind="dir"><name>include</name>
+  </compound>
+  <compound refid="dir_d9974a9083441963597d6c5404a1c29d" kind="dir"><name>include/iros_llm_swarm_mapf</name>
+  </compound>
+</doxygenindex>

@@ -1,0 +1,429 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespacelns2" kind="namespace" language="C++">
+    <compoundname>lns2</compoundname>
+    <innerclass refid="structlns2_1_1CellTime" prot="public">lns2::CellTime</innerclass>
+    <innerclass refid="structlns2_1_1EdgeKey" prot="public">lns2::EdgeKey</innerclass>
+    <innerclass refid="classlns2_1_1CollisionTable" prot="public">lns2::CollisionTable</innerclass>
+    <innerclass refid="classlns2_1_1DestroyOperator" prot="public">lns2::DestroyOperator</innerclass>
+    <innerclass refid="classlns2_1_1ALNSWeights" prot="public">lns2::ALNSWeights</innerclass>
+    <innerclass refid="structlns2_1_1LNS2Params" prot="public">lns2::LNS2Params</innerclass>
+    <innerclass refid="structlns2_1_1LNS2Stats" prot="public">lns2::LNS2Stats</innerclass>
+    <innerclass refid="classlns2_1_1LNS2Solver" prot="public">lns2::LNS2Solver</innerclass>
+    <innerclass refid="structlns2_1_1SoftAStarParams" prot="public">lns2::SoftAStarParams</innerclass>
+    <innerclass refid="structlns2_1_1SoftAStarResult" prot="public">lns2::SoftAStarResult</innerclass>
+    <innerclass refid="classlns2_1_1HeuristicCache" prot="public">lns2::HeuristicCache</innerclass>
+    <innerclass refid="structlns2_1_1Snapshot" prot="public">lns2::Snapshot</innerclass>
+    <innerclass refid="classlns2_1_1Solution" prot="public">lns2::Solution</innerclass>
+    <innerclass refid="structlns2_1_1Cell" prot="public">lns2::Cell</innerclass>
+    <innerclass refid="structlns2_1_1CellOffset" prot="public">lns2::CellOffset</innerclass>
+    <innerclass refid="structlns2_1_1GridMap" prot="public">lns2::GridMap</innerclass>
+    <innerclass refid="structlns2_1_1FootprintModel" prot="public">lns2::FootprintModel</innerclass>
+    <innerclass refid="structlns2_1_1Agent" prot="public">lns2::Agent</innerclass>
+    <innerclass refid="structlns2_1_1Collision" prot="public">lns2::Collision</innerclass>
+    <innerclass refid="structlns2_1_1PreviousPlan" prot="public">lns2::PreviousPlan</innerclass>
+    <innerclass refid="structlns2_1_1ActualState" prot="public">lns2::ActualState</innerclass>
+    <innerclass refid="structlns2_1_1WarmStartParams" prot="public">lns2::WarmStartParams</innerclass>
+    <innerclass refid="structlns2_1_1WarmStartReport" prot="public">lns2::WarmStartReport</innerclass>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="destroy__operators_8hpp_1af0a95e907be6ea5b79fa7fb81054cd73" prot="public" static="no" strong="yes">
+        <type>std::uint8_t</type>
+        <name>DestroyOp</name>
+        <enumvalue id="destroy__operators_8hpp_1af0a95e907be6ea5b79fa7fb81054cd73a02f3605713c062e0d9607969c687be52" prot="public">
+          <name>CollisionBased</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="destroy__operators_8hpp_1af0a95e907be6ea5b79fa7fb81054cd73a9a63e51619bf3fbf6c1888dfc19b7edc" prot="public">
+          <name>RandomWalk</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="destroy__operators_8hpp_1af0a95e907be6ea5b79fa7fb81054cd73a64663f4646781c9c0110838b905daa23" prot="public">
+          <name>Random</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="destroy__operators_8hpp_1af0a95e907be6ea5b79fa7fb81054cd73aec049105aae6ac2755ad2fe4823fcdde" prot="public">
+          <name>Bottleneck</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="destroy__operators_8hpp_1af0a95e907be6ea5b79fa7fb81054cd73a4905ac9d6a22bdfc1ae096094ce6248d" prot="public">
+          <name>COUNT</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="16" column="1" bodyfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" bodystart="16" bodyend="22"/>
+      </memberdef>
+      <memberdef kind="enum" id="warm__start_8hpp_1a31817eac241af59ecb472b6d600cba84" prot="public" static="no" strong="yes">
+        <type>std::uint8_t</type>
+        <name>SeedStatus</name>
+        <enumvalue id="warm__start_8hpp_1a31817eac241af59ecb472b6d600cba84a6269e8f747ad0d08a7f2d70944838f02" prot="public">
+          <name>OnTrack</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="warm__start_8hpp_1a31817eac241af59ecb472b6d600cba84a15fd86ae5dd21a7d39dca79389a7aa8d" prot="public">
+          <name>Spliced</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="warm__start_8hpp_1a31817eac241af59ecb472b6d600cba84a5d75f98d56e0f36a0762dc784f558567" prot="public">
+          <name>StubFar</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="warm__start_8hpp_1a31817eac241af59ecb472b6d600cba84a1208844539867417aa373f819d3d86ea" prot="public">
+          <name>StubNew</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="warm__start_8hpp_1a31817eac241af59ecb472b6d600cba84ae07491f362be60389db6678ba7068b3f" prot="public">
+          <name>StubGoal</name>
+          <initializer>= 4</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="warm__start_8hpp_1a31817eac241af59ecb472b6d600cba84a36408e14a78e8bcfeffc84fc54fd764d" prot="public">
+          <name>StubInvalid</name>
+          <initializer>= 5</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="warm__start_8hpp_1a31817eac241af59ecb472b6d600cba84a028661ab9ceb15f1bb23e96871347dc5" prot="public">
+          <name>StubArrived</name>
+          <initializer>= 6</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="warm__start_8hpp_1a31817eac241af59ecb472b6d600cba84a2aee0be2678ee90fd327cc186826438e" prot="public">
+          <name>Missing</name>
+          <initializer>= 7</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/warm_start.hpp" line="74" column="1" bodyfile="include/iros_llm_swarm_mapf/lns2/warm_start.hpp" bodystart="74" bodyend="83"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="types_8hpp_1af07bce8111d165ff0f159c527205e387" prot="public" static="no">
+        <type>std::uint32_t</type>
+        <definition>using lns2::AgentId = typedef std::uint32_t</definition>
+        <argsstring></argsstring>
+        <name>AgentId</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="19" column="1" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="types_8hpp_1a51846c73fc61aed02eae0928510f983f" prot="public" static="no">
+        <type>std::uint32_t</type>
+        <definition>using lns2::Timestep = typedef std::uint32_t</definition>
+        <argsstring></argsstring>
+        <name>Timestep</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="20" column="1" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="types_8hpp_1a1251592ce7d75f2f9dcf16ba3a24e611" prot="public" static="no">
+        <type>std::uint32_t</type>
+        <definition>using lns2::CellIdx = typedef std::uint32_t</definition>
+        <argsstring></argsstring>
+        <name>CellIdx</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="21" column="1" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="types_8hpp_1a840101fcf1db63833977992c19066ce2" prot="public" static="no">
+        <type>std::int64_t</type>
+        <definition>using lns2::Cost = typedef std::int64_t</definition>
+        <argsstring></argsstring>
+        <name>Cost</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="22" column="1" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="types_8hpp_1a819df591d490f96409eb2078427c1234" prot="public" static="no">
+        <type>std::vector&lt; <ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref> &gt;</type>
+        <definition>using lns2::Path = typedef std::vector&lt;Cell&gt;</definition>
+        <argsstring></argsstring>
+        <name>Path</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="52" column="1" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="types_8hpp_1a0dd6b37ae0daef091c8dd95a7a55c503" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr Cost</type>
+        <definition>constexpr Cost lns2::kInfCost</definition>
+        <argsstring></argsstring>
+        <name>kInfCost</name>
+        <initializer>= std::numeric_limits&lt;Cost&gt;::max() / 4</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="24" column="16" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="destroy__operators_8hpp_1a7c7fab41c8874ba5cf99bbc7cf187c75" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::unique_ptr&lt; <ref refid="classlns2_1_1DestroyOperator" kindref="compound">DestroyOperator</ref> &gt;</type>
+        <definition>std::unique_ptr&lt;DestroyOperator&gt; lns2::make_collision_based</definition>
+        <argsstring>()</argsstring>
+        <name>make_collision_based</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="33" column="17" declfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" declline="33" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="destroy__operators_8hpp_1a9076b68e80015aa7e4a61cbd38e5862a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::unique_ptr&lt; <ref refid="classlns2_1_1DestroyOperator" kindref="compound">DestroyOperator</ref> &gt;</type>
+        <definition>std::unique_ptr&lt;DestroyOperator&gt; lns2::make_random_walk</definition>
+        <argsstring>()</argsstring>
+        <name>make_random_walk</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="34" column="17" declfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" declline="34" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="destroy__operators_8hpp_1ab02d4b00f95bd6344953235091be59a3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::unique_ptr&lt; <ref refid="classlns2_1_1DestroyOperator" kindref="compound">DestroyOperator</ref> &gt;</type>
+        <definition>std::unique_ptr&lt;DestroyOperator&gt; lns2::make_random</definition>
+        <argsstring>()</argsstring>
+        <name>make_random</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="35" column="17" declfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" declline="35" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="destroy__operators_8hpp_1a665c7e6d8b93215c39bd0d4e2010e86c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::unique_ptr&lt; <ref refid="classlns2_1_1DestroyOperator" kindref="compound">DestroyOperator</ref> &gt;</type>
+        <definition>std::unique_ptr&lt;DestroyOperator&gt; lns2::make_bottleneck</definition>
+        <argsstring>()</argsstring>
+        <name>make_bottleneck</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="36" column="17" declfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" declline="36" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="soft__astar_8hpp_1a157f76b1ed7d471f08d4531b4f3b2f0c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structlns2_1_1SoftAStarResult" kindref="compound">SoftAStarResult</ref></type>
+        <definition>SoftAStarResult lns2::soft_astar</definition>
+        <argsstring>(const Agent &amp;agent, const GridMap &amp;grid, const CollisionTable &amp;table, const SoftAStarParams &amp;params, HeuristicCache &amp;h_cache)</argsstring>
+        <name>soft_astar</name>
+        <param>
+          <type>const <ref refid="structlns2_1_1Agent" kindref="compound">Agent</ref> &amp;</type>
+          <declname>agent</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1GridMap" kindref="compound">GridMap</ref> &amp;</type>
+          <declname>grid</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classlns2_1_1CollisionTable" kindref="compound">CollisionTable</ref> &amp;</type>
+          <declname>table</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1SoftAStarParams" kindref="compound">SoftAStarParams</ref> &amp;</type>
+          <declname>params</declname>
+        </param>
+        <param>
+          <type><ref refid="classlns2_1_1HeuristicCache" kindref="compound">HeuristicCache</ref> &amp;</type>
+          <declname>h_cache</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/soft_astar.hpp" line="83" column="17" declfile="include/iros_llm_swarm_mapf/lns2/soft_astar.hpp" declline="83" declcolumn="17"/>
+      </memberdef>
+      <memberdef kind="function" id="types_8hpp_1a2379149130506eb849516adf8188b882" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref></type>
+        <definition>Cell lns2::operator+</definition>
+        <argsstring>(const Cell &amp;a, const CellOffset &amp;o)</argsstring>
+        <name>operator+</name>
+        <param>
+          <type>const <ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref> &amp;</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1CellOffset" kindref="compound">CellOffset</ref> &amp;</type>
+          <declname>o</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="42" column="13" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="42" bodyend="44"/>
+      </memberdef>
+      <memberdef kind="function" id="warm__start_8hpp_1a6f7b0fc44c20cc4b7956f3e4c0d08e35" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void lns2::build_warm_seed</definition>
+        <argsstring>(const std::vector&lt; Agent &gt; &amp;agents, const GridMap &amp;grid, const PreviousPlan &amp;prev, const ActualState &amp;actual, const WarmStartParams &amp;params, Timestep horizon, Solution *out_solution, WarmStartReport *out_report)</argsstring>
+        <name>build_warm_seed</name>
+        <param>
+          <type>const std::vector&lt; <ref refid="structlns2_1_1Agent" kindref="compound">Agent</ref> &gt; &amp;</type>
+          <declname>agents</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1GridMap" kindref="compound">GridMap</ref> &amp;</type>
+          <declname>grid</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1PreviousPlan" kindref="compound">PreviousPlan</ref> &amp;</type>
+          <declname>prev</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1ActualState" kindref="compound">ActualState</ref> &amp;</type>
+          <declname>actual</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1WarmStartParams" kindref="compound">WarmStartParams</ref> &amp;</type>
+          <declname>params</declname>
+        </param>
+        <param>
+          <type>Timestep</type>
+          <declname>horizon</declname>
+        </param>
+        <param>
+          <type><ref refid="classlns2_1_1Solution" kindref="compound">Solution</ref> *</type>
+          <declname>out_solution</declname>
+        </param>
+        <param>
+          <type><ref refid="structlns2_1_1WarmStartReport" kindref="compound">WarmStartReport</ref> *</type>
+          <declname>out_report</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/warm_start.hpp" line="115" column="6" declfile="include/iros_llm_swarm_mapf/lns2/warm_start.hpp" declline="115" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="warm__start_8hpp_1ad67d515eb13f8135a09aaa2798f51396" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool lns2::should_warm_start</definition>
+        <argsstring>(const WarmStartReport &amp;rep, std::size_t num_agents, std::size_t max_collisions_per_agent=2, double max_stubs_ratio=0.5)</argsstring>
+        <name>should_warm_start</name>
+        <param>
+          <type>const <ref refid="structlns2_1_1WarmStartReport" kindref="compound">WarmStartReport</ref> &amp;</type>
+          <declname>rep</declname>
+        </param>
+        <param>
+          <type>std::size_t</type>
+          <declname>num_agents</declname>
+        </param>
+        <param>
+          <type>std::size_t</type>
+          <declname>max_collisions_per_agent</declname>
+          <defval>2</defval>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>max_stubs_ratio</declname>
+          <defval>0.5</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/warm_start.hpp" line="125" column="6" declfile="include/iros_llm_swarm_mapf/lns2/warm_start.hpp" declline="125" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="29" column="1"/>
+  </compounddef>
+</doxygen>

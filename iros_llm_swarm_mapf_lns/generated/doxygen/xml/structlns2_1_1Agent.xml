@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structlns2_1_1Agent" kind="struct" language="C++" prot="public">
+    <compoundname>lns2::Agent</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structlns2_1_1Agent_1a20dba18321902ff7df5a6f792830dae9" prot="public" static="no" mutable="no">
+        <type>AgentId</type>
+        <definition>AgentId lns2::Agent::id</definition>
+        <argsstring></argsstring>
+        <name>id</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="113" column="11" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="113" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlns2_1_1Agent_1a39cd1f834137a10fc8adddc9841d37eb" prot="public" static="no" mutable="no">
+        <type><ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref></type>
+        <definition>Cell lns2::Agent::start</definition>
+        <argsstring></argsstring>
+        <name>start</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="114" column="8" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="114" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlns2_1_1Agent_1ae11b14b78f9eb9f1f82dae951c39a22c" prot="public" static="no" mutable="no">
+        <type><ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref></type>
+        <definition>Cell lns2::Agent::goal</definition>
+        <argsstring></argsstring>
+        <name>goal</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="115" column="8" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="115" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structlns2_1_1Agent_1ae6c364f77c201d689da3cbdc42fd57cd" prot="public" static="no" mutable="no">
+        <type><ref refid="structlns2_1_1FootprintModel" kindref="compound">FootprintModel</ref></type>
+        <definition>FootprintModel lns2::Agent::footprint</definition>
+        <argsstring></argsstring>
+        <name>footprint</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="116" column="18" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="116" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>lns2::Agent</label>
+        <link refid="structlns2_1_1Agent"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>footprint</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>goal</edgelabel>
+          <edgelabel>start</edgelabel>
+        </childnode>
+      </node>
+      <node id="3">
+        <label>lns2::Cell</label>
+        <link refid="structlns2_1_1Cell"/>
+      </node>
+      <node id="2">
+        <label>lns2::FootprintModel</label>
+        <link refid="structlns2_1_1FootprintModel"/>
+      </node>
+    </collaborationgraph>
+    <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="112" column="1" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="112" bodyend="117"/>
+    <listofallmembers>
+      <member refid="structlns2_1_1Agent_1ae6c364f77c201d689da3cbdc42fd57cd" prot="public" virt="non-virtual"><scope>lns2::Agent</scope><name>footprint</name></member>
+      <member refid="structlns2_1_1Agent_1ae11b14b78f9eb9f1f82dae951c39a22c" prot="public" virt="non-virtual"><scope>lns2::Agent</scope><name>goal</name></member>
+      <member refid="structlns2_1_1Agent_1a20dba18321902ff7df5a6f792830dae9" prot="public" virt="non-virtual"><scope>lns2::Agent</scope><name>id</name></member>
+      <member refid="structlns2_1_1Agent_1a39cd1f834137a10fc8adddc9841d37eb" prot="public" virt="non-virtual"><scope>lns2::Agent</scope><name>start</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

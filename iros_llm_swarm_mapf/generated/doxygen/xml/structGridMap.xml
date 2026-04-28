@@ -1,0 +1,111 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structGridMap" kind="struct" language="C++" prot="public">
+    <compoundname>GridMap</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structGridMap_1a77547e2043bee248eced4f7368fd12b9" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t GridMap::rows</definition>
+        <argsstring></argsstring>
+        <name>rows</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="41" column="10" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGridMap_1a9d82a9274be19cd3b40691a197876992" prot="public" static="no" mutable="no">
+        <type>size_t</type>
+        <definition>size_t GridMap::cols</definition>
+        <argsstring></argsstring>
+        <name>cols</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="42" column="10" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGridMap_1acdc5e54b51c1887f4449474578de2999" prot="public" static="no" mutable="no">
+        <type>std::vector&lt; uint8_t &gt;</type>
+        <definition>std::vector&lt;uint8_t&gt; GridMap::blocked</definition>
+        <argsstring></argsstring>
+        <name>blocked</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="43" column="15" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structGridMap_1ab798b25589b5fd3b78645c91c19a2151" prot="public" static="no" mutable="no">
+        <type>std::vector&lt; int &gt;</type>
+        <definition>std::vector&lt;int&gt; GridMap::wall_cost</definition>
+        <argsstring></argsstring>
+        <name>wall_cost</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="44" column="19" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structGridMap_1aeb8ddf66e9b75b15dd37d4b90ef8920e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structGridMap" kindref="compound">GridMap</ref></type>
+        <definition>GridMap GridMap::inflate_gradient</definition>
+        <argsstring>(float hard_m, float soft_m, float resolution_m, int max_penalty=10, CostCurve cost_curve=CostCurve::Quadratic) const</argsstring>
+        <name>inflate_gradient</name>
+        <param>
+          <type>float</type>
+          <declname>hard_m</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>soft_m</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>resolution_m</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_penalty</declname>
+          <defval>10</defval>
+        </param>
+        <param>
+          <type>CostCurve</type>
+          <declname>cost_curve</declname>
+          <defval>CostCurve::Quadratic</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="49" column="11" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="49" bodyend="92"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="40" column="1" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="40" bodyend="93"/>
+    <listofallmembers>
+      <member refid="structGridMap_1acdc5e54b51c1887f4449474578de2999" prot="public" virt="non-virtual"><scope>GridMap</scope><name>blocked</name></member>
+      <member refid="structGridMap_1a9d82a9274be19cd3b40691a197876992" prot="public" virt="non-virtual"><scope>GridMap</scope><name>cols</name></member>
+      <member refid="structGridMap_1aeb8ddf66e9b75b15dd37d4b90ef8920e" prot="public" virt="non-virtual"><scope>GridMap</scope><name>inflate_gradient</name></member>
+      <member refid="structGridMap_1a77547e2043bee248eced4f7368fd12b9" prot="public" virt="non-virtual"><scope>GridMap</scope><name>rows</name></member>
+      <member refid="structGridMap_1ab798b25589b5fd3b78645c91c19a2151" prot="public" virt="non-virtual"><scope>GridMap</scope><name>wall_cost</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

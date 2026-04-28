@@ -1,0 +1,109 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classConflictDetector" kind="class" language="C++" prot="public">
+    <compoundname>ConflictDetector</compoundname>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classConflictDetector_1aec747e4e851785160becd235af36b0a1" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>std::optional&lt; <ref refid="structConflict" kindref="compound">Conflict</ref> &gt;</type>
+        <definition>static std::optional&lt;Conflict&gt; ConflictDetector::find_first</definition>
+        <argsstring>(const std::vector&lt; Path &gt; &amp;paths, const std::vector&lt; float &gt; &amp;footprint_cells)</argsstring>
+        <name>find_first</name>
+        <param>
+          <type>const std::vector&lt; Path &gt; &amp;</type>
+          <declname>paths</declname>
+        </param>
+        <param>
+          <type>const std::vector&lt; float &gt; &amp;</type>
+          <declname>footprint_cells</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="39" column="24" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="39" bodyend="78"/>
+      </memberdef>
+      <memberdef kind="function" id="classConflictDetector_1ab9b4d7f263aa304130173d803511cded" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>size_t</type>
+        <definition>static size_t ConflictDetector::start_grace</definition>
+        <argsstring>(const Cell &amp;a, float ra, const Cell &amp;b, float rb)</argsstring>
+        <name>start_grace</name>
+        <param>
+          <type>const <ref refid="structCell" kindref="compound">Cell</ref> &amp;</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>ra</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structCell" kindref="compound">Cell</ref> &amp;</type>
+          <declname>b</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>rb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="82" column="17" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="82" bodyend="90"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-func">
+      <memberdef kind="function" id="classConflictDetector_1ab14bfc981bac053a69c2a4788a755321" prot="private" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structCell" kindref="compound">Cell</ref></type>
+        <definition>static Cell ConflictDetector::at</definition>
+        <argsstring>(const Path &amp;p, size_t t)</argsstring>
+        <name>at</name>
+        <param>
+          <type>const Path &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>size_t</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="93" column="15" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="93" bodyend="96"/>
+      </memberdef>
+      <memberdef kind="function" id="classConflictDetector_1acf8e90358c88bad97f43dd3e5fedc42c" prot="private" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>size_t</type>
+        <definition>static size_t ConflictDetector::max_len</definition>
+        <argsstring>(const std::vector&lt; Path &gt; &amp;ps)</argsstring>
+        <name>max_len</name>
+        <param>
+          <type>const std::vector&lt; Path &gt; &amp;</type>
+          <declname>ps</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="97" column="17" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="97" bodyend="101"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="include/iros_llm_swarm_mapf/pbs_solver.hpp" line="32" column="1" bodyfile="include/iros_llm_swarm_mapf/pbs_solver.hpp" bodystart="32" bodyend="102"/>
+    <listofallmembers>
+      <member refid="classConflictDetector_1ab14bfc981bac053a69c2a4788a755321" prot="private" virt="non-virtual"><scope>ConflictDetector</scope><name>at</name></member>
+      <member refid="classConflictDetector_1aec747e4e851785160becd235af36b0a1" prot="public" virt="non-virtual"><scope>ConflictDetector</scope><name>find_first</name></member>
+      <member refid="classConflictDetector_1acf8e90358c88bad97f43dd3e5fedc42c" prot="private" virt="non-virtual"><scope>ConflictDetector</scope><name>max_len</name></member>
+      <member refid="classConflictDetector_1ab9b4d7f263aa304130173d803511cded" prot="public" virt="non-virtual"><scope>ConflictDetector</scope><name>start_grace</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

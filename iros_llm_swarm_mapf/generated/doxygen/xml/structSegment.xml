@@ -1,0 +1,113 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="structSegment" kind="struct" language="C++" prot="public">
+    <compoundname>Segment</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structSegment_1afe52ce95c7676493c9621565f796b405" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Segment::r0</definition>
+        <argsstring></argsstring>
+        <name>r0</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="135" column="9" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="135" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSegment_1a679513a197cf948a9780df6639fe95cd" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Segment::c0</definition>
+        <argsstring></argsstring>
+        <name>c0</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="135" column="12" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="135" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSegment_1a17d06ce9e1295a1e9703830190314e53" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Segment::r1</definition>
+        <argsstring></argsstring>
+        <name>r1</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="136" column="9" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structSegment_1a2c3d0b53e77708ab1367dcdb0fcafd85" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float Segment::c1</definition>
+        <argsstring></argsstring>
+        <name>c1</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="136" column="12" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="structSegment_1a574ac57b82e29579ea9f29c3d30493c3" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structSegment" kindref="compound">Segment</ref></type>
+        <definition>static Segment Segment::from_cells</definition>
+        <argsstring>(const Cell &amp;a, const Cell &amp;b)</argsstring>
+        <name>from_cells</name>
+        <param>
+          <type>const <ref refid="structCell" kindref="compound">Cell</ref> &amp;</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structCell" kindref="compound">Cell</ref> &amp;</type>
+          <declname>b</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="138" column="18" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="138" bodyend="141"/>
+      </memberdef>
+      <memberdef kind="function" id="structSegment_1a942d7b096f102b6f61fba522ae14f09a" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structSegment" kindref="compound">Segment</ref></type>
+        <definition>static Segment Segment::from_cell</definition>
+        <argsstring>(const Cell &amp;a)</argsstring>
+        <name>from_cell</name>
+        <param>
+          <type>const <ref refid="structCell" kindref="compound">Cell</ref> &amp;</type>
+          <declname>a</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="143" column="18" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="143" bodyend="145"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="include/iros_llm_swarm_mapf/mapf_types.hpp" line="134" column="1" bodyfile="include/iros_llm_swarm_mapf/mapf_types.hpp" bodystart="134" bodyend="146"/>
+    <listofallmembers>
+      <member refid="structSegment_1a679513a197cf948a9780df6639fe95cd" prot="public" virt="non-virtual"><scope>Segment</scope><name>c0</name></member>
+      <member refid="structSegment_1a2c3d0b53e77708ab1367dcdb0fcafd85" prot="public" virt="non-virtual"><scope>Segment</scope><name>c1</name></member>
+      <member refid="structSegment_1a942d7b096f102b6f61fba522ae14f09a" prot="public" virt="non-virtual"><scope>Segment</scope><name>from_cell</name></member>
+      <member refid="structSegment_1a574ac57b82e29579ea9f29c3d30493c3" prot="public" virt="non-virtual"><scope>Segment</scope><name>from_cells</name></member>
+      <member refid="structSegment_1afe52ce95c7676493c9621565f796b405" prot="public" virt="non-virtual"><scope>Segment</scope><name>r0</name></member>
+      <member refid="structSegment_1a17d06ce9e1295a1e9703830190314e53" prot="public" virt="non-virtual"><scope>Segment</scope><name>r1</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>
