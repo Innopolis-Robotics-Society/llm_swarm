@@ -36,6 +36,7 @@ class Solution {
 
   // Accessors
   std::size_t num_agents() const { return paths_.size(); }
+  const GridMap* grid() const { return grid_; }
   const Path& path(AgentId id) const { return paths_[id]; }
   const FootprintModel& footprint(AgentId id) const { return footprints_[id]; }
   Timestep hold_until(AgentId id) const { return hold_until_[id]; }

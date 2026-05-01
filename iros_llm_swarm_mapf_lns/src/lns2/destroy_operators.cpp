@@ -160,22 +160,20 @@ class Bottleneck : public DestroyOperator {
                                 std::mt19937& rng) override
   {
     // Build traffic map: cell -> set of agent ids (distinct traversals).
+    const GridMap* grid = sol.grid();
+    if (!grid) return {};
+
     std::unordered_map<CellIdx, std::unordered_set<AgentId>> traffic;
     traffic.reserve(1024);
 
     for (AgentId id = 0; id < sol.num_agents(); ++id) {
       const Path& p = sol.path(id);
       if (p.empty()) continue;
-      const FootprintModel& fp = sol.footprint(id);
       // Cheap approximation: only count base cells, not full footprint.
       for (const Cell& c : p) {
-        // We need an index_of; reuse the grid through the collision table is
-        // awkward. Approximate: use (row, col) packed as CellIdx.
-        CellIdx idx = static_cast<CellIdx>(c.row) * 131072u +
-                      static_cast<CellIdx>(c.col);
-        traffic[idx].insert(id);
+        if (!grid->in_bounds(c)) continue;
+        traffic[grid->index_of(c)].insert(id);
       }
-      (void)fp;
     }
     if (traffic.empty()) return {};
 

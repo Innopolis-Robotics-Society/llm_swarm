@@ -213,7 +213,7 @@ void LNS2Solver::repair_loop(const std::vector<Agent>& agents,
   // Rebuild touches_ once at the end — cheaper than doing it during the loop.
   // (Not strictly needed now but reasonable if anyone calls agents_touching
   //  after solve.)
-  sol.mutable_table().rebuild_touches(sol.paths(), sol.footprints(), sol.holds());
+  sol.mutable_table().rebuild_touches();
 }
 
 // ---------------------------------------------------------------------------

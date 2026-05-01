@@ -31,6 +31,7 @@ add_library(lns2 STATIC
   src/lns2/destroy_operators.cpp
   src/lns2/lns2_solver.cpp
   src/lns2/warm_start.cpp
+  src/lns2/gridmap_utils.cpp
 )
 
 target_include_directories(lns2 PUBLIC

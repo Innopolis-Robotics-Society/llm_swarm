@@ -54,12 +54,9 @@ void Solution::set_global_hold(Timestep h)
     if (paths_[id].empty()) continue;
     if (hold_until_[id] == h) continue;
     // Re-emit the path with updated hold. Cheapest is remove+add.
-    Path p = paths_[id];
-    Timestep old_h = hold_until_[id];
-    table_.remove_path(id, p, footprints_[id], old_h);
+    table_.remove_path(id, paths_[id], footprints_[id], hold_until_[id]);
     hold_until_[id] = h;
-    table_.add_path(id, p, footprints_[id], h);
-    paths_[id] = std::move(p);
+    table_.add_path(id, paths_[id], footprints_[id], h);
   }
 }
 
@@ -89,7 +86,7 @@ void Solution::restore(Snapshot&& snap)
 
 bool Solution::debug_consistent() const
 {
-  const std::size_t full = table_.debug_full_recount(paths_, footprints_, hold_until_);
+  const std::size_t full = table_.debug_full_recount();
   return full == table_.total_collisions();
 }
 

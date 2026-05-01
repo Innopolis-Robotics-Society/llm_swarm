@@ -59,21 +59,6 @@ const std::vector<int>& HeuristicCache::get(const GridMap& grid,
 }
 
 // ---------------------------------------------------------------------------
-// Helper: check that the entire footprint fits in a cell (not blocked).
-// ---------------------------------------------------------------------------
-
-static bool footprint_fits(const Cell& base, const FootprintModel& fp,
-                            const GridMap& grid)
-{
-  for (const auto& off : fp.offsets) {
-    const Cell c = base + off;
-    if (!grid.in_bounds(c)) return false;
-    if (grid.is_blocked(c)) return false;
-  }
-  return true;
-}
-
-// ---------------------------------------------------------------------------
 // soft_astar
 // ---------------------------------------------------------------------------
 

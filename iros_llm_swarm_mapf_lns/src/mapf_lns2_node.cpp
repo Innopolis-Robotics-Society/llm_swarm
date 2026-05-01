@@ -34,6 +34,7 @@
 #include "iros_llm_swarm_interfaces/msg/mapf_step.hpp"
 #include "iros_llm_swarm_interfaces/msg/follower_status.hpp"
 
+#include "iros_llm_swarm_mapf/lns2/gridmap_utils.hpp"
 #include "iros_llm_swarm_mapf/lns2/lns2_solver.hpp"
 #include "iros_llm_swarm_mapf/lns2/warm_start.hpp"
 
@@ -100,7 +101,6 @@ class MapfLns2Node : public rclcpp::Node {
     declare_parameter("diagonal_moves",          false);
     // Replan / warm start
     declare_parameter("replan_check_hz",              2.0);
-    declare_parameter("replan_threshold_m",           2.0);
     declare_parameter("replan_cooldown_sec",          2.0);
     declare_parameter("replan_time_budget_ms",        150);
     declare_parameter("replan_segment_size",          8);
@@ -169,7 +169,6 @@ class MapfLns2Node : public rclcpp::Node {
     alns_reaction_         = get_parameter("alns_reaction").as_double();
     diagonal_moves_        = get_parameter("diagonal_moves").as_bool();
     replan_check_hz_       = get_parameter("replan_check_hz").as_double();
-    replan_threshold_m_    = get_parameter("replan_threshold_m").as_double();
     replan_cooldown_sec_   = get_parameter("replan_cooldown_sec").as_double();
     replan_time_budget_ms_           = get_parameter("replan_time_budget_ms").as_int();
     replan_segment_size_             = get_parameter("replan_segment_size").as_int();
@@ -570,7 +569,7 @@ class MapfLns2Node : public rclcpp::Node {
       // downsampled grid), re-home start/goal to the nearest free cell.
       // See find_nearest_free_cell's comment for full rationale.
       if (snap_grid.is_blocked(a.start)) {
-        const lns2::Cell rescued = find_nearest_free_cell(
+        const lns2::Cell rescued = lns2::find_nearest_free_cell(
             snap_grid, a.start, a.footprint);
         if (snap_grid.is_blocked(rescued)) {
           RCLCPP_WARN(get_logger(),
@@ -586,7 +585,7 @@ class MapfLns2Node : public rclcpp::Node {
         a.start = rescued;
       }
       if (snap_grid.is_blocked(a.goal)) {
-        const lns2::Cell rescued = find_nearest_free_cell(
+        const lns2::Cell rescued = lns2::find_nearest_free_cell(
             snap_grid, a.goal, a.footprint);
         if (snap_grid.is_blocked(rescued)) {
           RCLCPP_WARN(get_logger(),
@@ -617,7 +616,7 @@ class MapfLns2Node : public rclcpp::Node {
       // physically traverse, causing false-positive unplanable markings.
       {
         const auto check_fp = lns2::FootprintModel::from_radius(radius, snap_res);
-        if (!static_path_exists(snap_grid, a.start, a.goal, check_fp)) {
+        if (!lns2::static_path_exists(snap_grid, a.start, a.goal, check_fp)) {
           RCLCPP_ERROR(get_logger(),
               "robot_%u: no static path from start grid(%d,%d) to goal grid(%d,%d) "
               "exists on the current map (footprint won't fit through). "
@@ -1352,13 +1351,13 @@ class MapfLns2Node : public rclcpp::Node {
       // often lands in a blocked cell because it stalled next to a
       // wall; without escape it gets silently skipped and never moves.
       if (snap_grid.is_blocked(a.start)) {
-        const lns2::Cell rescued = find_nearest_free_cell(
+        const lns2::Cell rescued = lns2::find_nearest_free_cell(
             snap_grid, a.start, a.footprint);
         if (snap_grid.is_blocked(rescued)) continue;
         a.start = rescued;
       }
       if (snap_grid.is_blocked(a.goal)) {
-        const lns2::Cell rescued = find_nearest_free_cell(
+        const lns2::Cell rescued = lns2::find_nearest_free_cell(
             snap_grid, a.goal, a.footprint);
         if (snap_grid.is_blocked(rescued)) continue;
         a.goal = rescued;
@@ -1369,7 +1368,7 @@ class MapfLns2Node : public rclcpp::Node {
       // unplanable marks for tight-but-navigable corridors.
       {
         const auto check_fp = lns2::FootprintModel::from_radius(radius, snap_res);
-        if (!static_path_exists(snap_grid, a.start, a.goal, check_fp)) {
+        if (!lns2::static_path_exists(snap_grid, a.start, a.goal, check_fp)) {
           RCLCPP_ERROR(get_logger(),
               "replan: robot_%u has no static path start(%d,%d) -> goal(%d,%d), "
               "marking unplanable",
@@ -1706,138 +1705,6 @@ class MapfLns2Node : public rclcpp::Node {
     }
   }
 
-  // Static reachability check (footprint-aware BFS).
-  // Returns true if there exists any sequence of 4-connected moves from
-  // `start` to `goal` such that every intermediate cell is footprint-valid
-  // (entire footprint lies in free space). Ignores other agents entirely
-  // — this is a purely static check that complements is_blocked(start/goal).
-  //
-  // Purpose: detect agents whose goal sits in a region not connected to
-  // their start (e.g. partitioned by walls or skipped-robot blocks), BEFORE
-  // handing them to the LNS2 solver. Without this, such agents produce
-  // empty paths inside build_initial_solution, which is_collision_free()
-  // silently accepts — and they end up stuck forever with StubNew status.
-  //
-  // Cost: bounded by the free-cell count reachable from `start`. On a
-  // 150x150 grid the worst case is ~22500 hash ops; measured <5 ms.
-  static bool static_path_exists(const lns2::GridMap& grid,
-                                  const lns2::Cell& start,
-                                  const lns2::Cell& goal,
-                                  const lns2::FootprintModel& fp)
-  {
-    auto footprint_fits = [&](const lns2::Cell& base) {
-      for (const auto& off : fp.offsets) {
-        const lns2::Cell c = base + off;
-        if (!grid.in_bounds(c)) return false;
-        if (grid.is_blocked(c)) return false;
-      }
-      return true;
-    };
-
-    if (!footprint_fits(start) || !footprint_fits(goal)) return false;
-    if (start == goal) return true;
-
-    std::unordered_set<lns2::CellIdx> visited;
-    visited.reserve(1024);
-    std::queue<lns2::Cell> q;
-    q.push(start);
-    visited.insert(grid.index_of(start));
-
-    const lns2::CellOffset step4[] = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
-    const lns2::CellIdx goal_idx = grid.index_of(goal);
-
-    while (!q.empty()) {
-      const lns2::Cell cur = q.front();
-      q.pop();
-      for (const auto& s : step4) {
-        const lns2::Cell nxt = cur + s;
-        if (!grid.in_bounds(nxt)) continue;
-        if (!footprint_fits(nxt)) continue;
-        const lns2::CellIdx nidx = grid.index_of(nxt);
-        if (!visited.insert(nidx).second) continue;
-        if (nidx == goal_idx) return true;
-        q.push(nxt);
-      }
-    }
-    return false;
-  }
-
-  // Find the nearest cell to `wanted` where the robot's footprint fits
-  // on the static map. Used as an "escape hatch" when a robot's current
-  // odom position (or its goal) maps to a grid cell that MAPF considers
-  // blocked.
-  //
-  // This happens because:
-  //   * The MAPF grid is downsampled from the occupancy map (0.05m ->
-  //     0.2m), so a grid cell is blocked if ANY of its 16 source pixels
-  //     is occupied. A robot standing close to a wall can easily land
-  //     in such a cell physically.
-  //   * The MAPF footprint uses robot_radius + inflation_radius_, which
-  //     excludes even more cells near walls.
-  //
-  // Without an escape, such a robot is permanently excluded from
-  // planning — MAPF skips it in execute_goal / trigger_replan, follower
-  // receives an empty plan, robot stays put, goal never reached.
-  //
-  // With escape: we plan from/to the nearest free cell instead. The
-  // follower will navigate to the first MAPFStep target via Nav2; the
-  // local planner (RPP) will construct a short manoeuvre out of the
-  // blocked cell into the free cell, and then proceed along the plan.
-  //
-  // BFS with Chebyshev-radius limit `max_radius_cells` (default 10 =
-  // 2m on a 0.2m grid). Returns `wanted` unchanged if it's already free,
-  // or the closest free cell found. If nothing fits within the radius,
-  // returns `wanted` (caller must still check footprint_fits).
-  static lns2::Cell find_nearest_free_cell(
-      const lns2::GridMap& grid,
-      const lns2::Cell& wanted,
-      const lns2::FootprintModel& fp,
-      int max_radius_cells = 10)
-  {
-    auto footprint_fits = [&](const lns2::Cell& base) {
-      for (const auto& off : fp.offsets) {
-        const lns2::Cell c = base + off;
-        if (!grid.in_bounds(c)) return false;
-        if (grid.is_blocked(c)) return false;
-      }
-      return true;
-    };
-
-    if (grid.in_bounds(wanted) && footprint_fits(wanted)) {
-      return wanted;
-    }
-
-    std::unordered_set<lns2::CellIdx> visited;
-    visited.reserve(static_cast<size_t>(
-        (2 * max_radius_cells + 1) * (2 * max_radius_cells + 1)));
-    std::queue<std::pair<lns2::Cell, int>> q;
-    if (grid.in_bounds(wanted)) {
-      q.push({wanted, 0});
-      visited.insert(grid.index_of(wanted));
-    }
-
-    const lns2::CellOffset step8[] = {
-        {1, 0}, {-1, 0}, {0, 1}, {0, -1},
-        {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
-
-    while (!q.empty()) {
-      auto [cur, dist] = q.front();
-      q.pop();
-      if (dist > max_radius_cells) continue;
-      if (footprint_fits(cur)) {
-        return cur;
-      }
-      for (const auto& s : step8) {
-        const lns2::Cell nxt = cur + s;
-        if (!grid.in_bounds(nxt)) continue;
-        const lns2::CellIdx nidx = grid.index_of(nxt);
-        if (!visited.insert(nidx).second) continue;
-        q.push({nxt, dist + 1});
-      }
-    }
-    return wanted;  // no free cell within radius — caller must handle
-  }
-
   // After a successful solve(), scan the produced paths. Any agent left
   // with an empty path wasn't actually planned for — soft_astar failed
   // on it inside build_initial_solution / repair, but `is_collision_free`
@@ -2164,7 +2031,6 @@ class MapfLns2Node : public rclcpp::Node {
   double alns_reaction_;
   bool   diagonal_moves_;
   double replan_check_hz_;
-  double replan_threshold_m_;
   double replan_cooldown_sec_;
   int    replan_time_budget_ms_;
   int    replan_segment_size_;
