@@ -49,7 +49,11 @@ target_compile_options(lns2 PRIVATE
 # -------------------------------------------------------------------------
 # mapf_lns2_node (ROS 2 planner node)
 # -------------------------------------------------------------------------
-add_executable(mapf_lns2_node src/mapf_lns2_node.cpp)
+add_executable(mapf_lns2_node
+  src/mapf_lns2_node.cpp
+  src/node_utils.cpp
+  src/plan_publisher.cpp
+)
 
 target_link_libraries(mapf_lns2_node lns2)
 

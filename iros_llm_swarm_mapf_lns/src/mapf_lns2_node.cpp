@@ -37,6 +37,8 @@
 #include "iros_llm_swarm_mapf/lns2/gridmap_utils.hpp"
 #include "iros_llm_swarm_mapf/lns2/lns2_solver.hpp"
 #include "iros_llm_swarm_mapf/lns2/warm_start.hpp"
+#include "iros_llm_swarm_mapf/node_utils.hpp"
+#include "iros_llm_swarm_mapf/plan_publisher.hpp"
 
 using namespace std::chrono_literals;
 using SetGoalsAction = iros_llm_swarm_interfaces::action::SetGoals;
@@ -46,38 +48,20 @@ using MAPFStepMsg    = iros_llm_swarm_interfaces::msg::MAPFStep;
 using FollowerStatus = iros_llm_swarm_interfaces::msg::FollowerStatus;
 
 // ---------------------------------------------------------------------------
-// World <-> grid conversion
-// ---------------------------------------------------------------------------
-
-static lns2::Cell world_to_cell(double wx, double wy,
-                                 double origin_x, double origin_y,
-                                 double resolution,
-                                 std::size_t rows, std::size_t cols)
-{
-  const double cx = (wx - origin_x) / resolution;
-  const double cy = (wy - origin_y) / resolution;
-  const int col = std::max(0, std::min(static_cast<int>(cols) - 1,
-                                         static_cast<int>(std::floor(cx))));
-  const int row = std::max(0, std::min(static_cast<int>(rows) - 1,
-                                         static_cast<int>(std::floor(cy))));
-  return {row, col};
-}
-
-static void cell_to_world(const lns2::Cell& c,
-                          double origin_x, double origin_y,
-                          double resolution,
-                          double& wx, double& wy)
-{
-  wx = origin_x + (c.col + 0.5) * resolution;
-  wy = origin_y + (c.row + 0.5) * resolution;
-}
-
-// ---------------------------------------------------------------------------
 // Node
 // ---------------------------------------------------------------------------
 
 class MapfLns2Node : public rclcpp::Node {
  public:
+  ~MapfLns2Node() override
+  {
+    // Joining the workers ensures their captures (including `this`) outlive
+    // the node. Using detach() here would be a use-after-free at shutdown
+    // if a thread is still in execute_goal / the cancel poll.
+    if (execute_thread_.joinable()) execute_thread_.join();
+    if (cancel_thread_.joinable())  cancel_thread_.join();
+  }
+
   MapfLns2Node() : Node("mapf_lns2")
   {
     // ---- parameters -----------------------------------------------------
@@ -213,12 +197,13 @@ class MapfLns2Node : public rclcpp::Node {
           on_map(msg);
         });
 
+    // ---- plan publishers (owned by PlanPublisher) -----------------------
+    plan_publisher_.init(this, num_robots_);
+
     // ---- per-robot odom + footprint -------------------------------------
     odom_subs_.resize(num_robots_);
     footprint_subs_.resize(num_robots_);
     status_subs_.resize(num_robots_);
-    plan_pubs_.resize(num_robots_);
-    cmd_vel_pubs_.resize(num_robots_);
     last_status_.assign(num_robots_, FollowerStatus{});
     last_status_time_.assign(num_robots_, rclcpp::Time{0, 0, RCL_ROS_TIME});
     for (int i = 0; i < num_robots_; ++i) {
@@ -262,13 +247,6 @@ class MapfLns2Node : public rclcpp::Node {
             last_status_time_[i] = now();
           });
 
-      plan_pubs_[i] = create_publisher<MAPFPlanMsg>(
-          "/robot_" + std::to_string(i) + "/mapf_plan", 10);
-      // Best-effort latched-override publisher for emergency stop.
-      // Published only on cancel to zero out velocity before Nav2 finishes
-      // processing its cancel request (Nav2 cancel can take 1-3 s).
-      cmd_vel_pubs_[i] = create_publisher<geometry_msgs::msg::Twist>(
-          "/robot_" + std::to_string(i) + "/cmd_vel", 1);
     }
 
     // ---- action server --------------------------------------------------
@@ -282,17 +260,21 @@ class MapfLns2Node : public rclcpp::Node {
           return handle_cancel(gh);
         },
         [this](const std::shared_ptr<GoalHandle> gh) {
-          std::thread([this, gh]() {
+          // Reclaim the previous worker. is_active_ guarantees the prior
+          // execute_goal has run to completion (handle_goal would have
+          // rejected this goal otherwise), so the join is non-blocking.
+          if (execute_thread_.joinable()) execute_thread_.join();
+          execute_thread_ = std::thread([this, gh]() {
             try {
               execute_goal(gh);
             } catch (const std::exception& e) {
               RCLCPP_ERROR(get_logger(), "execute_goal threw: %s", e.what());
-              is_active_ = false;
+              clear_is_active();
             } catch (...) {
               RCLCPP_ERROR(get_logger(), "execute_goal threw unknown exception");
-              is_active_ = false;
+              clear_is_active();
             }
-          }).detach();
+          });
         });
 
     RCLCPP_INFO(get_logger(),
@@ -333,6 +315,55 @@ class MapfLns2Node : public rclcpp::Node {
     fb->info            = info;
     fb->warning         = warning;
     gh->publish_feedback(fb);
+  }
+
+  // --------------------------------------------------------------------
+  // Snapshot of the arguments to publish_rich_feedback. Used by callers
+  // that build feedback under state_mutex_ but want to defer the actual
+  // publish until after the mutex is released.
+  // --------------------------------------------------------------------
+  struct PendingFeedback {
+    std::string  status;
+    std::size_t  arrived = 0;
+    std::size_t  active = 0;
+    std::size_t  deviated = 0;
+    std::size_t  stalled = 0;
+    std::string  info;
+    std::string  warning;
+  };
+
+  void drain_feedbacks(const std::shared_ptr<GoalHandle>& gh,
+                        std::vector<PendingFeedback>& q)
+  {
+    for (auto& f : q) {
+      publish_rich_feedback(gh, f.status, f.arrived, f.active,
+                             f.deviated, f.stalled, f.info, f.warning);
+    }
+    q.clear();
+  }
+
+  // --------------------------------------------------------------------
+  // is_active_ helpers
+  //
+  // is_active_ is the "mission in flight" flag. It is plain `bool`; every
+  // access goes through these helpers (or an explicit lock_guard /
+  // unique_lock on state_mutex_), so concurrent transitions follow a
+  // single, mutex-only memory model.
+  // --------------------------------------------------------------------
+  void clear_is_active()
+  {
+    std::lock_guard<std::mutex> lk(state_mutex_);
+    is_active_ = false;
+  }
+
+  // Atomic-style "exchange(false)": returns the previous value while
+  // clearing the flag. Caller must NOT already hold state_mutex_.
+  bool consume_is_active()
+  {
+    std::lock_guard<std::mutex> lk(state_mutex_);
+    const bool prev = is_active_;
+    is_active_ = false;
+    return prev;
   }
 
   // --------------------------------------------------------------------
@@ -415,16 +446,16 @@ class MapfLns2Node : public rclcpp::Node {
       RCLCPP_WARN(get_logger(), "Goal rejected: invalid robot_ids/goals");
       return rclcpp_action::GoalResponse::REJECT;
     }
-    bool expected = false;
-    if (!is_active_.compare_exchange_strong(expected, true)) {
-      RCLCPP_WARN(get_logger(), "Goal rejected: mission in progress");
-      return rclcpp_action::GoalResponse::REJECT;
-    }
     // Fresh mission — forget agents marked unplanable by the previous one.
     // A new goal with a reachable target should give a previously-stuck
     // robot another chance.
     {
       std::lock_guard<std::mutex> lk(state_mutex_);
+      if (is_active_) {
+        RCLCPP_WARN(get_logger(), "Goal rejected: mission in progress");
+        return rclcpp_action::GoalResponse::REJECT;
+      }
+      is_active_ = true;
       if (!unplanable_robots_.empty()) {
         RCLCPP_INFO(get_logger(),
             "New goal accepted — clearing %zu unplanable robots from prior mission",
@@ -452,19 +483,21 @@ class MapfLns2Node : public rclcpp::Node {
   rclcpp_action::CancelResponse handle_cancel(
       const std::shared_ptr<GoalHandle> gh)
   {
-    {
-      std::lock_guard<std::mutex> lk(state_mutex_);
-      stop_monitoring();
-      publish_stop_all();
-      active_goal_handle_.reset();
-      active_robot_ids_.clear();
-      active_goals_world_.clear();
-    }
-    // Set is_active_ = false immediately so that:
+    // Clear is_active_ inside the same critical section as the rest of the
+    // mission state so that any thread re-acquiring state_mutex_ observes a
+    // consistent snapshot:
     //  * trigger_replan's commit section skips publishing (guards concurrent solve),
     //  * execute_goal's commit section skips publishing (guards initial-plan race),
     //  * handle_goal rejects new missions until gh->canceled() completes.
-    is_active_ = false;
+    {
+      std::lock_guard<std::mutex> lk(state_mutex_);
+      stop_monitoring();
+      plan_publisher_.publish_stop_all(active_robot_ids_, now());
+      active_goal_handle_.reset();
+      active_robot_ids_.clear();
+      active_goals_world_.clear();
+      is_active_ = false;
+    }
 
     // gh->canceled() MUST be called from CANCELING state, which only exists
     // after this function returns ACCEPT — the goal is still in EXECUTING while
@@ -476,7 +509,10 @@ class MapfLns2Node : public rclcpp::Node {
     result->error_code = SetGoalsAction::Result::CANCELLED;
     result->total_replans = total_replans_;
     result->total_execution_sec = (now() - mission_start_time_).seconds();
-    std::thread([gh, result]() {
+    // Reclaim the previous cancel waiter (rare: only if cancel was issued
+    // multiple times). join() is bounded to the poll budget (~1s).
+    if (cancel_thread_.joinable()) cancel_thread_.join();
+    cancel_thread_ = std::thread([gh, result]() {
       using namespace std::chrono_literals;
       for (int i = 0; i < 200; ++i) {
         if (gh->is_canceling()) {
@@ -487,7 +523,7 @@ class MapfLns2Node : public rclcpp::Node {
       }
       // Goal transitioned to a terminal state before CANCELING
       // (e.g., succeed() won a race). No action needed.
-    }).detach();
+    });
 
     return rclcpp_action::CancelResponse::ACCEPT;
   }
@@ -555,9 +591,9 @@ class MapfLns2Node : public rclcpp::Node {
       lns2::Agent a;
       a.id = static_cast<lns2::AgentId>(agents.size());  // dense internal id
       const auto& [sx, sy] = snap_pos[rid];
-      a.start = world_to_cell(sx, sy, snap_ox, snap_oy, snap_res,
+      a.start = lns2_node::world_to_cell(sx, sy, snap_ox, snap_oy, snap_res,
                                snap_grid.rows, snap_grid.cols);
-      a.goal  = world_to_cell(req->goals[i].x, req->goals[i].y,
+      a.goal  = lns2_node::world_to_cell(req->goals[i].x, req->goals[i].y,
                                snap_ox, snap_oy, snap_res,
                                snap_grid.rows, snap_grid.cols);
       const double radius = snap_fp_radii[rid] > 0 ? snap_fp_radii[rid]
@@ -644,7 +680,7 @@ class MapfLns2Node : public rclcpp::Node {
       result->error_code = SetGoalsAction::Result::NO_VALID_AGENTS;
       result->total_replans = total_replans_;
       result->total_execution_sec = (now() - mission_start_time_).seconds();
-      if (is_active_.exchange(false)) {
+      if (consume_is_active()) {
         result->message = "No valid agents";
         gh->succeed(result);
       }
@@ -657,7 +693,7 @@ class MapfLns2Node : public rclcpp::Node {
       result->error_code = SetGoalsAction::Result::CANCELLED;
       result->total_replans = total_replans_;
       result->total_execution_sec = (now() - mission_start_time_).seconds();
-      if (is_active_.exchange(false)) gh->canceled(result);
+      if (consume_is_active()) gh->canceled(result);
       return;
     }
 
@@ -681,8 +717,13 @@ class MapfLns2Node : public rclcpp::Node {
     }
 
     // Block cells of robots not in the plan (physically present obstacles)
-    block_skipped_robots(snap_grid, plan_ids_ext, snap_pos, snap_have_odom,
-                          snap_fp_radii, snap_ox, snap_oy, snap_res);
+    {
+      auto logger = get_logger();
+      lns2_node::block_skipped_robots(
+          snap_grid, plan_ids_ext, snap_pos, snap_have_odom, snap_fp_radii,
+          default_robot_radius_, snap_ox, snap_oy, snap_res, num_robots_,
+          &logger);
+    }
 
     // Run solver (cold). Uses max_astar_expansions (900000) for initial build
     // quality; the build phase is wall-clock-capped at initial_build_time_budget_ms
@@ -707,7 +748,7 @@ class MapfLns2Node : public rclcpp::Node {
       result->total_replans = total_replans_;
       result->total_execution_sec = (now() - mission_start_time_).seconds();
       RCLCPP_ERROR(get_logger(), "%s", result->message.c_str());
-      if (is_active_.exchange(false)) {
+      if (consume_is_active()) {
         if (gh->is_canceling()) {
           result->message = "Cancelled during planning";
           result->error_code = SetGoalsAction::Result::CANCELLED;
@@ -725,7 +766,7 @@ class MapfLns2Node : public rclcpp::Node {
       result->error_code = SetGoalsAction::Result::CANCELLED;
       result->total_replans = total_replans_;
       result->total_execution_sec = (now() - mission_start_time_).seconds();
-      if (is_active_.exchange(false)) gh->canceled(result);
+      if (consume_is_active()) gh->canceled(result);
       return;
     }
 
@@ -740,7 +781,7 @@ class MapfLns2Node : public rclcpp::Node {
       result->total_replans = total_replans_;
       result->total_execution_sec = (now() - mission_start_time_).seconds();
       RCLCPP_ERROR(get_logger(), "%s", result->message.c_str());
-      if (is_active_.exchange(false)) {
+      if (consume_is_active()) {
         if (gh->is_canceling()) {
           result->message = "Cancelled";
           result->error_code = SetGoalsAction::Result::CANCELLED;
@@ -811,24 +852,6 @@ class MapfLns2Node : public rclcpp::Node {
     }
   }
 
-  void publish_stop_all()
-  {
-    ++plan_id_counter_;
-    geometry_msgs::msg::Twist zero_vel;  // all fields default to 0
-    for (uint32_t rid : active_robot_ids_) {
-      if (rid >= static_cast<uint32_t>(num_robots_)) continue;
-      MAPFPlanMsg empty;
-      empty.header.frame_id = "map";
-      empty.header.stamp    = now();
-      empty.plan_id         = plan_id_counter_;
-      // empty.steps left empty -> follower treats this as CANCEL
-      plan_pubs_[rid]->publish(empty);
-      // Direct zero-velocity override so the robot stops immediately,
-      // before the path_follower finishes cancelling its Nav2 goal.
-      cmd_vel_pubs_[rid]->publish(zero_vel);
-    }
-  }
-
   // check_schedule — runs at replan_check_hz.
   //
   // Decides per-robot whether to treat the robot as "arrived",
@@ -869,6 +892,13 @@ class MapfLns2Node : public rclcpp::Node {
     if (!active_goal_handle_ || active_robot_ids_.empty()) return;
 
     const rclcpp::Time t_now = now();
+
+    // Buffer feedback publishes so the actual gh->publish_feedback() call
+    // happens after we release state_mutex_. Publishing under the mutex
+    // can cause priority inversion through DDS (writer-buffer full,
+    // network blip, etc.) and should be avoided.
+    std::vector<PendingFeedback> pending_feedbacks;
+    auto fb_gh = active_goal_handle_;  // snapshot under lock; constant within this call
 
     std::vector<uint32_t> stalled;            // needs replan this tick
     std::vector<uint32_t> stall_reason_nav;   // NAVIGATING but odom frozen
@@ -995,7 +1025,7 @@ class MapfLns2Node : public rclcpp::Node {
           (last_status_time_[rid].nanoseconds() != 0) &&
           ((t_now - last_status_time_[rid]).seconds() <= status_fresh_sec);
       const bool status_matches_plan =
-          have_fresh_status && (st.plan_id == active_plan_id_);
+          have_fresh_status && (st.plan_id == plan_publisher_.active_plan_id());
 
       if (!status_matches_plan) {
         // The follower hasn't caught up to the plan we published yet.
@@ -1119,15 +1149,14 @@ class MapfLns2Node : public rclcpp::Node {
             in_progress_count, holding_count, failed_count,
             stalled.size(), stale_count, unplanable_robots_.size());
         
-  // publish rich feedback with the same counts
-  publish_rich_feedback(active_goal_handle_, "executing",
-                        arrived_count,
-                        active_robot_ids_.size(),
-                        /*deviated=*/in_progress_count,   // or 0 if you prefer
-                        /*stalled=*/stalled.size(),
-                        /*info=*/"",
-                        /*warning=*/"");
-          
+        // Defer the actual publish until after we release state_mutex_.
+        pending_feedbacks.push_back({"executing",
+                                     arrived_count,
+                                     active_robot_ids_.size(),
+                                     /*deviated=*/in_progress_count,
+                                     /*stalled=*/stalled.size(),
+                                     /*info=*/"",
+                                     /*warning=*/""});
         last_progress_log_time_ = t_now;
       }
     }
@@ -1170,6 +1199,7 @@ class MapfLns2Node : public rclcpp::Node {
       stop_monitoring();
       is_active_ = false;
       lk.unlock();
+      drain_feedbacks(fb_gh, pending_feedbacks);
       gh->succeed(result);
       return;
     }
@@ -1194,15 +1224,12 @@ class MapfLns2Node : public rclcpp::Node {
     if (!newly_benched.empty() || !newly_permanent.empty()) {
       // Cancel followers for both groups — they need to stop executing
       // their current (now-abandoned) plans.
-      auto cancel_follower = [&](uint32_t rid) {
-        MAPFPlanMsg cancel;
-        cancel.header.frame_id = "map";
-        cancel.header.stamp    = t_now;
-        cancel.plan_id         = ++plan_id_counter_;
-        plan_pubs_[rid]->publish(cancel);
-      };
-      for (uint32_t rid : newly_benched)   cancel_follower(rid);
-      for (uint32_t rid : newly_permanent) cancel_follower(rid);
+      for (uint32_t rid : newly_benched) {
+        plan_publisher_.publish_cancel_for(rid, t_now);
+      }
+      for (uint32_t rid : newly_permanent) {
+        plan_publisher_.publish_cancel_for(rid, t_now);
+      }
 
       if (!newly_benched.empty()) {
         std::string ids_str;
@@ -1227,11 +1254,11 @@ class MapfLns2Node : public rclcpp::Node {
             "robots [%s] out of lives after persistent stalls — giving "
             "up permanently. Reset with a fresh /swarm/set_goals.",
             ids_str.c_str());
-        publish_rich_feedback(active_goal_handle_, "executing",
-            arrived_count, in_progress_count, 0,
-            unplanable_robots_.size(),
-            /*info=*/"",
-            /*warning=*/"robots out of lives (stalls): " + ids_str);
+        pending_feedbacks.push_back({"executing",
+                                     arrived_count, in_progress_count, 0,
+                                     unplanable_robots_.size(),
+                                     /*info=*/"",
+                                     /*warning=*/"robots out of lives (stalls): " + ids_str});
       }
       stalled.erase(std::remove_if(stalled.begin(), stalled.end(),
           [this](uint32_t rid) { return unplanable_robots_.count(rid) > 0; }),
@@ -1270,15 +1297,24 @@ class MapfLns2Node : public rclcpp::Node {
           "replan requested: %zu stalled robots  %s",
           stalled.size(), parts.c_str());
 
-      // feedback before replan
-      publish_rich_feedback(active_goal_handle_, "replanning",
-                            arrived_count, in_progress_count, stalled.size(),
-                            unplanable_robots_.size(), "", "replan triggered by stalls");
+      // Defer the "replanning" feedback publish until after we drop the
+      // mutex so that DDS / network blips on the feedback writer can never
+      // hold up trigger_replan.
+      pending_feedbacks.push_back({"replanning",
+                                   arrived_count, in_progress_count, stalled.size(),
+                                   unplanable_robots_.size(), "",
+                                   "replan triggered by stalls"});
 
       lk.unlock();
+      drain_feedbacks(fb_gh, pending_feedbacks);
       trigger_replan();
       return;
     }
+
+    // No early-return path was taken; flush any feedbacks (typically the
+    // periodic progress one) outside the mutex.
+    lk.unlock();
+    drain_feedbacks(fb_gh, pending_feedbacks);
   }
 
   // --------------------------------------------------------------------
@@ -1338,9 +1374,9 @@ class MapfLns2Node : public rclcpp::Node {
       lns2::Agent a;
       a.id = static_cast<lns2::AgentId>(agents.size());
       const auto& [sx, sy] = snap_pos[rid];
-      a.start = world_to_cell(sx, sy, snap_ox, snap_oy, snap_res,
+      a.start = lns2_node::world_to_cell(sx, sy, snap_ox, snap_oy, snap_res,
                                snap_grid.rows, snap_grid.cols);
-      a.goal  = world_to_cell(snap_goals[i].x, snap_goals[i].y,
+      a.goal  = lns2_node::world_to_cell(snap_goals[i].x, snap_goals[i].y,
                                snap_ox, snap_oy, snap_res,
                                snap_grid.rows, snap_grid.cols);
       const double radius = snap_fp[rid] > 0 ? snap_fp[rid]
@@ -1413,8 +1449,9 @@ class MapfLns2Node : public rclcpp::Node {
       RCLCPP_INFO(get_logger(),
           "replan: %zu robot(s) settled at goal [%s] — marking as static obstacle",
           arrived_ext_ids.size(), ids.c_str());
-      block_arrived_robots(snap_grid, arrived_ext_ids, snap_pos, snap_fp,
-                            snap_ox, snap_oy, snap_res);
+      lns2_node::block_arrived_robots(
+          snap_grid, arrived_ext_ids, snap_pos, snap_fp,
+          default_robot_radius_, snap_ox, snap_oy, snap_res, num_robots_);
     }
 
     if (agents.empty()) {
@@ -1429,8 +1466,11 @@ class MapfLns2Node : public rclcpp::Node {
       std::vector<uint32_t> all_accounted = active_ext_ids;
       all_accounted.insert(all_accounted.end(),
                            arrived_ext_ids.begin(), arrived_ext_ids.end());
-      block_skipped_robots(snap_grid, all_accounted, snap_pos, snap_odom,
-                            snap_fp, snap_ox, snap_oy, snap_res);
+      auto logger = get_logger();
+      lns2_node::block_skipped_robots(
+          snap_grid, all_accounted, snap_pos, snap_odom, snap_fp,
+          default_robot_radius_, snap_ox, snap_oy, snap_res, num_robots_,
+          &logger);
     }
 
     // Publish planning grid now — shows blocked cells for arrived/skipped
@@ -1466,12 +1506,12 @@ class MapfLns2Node : public rclcpp::Node {
       for (std::size_t k = 0; k < N; ++k) {
         const uint32_t ext = active_ext_ids[k];
         const auto& [cx, cy] = snap_pos[ext];
-        actual.current_cells[k] = world_to_cell(
+        actual.current_cells[k] = lns2_node::world_to_cell(
             cx, cy, snap_ox, snap_oy, snap_res, snap_grid.rows, snap_grid.cols);
         actual.have_odom[k] = 1;
         // goal cell also from snap_goals, which is aligned to snap_ids.
         const std::size_t slot = active_slot[k];
-        actual.goals[k] = world_to_cell(
+        actual.goals[k] = lns2_node::world_to_cell(
             snap_goals[slot].x, snap_goals[slot].y,
             snap_ox, snap_oy, snap_res, snap_grid.rows, snap_grid.cols);
       }
@@ -1629,82 +1669,6 @@ class MapfLns2Node : public rclcpp::Node {
   // Helpers
   // --------------------------------------------------------------------
 
-  // Block grid cells occupied by robots that have arrived at their goal.
-  // Called during replan so that active robots route around settled ones.
-  void block_arrived_robots(
-      lns2::GridMap& grid,
-      const std::vector<uint32_t>& arrived_ids,
-      const std::vector<std::pair<double, double>>& positions,
-      const std::vector<double>& fp_radii,
-      double ox, double oy, double res) const
-  {
-    for (const uint32_t rid : arrived_ids) {
-      if (rid >= static_cast<uint32_t>(num_robots_)) continue;
-      const auto& [sx, sy] = positions[rid];
-      const lns2::Cell c = world_to_cell(sx, sy, ox, oy, res,
-                                          grid.rows, grid.cols);
-      const double radius = fp_radii[rid] > 0 ? fp_radii[rid]
-                                               : default_robot_radius_;
-      // Block only the physical footprint (no inflation): the active
-      // robot's own footprint+inflation provides the safety buffer,
-      // so adding inflation here would double-count it.
-      const auto fp = lns2::FootprintModel::from_radius(radius, res);
-      for (const auto& off : fp.offsets) {
-        const lns2::Cell fc = c + off;
-        if (grid.in_bounds(fc)) {
-          grid.blocked[grid.index_of(fc)] = 1;
-        }
-      }
-    }
-  }
-
-  // Block grid cells occupied by robots that have odom but are NOT in the
-  // plan (e.g. skipped due to blocked goal). Other robots must route around
-  // them — they're physically present on the map.
-  void block_skipped_robots(
-      lns2::GridMap& grid,
-      const std::vector<uint32_t>& planned_ext_ids,
-      const std::vector<std::pair<double, double>>& positions,
-      const std::vector<bool>& have_odom,
-      const std::vector<double>& fp_radii,
-      double ox, double oy, double res) const
-  {
-    std::unordered_set<uint32_t> planned_set(
-        planned_ext_ids.begin(), planned_ext_ids.end());
-
-    int blocked_count = 0;
-    for (int rid = 0; rid < num_robots_; ++rid) {
-      if (planned_set.count(static_cast<uint32_t>(rid))) continue;
-      if (!have_odom[rid]) {
-        RCLCPP_WARN(get_logger(),
-            "robot_%d not in plan and NO ODOM — cannot block! "
-            "It may be a phantom obstacle.", rid);
-        continue;
-      }
-
-      const auto& [sx, sy] = positions[rid];
-      lns2::Cell c = world_to_cell(sx, sy, ox, oy, res, grid.rows, grid.cols);
-      const double radius = fp_radii[rid] > 0 ? fp_radii[rid]
-                                               : default_robot_radius_;
-      auto fp = lns2::FootprintModel::from_radius(radius, res);
-      for (const auto& off : fp.offsets) {
-        lns2::Cell fc = c + off;
-        if (grid.in_bounds(fc)) {
-          grid.blocked[grid.index_of(fc)] = 1;
-        }
-      }
-      RCLCPP_WARN(get_logger(),
-          "Blocked cells for non-participating robot_%d at grid(%d,%d) "
-          "world(%.2f,%.2f)", rid, c.row, c.col, sx, sy);
-      ++blocked_count;
-    }
-    if (blocked_count > 0) {
-      RCLCPP_INFO(get_logger(),
-          "block_skipped_robots: %d robots blocked, %zu robots planned",
-          blocked_count, planned_ext_ids.size());
-    }
-  }
-
   // After a successful solve(), scan the produced paths. Any agent left
   // with an empty path wasn't actually planned for — soft_astar failed
   // on it inside build_initial_solution / repair, but `is_collision_free`
@@ -1761,11 +1725,7 @@ class MapfLns2Node : public rclcpp::Node {
       // Always tell the follower to cancel so it stops executing stale
       // steps from a plan it's no longer participating in. Empty steps
       // in MAPFPlan is the cancel signal.
-      MAPFPlanMsg cancel;
-      cancel.header.frame_id = "map";
-      cancel.header.stamp    = t_now;
-      cancel.plan_id         = ++plan_id_counter_;
-      plan_pubs_[rid]->publish(cancel);
+      plan_publisher_.publish_cancel_for(rid, t_now);
 
       if (consecutive_empty_fails_[rid] >= empty_fails_before_unplanable_) {
         if (unplanable_robots_.insert(rid).second) {
@@ -1859,106 +1819,32 @@ class MapfLns2Node : public rclcpp::Node {
   // A fresh plan_id is assigned to every call; followers echo it back
   // in their FollowerStatus so check_schedule can tell which plan the
   // status refers to.
+  // Thin wrapper over PlanPublisher::publish_mapf_plans that also resets
+  // the cached follower-status entry for every robot we just published to.
+  // Must be called with state_mutex_ held.
   void publish_mapf_plans(const std::vector<lns2::Path>& paths,
                           const std::vector<uint32_t>& plan_ids_ext,
                           double ox, double oy, double res)
   {
-    const rclcpp::Time base = now();
-    ++plan_id_counter_;
-    active_plan_id_ = plan_id_counter_;
-
-    std::size_t published = 0;
-    std::size_t cancelled = 0;
-    for (std::size_t k = 0; k < paths.size() && k < plan_ids_ext.size(); ++k) {
-      const uint32_t rid = plan_ids_ext[k];
-      if (rid >= static_cast<uint32_t>(num_robots_)) continue;
-
-      MAPFPlanMsg plan_msg;
-      plan_msg.header.frame_id = "map";
-      plan_msg.header.stamp    = base;
-      plan_msg.plan_id         = active_plan_id_;
-
-      // Paths that collapsed to a single same-cell entry are stub
-      // plans: the solver couldn't route this robot and warm_start
-      // emitted a "stay put" placeholder. Publishing such a plan to
-      // the follower would make it navigate to its current cell and
-      // immediately report PLAN_COMPLETE, masking the real failure.
-      // Treat it as empty so the follower cancels and check_schedule
-      // can count it as an empty-path failure.
-      bool is_stub = false;
-      if (paths[k].size() == 1) {
-        // Single-cell path with no movement. The only case where this
-        // is legitimate is when the robot is already on its goal cell
-        // — but in that case we shouldn't be planning for it at all.
-        is_stub = true;
+    const auto stats = plan_publisher_.publish_mapf_plans(
+        paths, plan_ids_ext, ox, oy, res, time_step_sec_, now());
+    // The follower will send its first NAVIGATING status shortly. Until
+    // then, invalidate any cached status so we don't act on stale data
+    // referring to the previous plan.
+    for (std::uint32_t rid : plan_ids_ext) {
+      if (rid < static_cast<std::uint32_t>(num_robots_)) {
+        last_status_[rid] = FollowerStatus{};
+        last_status_time_[rid] = rclcpp::Time{0, 0, RCL_ROS_TIME};
       }
-
-      // Empty grid path -> empty MAPFPlan -> follower cancels.
-      if (!paths[k].empty() && !is_stub) {
-        plan_msg.steps = grid_path_to_steps(paths[k], ox, oy, res);
-        ++published;
-      } else {
-        ++cancelled;
-      }
-      plan_pubs_[rid]->publish(plan_msg);
-
-      // The follower will send its first NAVIGATING status shortly.
-      // Until then, invalidate any cached status so we don't act on
-      // stale data referring to the previous plan.
-      last_status_[rid] = FollowerStatus{};
-      last_status_time_[rid] = rclcpp::Time{0, 0, RCL_ROS_TIME};
     }
     RCLCPP_INFO(get_logger(),
         "published MAPFPlan id=%u: %zu with steps, %zu cancels",
-        active_plan_id_, published, cancelled);
+        stats.plan_id, stats.published, stats.cancelled);
   }
 
-  // Compress a grid path into an ordered list of MAPFSteps. Consecutive
-  // entries at the same cell become a single step whose hold_sec counts
-  // the extra time beyond the arrival step.
-  //
-  // Example (time_step_sec=0.5):
-  //   grid path  = [A, A, A, B, B, C]
-  //   compressed = [A hold 1.0s, B hold 0.5s, C hold 0.0s]
-  //
-  // We drop the leading entry if it matches the rest of the plan's
-  // start (the LNS2 convention is that path[0] = start cell; followers
-  // take their current odom pose as implicit start, so the first step
-  // we emit is actually path[0]'s target).
-  //
-  // The final step always has hold_sec == 0 unless the solver itself
-  // planned a trailing hold (LNS2 normally trims trailing holds).
-  std::vector<MAPFStepMsg> grid_path_to_steps(
-      const lns2::Path& path, double ox, double oy, double res) const
-  {
-    std::vector<MAPFStepMsg> steps;
-    if (path.empty()) return steps;
-
-    // Walk the path run-length encoding same-cell runs.
-    std::size_t i = 0;
-    while (i < path.size()) {
-      std::size_t j = i;
-      while (j + 1 < path.size() && path[j + 1] == path[i]) ++j;
-      // Run [i, j] has (j - i + 1) entries at cell path[i]. Arriving at
-      // the cell eats 1 step; the rest is hold time.
-      const std::size_t run_len = j - i + 1;
-      const std::size_t hold_steps =
-          (run_len > 0) ? (run_len - 1) : 0;
-
-      MAPFStepMsg step;
-      double wx, wy;
-      cell_to_world(path[i], ox, oy, res, wx, wy);
-      step.target.x = wx;
-      step.target.y = wy;
-      step.target.z = 0.0;
-      step.hold_sec = static_cast<float>(
-          static_cast<double>(hold_steps) * time_step_sec_);
-      steps.push_back(std::move(step));
-
-      i = j + 1;
-    }
-    return steps;
-  }
+  // grid_path_to_steps: extracted to lns2_node::grid_path_to_steps in
+  // node_utils.hpp. Same run-length-encoding compression — see header
+  // comment there for the example and edge cases.
 
   // Must be called with state_mutex_ held.
   // `paths` / `plan_ids_ext` / `goals` are parallel arrays of length N,
@@ -2111,24 +1997,31 @@ class MapfLns2Node : public rclcpp::Node {
   // Concurrency
   std::mutex          state_mutex_;
   std::atomic<bool>   is_planning_{false};
-  std::atomic<bool>   is_active_{false};
+  // is_active_ is plain bool; ALL reads and writes must hold state_mutex_.
+  // Use clear_is_active() / consume_is_active() for the mutate-and-check
+  // patterns that previously relied on atomic exchange/CAS.
+  bool                is_active_ = false;
 
-  // Plan publishing / follower status. plan_id_counter_ is incremented
-  // on every publish of a MAPFPlan. Followers echo the plan_id in their
-  // FollowerStatus so we can ignore stale statuses referring to the
-  // previous plan while the new one is propagating.
-  uint32_t plan_id_counter_ = 0;
-  uint32_t active_plan_id_  = 0;
+  // Action server worker threads. Joined in the destructor so their lambdas
+  // (which capture `this`) cannot outlive the node.
+  std::thread         execute_thread_;
+  std::thread         cancel_thread_;
+
+  // Follower status cache. Indexed by external robot_id; updated by the
+  // /robot_*/follower_status subscription and consumed by check_schedule.
+  // The plan_id stream that ties statuses back to the plan they're echoing
+  // is owned by `plan_publisher_`.
   std::vector<FollowerStatus>  last_status_;
   std::vector<rclcpp::Time>    last_status_time_;
+
+  // Per-robot MAPFPlan / cmd_vel publishers + plan_id bookkeeping.
+  lns2_node::PlanPublisher plan_publisher_;
 
   // ROS interfaces
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
   std::vector<rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr>     odom_subs_;
   std::vector<rclcpp::Subscription<geometry_msgs::msg::PolygonStamped>::SharedPtr> footprint_subs_;
   std::vector<rclcpp::Subscription<FollowerStatus>::SharedPtr>               status_subs_;
-  std::vector<rclcpp::Publisher<MAPFPlanMsg>::SharedPtr>                     plan_pubs_;
-  std::vector<rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr>       cmd_vel_pubs_;
   rclcpp_action::Server<SetGoalsAction>::SharedPtr plan_action_server_;
   rclcpp::TimerBase::SharedPtr monitor_timer_;
   std::shared_ptr<GoalHandle>  active_goal_handle_;
