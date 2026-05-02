@@ -52,7 +52,15 @@ const std::vector<int>& HeuristicCache::get(const GridMap& grid,
                                               const Cell& goal,
                                               bool diagonal)
 {
-  Key k{goal.row, goal.col, grid.rows, grid.cols, diagonal};
+  // Auto-invalidate when the caller hands us a different GridMap instance.
+  // build_h depends on the entire blocked[] vector, so a stale entry built
+  // against a different map could under-estimate distances and silently
+  // corrupt soft_astar's f-bound pruning.
+  if (last_grid_ != &grid) {
+    cache_.clear();
+    last_grid_ = &grid;
+  }
+  Key k{goal.row, goal.col, diagonal};
   auto it = cache_.find(k);
   if (it != cache_.end()) return it->second;
   return cache_.emplace(k, build_h(grid, goal, diagonal)).first->second;
@@ -62,17 +70,21 @@ const std::vector<int>& HeuristicCache::get(const GridMap& grid,
 // soft_astar
 // ---------------------------------------------------------------------------
 
+// Node holds only what's needed for backtracking after the search ends:
+// the (cell, t) coordinate and the parent index. The g/f costs that the
+// search consumes per pop live on OpenEntry — keeping them out of Node
+// shrinks the closed_nodes footprint from ~28 to ~12 bytes (≈ 18 MB at
+// the 900 k-expansion cap).
 struct Node {
-  CellIdx  cell   = 0;
-  Timestep t      = 0;
-  Cost     g      = 0;
-  Cost     f      = 0;
-  std::int32_t parent = -1;   // index into closed_nodes
+  CellIdx       cell   = 0;
+  Timestep      t      = 0;
+  std::int32_t  parent = -1;   // index into closed_nodes
 };
 
 struct OpenEntry {
-  Cost     f;
-  std::int32_t node_idx;
+  Cost          f;
+  Cost          g;
+  std::int32_t  node_idx;
   // Greater-than for min-heap.
   bool operator<(const OpenEntry& o) const {
     if (f != o.f) return f > o.f;
@@ -132,9 +144,6 @@ SoftAStarResult soft_astar(
   // Seed with start.
   const CellIdx start_idx = grid.index_of(agent.start);
   {
-    Node s;
-    s.cell = start_idx;
-    s.t    = 0;
     // Vertex collisions at (start, 0)
     std::size_t v = 0;
     for (const auto& off : agent.footprint.offsets) {
@@ -142,14 +151,18 @@ SoftAStarResult soft_astar(
       if (!grid.in_bounds(c)) continue;
       v += table.vertex_count_at(grid.index_of(c), 0, agent.id);
     }
-    s.g = static_cast<Cost>(v) * params.collision_penalty;
     const int hv = h[start_idx];
     if (hv == std::numeric_limits<int>::max()) return out;  // unreachable
-    s.f = s.g + static_cast<Cost>(hv) * params.step_cost;
+    const Cost g0 = static_cast<Cost>(v) * params.collision_penalty;
+    const Cost f0 = g0 + static_cast<Cost>(hv) * params.step_cost;
+
+    Node s;
+    s.cell   = start_idx;
+    s.t      = 0;
     s.parent = -1;
     closed_nodes.push_back(s);
-    best_g[CT{s.cell, s.t}] = s.g;
-    open.push(OpenEntry{s.f, 0});
+    best_g[CT{s.cell, s.t}] = g0;
+    open.push(OpenEntry{f0, g0, 0});
   }
 
   Cost     best_total = kInfCost;
@@ -164,16 +177,18 @@ SoftAStarResult soft_astar(
 
     const Node cur = closed_nodes[top.node_idx];
 
-    // Stale entry check
+    // Stale entry check: a better path to (cell, t) may have been found
+    // after `top` was pushed. top.g is the g-value at push time; compare
+    // against the current best for this (cell, t).
     auto git = best_g.find(CT{cur.cell, cur.t});
-    if (git != best_g.end() && cur.g > git->second) continue;
+    if (git != best_g.end() && top.g > git->second) continue;
 
     // Goal check with tail-cost bookkeeping
     if (cur.cell == goal_idx) {
       const Cost tail_cost =
           static_cast<Cost>(tail_cnt[std::min<Timestep>(cur.t, params.horizon)])
               * params.collision_penalty;
-      const Cost total = cur.g + tail_cost;
+      const Cost total = top.g + tail_cost;
       if (total < best_total) {
         best_total    = total;
         best_goal_idx = top.node_idx;
@@ -221,7 +236,7 @@ SoftAStarResult soft_astar(
         edge_c += static_cast<Cost>(ecoll) * params.collision_penalty;
       }
 
-      const Cost new_g = cur.g + edge_c;
+      const Cost new_g = top.g + edge_c;
       const Cost new_f = new_g + static_cast<Cost>(h[nidx]) * params.step_cost;
       if (new_f >= best_total) continue;
 
@@ -231,14 +246,14 @@ SoftAStarResult soft_astar(
       best_g[key] = new_g;
 
       Node nxt;
-      nxt.cell = nidx;
-      nxt.t    = nt;
-      nxt.g    = new_g;
-      nxt.f    = new_f;
+      nxt.cell   = nidx;
+      nxt.t      = nt;
       nxt.parent = top.node_idx;
 
       closed_nodes.push_back(nxt);
-      open.push(OpenEntry{new_f, static_cast<std::int32_t>(closed_nodes.size() - 1)});
+      open.push(OpenEntry{
+          new_f, new_g,
+          static_cast<std::int32_t>(closed_nodes.size() - 1)});
     }
   }
 

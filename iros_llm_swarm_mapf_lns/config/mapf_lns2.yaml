@@ -48,6 +48,7 @@ mapf_lns2:
                                          # cold-replan latency under a few seconds.
     warm_start_enabled:     true
     warm_patch_radius_cells:  10       # how far actual pose can be from plan and still patch (was 2 = 0.4m)
+    warm_splice_max_expansions: 2000   # BFS budget when splicing actual->tail; 0 disables splice
     warm_max_collisions_per_agent: 4   # seed rejection threshold per agent (was 2)
 
     max_lives: 6

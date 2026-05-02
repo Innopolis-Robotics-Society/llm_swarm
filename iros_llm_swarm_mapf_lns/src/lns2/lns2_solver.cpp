@@ -206,13 +206,17 @@ void LNS2Solver::repair_loop(const std::vector<Agent>& agents,
     iter_in_segment += 1;
     if (iter_in_segment >= params.segment_size) {
       weights_.flush_segment(params.alns_reaction, params.alns_w_min);
+      // Refresh touches_ so destroy operators (CollisionBased / RandomWalk)
+      // don't keep walking stale agent-pair entries left over from prior
+      // remove_path() calls. Doing it once per segment amortizes the cost
+      // (O(|vertex_occ_| + |edge_occ_|)) over `segment_size` iterations.
+      sol.mutable_table().rebuild_touches();
       iter_in_segment = 0;
     }
   }
 
-  // Rebuild touches_ once at the end — cheaper than doing it during the loop.
-  // (Not strictly needed now but reasonable if anyone calls agents_touching
-  //  after solve.)
+  // Final rebuild after the loop so any post-solve consumer of
+  // agents_touching() sees a clean snapshot.
   sol.mutable_table().rebuild_touches();
 }
 

@@ -39,6 +39,7 @@
 #include "iros_llm_swarm_mapf/lns2/warm_start.hpp"
 #include "iros_llm_swarm_mapf/node_utils.hpp"
 #include "iros_llm_swarm_mapf/plan_publisher.hpp"
+#include "iros_llm_swarm_mapf/robot_lifecycle.hpp"
 
 using namespace std::chrono_literals;
 using SetGoalsAction = iros_llm_swarm_interfaces::action::SetGoals;
@@ -97,6 +98,9 @@ class MapfLns2Node : public rclcpp::Node {
     declare_parameter("initial_build_time_budget_ms", 6000);
     declare_parameter("warm_start_enabled",            true);
     declare_parameter("warm_patch_radius_cells",       10);
+    // Max BFS expansions when splicing actual_cell -> tail of prev_path.
+    // 0 disables splice (every off-track agent becomes a stub).
+    declare_parameter("warm_splice_max_expansions",    2000);
     // Seed rejection threshold: max collisions per agent before falling back
     // to cold start. Lower values are conservative but cause unnecessary cold
     // replans when stubs (StubFar) are present.
@@ -160,6 +164,7 @@ class MapfLns2Node : public rclcpp::Node {
     initial_build_time_budget_ms_    = get_parameter("initial_build_time_budget_ms").as_int();
     warm_start_enabled_              = get_parameter("warm_start_enabled").as_bool();
     warm_patch_radius_               = get_parameter("warm_patch_radius_cells").as_int();
+    warm_splice_max_expansions_      = get_parameter("warm_splice_max_expansions").as_int();
     warm_max_coll_per_agent_         = get_parameter("warm_max_collisions_per_agent").as_int();
     stall_timeout_sec_     = get_parameter("stall_timeout_sec").as_double();
     stall_move_thresh_m_   = get_parameter("stall_move_thresh_m").as_double();
@@ -180,13 +185,7 @@ class MapfLns2Node : public rclcpp::Node {
     have_odom_.assign(num_robots_, false);
     footprint_radii_.assign(num_robots_, 0.0);
     prev_grid_paths_.assign(num_robots_, lns2::Path{});
-    robot_arrived_.assign(num_robots_, false);
-    last_movement_pos_.assign(num_robots_, {0.0, 0.0});
-    last_movement_time_.assign(num_robots_, rclcpp::Time{0, 0, RCL_ROS_TIME});
-    consecutive_empty_fails_.assign(num_robots_, 0);
-    consecutive_stall_iters_.assign(num_robots_, 0);
-    consecutive_failed_ticks_.assign(num_robots_, 0);
-    lives_remaining_.assign(num_robots_, max_lives_);
+    life_.init(num_robots_, max_lives_);
 
     // ---- map subscription (transient local) -----------------------------
     auto map_qos = rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable();
@@ -456,22 +455,14 @@ class MapfLns2Node : public rclcpp::Node {
         return rclcpp_action::GoalResponse::REJECT;
       }
       is_active_ = true;
-      if (!unplanable_robots_.empty()) {
+      if (!life_.unplanable.empty()) {
         RCLCPP_INFO(get_logger(),
             "New goal accepted — clearing %zu unplanable robots from prior mission",
-            unplanable_robots_.size());
-        unplanable_robots_.clear();
+            life_.unplanable.size());
       }
-      // Reset per-robot arrival flags so we emit "arrived" logs again.
-      std::fill(robot_arrived_.begin(), robot_arrived_.end(), false);
-      std::fill(consecutive_empty_fails_.begin(),
-                consecutive_empty_fails_.end(), 0);
-      std::fill(consecutive_stall_iters_.begin(),
-                consecutive_stall_iters_.end(), 0);
-      std::fill(consecutive_failed_ticks_.begin(),
-                consecutive_failed_ticks_.end(), 0);
-      std::fill(lives_remaining_.begin(), lives_remaining_.end(), max_lives_);
-      unplanable_since_.clear();
+      // Reset arrival latches, stall/empty/failed counters, lives, and
+      // unplanable bookkeeping in one go.
+      life_.reset_for_new_mission();
       last_progress_log_time_ = rclcpp::Time{0, 0, RCL_ROS_TIME};
 
       mission_start_time_ = now();
@@ -582,7 +573,7 @@ class MapfLns2Node : public rclcpp::Node {
       // Previously-marked unplanable — solver already established that no
       // collision-free path exists for this robot under current conditions.
       // Keep skipping until a fresh /swarm/set_goals action resets the set.
-      if (unplanable_robots_.count(rid)) {
+      if (life_.unplanable.count(rid)) {
         RCLCPP_WARN(get_logger(), "robot_%u was marked unplanable earlier, skip", rid);
         if (!validation_warnings.empty()) validation_warnings += "; ";
         validation_warnings += "robot_" + std::to_string(rid) + " unplanable";
@@ -660,7 +651,7 @@ class MapfLns2Node : public rclcpp::Node {
               rid, a.start.row, a.start.col, a.goal.row, a.goal.col);
           {
             std::lock_guard<std::mutex> lk(state_mutex_);
-            unplanable_robots_.insert(rid);
+            life_.unplanable.insert(rid);
           }
           continue;
         }
@@ -832,8 +823,8 @@ class MapfLns2Node : public rclcpp::Node {
     const rclcpp::Time t_now = now();
     for (uint32_t rid : active_robot_ids_) {
       if (rid < static_cast<uint32_t>(num_robots_)) {
-        last_movement_pos_[rid]  = current_positions_[rid];
-        last_movement_time_[rid] = t_now;
+        life_.last_move_pos[rid]  = current_positions_[rid];
+        life_.last_move_time[rid] = t_now;
       }
     }
 
@@ -881,7 +872,7 @@ class MapfLns2Node : public rclcpp::Node {
   //   STATE_IDLE          — stale / not yet acting on this plan_id.
   //                          Skip: give the follower more time to start.
   //
-  // Stall behaviour is rate-limited via consecutive_stall_iters_[rid]
+  // Stall behaviour is rate-limited via life_.stall_iters[rid]
   // the same way as before: the robot only gets marked unplanable after
   // stall_iters_before_unplanable_ consecutive ticks in trouble.
   void check_schedule()
@@ -926,35 +917,34 @@ class MapfLns2Node : public rclcpp::Node {
     // replan trigger picks it up on this tick.
     {
       std::vector<uint32_t> reinstated;
-      for (auto it = unplanable_since_.begin();
-           it != unplanable_since_.end();) {
-        const uint32_t rid = it->first;
+      // Walk by snapshot of cooled-down rids so we can call life_.revive()
+      // (which mutates unplanable_since) without invalidating an iterator.
+      std::vector<uint32_t> cooled_down;
+      for (const auto& [rid, t_bench] : life_.unplanable_since) {
         if (rid >= static_cast<uint32_t>(num_robots_)) {
-          it = unplanable_since_.erase(it);
+          cooled_down.push_back(rid);  // stale entry, drop
           continue;
         }
-        const double since = (t_now - it->second).seconds();
-        if (since >= unplanable_retry_delay_sec_) {
-          unplanable_robots_.erase(rid);
-          consecutive_stall_iters_[rid] = 0;
-          consecutive_empty_fails_[rid] = 0;
-          consecutive_failed_ticks_[rid] = 0;
-          if (have_odom_[rid]) {
-            last_movement_pos_[rid] = current_positions_[rid];
-          }
-          last_movement_time_[rid] = t_now;
-          reinstated.push_back(rid);
-          it = unplanable_since_.erase(it);
-        } else {
-          ++it;
+        if ((t_now - t_bench).seconds() >= unplanable_retry_delay_sec_) {
+          cooled_down.push_back(rid);
         }
+      }
+      for (uint32_t rid : cooled_down) {
+        if (rid >= static_cast<uint32_t>(num_robots_)) {
+          life_.unplanable_since.erase(rid);
+          continue;
+        }
+        const lns2_node::RobotLifecycle::Pos pos = have_odom_[rid]
+            ? current_positions_[rid] : life_.last_move_pos[rid];
+        life_.revive(rid, pos, t_now);
+        reinstated.push_back(rid);
       }
       if (!reinstated.empty()) {
         std::string ids_str;
         for (uint32_t rid : reinstated) {
           if (!ids_str.empty()) ids_str += " ";
           ids_str += std::to_string(rid) + "(lives=" +
-              std::to_string(lives_remaining_[rid]) + ")";
+              std::to_string(life_.lives[rid]) + ")";
         }
         RCLCPP_INFO(get_logger(),
             "retrying benched robots after %.1fs cooldown: [%s]",
@@ -991,16 +981,16 @@ class MapfLns2Node : public rclcpp::Node {
       // whether the follower thinks it's navigating or holding.
       if (at_goal) {
         ++arrived_count;
-        if (!robot_arrived_[rid]) {
-          robot_arrived_[rid] = true;
+        if (!life_.arrived[rid]) {
+          life_.arrived[rid] = true;
           newly_arrived.push_back(rid);
         }
         // Reset odom stall bookkeeping so a briefly un-arrived robot
         // (goal_reached_m_ is not latched) doesn't immediately stall.
-        last_movement_pos_[rid]  = {cx, cy};
-        last_movement_time_[rid] = t_now;
-        consecutive_stall_iters_[rid] = 0;
-        consecutive_failed_ticks_[rid] = 0;
+        life_.last_move_pos[rid]  = {cx, cy};
+        life_.last_move_time[rid] = t_now;
+        life_.stall_iters[rid] = 0;
+        life_.failed_ticks[rid] = 0;
         continue;
       }
 
@@ -1010,13 +1000,13 @@ class MapfLns2Node : public rclcpp::Node {
       // that are reporting HOLDING, we want an up-to-date baseline so
       // that when they transition back to NAVIGATING we don't
       // instantly claim "4+ seconds without movement".
-      const auto& [lx, ly] = last_movement_pos_[rid];
+      const auto& [lx, ly] = life_.last_move_pos[rid];
       const double moved_since = std::hypot(cx - lx, cy - ly);
       if (moved_since >= stall_move_thresh_m_) {
-        last_movement_pos_[rid]  = {cx, cy};
-        last_movement_time_[rid] = t_now;
-        consecutive_stall_iters_[rid] = 0;
-        consecutive_failed_ticks_[rid] = 0;
+        life_.last_move_pos[rid]  = {cx, cy};
+        life_.last_move_time[rid] = t_now;
+        life_.stall_iters[rid] = 0;
+        life_.failed_ticks[rid] = 0;
       }
 
       // Look at the most recent FollowerStatus for this robot.
@@ -1033,15 +1023,15 @@ class MapfLns2Node : public rclcpp::Node {
         // (more than stall_timeout_sec_ past last replan), treat it
         // as stalled so we either republish or move on.
         ++stale_count;
-        if (last_movement_time_[rid].nanoseconds() == 0) {
-          last_movement_time_[rid] = t_now;
+        if (life_.last_move_time[rid].nanoseconds() == 0) {
+          life_.last_move_time[rid] = t_now;
         }
         const double since_replan =
             (t_now - last_replan_time_).seconds();
         if (since_replan > stall_timeout_sec_ && moved_since < stall_move_thresh_m_) {
           stalled.push_back(rid);
           stall_reason_nav.push_back(rid);
-          consecutive_stall_iters_[rid] += 1;
+          life_.stall_iters[rid] += 1;
         }
         continue;
       }
@@ -1052,41 +1042,41 @@ class MapfLns2Node : public rclcpp::Node {
           // While holding is a legitimate wait, we DO reset the stall
           // clock so the transition back to NAVIGATING doesn't inherit
           // old staleness.
-          last_movement_time_[rid] = t_now;
-          consecutive_stall_iters_[rid] = 0;
-          consecutive_failed_ticks_[rid] = 0;
+          life_.last_move_time[rid] = t_now;
+          life_.stall_iters[rid] = 0;
+          life_.failed_ticks[rid] = 0;
           break;
         }
         case FollowerStatus::STATE_NAVIGATING: {
           // Odom-based: if navigating but not moving for too long,
           // something is physically stuck (Nav2 spin, obstacle, etc.).
-          consecutive_failed_ticks_[rid] = 0;
-          if (last_movement_time_[rid].nanoseconds() == 0) {
-            last_movement_time_[rid] = t_now;
+          life_.failed_ticks[rid] = 0;
+          if (life_.last_move_time[rid].nanoseconds() == 0) {
+            life_.last_move_time[rid] = t_now;
             break;
           }
           const double stalled_for =
-              (t_now - last_movement_time_[rid]).seconds();
+              (t_now - life_.last_move_time[rid]).seconds();
           if (stalled_for > stall_timeout_sec_) {
             stalled.push_back(rid);
             stall_reason_nav.push_back(rid);
-            consecutive_stall_iters_[rid] += 1;
+            life_.stall_iters[rid] += 1;
           }
           break;
         }
         case FollowerStatus::STATE_FAILED: {
           ++failed_count;
-          consecutive_failed_ticks_[rid] += 1;
+          life_.failed_ticks[rid] += 1;
           // Grace period: don't escalate to "stalled" on the first FAILED
           // tick. Path follower's Layer B retry already fires, so an
           // immediate FAILED often self-resolves within 0.6s. Wait for 2
           // consecutive FAILED ticks (~1.0s at status_pub_hz=2.0) before
           // treating as a genuine stall requiring MAPF intervention.
           static constexpr int kFailGraceTicks = 2;
-          if (consecutive_failed_ticks_[rid] >= kFailGraceTicks) {
+          if (life_.failed_ticks[rid] >= kFailGraceTicks) {
             stalled.push_back(rid);
             stall_reason_fail.push_back(rid);
-            consecutive_stall_iters_[rid] += 1;
+            life_.stall_iters[rid] += 1;
           }
           break;
         }
@@ -1099,7 +1089,7 @@ class MapfLns2Node : public rclcpp::Node {
           // right answer.
           stalled.push_back(rid);
           stall_reason_done.push_back(rid);
-          consecutive_stall_iters_[rid] += 1;
+          life_.stall_iters[rid] += 1;
           break;
         }
         case FollowerStatus::STATE_IDLE:
@@ -1114,7 +1104,7 @@ class MapfLns2Node : public rclcpp::Node {
           if (since_replan > stall_timeout_sec_) {
             stalled.push_back(rid);
             stall_reason_nav.push_back(rid);
-            consecutive_stall_iters_[rid] += 1;
+            life_.stall_iters[rid] += 1;
           }
           break;
         }
@@ -1147,7 +1137,7 @@ class MapfLns2Node : public rclcpp::Node {
             "failed=%zu, stalled=%zu, stale=%zu, unplanable=%zu",
             arrived_count, active_robot_ids_.size(),
             in_progress_count, holding_count, failed_count,
-            stalled.size(), stale_count, unplanable_robots_.size());
+            stalled.size(), stale_count, life_.unplanable.size());
         
         // Defer the actual publish until after we release state_mutex_.
         pending_feedbacks.push_back({"executing",
@@ -1165,7 +1155,7 @@ class MapfLns2Node : public rclcpp::Node {
     std::size_t plan_required = 0;
     for (uint32_t rid : active_robot_ids_) {
       if (rid < static_cast<uint32_t>(num_robots_) &&
-          !unplanable_robots_.count(rid)) {
+          !life_.unplanable.count(rid)) {
         ++plan_required;
       }
     }
@@ -1173,7 +1163,7 @@ class MapfLns2Node : public rclcpp::Node {
     for (std::size_t i = 0; i < active_robot_ids_.size(); ++i) {
       const uint32_t rid = active_robot_ids_[i];
       if (rid >= static_cast<uint32_t>(num_robots_)) continue;
-      if (unplanable_robots_.count(rid)) continue;
+      if (life_.unplanable.count(rid)) continue;
       const auto& [cx, cy] = current_positions_[rid];
       const double gx = active_goals_world_[i].x;
       const double gy = active_goals_world_[i].y;
@@ -1185,11 +1175,11 @@ class MapfLns2Node : public rclcpp::Node {
     if (plan_required > 0 && arrived_and_planable == plan_required) {
       auto result = std::make_shared<SetGoalsAction::Result>();
       result->success = true;
-      if (unplanable_robots_.empty()) {
+      if (life_.unplanable.empty()) {
         result->message = "All agents arrived";
       } else {
         result->message = "All planable agents arrived (" +
-            std::to_string(unplanable_robots_.size()) + " unplanable skipped)";
+            std::to_string(life_.unplanable.size()) + " unplanable skipped)";
       }
       RCLCPP_INFO(get_logger(), "%s", result->message.c_str());
       auto gh = active_goal_handle_;
@@ -1209,16 +1199,16 @@ class MapfLns2Node : public rclcpp::Node {
     std::vector<uint32_t> newly_permanent; // out of lives, done
     for (uint32_t rid : stalled) {
       if (rid >= static_cast<uint32_t>(num_robots_)) continue;
-      if (consecutive_stall_iters_[rid] >= stall_iters_before_unplanable_ &&
-          !unplanable_robots_.count(rid)) {
-        unplanable_robots_.insert(rid);
-        lives_remaining_[rid] -= 1;
-        if (lives_remaining_[rid] > 0) {
-          unplanable_since_[rid] = t_now;
+      if (life_.stall_iters[rid] < stall_iters_before_unplanable_) continue;
+      switch (life_.bench(rid, t_now)) {
+        case lns2_node::RobotLifecycle::BenchResult::Benched:
           newly_benched.push_back(rid);
-        } else {
+          break;
+        case lns2_node::RobotLifecycle::BenchResult::Permanent:
           newly_permanent.push_back(rid);
-        }
+          break;
+        case lns2_node::RobotLifecycle::BenchResult::AlreadyUnplanable:
+          break;  // skip — no double-count
       }
     }
     if (!newly_benched.empty() || !newly_permanent.empty()) {
@@ -1236,7 +1226,7 @@ class MapfLns2Node : public rclcpp::Node {
         for (uint32_t rid : newly_benched) {
           if (!ids_str.empty()) ids_str += " ";
           ids_str += std::to_string(rid) + "(lives=" +
-              std::to_string(lives_remaining_[rid]) + ")";
+              std::to_string(life_.lives[rid]) + ")";
         }
         RCLCPP_WARN(get_logger(),
             "robots [%s] stalled for >= %d ticks — benching, will retry "
@@ -1256,12 +1246,12 @@ class MapfLns2Node : public rclcpp::Node {
             ids_str.c_str());
         pending_feedbacks.push_back({"executing",
                                      arrived_count, in_progress_count, 0,
-                                     unplanable_robots_.size(),
+                                     life_.unplanable.size(),
                                      /*info=*/"",
                                      /*warning=*/"robots out of lives (stalls): " + ids_str});
       }
       stalled.erase(std::remove_if(stalled.begin(), stalled.end(),
-          [this](uint32_t rid) { return unplanable_robots_.count(rid) > 0; }),
+          [this](uint32_t rid) { return life_.unplanable.count(rid) > 0; }),
           stalled.end());
     }
 
@@ -1276,7 +1266,7 @@ class MapfLns2Node : public rclcpp::Node {
         for (uint32_t rid : v) {
           if (!s.empty()) s += " ";
           s += std::to_string(rid) + "(" +
-              std::to_string(consecutive_stall_iters_[rid]) + "/" +
+              std::to_string(life_.stall_iters[rid]) + "/" +
               std::to_string(stall_iters_before_unplanable_) + ")";
         }
         return s;
@@ -1302,7 +1292,7 @@ class MapfLns2Node : public rclcpp::Node {
       // hold up trigger_replan.
       pending_feedbacks.push_back({"replanning",
                                    arrived_count, in_progress_count, stalled.size(),
-                                   unplanable_robots_.size(), "",
+                                   life_.unplanable.size(), "",
                                    "replan triggered by stalls"});
 
       lk.unlock();
@@ -1342,7 +1332,7 @@ class MapfLns2Node : public rclcpp::Node {
     auto snap_ids     = active_robot_ids_;
     auto snap_goals   = active_goals_world_;
     auto snap_prev_paths = prev_grid_paths_;
-    auto snap_unplanable = unplanable_robots_;
+    auto snap_unplanable = life_.unplanable;
     const rclcpp::Time snap_plan_time = plan_origin_time_;
     auto gh = active_goal_handle_;
     lk.unlock();
@@ -1423,7 +1413,7 @@ class MapfLns2Node : public rclcpp::Node {
     if (!newly_unplanable.empty()) {
       lk.lock();
       for (uint32_t rid : newly_unplanable) {
-        unplanable_robots_.insert(rid);
+        life_.unplanable.insert(rid);
       }
       lk.unlock();
 
@@ -1518,7 +1508,8 @@ class MapfLns2Node : public rclcpp::Node {
 
       lns2::Solution seed;
       lns2::WarmStartParams wp;
-      wp.patch_radius_cells = warm_patch_radius_;
+      wp.patch_radius_cells     = warm_patch_radius_;
+      wp.splice_max_expansions  = static_cast<std::size_t>(warm_splice_max_expansions_);
       lns2::WarmStartReport rep;
       lns2::build_warm_seed(agents, snap_grid, prev, actual, wp,
                              static_cast<lns2::Timestep>(horizon_steps_),
@@ -1679,9 +1670,9 @@ class MapfLns2Node : public rclcpp::Node {
   // boxed in by peers that are themselves planning to move". Give it a
   // few solves to reconcile before banning it from future plans.
   //
-  //  * Increment consecutive_empty_fails_[rid] for each empty path.
+  //  * Increment life_.empty_fails[rid] for each empty path.
   //  * Reset the counter to 0 for every non-empty path (recovered).
-  //  * Only insert into unplanable_robots_ once the counter crosses
+  //  * Only insert into life_.unplanable once the counter crosses
   //    empty_fails_before_unplanable_.
   //
   // Side effects:
@@ -1715,37 +1706,38 @@ class MapfLns2Node : public rclcpp::Node {
 
       if (!is_empty_like) {
         // Successful plan for this robot — reset the empty-fail streak.
-        consecutive_empty_fails_[rid] = 0;
+        life_.empty_fails[rid] = 0;
         continue;
       }
 
       // Empty or stub path — count it.
-      consecutive_empty_fails_[rid] += 1;
+      life_.empty_fails[rid] += 1;
 
       // Always tell the follower to cancel so it stops executing stale
       // steps from a plan it's no longer participating in. Empty steps
       // in MAPFPlan is the cancel signal.
       plan_publisher_.publish_cancel_for(rid, t_now);
 
-      if (consecutive_empty_fails_[rid] >= empty_fails_before_unplanable_) {
-        if (unplanable_robots_.insert(rid).second) {
-          lives_remaining_[rid] -= 1;
-          if (lives_remaining_[rid] > 0) {
-            unplanable_since_[rid] = t_now;
+      if (life_.empty_fails[rid] >= empty_fails_before_unplanable_) {
+        switch (life_.bench(rid, t_now)) {
+          case lns2_node::RobotLifecycle::BenchResult::Benched:
             if (!new_bench_ids.empty()) new_bench_ids += " ";
             new_bench_ids += std::to_string(rid) + "(lives=" +
-                std::to_string(lives_remaining_[rid]) + ")";
+                std::to_string(life_.lives[rid]) + ")";
             ++newly_benched_cnt;
-          } else {
+            break;
+          case lns2_node::RobotLifecycle::BenchResult::Permanent:
             if (!new_perm_ids.empty()) new_perm_ids += " ";
             new_perm_ids += std::to_string(rid);
             ++newly_permanent_cnt;
-          }
+            break;
+          case lns2_node::RobotLifecycle::BenchResult::AlreadyUnplanable:
+            break;  // already counted on a prior solve
         }
       } else {
         if (!soft_fail_ids.empty()) soft_fail_ids += " ";
         soft_fail_ids += std::to_string(rid) + "(" +
-            std::to_string(consecutive_empty_fails_[rid]) + "/" +
+            std::to_string(life_.empty_fails[rid]) + "/" +
             std::to_string(empty_fails_before_unplanable_) + ")";
       }
     }
@@ -1924,6 +1916,7 @@ class MapfLns2Node : public rclcpp::Node {
   int    initial_build_time_budget_ms_;
   bool   warm_start_enabled_;
   int    warm_patch_radius_;
+  int    warm_splice_max_expansions_;
   int    warm_max_coll_per_agent_;
   double stall_timeout_sec_;
   double stall_move_thresh_m_;
@@ -1954,45 +1947,12 @@ class MapfLns2Node : public rclcpp::Node {
   rclcpp::Time plan_origin_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time last_replan_time_{0, 0, RCL_ROS_TIME};
 
-  // Robots the solver has (silently) failed to plan for. They are skipped
-  // from the agent set and their cells are blocked as static obstacles so
-  // that other robots route around their physical bodies rather than
-  // trying to pass through them. Entries are reinstated after
-  // unplanable_retry_delay_sec if the robot has lives remaining; they
-  // are fully cleared on each new /swarm/set_goals accept.
-  std::unordered_set<uint32_t> unplanable_robots_;
-
-  // When a robot was most recently marked unplanable, so we can retry
-  // it after a cooldown. Only populated for robots currently in
-  // unplanable_robots_ whose lives_remaining_[rid] > 0.
-  std::unordered_map<uint32_t, rclcpp::Time> unplanable_since_;
-
-  // Per-robot progress tracking (indexed by external robot_id, size num_robots_)
-  //  * robot_arrived_: latched once a robot reaches its goal — used to emit
-  //    a per-robot "arrived" log message exactly once per mission.
-  //  * last_movement_pos_, last_movement_time_: last position the robot was
-  //    seen to have moved beyond stall_move_thresh_m_ from. Used by stall
-  //    detection to force a replan when a robot is stuck without having
-  //    deviated from its plan (e.g. path_follower finished all chunks but
-  //    the plan's last waypoint wasn't actually the goal).
-  std::vector<bool>                       robot_arrived_;
-  std::vector<std::pair<double, double>>  last_movement_pos_;
-  std::vector<rclcpp::Time>               last_movement_time_;
+  // Per-robot mission state (arrival latches, stall counters, lives,
+  // unplanable bookkeeping). See robot_lifecycle.hpp for the cluster
+  // operations (reset_for_new_mission / bench / revive / mark_movement).
+  // Entries are fully reset on each new /swarm/set_goals accept.
+  lns2_node::RobotLifecycle life_;
   rclcpp::Time last_progress_log_time_{0, 0, RCL_ROS_TIME};
-
-  // Soft-unplanable counters (indexed by external robot_id). Reset to 0
-  // when the corresponding robot appears in a successful non-empty plan
-  // (or moves more than stall_move_thresh_m_). Only converted to a hard
-  // unplanable mark when the counter crosses its threshold.
-  std::vector<int>  consecutive_empty_fails_;
-  std::vector<int>  consecutive_stall_iters_;
-  std::vector<int>  consecutive_failed_ticks_;
-
-  // Remaining "lives" per robot. Decremented each time a robot is
-  // marked unplanable. While > 0, the robot is returned to the
-  // planning pool after unplanable_retry_delay_sec. Once it hits 0,
-  // the robot stays unplanable until a new /swarm/set_goals resets it.
-  std::vector<int>  lives_remaining_;
 
   // Concurrency
   std::mutex          state_mutex_;
