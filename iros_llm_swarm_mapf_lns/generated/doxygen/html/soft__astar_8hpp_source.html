@@ -121,49 +121,59 @@ $(function() {
 <div class="line"><a name="l00048"></a><span class="lineno"><a class="line" href="classlns2_1_1HeuristicCache.html">   48</a></span>&#160;<span class="keyword">class </span><a class="code" href="classlns2_1_1HeuristicCache.html">HeuristicCache</a> {</div>
 <div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160; <span class="keyword">public</span>:</div>
 <div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;  <span class="comment">// Returns h[cell] — the true distance from cell to goal on the static</span></div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;  <span class="comment">// grid (ignoring agents). Cached by (goal, grid).</span></div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;  <span class="keyword">const</span> std::vector&lt;int&gt;&amp; get(<span class="keyword">const</span> <a class="code" href="structlns2_1_1GridMap.html">GridMap</a>&amp; grid, <span class="keyword">const</span> <a class="code" href="structlns2_1_1Cell.html">Cell</a>&amp; goal,</div>
-<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;                                <span class="keywordtype">bool</span> diagonal);</div>
-<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160; </div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;  <span class="keywordtype">void</span> clear() { cache_.clear(); }</div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160; </div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160; <span class="keyword">private</span>:</div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;  <span class="keyword">struct </span>Key {</div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;    std::int32_t row, col;</div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;    std::size_t  rows, cols;</div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;    <span class="keywordtype">bool</span>         diag;</div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;    <span class="keywordtype">bool</span> operator==(<span class="keyword">const</span> Key&amp; o)<span class="keyword"> const </span>{</div>
-<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;      <span class="keywordflow">return</span> row == o.row &amp;&amp; col == o.col &amp;&amp; rows == o.rows</div>
-<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;             &amp;&amp; cols == o.cols &amp;&amp; diag == o.diag;</div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;    }</div>
-<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;  };</div>
-<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;  <span class="keyword">struct </span>KeyHash {</div>
-<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;    std::size_t operator()(<span class="keyword">const</span> Key&amp; k) <span class="keyword">const</span> noexcept {</div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;      std::size_t h = std::hash&lt;std::int64_t&gt;{}(</div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;          (<span class="keyword">static_cast&lt;</span>std::int64_t<span class="keyword">&gt;</span>(k.row) &lt;&lt; 32) | (k.col &amp; 0xffffffff));</div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;      h ^= std::hash&lt;std::size_t&gt;{}(k.rows) + 0x9e3779b97f4a7c15ULL;</div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;      h ^= std::hash&lt;std::size_t&gt;{}(k.cols) + 0x517cc1b727220a95ULL;</div>
-<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;      h ^= (k.diag ? 1 : 0);</div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;      <span class="keywordflow">return</span> h;</div>
-<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;    }</div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;  };</div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160; </div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;  std::unordered_map&lt;Key, std::vector&lt;int&gt;, KeyHash&gt; cache_;</div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;};</div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160; </div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;<span class="comment">// The soft A* function. `table` has the FIXED agents&#39; paths already added</span></div>
-<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;<span class="comment">// (i.e. `agent.id`&#39;s old path was cleared from the table before calling).</span></div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;<a class="code" href="structlns2_1_1SoftAStarResult.html">SoftAStarResult</a> soft_astar(</div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;    <span class="keyword">const</span> <a class="code" href="structlns2_1_1Agent.html">Agent</a>&amp; agent,</div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;    <span class="keyword">const</span> <a class="code" href="structlns2_1_1GridMap.html">GridMap</a>&amp; grid,</div>
-<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;    <span class="keyword">const</span> <a class="code" href="classlns2_1_1CollisionTable.html">CollisionTable</a>&amp; table,</div>
-<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;    <span class="keyword">const</span> <a class="code" href="structlns2_1_1SoftAStarParams.html">SoftAStarParams</a>&amp; params,</div>
-<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;    <a class="code" href="classlns2_1_1HeuristicCache.html">HeuristicCache</a>&amp; h_cache);</div>
-<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160; </div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;}  <span class="comment">// namespace lns2</span></div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;  <span class="comment">// grid (ignoring agents). Cached by (goal, diag) within a single grid</span></div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;  <span class="comment">// instance: the cache auto-invalidates if `get()` is called with a</span></div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;  <span class="comment">// different grid pointer than last time, so a caller mutating the</span></div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;  <span class="comment">// GridMap&#39;s blocked array between solves cannot accidentally reuse a</span></div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;  <span class="comment">// stale h-table that was built against the old occupancy.</span></div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;  <span class="comment">//</span></div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;  <span class="comment">// (The pointer-identity check is conservative — it cannot detect</span></div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;  <span class="comment">//  in-place edits of the same GridMap object. Solvers expect the grid</span></div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;  <span class="comment">//  to be immutable for the duration of a solve, so this is sufficient</span></div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;  <span class="comment">//  in practice; callers who swap blocked cells mid-solve must call</span></div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;  <span class="comment">//  clear() explicitly.)</span></div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;  <span class="keyword">const</span> std::vector&lt;int&gt;&amp; get(<span class="keyword">const</span> <a class="code" href="structlns2_1_1GridMap.html">GridMap</a>&amp; grid, <span class="keyword">const</span> <a class="code" href="structlns2_1_1Cell.html">Cell</a>&amp; goal,</div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;                                <span class="keywordtype">bool</span> diagonal);</div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160; </div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;  <span class="keywordtype">void</span> clear() {</div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;    cache_.clear();</div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;    last_grid_ = <span class="keyword">nullptr</span>;</div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;  }</div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160; </div>
+<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160; <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;  <span class="keyword">struct </span>Key {</div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;    std::int32_t row, col;</div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;    <span class="keywordtype">bool</span>         diag;</div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;    <span class="keywordtype">bool</span> operator==(<span class="keyword">const</span> Key&amp; o)<span class="keyword"> const </span>{</div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;      <span class="keywordflow">return</span> row == o.row &amp;&amp; col == o.col &amp;&amp; diag == o.diag;</div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;    }</div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;  };</div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;  <span class="keyword">struct </span>KeyHash {</div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;    std::size_t operator()(<span class="keyword">const</span> Key&amp; k) <span class="keyword">const</span> noexcept {</div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;      std::size_t h = std::hash&lt;std::int64_t&gt;{}(</div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;          (<span class="keyword">static_cast&lt;</span>std::int64_t<span class="keyword">&gt;</span>(k.row) &lt;&lt; 32) | (k.col &amp; 0xffffffff));</div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;      h ^= (k.diag ? 1 : 0);</div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;      <span class="keywordflow">return</span> h;</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;    }</div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;  };</div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160; </div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;  <span class="keyword">const</span> <a class="code" href="structlns2_1_1GridMap.html">GridMap</a>* last_grid_ = <span class="keyword">nullptr</span>;</div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;  std::unordered_map&lt;Key, std::vector&lt;int&gt;, KeyHash&gt; cache_;</div>
+<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;};</div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160; </div>
+<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;<span class="comment">// The soft A* function. `table` has the FIXED agents&#39; paths already added</span></div>
+<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;<span class="comment">// (i.e. `agent.id`&#39;s old path was cleared from the table before calling).</span></div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;<a class="code" href="structlns2_1_1SoftAStarResult.html">SoftAStarResult</a> soft_astar(</div>
+<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;    <span class="keyword">const</span> <a class="code" href="structlns2_1_1Agent.html">Agent</a>&amp; agent,</div>
+<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;    <span class="keyword">const</span> <a class="code" href="structlns2_1_1GridMap.html">GridMap</a>&amp; grid,</div>
+<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;    <span class="keyword">const</span> <a class="code" href="classlns2_1_1CollisionTable.html">CollisionTable</a>&amp; table,</div>
+<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;    <span class="keyword">const</span> <a class="code" href="structlns2_1_1SoftAStarParams.html">SoftAStarParams</a>&amp; params,</div>
+<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;    <a class="code" href="classlns2_1_1HeuristicCache.html">HeuristicCache</a>&amp; h_cache);</div>
+<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160; </div>
+<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;}  <span class="comment">// namespace lns2</span></div>
 <div class="ttc" id="aclasslns2_1_1CollisionTable_html"><div class="ttname"><a href="classlns2_1_1CollisionTable.html">lns2::CollisionTable</a></div><div class="ttdef"><b>Definition:</b> collision_table.hpp:75</div></div>
 <div class="ttc" id="aclasslns2_1_1HeuristicCache_html"><div class="ttname"><a href="classlns2_1_1HeuristicCache.html">lns2::HeuristicCache</a></div><div class="ttdef"><b>Definition:</b> soft_astar.hpp:48</div></div>
-<div class="ttc" id="astructlns2_1_1Agent_html"><div class="ttname"><a href="structlns2_1_1Agent.html">lns2::Agent</a></div><div class="ttdef"><b>Definition:</b> types.hpp:112</div></div>
+<div class="ttc" id="astructlns2_1_1Agent_html"><div class="ttname"><a href="structlns2_1_1Agent.html">lns2::Agent</a></div><div class="ttdef"><b>Definition:</b> types.hpp:123</div></div>
 <div class="ttc" id="astructlns2_1_1Cell_html"><div class="ttname"><a href="structlns2_1_1Cell.html">lns2::Cell</a></div><div class="ttdef"><b>Definition:</b> types.hpp:29</div></div>
 <div class="ttc" id="astructlns2_1_1GridMap_html"><div class="ttname"><a href="structlns2_1_1GridMap.html">lns2::GridMap</a></div><div class="ttdef"><b>Definition:</b> types.hpp:57</div></div>
 <div class="ttc" id="astructlns2_1_1SoftAStarParams_html"><div class="ttname"><a href="structlns2_1_1SoftAStarParams.html">lns2::SoftAStarParams</a></div><div class="ttdef"><b>Definition:</b> soft_astar.hpp:31</div></div>

@@ -84,11 +84,19 @@ Program Listing for File destroy_operators.hpp
      }
    
      // Flush accumulated rewards into weights.
+     //
+     // Operators that were used in the segment get the standard EMA update
+     // from their observed average reward. Operators that were NOT used get
+     // a small decay step toward `w_min`: this prevents a never-selected
+     // operator from being frozen at a high initial weight while peers move
+     // on, and conversely prevents one stuck near `w_min` from being trapped
+     // there forever.
      void flush_segment(double reaction = 0.1, double w_min = 0.1) {
        for (std::size_t i = 0; i < N; ++i) {
-         if (cnt_[i] == 0) continue;
-         const double avg = sum_r_[i] / static_cast<double>(cnt_[i]);
-         w_[i] = (1.0 - reaction) * w_[i] + reaction * avg;
+         const double target = (cnt_[i] == 0)
+             ? w_min
+             : sum_r_[i] / static_cast<double>(cnt_[i]);
+         w_[i] = (1.0 - reaction) * w_[i] + reaction * target;
          if (w_[i] < w_min) w_[i] = w_min;
          sum_r_[i] = 0.0;
          cnt_[i]   = 0;

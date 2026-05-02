@@ -112,6 +112,17 @@ Program Listing for File types.hpp
      std::size_t size() const { return offsets.size(); }
    };
    
+   // Footprint-aware static validity: every offset cell is in-bounds & free.
+   inline bool footprint_fits(const Cell& base, const FootprintModel& fp,
+                               const GridMap& grid) {
+     for (const auto& off : fp.offsets) {
+       const Cell c = base + off;
+       if (!grid.in_bounds(c)) return false;
+       if (grid.is_blocked(c)) return false;
+     }
+     return true;
+   }
+   
    // ---------------------------------------------------------------------------
    // Agent — input to the solver.
    //

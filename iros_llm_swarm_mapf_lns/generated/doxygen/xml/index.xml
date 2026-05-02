@@ -69,8 +69,8 @@
     <member refid="classlns2_1_1CollisionTable_1aca0caad0d0e1b1a43eb9ee4e8d909b0e" kind="function"><name>edge_swap_count</name></member>
     <member refid="classlns2_1_1CollisionTable_1a4d5f1f0f11076abc59a6d216b93567ab" kind="function"><name>build_tail_counts</name></member>
     <member refid="classlns2_1_1CollisionTable_1a473918749cf01fa5c7b164ca2b515e8a" kind="function"><name>sample_random_collision</name></member>
-    <member refid="classlns2_1_1CollisionTable_1aa208aad10aef710dd69501ab1a73354d" kind="function"><name>rebuild_touches</name></member>
-    <member refid="classlns2_1_1CollisionTable_1a079e5c26cf4fbcc48a931d44d3a8ca4c" kind="function"><name>debug_full_recount</name></member>
+    <member refid="classlns2_1_1CollisionTable_1a5eae7dcec4b04dc2ebc61299fd00f18e" kind="function"><name>rebuild_touches</name></member>
+    <member refid="classlns2_1_1CollisionTable_1a334e8636cf0dd35e89833f9b6f5b08e8" kind="function"><name>debug_full_recount</name></member>
     <member refid="classlns2_1_1CollisionTable_1a0d7533147d6f6226739544875699d76e" kind="function"><name>add_vertex</name></member>
     <member refid="classlns2_1_1CollisionTable_1a57c095626f3464d555cf3e57185abfa7" kind="function"><name>remove_vertex</name></member>
     <member refid="classlns2_1_1CollisionTable_1a6798c86788b3d6a619372492c1446382" kind="function"><name>add_edge</name></member>
@@ -113,6 +113,7 @@
     <member refid="structstd_1_1hash_3_01lns2_1_1EdgeKey_01_4_1a7baee30939aa44449462194bac864459" kind="function"><name>operator()</name></member>
   </compound>
   <compound refid="classlns2_1_1HeuristicCache" kind="class"><name>lns2::HeuristicCache</name>
+    <member refid="classlns2_1_1HeuristicCache_1a4b90662a68e3dab2e6c887a50cb483b5" kind="variable"><name>last_grid_</name></member>
     <member refid="classlns2_1_1HeuristicCache_1a65976c397b51fc057c55581bd860f95c" kind="variable"><name>cache_</name></member>
     <member refid="classlns2_1_1HeuristicCache_1a631c36cf85c353f9b79539104ea56e9f" kind="function"><name>get</name></member>
     <member refid="classlns2_1_1HeuristicCache_1ae3fe32841b8d50a85aabd05b4ebb1cf1" kind="function"><name>clear</name></member>
@@ -120,8 +121,6 @@
   <compound refid="structlns2_1_1HeuristicCache_1_1Key" kind="struct"><name>lns2::HeuristicCache::Key</name>
     <member refid="structlns2_1_1HeuristicCache_1_1Key_1af2d387b60ea0aa4bb9a4a0c593918f6b" kind="variable"><name>row</name></member>
     <member refid="structlns2_1_1HeuristicCache_1_1Key_1ae9233d6f9e297b24949a42c9339d65f1" kind="variable"><name>col</name></member>
-    <member refid="structlns2_1_1HeuristicCache_1_1Key_1a1f0443e4fa2a016a00393dde78f2279b" kind="variable"><name>rows</name></member>
-    <member refid="structlns2_1_1HeuristicCache_1_1Key_1a3a21cb5357d94015f845997e245fd19a" kind="variable"><name>cols</name></member>
     <member refid="structlns2_1_1HeuristicCache_1_1Key_1a740a137eb3ae2d30f62cf00dc7334a98" kind="variable"><name>diag</name></member>
     <member refid="structlns2_1_1HeuristicCache_1_1Key_1a4c3ef4f0aa7cf3d4551845228a10a915" kind="function"><name>operator==</name></member>
   </compound>
@@ -165,10 +164,51 @@
     <member refid="structlns2_1_1LNS2Stats_1a2d92d913555239befd36d92389bbc7b0" kind="variable"><name>op_improved</name></member>
     <member refid="structlns2_1_1LNS2Stats_1a8793ef120b5dce2c6b56a2bc215c2411" kind="variable"><name>op_final_weight</name></member>
   </compound>
+  <compound refid="classlns2__node_1_1PlanPublisher" kind="class"><name>lns2_node::PlanPublisher</name>
+    <member refid="classlns2__node_1_1PlanPublisher_1ac749e65df7fd22b9e96d0a43cd2d5972" kind="typedef"><name>MAPFPlanMsg</name></member>
+    <member refid="classlns2__node_1_1PlanPublisher_1acc6de40480ca7447844b82402a55a3ec" kind="variable"><name>plan_id_counter_</name></member>
+    <member refid="classlns2__node_1_1PlanPublisher_1a67dbd0d5576b499305bc66b2b1fb15f1" kind="variable"><name>active_plan_id_</name></member>
+    <member refid="classlns2__node_1_1PlanPublisher_1a668ab384a883b56d2eb888f103273ef7" kind="variable"><name>plan_pubs_</name></member>
+    <member refid="classlns2__node_1_1PlanPublisher_1aaac9f7fdae843fa760197b2e7a2eabc7" kind="variable"><name>cmd_vel_pubs_</name></member>
+    <member refid="classlns2__node_1_1PlanPublisher_1a3136bb459de88a634f47a392cc7d0b53" kind="function"><name>init</name></member>
+    <member refid="classlns2__node_1_1PlanPublisher_1a1166fc01682dc08a6dcf66076c065e03" kind="function"><name>num_robots</name></member>
+    <member refid="classlns2__node_1_1PlanPublisher_1a2fecaa71324ff34289b7adeac4c9b597" kind="function"><name>active_plan_id</name></member>
+    <member refid="classlns2__node_1_1PlanPublisher_1acc455f759abbc02b7eb3693a605f0634" kind="function"><name>publish_mapf_plans</name></member>
+    <member refid="classlns2__node_1_1PlanPublisher_1a48475778d6c74e375d57a08664febb54" kind="function"><name>publish_stop_all</name></member>
+    <member refid="classlns2__node_1_1PlanPublisher_1a799b22526f4391fb6b0c0454b0722d65" kind="function"><name>publish_cancel_for</name></member>
+  </compound>
   <compound refid="structlns2_1_1PreviousPlan" kind="struct"><name>lns2::PreviousPlan</name>
     <member refid="structlns2_1_1PreviousPlan_1ac811ce77a022a4c06098fa46f6e0da51" kind="variable"><name>paths</name></member>
     <member refid="structlns2_1_1PreviousPlan_1ab9f8b88ed41c08a1eba5f0dcc48624b4" kind="variable"><name>hold_until</name></member>
     <member refid="structlns2_1_1PreviousPlan_1acb15422fba5057e0783d3ac992ef8676" kind="variable"><name>delta_steps</name></member>
+  </compound>
+  <compound refid="structlns2__node_1_1PlanPublisher_1_1PublishStats" kind="struct"><name>lns2_node::PlanPublisher::PublishStats</name>
+    <member refid="structlns2__node_1_1PlanPublisher_1_1PublishStats_1a2e007835e598c510566f8f76360f81c0" kind="variable"><name>plan_id</name></member>
+    <member refid="structlns2__node_1_1PlanPublisher_1_1PublishStats_1acc6655dd3dadfefe69caabf854060eb2" kind="variable"><name>published</name></member>
+    <member refid="structlns2__node_1_1PlanPublisher_1_1PublishStats_1ae17292f9b4b3c28cc5ed82a02ab374c2" kind="variable"><name>cancelled</name></member>
+  </compound>
+  <compound refid="structlns2__node_1_1RobotLifecycle" kind="struct"><name>lns2_node::RobotLifecycle</name>
+    <member refid="structlns2__node_1_1RobotLifecycle_1a8b91e305392183e71309a02452368270" kind="enum"><name>BenchResult</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1a8b91e305392183e71309a02452368270a95fcb4e1e0ed6e541e88cb8cc32982ab" kind="enumvalue"><name>Benched</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1a8b91e305392183e71309a02452368270a23adaa457573eeb089c33214c90d3013" kind="enumvalue"><name>Permanent</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1a8b91e305392183e71309a02452368270a583450a0dca5742809c9ee7f47470fa1" kind="enumvalue"><name>AlreadyUnplanable</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1ac0eea43d7bf6984ac9f36b4343131b49" kind="typedef"><name>Pos</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1a26e628722c20d37a0619b085dab2102c" kind="variable"><name>arrived</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1aa47a9fe482ea2fc1ca7982ff5b934afc" kind="variable"><name>last_move_pos</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1a87cd1fab702d105bf1fd0a41a83207f9" kind="variable"><name>last_move_time</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1afc1c0f79b87ce06c3bc26fc66ed89801" kind="variable"><name>empty_fails</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1a662963c2193d7ba65231e70dc9d7662f" kind="variable"><name>stall_iters</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1a5b98f3e85a9c151ef7a4fdf8e310bdf5" kind="variable"><name>failed_ticks</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1a6fca15c685b42203d5885673495f714f" kind="variable"><name>lives</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1a27409c7a43081e7449edc6020f1e44b3" kind="variable"><name>unplanable</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1a528c55283dbcba5a807a7728f6bcb521" kind="variable"><name>unplanable_since</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1a6e16afa821d7510cac85a29f40e41f92" kind="variable"><name>max_lives</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1a54c5e1180fe304fe6e8585efb53991d1" kind="function"><name>num_robots</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1ab28340959d049e93221bf958ac1cb4e8" kind="function"><name>init</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1a9c75cae14f3ed98687ce12c9cd1c028d" kind="function"><name>reset_for_new_mission</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1a325f2b27b6bc863126363ca747b91b55" kind="function"><name>bench</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1a67864bab60c489a55a0326d3f9e68dff" kind="function"><name>revive</name></member>
+    <member refid="structlns2__node_1_1RobotLifecycle_1a3008d9ac0b0ad99e06028cc16f3e44cf" kind="function"><name>mark_movement</name></member>
   </compound>
   <compound refid="structlns2_1_1Snapshot" kind="struct"><name>lns2::Snapshot</name>
     <member refid="structlns2_1_1Snapshot_1afa7a00855076bcfa4e23b0c3b5f1f635" kind="variable"><name>ids</name></member>
@@ -200,6 +240,7 @@
     <member refid="classlns2_1_1Solution_1a6f4647a5c95fae3c51ea1adf9516f537" kind="function"><name>Solution</name></member>
     <member refid="classlns2_1_1Solution_1ad71fb9606927194c6db060ce9b032c4a" kind="function"><name>init</name></member>
     <member refid="classlns2_1_1Solution_1aed3cfbaeb417af4968f34878ec7324b0" kind="function"><name>num_agents</name></member>
+    <member refid="classlns2_1_1Solution_1a56491b139527a1433a4d23e93a0986d7" kind="function"><name>grid</name></member>
     <member refid="classlns2_1_1Solution_1a9ea9a69d9a36f52521c5dcd5ca837802" kind="function"><name>path</name></member>
     <member refid="classlns2_1_1Solution_1a096bf838ef0a614aee01db8aeb821528" kind="function"><name>footprint</name></member>
     <member refid="classlns2_1_1Solution_1ac7909ac1e516316b83b5fd17334003bf" kind="function"><name>hold_until</name></member>
@@ -260,16 +301,29 @@
     <member refid="destroy__operators_8hpp_1a9076b68e80015aa7e4a61cbd38e5862a" kind="function"><name>make_random_walk</name></member>
     <member refid="destroy__operators_8hpp_1ab02d4b00f95bd6344953235091be59a3" kind="function"><name>make_random</name></member>
     <member refid="destroy__operators_8hpp_1a665c7e6d8b93215c39bd0d4e2010e86c" kind="function"><name>make_bottleneck</name></member>
+    <member refid="gridmap__utils_8hpp_1a03be69e1f601bb6477c147c1260c69d0" kind="function"><name>static_path_exists</name></member>
+    <member refid="gridmap__utils_8hpp_1a6eb7219af785bc8f954e32b09ea64d84" kind="function"><name>find_nearest_free_cell</name></member>
     <member refid="soft__astar_8hpp_1a157f76b1ed7d471f08d4531b4f3b2f0c" kind="function"><name>soft_astar</name></member>
     <member refid="types_8hpp_1a2379149130506eb849516adf8188b882" kind="function"><name>operator+</name></member>
+    <member refid="types_8hpp_1ad6cea49538adef77b372c0b4b7a23db2" kind="function"><name>footprint_fits</name></member>
     <member refid="warm__start_8hpp_1a6f7b0fc44c20cc4b7956f3e4c0d08e35" kind="function"><name>build_warm_seed</name></member>
     <member refid="warm__start_8hpp_1ad67d515eb13f8135a09aaa2798f51396" kind="function"><name>should_warm_start</name></member>
+  </compound>
+  <compound refid="namespacelns2__node" kind="namespace"><name>lns2_node</name>
+    <member refid="node__utils_8hpp_1a12bc7c015929a99587a6de27a1017f26" kind="typedef"><name>MAPFStepMsg</name></member>
+    <member refid="node__utils_8hpp_1aaa9fc255b4ac346275711b34c184ae76" kind="function"><name>world_to_cell</name></member>
+    <member refid="node__utils_8hpp_1acdd1f5c7d58b8f470a07b2005b04c4e7" kind="function"><name>cell_to_world</name></member>
+    <member refid="node__utils_8hpp_1a674e8676062407492622ac12e4c12a5e" kind="function"><name>grid_path_to_steps</name></member>
+    <member refid="node__utils_8hpp_1abd98e7a3b78212a9a76b486bdbe1f0a7" kind="function"><name>block_arrived_robots</name></member>
+    <member refid="node__utils_8hpp_1a1a00743635199633c0bfd4ff6688fda2" kind="function"><name>block_skipped_robots</name></member>
   </compound>
   <compound refid="namespacestd" kind="namespace"><name>std</name>
   </compound>
   <compound refid="collision__table_8hpp" kind="file"><name>collision_table.hpp</name>
   </compound>
   <compound refid="destroy__operators_8hpp" kind="file"><name>destroy_operators.hpp</name>
+  </compound>
+  <compound refid="gridmap__utils_8hpp" kind="file"><name>gridmap_utils.hpp</name>
   </compound>
   <compound refid="lns2__solver_8hpp" kind="file"><name>lns2_solver.hpp</name>
   </compound>
@@ -280,6 +334,12 @@
   <compound refid="types_8hpp" kind="file"><name>types.hpp</name>
   </compound>
   <compound refid="warm__start_8hpp" kind="file"><name>warm_start.hpp</name>
+  </compound>
+  <compound refid="node__utils_8hpp" kind="file"><name>node_utils.hpp</name>
+  </compound>
+  <compound refid="plan__publisher_8hpp" kind="file"><name>plan_publisher.hpp</name>
+  </compound>
+  <compound refid="robot__lifecycle_8hpp" kind="file"><name>robot_lifecycle.hpp</name>
   </compound>
   <compound refid="dir_d44c64559bbebec7f509842c48db8b23" kind="dir"><name>include</name>
   </compound>

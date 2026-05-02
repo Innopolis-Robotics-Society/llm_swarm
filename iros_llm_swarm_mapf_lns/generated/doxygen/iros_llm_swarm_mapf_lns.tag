@@ -76,9 +76,22 @@
     <name>lns2::LNS2Stats</name>
     <filename>structlns2_1_1LNS2Stats.html</filename>
   </compound>
+  <compound kind="class">
+    <name>lns2_node::PlanPublisher</name>
+    <filename>classlns2__node_1_1PlanPublisher.html</filename>
+    <class kind="struct">lns2_node::PlanPublisher::PublishStats</class>
+  </compound>
   <compound kind="struct">
     <name>lns2::PreviousPlan</name>
     <filename>structlns2_1_1PreviousPlan.html</filename>
+  </compound>
+  <compound kind="struct">
+    <name>lns2_node::PlanPublisher::PublishStats</name>
+    <filename>structlns2__node_1_1PlanPublisher_1_1PublishStats.html</filename>
+  </compound>
+  <compound kind="struct">
+    <name>lns2_node::RobotLifecycle</name>
+    <filename>structlns2__node_1_1RobotLifecycle.html</filename>
   </compound>
   <compound kind="struct">
     <name>lns2::Snapshot</name>

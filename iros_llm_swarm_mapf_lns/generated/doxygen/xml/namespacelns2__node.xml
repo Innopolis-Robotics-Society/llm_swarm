@@ -1,0 +1,248 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="namespacelns2__node" kind="namespace" language="C++">
+    <compoundname>lns2_node</compoundname>
+    <innerclass refid="classlns2__node_1_1PlanPublisher" prot="public">lns2_node::PlanPublisher</innerclass>
+    <innerclass refid="structlns2__node_1_1RobotLifecycle" prot="public">lns2_node::RobotLifecycle</innerclass>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="node__utils_8hpp_1a12bc7c015929a99587a6de27a1017f26" prot="public" static="no">
+        <type>iros_llm_swarm_interfaces::msg::MAPFStep</type>
+        <definition>using lns2_node::MAPFStepMsg = typedef iros_llm_swarm_interfaces::msg::MAPFStep</definition>
+        <argsstring></argsstring>
+        <name>MAPFStepMsg</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/node_utils.hpp" line="22" column="1" bodyfile="include/iros_llm_swarm_mapf/node_utils.hpp" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="node__utils_8hpp_1aaa9fc255b4ac346275711b34c184ae76" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structlns2_1_1Cell" kindref="compound">lns2::Cell</ref></type>
+        <definition>lns2::Cell lns2_node::world_to_cell</definition>
+        <argsstring>(double wx, double wy, double origin_x, double origin_y, double resolution, std::size_t rows, std::size_t cols)</argsstring>
+        <name>world_to_cell</name>
+        <param>
+          <type>double</type>
+          <declname>wx</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>wy</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>origin_x</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>origin_y</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>resolution</declname>
+        </param>
+        <param>
+          <type>std::size_t</type>
+          <declname>rows</declname>
+        </param>
+        <param>
+          <type>std::size_t</type>
+          <declname>cols</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/node_utils.hpp" line="26" column="12" declfile="include/iros_llm_swarm_mapf/node_utils.hpp" declline="26" declcolumn="12"/>
+      </memberdef>
+      <memberdef kind="function" id="node__utils_8hpp_1acdd1f5c7d58b8f470a07b2005b04c4e7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void lns2_node::cell_to_world</definition>
+        <argsstring>(const lns2::Cell &amp;c, double origin_x, double origin_y, double resolution, double &amp;wx, double &amp;wy)</argsstring>
+        <name>cell_to_world</name>
+        <param>
+          <type>const <ref refid="structlns2_1_1Cell" kindref="compound">lns2::Cell</ref> &amp;</type>
+          <declname>c</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>origin_x</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>origin_y</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>resolution</declname>
+        </param>
+        <param>
+          <type>double &amp;</type>
+          <declname>wx</declname>
+        </param>
+        <param>
+          <type>double &amp;</type>
+          <declname>wy</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/node_utils.hpp" line="31" column="6" declfile="include/iros_llm_swarm_mapf/node_utils.hpp" declline="31" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="node__utils_8hpp_1a674e8676062407492622ac12e4c12a5e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>std::vector&lt; MAPFStepMsg &gt;</type>
+        <definition>std::vector&lt;MAPFStepMsg&gt; lns2_node::grid_path_to_steps</definition>
+        <argsstring>(const lns2::Path &amp;path, double origin_x, double origin_y, double resolution, double time_step_sec)</argsstring>
+        <name>grid_path_to_steps</name>
+        <param>
+          <type>const lns2::Path &amp;</type>
+          <declname>path</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>origin_x</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>origin_y</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>resolution</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>time_step_sec</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/node_utils.hpp" line="40" column="13" declfile="include/iros_llm_swarm_mapf/node_utils.hpp" declline="40" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="node__utils_8hpp_1abd98e7a3b78212a9a76b486bdbe1f0a7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void lns2_node::block_arrived_robots</definition>
+        <argsstring>(lns2::GridMap &amp;grid, const std::vector&lt; uint32_t &gt; &amp;arrived_ids, const std::vector&lt; std::pair&lt; double, double &gt;&gt; &amp;positions, const std::vector&lt; double &gt; &amp;fp_radii, double default_robot_radius, double origin_x, double origin_y, double resolution, int num_robots)</argsstring>
+        <name>block_arrived_robots</name>
+        <param>
+          <type><ref refid="structlns2_1_1GridMap" kindref="compound">lns2::GridMap</ref> &amp;</type>
+          <declname>grid</declname>
+        </param>
+        <param>
+          <type>const std::vector&lt; uint32_t &gt; &amp;</type>
+          <declname>arrived_ids</declname>
+        </param>
+        <param>
+          <type>const std::vector&lt; std::pair&lt; double, double &gt;&gt; &amp;</type>
+          <declname>positions</declname>
+        </param>
+        <param>
+          <type>const std::vector&lt; double &gt; &amp;</type>
+          <declname>fp_radii</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>default_robot_radius</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>origin_x</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>origin_y</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>resolution</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num_robots</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/node_utils.hpp" line="49" column="6" declfile="include/iros_llm_swarm_mapf/node_utils.hpp" declline="49" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="node__utils_8hpp_1a1a00743635199633c0bfd4ff6688fda2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void lns2_node::block_skipped_robots</definition>
+        <argsstring>(lns2::GridMap &amp;grid, const std::vector&lt; uint32_t &gt; &amp;planned_ext_ids, const std::vector&lt; std::pair&lt; double, double &gt;&gt; &amp;positions, const std::vector&lt; bool &gt; &amp;have_odom, const std::vector&lt; double &gt; &amp;fp_radii, double default_robot_radius, double origin_x, double origin_y, double resolution, int num_robots, const rclcpp::Logger *logger=nullptr)</argsstring>
+        <name>block_skipped_robots</name>
+        <param>
+          <type><ref refid="structlns2_1_1GridMap" kindref="compound">lns2::GridMap</ref> &amp;</type>
+          <declname>grid</declname>
+        </param>
+        <param>
+          <type>const std::vector&lt; uint32_t &gt; &amp;</type>
+          <declname>planned_ext_ids</declname>
+        </param>
+        <param>
+          <type>const std::vector&lt; std::pair&lt; double, double &gt;&gt; &amp;</type>
+          <declname>positions</declname>
+        </param>
+        <param>
+          <type>const std::vector&lt; bool &gt; &amp;</type>
+          <declname>have_odom</declname>
+        </param>
+        <param>
+          <type>const std::vector&lt; double &gt; &amp;</type>
+          <declname>fp_radii</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>default_robot_radius</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>origin_x</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>origin_y</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>resolution</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>num_robots</declname>
+        </param>
+        <param>
+          <type>const rclcpp::Logger *</type>
+          <declname>logger</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/node_utils.hpp" line="61" column="6" declfile="include/iros_llm_swarm_mapf/node_utils.hpp" declline="61" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="include/iros_llm_swarm_mapf/node_utils.hpp" line="20" column="1"/>
+  </compounddef>
+</doxygen>

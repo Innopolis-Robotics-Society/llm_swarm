@@ -145,26 +145,34 @@ $(function() {
 <div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;  }</div>
 <div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160; </div>
 <div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;  <span class="comment">// Flush accumulated rewards into weights.</span></div>
-<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;  <span class="keywordtype">void</span> flush_segment(<span class="keywordtype">double</span> reaction = 0.1, <span class="keywordtype">double</span> w_min = 0.1) {</div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;    <span class="keywordflow">for</span> (std::size_t i = 0; i &lt; N; ++i) {</div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;      <span class="keywordflow">if</span> (cnt_[i] == 0) <span class="keywordflow">continue</span>;</div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;      <span class="keyword">const</span> <span class="keywordtype">double</span> avg = sum_r_[i] / <span class="keyword">static_cast&lt;</span><span class="keywordtype">double</span><span class="keyword">&gt;</span>(cnt_[i]);</div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;      w_[i] = (1.0 - reaction) * w_[i] + reaction * avg;</div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;      <span class="keywordflow">if</span> (w_[i] &lt; w_min) w_[i] = w_min;</div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;      sum_r_[i] = 0.0;</div>
-<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;      cnt_[i]   = 0;</div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;    }</div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;  }</div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160; </div>
-<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;  <span class="keyword">const</span> std::array&lt;double, N&gt;&amp; weights()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> w_; }</div>
-<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160; </div>
-<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160; <span class="keyword">private</span>:</div>
-<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;  std::array&lt;double, N&gt; w_;</div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;  std::array&lt;double, N&gt; sum_r_;</div>
-<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;  std::array&lt;std::size_t, N&gt; cnt_;</div>
-<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;};</div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;  <span class="comment">//</span></div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;  <span class="comment">// Operators that were used in the segment get the standard EMA update</span></div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;  <span class="comment">// from their observed average reward. Operators that were NOT used get</span></div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;  <span class="comment">// a small decay step toward `w_min`: this prevents a never-selected</span></div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;  <span class="comment">// operator from being frozen at a high initial weight while peers move</span></div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;  <span class="comment">// on, and conversely prevents one stuck near `w_min` from being trapped</span></div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;  <span class="comment">// there forever.</span></div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;  <span class="keywordtype">void</span> flush_segment(<span class="keywordtype">double</span> reaction = 0.1, <span class="keywordtype">double</span> w_min = 0.1) {</div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;    <span class="keywordflow">for</span> (std::size_t i = 0; i &lt; N; ++i) {</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;      <span class="keyword">const</span> <span class="keywordtype">double</span> target = (cnt_[i] == 0)</div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;          ? w_min</div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;          : sum_r_[i] / <span class="keyword">static_cast&lt;</span><span class="keywordtype">double</span><span class="keyword">&gt;</span>(cnt_[i]);</div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;      w_[i] = (1.0 - reaction) * w_[i] + reaction * target;</div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;      <span class="keywordflow">if</span> (w_[i] &lt; w_min) w_[i] = w_min;</div>
+<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;      sum_r_[i] = 0.0;</div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;      cnt_[i]   = 0;</div>
+<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;    }</div>
+<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;  }</div>
 <div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160; </div>
-<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;}  <span class="comment">// namespace lns2</span></div>
+<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;  <span class="keyword">const</span> std::array&lt;double, N&gt;&amp; weights()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> w_; }</div>
+<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160; </div>
+<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160; <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;  std::array&lt;double, N&gt; w_;</div>
+<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;  std::array&lt;double, N&gt; sum_r_;</div>
+<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;  std::array&lt;std::size_t, N&gt; cnt_;</div>
+<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;};</div>
+<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160; </div>
+<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;}  <span class="comment">// namespace lns2</span></div>
 <div class="ttc" id="aclasslns2_1_1ALNSWeights_html"><div class="ttname"><a href="classlns2_1_1ALNSWeights.html">lns2::ALNSWeights</a></div><div class="ttdef"><b>Definition:</b> destroy_operators.hpp:39</div></div>
 <div class="ttc" id="aclasslns2_1_1DestroyOperator_html"><div class="ttname"><a href="classlns2_1_1DestroyOperator.html">lns2::DestroyOperator</a></div><div class="ttdef"><b>Definition:</b> destroy_operators.hpp:24</div></div>
 <div class="ttc" id="aclasslns2_1_1Solution_html"><div class="ttname"><a href="classlns2_1_1Solution.html">lns2::Solution</a></div><div class="ttdef"><b>Definition:</b> solution.hpp:30</div></div>

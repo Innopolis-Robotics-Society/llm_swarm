@@ -211,26 +211,34 @@
 <codeline lineno="72"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
 <codeline lineno="73"><highlight class="normal"></highlight></codeline>
 <codeline lineno="74"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Flush<sp/>accumulated<sp/>rewards<sp/>into<sp/>weights.</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="75"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>flush_segment(</highlight><highlight class="keywordtype">double</highlight><highlight class="normal"><sp/>reaction<sp/>=<sp/>0.1,<sp/></highlight><highlight class="keywordtype">double</highlight><highlight class="normal"><sp/>w_min<sp/>=<sp/>0.1)<sp/>{</highlight></codeline>
-<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(std::size_t<sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>N;<sp/>++i)<sp/>{</highlight></codeline>
-<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(cnt_[i]<sp/>==<sp/>0)<sp/></highlight><highlight class="keywordflow">continue</highlight><highlight class="normal">;</highlight></codeline>
-<codeline lineno="78"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">double</highlight><highlight class="normal"><sp/>avg<sp/>=<sp/>sum_r_[i]<sp/>/<sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="keywordtype">double</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(cnt_[i]);</highlight></codeline>
-<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>w_[i]<sp/>=<sp/>(1.0<sp/>-<sp/>reaction)<sp/>*<sp/>w_[i]<sp/>+<sp/>reaction<sp/>*<sp/>avg;</highlight></codeline>
-<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(w_[i]<sp/>&lt;<sp/>w_min)<sp/>w_[i]<sp/>=<sp/>w_min;</highlight></codeline>
-<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>sum_r_[i]<sp/>=<sp/>0.0;</highlight></codeline>
-<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>cnt_[i]<sp/><sp/><sp/>=<sp/>0;</highlight></codeline>
-<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
-<codeline lineno="84"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
-<codeline lineno="85"><highlight class="normal"></highlight></codeline>
-<codeline lineno="86"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::array&lt;double,<sp/>N&gt;&amp;<sp/>weights()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>w_;<sp/>}</highlight></codeline>
-<codeline lineno="87"><highlight class="normal"></highlight></codeline>
-<codeline lineno="88"><highlight class="normal"><sp/></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
-<codeline lineno="89"><highlight class="normal"><sp/><sp/>std::array&lt;double,<sp/>N&gt;<sp/>w_;</highlight></codeline>
-<codeline lineno="90"><highlight class="normal"><sp/><sp/>std::array&lt;double,<sp/>N&gt;<sp/>sum_r_;</highlight></codeline>
-<codeline lineno="91"><highlight class="normal"><sp/><sp/>std::array&lt;std::size_t,<sp/>N&gt;<sp/>cnt_;</highlight></codeline>
-<codeline lineno="92"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Operators<sp/>that<sp/>were<sp/>used<sp/>in<sp/>the<sp/>segment<sp/>get<sp/>the<sp/>standard<sp/>EMA<sp/>update</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>from<sp/>their<sp/>observed<sp/>average<sp/>reward.<sp/>Operators<sp/>that<sp/>were<sp/>NOT<sp/>used<sp/>get</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>a<sp/>small<sp/>decay<sp/>step<sp/>toward<sp/>`w_min`:<sp/>this<sp/>prevents<sp/>a<sp/>never-selected</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>operator<sp/>from<sp/>being<sp/>frozen<sp/>at<sp/>a<sp/>high<sp/>initial<sp/>weight<sp/>while<sp/>peers<sp/>move</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>on,<sp/>and<sp/>conversely<sp/>prevents<sp/>one<sp/>stuck<sp/>near<sp/>`w_min`<sp/>from<sp/>being<sp/>trapped</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>there<sp/>forever.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>flush_segment(</highlight><highlight class="keywordtype">double</highlight><highlight class="normal"><sp/>reaction<sp/>=<sp/>0.1,<sp/></highlight><highlight class="keywordtype">double</highlight><highlight class="normal"><sp/>w_min<sp/>=<sp/>0.1)<sp/>{</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(std::size_t<sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>N;<sp/>++i)<sp/>{</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">double</highlight><highlight class="normal"><sp/>target<sp/>=<sp/>(cnt_[i]<sp/>==<sp/>0)</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>?<sp/>w_min</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>:<sp/>sum_r_[i]<sp/>/<sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="keywordtype">double</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(cnt_[i]);</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>w_[i]<sp/>=<sp/>(1.0<sp/>-<sp/>reaction)<sp/>*<sp/>w_[i]<sp/>+<sp/>reaction<sp/>*<sp/>target;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(w_[i]<sp/>&lt;<sp/>w_min)<sp/>w_[i]<sp/>=<sp/>w_min;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>sum_r_[i]<sp/>=<sp/>0.0;</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>cnt_[i]<sp/><sp/><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="91"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
 <codeline lineno="93"><highlight class="normal"></highlight></codeline>
-<codeline lineno="94"><highlight class="normal">}<sp/><sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>lns2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::array&lt;double,<sp/>N&gt;&amp;<sp/>weights()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>w_;<sp/>}</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"></highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/>std::array&lt;double,<sp/>N&gt;<sp/>w_;</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/>std::array&lt;double,<sp/>N&gt;<sp/>sum_r_;</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"><sp/><sp/>std::array&lt;std::size_t,<sp/>N&gt;<sp/>cnt_;</highlight></codeline>
+<codeline lineno="100"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="101"><highlight class="normal"></highlight></codeline>
+<codeline lineno="102"><highlight class="normal">}<sp/><sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>lns2</highlight><highlight class="normal"></highlight></codeline>
     </programlisting>
     <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp"/>
   </compounddef>

@@ -167,46 +167,56 @@
 <codeline lineno="48" refid="classlns2_1_1HeuristicCache" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classlns2_1_1HeuristicCache" kindref="compound">HeuristicCache</ref><sp/>{</highlight></codeline>
 <codeline lineno="49"><highlight class="normal"><sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
 <codeline lineno="50"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>Returns<sp/>h[cell]<sp/>—<sp/>the<sp/>true<sp/>distance<sp/>from<sp/>cell<sp/>to<sp/>goal<sp/>on<sp/>the<sp/>static</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>grid<sp/>(ignoring<sp/>agents).<sp/>Cached<sp/>by<sp/>(goal,<sp/>grid).</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="52"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::vector&lt;int&gt;&amp;<sp/>get(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1GridMap" kindref="compound">GridMap</ref>&amp;<sp/>grid,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref>&amp;<sp/>goal,</highlight></codeline>
-<codeline lineno="53"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>diagonal);</highlight></codeline>
-<codeline lineno="54"><highlight class="normal"></highlight></codeline>
-<codeline lineno="55"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>clear()<sp/>{<sp/>cache_.clear();<sp/>}</highlight></codeline>
-<codeline lineno="56"><highlight class="normal"></highlight></codeline>
-<codeline lineno="57"><highlight class="normal"><sp/></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
-<codeline lineno="58"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Key<sp/>{</highlight></codeline>
-<codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/>std::int32_t<sp/>row,<sp/>col;</highlight></codeline>
-<codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/>std::size_t<sp/><sp/>rows,<sp/>cols;</highlight></codeline>
-<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>diag;</highlight></codeline>
-<codeline lineno="62"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>operator==(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Key&amp;<sp/>o)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{</highlight></codeline>
-<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>row<sp/>==<sp/>o.row<sp/>&amp;&amp;<sp/>col<sp/>==<sp/>o.col<sp/>&amp;&amp;<sp/>rows<sp/>==<sp/>o.rows</highlight></codeline>
-<codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&amp;&amp;<sp/>cols<sp/>==<sp/>o.cols<sp/>&amp;&amp;<sp/>diag<sp/>==<sp/>o.diag;</highlight></codeline>
-<codeline lineno="65"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
-<codeline lineno="66"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
-<codeline lineno="67"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">KeyHash<sp/>{</highlight></codeline>
-<codeline lineno="68"><highlight class="normal"><sp/><sp/><sp/><sp/>std::size_t<sp/>operator()(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Key&amp;<sp/>k)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>noexcept<sp/>{</highlight></codeline>
-<codeline lineno="69"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>std::size_t<sp/>h<sp/>=<sp/>std::hash&lt;std::int64_t&gt;{}(</highlight></codeline>
-<codeline lineno="70"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(</highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="normal">std::int64_t</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(k.row)<sp/>&lt;&lt;<sp/>32)<sp/>|<sp/>(k.col<sp/>&amp;<sp/>0xffffffff));</highlight></codeline>
-<codeline lineno="71"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>h<sp/>^=<sp/>std::hash&lt;std::size_t&gt;{}(k.rows)<sp/>+<sp/>0x9e3779b97f4a7c15ULL;</highlight></codeline>
-<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>h<sp/>^=<sp/>std::hash&lt;std::size_t&gt;{}(k.cols)<sp/>+<sp/>0x517cc1b727220a95ULL;</highlight></codeline>
-<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>h<sp/>^=<sp/>(k.diag<sp/>?<sp/>1<sp/>:<sp/>0);</highlight></codeline>
-<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>h;</highlight></codeline>
-<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
-<codeline lineno="76"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
-<codeline lineno="77"><highlight class="normal"></highlight></codeline>
-<codeline lineno="78"><highlight class="normal"><sp/><sp/>std::unordered_map&lt;Key,<sp/>std::vector&lt;int&gt;,<sp/>KeyHash&gt;<sp/>cache_;</highlight></codeline>
-<codeline lineno="79"><highlight class="normal">};</highlight></codeline>
-<codeline lineno="80"><highlight class="normal"></highlight></codeline>
-<codeline lineno="81"><highlight class="normal"></highlight><highlight class="comment">//<sp/>The<sp/>soft<sp/>A*<sp/>function.<sp/>`table`<sp/>has<sp/>the<sp/>FIXED<sp/>agents&apos;<sp/>paths<sp/>already<sp/>added</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="82"><highlight class="normal"></highlight><highlight class="comment">//<sp/>(i.e.<sp/>`agent.id`&apos;s<sp/>old<sp/>path<sp/>was<sp/>cleared<sp/>from<sp/>the<sp/>table<sp/>before<sp/>calling).</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="83"><highlight class="normal"><ref refid="structlns2_1_1SoftAStarResult" kindref="compound">SoftAStarResult</ref><sp/>soft_astar(</highlight></codeline>
-<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1Agent" kindref="compound">Agent</ref>&amp;<sp/>agent,</highlight></codeline>
-<codeline lineno="85"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1GridMap" kindref="compound">GridMap</ref>&amp;<sp/>grid,</highlight></codeline>
-<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classlns2_1_1CollisionTable" kindref="compound">CollisionTable</ref>&amp;<sp/>table,</highlight></codeline>
-<codeline lineno="87"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1SoftAStarParams" kindref="compound">SoftAStarParams</ref>&amp;<sp/>params,</highlight></codeline>
-<codeline lineno="88"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classlns2_1_1HeuristicCache" kindref="compound">HeuristicCache</ref>&amp;<sp/>h_cache);</highlight></codeline>
-<codeline lineno="89"><highlight class="normal"></highlight></codeline>
-<codeline lineno="90"><highlight class="normal">}<sp/><sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>lns2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>grid<sp/>(ignoring<sp/>agents).<sp/>Cached<sp/>by<sp/>(goal,<sp/>diag)<sp/>within<sp/>a<sp/>single<sp/>grid</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>instance:<sp/>the<sp/>cache<sp/>auto-invalidates<sp/>if<sp/>`get()`<sp/>is<sp/>called<sp/>with<sp/>a</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>different<sp/>grid<sp/>pointer<sp/>than<sp/>last<sp/>time,<sp/>so<sp/>a<sp/>caller<sp/>mutating<sp/>the</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>GridMap&apos;s<sp/>blocked<sp/>array<sp/>between<sp/>solves<sp/>cannot<sp/>accidentally<sp/>reuse<sp/>a</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>stale<sp/>h-table<sp/>that<sp/>was<sp/>built<sp/>against<sp/>the<sp/>old<sp/>occupancy.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/>(The<sp/>pointer-identity<sp/>check<sp/>is<sp/>conservative<sp/>—<sp/>it<sp/>cannot<sp/>detect</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/>in-place<sp/>edits<sp/>of<sp/>the<sp/>same<sp/>GridMap<sp/>object.<sp/>Solvers<sp/>expect<sp/>the<sp/>grid</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/>to<sp/>be<sp/>immutable<sp/>for<sp/>the<sp/>duration<sp/>of<sp/>a<sp/>solve,<sp/>so<sp/>this<sp/>is<sp/>sufficient</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/>in<sp/>practice;<sp/>callers<sp/>who<sp/>swap<sp/>blocked<sp/>cells<sp/>mid-solve<sp/>must<sp/>call</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/></highlight><highlight class="comment">//<sp/><sp/>clear()<sp/>explicitly.)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>std::vector&lt;int&gt;&amp;<sp/>get(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1GridMap" kindref="compound">GridMap</ref>&amp;<sp/>grid,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref>&amp;<sp/>goal,</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>diagonal);</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="65"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>clear()<sp/>{</highlight></codeline>
+<codeline lineno="66"><highlight class="normal"><sp/><sp/><sp/><sp/>cache_.clear();</highlight></codeline>
+<codeline lineno="67"><highlight class="normal"><sp/><sp/><sp/><sp/>last_grid_<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">Key<sp/>{</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/><sp/><sp/>std::int32_t<sp/>row,<sp/>col;</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>diag;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>operator==(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Key&amp;<sp/>o)</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>row<sp/>==<sp/>o.row<sp/>&amp;&amp;<sp/>col<sp/>==<sp/>o.col<sp/>&amp;&amp;<sp/>diag<sp/>==<sp/>o.diag;</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">KeyHash<sp/>{</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"><sp/><sp/><sp/><sp/>std::size_t<sp/>operator()(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Key&amp;<sp/>k)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>noexcept<sp/>{</highlight></codeline>
+<codeline lineno="80"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>std::size_t<sp/>h<sp/>=<sp/>std::hash&lt;std::int64_t&gt;{}(</highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(</highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="normal">std::int64_t</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(k.row)<sp/>&lt;&lt;<sp/>32)<sp/>|<sp/>(k.col<sp/>&amp;<sp/>0xffffffff));</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>h<sp/>^=<sp/>(k.diag<sp/>?<sp/>1<sp/>:<sp/>0);</highlight></codeline>
+<codeline lineno="83"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>h;</highlight></codeline>
+<codeline lineno="84"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"></highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1GridMap" kindref="compound">GridMap</ref>*<sp/>last_grid_<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal"><sp/><sp/>std::unordered_map&lt;Key,<sp/>std::vector&lt;int&gt;,<sp/>KeyHash&gt;<sp/>cache_;</highlight></codeline>
+<codeline lineno="89"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="90"><highlight class="normal"></highlight></codeline>
+<codeline lineno="91"><highlight class="normal"></highlight><highlight class="comment">//<sp/>The<sp/>soft<sp/>A*<sp/>function.<sp/>`table`<sp/>has<sp/>the<sp/>FIXED<sp/>agents&apos;<sp/>paths<sp/>already<sp/>added</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"></highlight><highlight class="comment">//<sp/>(i.e.<sp/>`agent.id`&apos;s<sp/>old<sp/>path<sp/>was<sp/>cleared<sp/>from<sp/>the<sp/>table<sp/>before<sp/>calling).</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="93"><highlight class="normal"><ref refid="structlns2_1_1SoftAStarResult" kindref="compound">SoftAStarResult</ref><sp/>soft_astar(</highlight></codeline>
+<codeline lineno="94"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1Agent" kindref="compound">Agent</ref>&amp;<sp/>agent,</highlight></codeline>
+<codeline lineno="95"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1GridMap" kindref="compound">GridMap</ref>&amp;<sp/>grid,</highlight></codeline>
+<codeline lineno="96"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classlns2_1_1CollisionTable" kindref="compound">CollisionTable</ref>&amp;<sp/>table,</highlight></codeline>
+<codeline lineno="97"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1SoftAStarParams" kindref="compound">SoftAStarParams</ref>&amp;<sp/>params,</highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classlns2_1_1HeuristicCache" kindref="compound">HeuristicCache</ref>&amp;<sp/>h_cache);</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal">}<sp/><sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>lns2</highlight><highlight class="normal"></highlight></codeline>
     </programlisting>
     <location file="include/iros_llm_swarm_mapf/lns2/soft_astar.hpp"/>
   </compounddef>

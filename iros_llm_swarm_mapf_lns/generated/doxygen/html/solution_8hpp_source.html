@@ -109,47 +109,48 @@ $(function() {
 <div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160; </div>
 <div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;  <span class="comment">// Accessors</span></div>
 <div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;  std::size_t num_agents()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> paths_.size(); }</div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;  <span class="keyword">const</span> Path&amp; path(AgentId <span class="keywordtype">id</span>)<span class="keyword"> const </span>{ <span class="keywordflow">return</span> paths_[id]; }</div>
-<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;  <span class="keyword">const</span> <a class="code" href="structlns2_1_1FootprintModel.html">FootprintModel</a>&amp; footprint(AgentId <span class="keywordtype">id</span>)<span class="keyword"> const </span>{ <span class="keywordflow">return</span> footprints_[id]; }</div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;  Timestep hold_until(AgentId <span class="keywordtype">id</span>)<span class="keyword"> const </span>{ <span class="keywordflow">return</span> hold_until_[id]; }</div>
-<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160; </div>
-<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;  <span class="keyword">const</span> <a class="code" href="classlns2_1_1CollisionTable.html">CollisionTable</a>&amp; table()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> table_; }</div>
-<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;  <a class="code" href="classlns2_1_1CollisionTable.html">CollisionTable</a>&amp; mutable_table() { <span class="keywordflow">return</span> table_; }</div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;  std::size_t num_collisions()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> table_.total_collisions(); }</div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;  <span class="keywordtype">bool</span> is_collision_free()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> num_collisions() == 0; }</div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160; </div>
-<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;  <span class="keyword">const</span> std::vector&lt;Path&gt;&amp; paths()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> paths_; }</div>
-<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;  <span class="keyword">const</span> std::vector&lt;FootprintModel&gt;&amp; footprints()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> footprints_; }</div>
-<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;  <span class="keyword">const</span> std::vector&lt;Timestep&gt;&amp; holds()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> hold_until_; }</div>
-<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160; </div>
-<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;  <span class="comment">// Mutators — the only way to change paths.</span></div>
-<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;  <span class="keywordtype">void</span> set_path(AgentId <span class="keywordtype">id</span>, Path new_path, Timestep new_hold_until);</div>
-<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;  <span class="keywordtype">void</span> clear_path(AgentId <span class="keywordtype">id</span>);</div>
-<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160; </div>
-<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;  <span class="comment">// Adjusts hold_until for ALL agents to `h` (typically max path length - 1</span></div>
-<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;  <span class="comment">// across the subset being repaired or across the whole solution).</span></div>
-<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;  <span class="keywordtype">void</span> set_global_hold(Timestep h);</div>
-<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160; </div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;  <span class="comment">// ---- Snapshot / restore ------------------------------------------------</span></div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160; </div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;  <span class="comment">// Take snapshot of `ids` (deep copies paths + holds), then clear them.</span></div>
-<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;  <a class="code" href="structlns2_1_1Snapshot.html">Snapshot</a> take_and_clear(<span class="keyword">const</span> std::vector&lt;AgentId&gt;&amp; ids);</div>
-<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160; </div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;  <span class="comment">// Restore the snapshot: re-install saved paths and holds.</span></div>
-<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;  <span class="keywordtype">void</span> restore(<a class="code" href="structlns2_1_1Snapshot.html">Snapshot</a>&amp;&amp; snap);</div>
-<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160; </div>
-<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;  <span class="comment">// Debug: verify invariants.</span></div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;  <span class="keywordtype">bool</span> debug_consistent() <span class="keyword">const</span>;</div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160; </div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160; <span class="keyword">private</span>:</div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;  <span class="keyword">const</span> <a class="code" href="structlns2_1_1GridMap.html">GridMap</a>* grid_ = <span class="keyword">nullptr</span>;</div>
-<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;  std::vector&lt;Path&gt; paths_;</div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;  std::vector&lt;FootprintModel&gt; footprints_;</div>
-<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;  std::vector&lt;Timestep&gt; hold_until_;</div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;  <a class="code" href="classlns2_1_1CollisionTable.html">CollisionTable</a> table_;</div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;};</div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160; </div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;}  <span class="comment">// namespace lns2</span></div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;  <span class="keyword">const</span> <a class="code" href="structlns2_1_1GridMap.html">GridMap</a>* grid()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> grid_; }</div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;  <span class="keyword">const</span> Path&amp; path(AgentId <span class="keywordtype">id</span>)<span class="keyword"> const </span>{ <span class="keywordflow">return</span> paths_[id]; }</div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;  <span class="keyword">const</span> <a class="code" href="structlns2_1_1FootprintModel.html">FootprintModel</a>&amp; footprint(AgentId <span class="keywordtype">id</span>)<span class="keyword"> const </span>{ <span class="keywordflow">return</span> footprints_[id]; }</div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;  Timestep hold_until(AgentId <span class="keywordtype">id</span>)<span class="keyword"> const </span>{ <span class="keywordflow">return</span> hold_until_[id]; }</div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160; </div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;  <span class="keyword">const</span> <a class="code" href="classlns2_1_1CollisionTable.html">CollisionTable</a>&amp; table()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> table_; }</div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;  <a class="code" href="classlns2_1_1CollisionTable.html">CollisionTable</a>&amp; mutable_table() { <span class="keywordflow">return</span> table_; }</div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;  std::size_t num_collisions()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> table_.total_collisions(); }</div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;  <span class="keywordtype">bool</span> is_collision_free()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> num_collisions() == 0; }</div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160; </div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;  <span class="keyword">const</span> std::vector&lt;Path&gt;&amp; paths()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> paths_; }</div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;  <span class="keyword">const</span> std::vector&lt;FootprintModel&gt;&amp; footprints()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> footprints_; }</div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;  <span class="keyword">const</span> std::vector&lt;Timestep&gt;&amp; holds()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> hold_until_; }</div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160; </div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;  <span class="comment">// Mutators — the only way to change paths.</span></div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;  <span class="keywordtype">void</span> set_path(AgentId <span class="keywordtype">id</span>, Path new_path, Timestep new_hold_until);</div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;  <span class="keywordtype">void</span> clear_path(AgentId <span class="keywordtype">id</span>);</div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160; </div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;  <span class="comment">// Adjusts hold_until for ALL agents to `h` (typically max path length - 1</span></div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;  <span class="comment">// across the subset being repaired or across the whole solution).</span></div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;  <span class="keywordtype">void</span> set_global_hold(Timestep h);</div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160; </div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;  <span class="comment">// ---- Snapshot / restore ------------------------------------------------</span></div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160; </div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;  <span class="comment">// Take snapshot of `ids` (deep copies paths + holds), then clear them.</span></div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;  <a class="code" href="structlns2_1_1Snapshot.html">Snapshot</a> take_and_clear(<span class="keyword">const</span> std::vector&lt;AgentId&gt;&amp; ids);</div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160; </div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;  <span class="comment">// Restore the snapshot: re-install saved paths and holds.</span></div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;  <span class="keywordtype">void</span> restore(<a class="code" href="structlns2_1_1Snapshot.html">Snapshot</a>&amp;&amp; snap);</div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160; </div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;  <span class="comment">// Debug: verify invariants.</span></div>
+<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;  <span class="keywordtype">bool</span> debug_consistent() <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160; </div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160; <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;  <span class="keyword">const</span> <a class="code" href="structlns2_1_1GridMap.html">GridMap</a>* grid_ = <span class="keyword">nullptr</span>;</div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;  std::vector&lt;Path&gt; paths_;</div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;  std::vector&lt;FootprintModel&gt; footprints_;</div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;  std::vector&lt;Timestep&gt; hold_until_;</div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;  <a class="code" href="classlns2_1_1CollisionTable.html">CollisionTable</a> table_;</div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;};</div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160; </div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;}  <span class="comment">// namespace lns2</span></div>
 <div class="ttc" id="aclasslns2_1_1CollisionTable_html"><div class="ttname"><a href="classlns2_1_1CollisionTable.html">lns2::CollisionTable</a></div><div class="ttdef"><b>Definition:</b> collision_table.hpp:75</div></div>
 <div class="ttc" id="aclasslns2_1_1Solution_html"><div class="ttname"><a href="classlns2_1_1Solution.html">lns2::Solution</a></div><div class="ttdef"><b>Definition:</b> solution.hpp:30</div></div>
 <div class="ttc" id="astructlns2_1_1FootprintModel_html"><div class="ttname"><a href="structlns2_1_1FootprintModel.html">lns2::FootprintModel</a></div><div class="ttdef"><b>Definition:</b> types.hpp:92</div></div>

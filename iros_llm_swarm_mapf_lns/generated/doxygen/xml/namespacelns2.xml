@@ -289,6 +289,65 @@
         </inbodydescription>
         <location file="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" line="36" column="17" declfile="include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp" declline="36" declcolumn="17"/>
       </memberdef>
+      <memberdef kind="function" id="gridmap__utils_8hpp_1a03be69e1f601bb6477c147c1260c69d0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool lns2::static_path_exists</definition>
+        <argsstring>(const GridMap &amp;grid, const Cell &amp;start, const Cell &amp;goal, const FootprintModel &amp;fp)</argsstring>
+        <name>static_path_exists</name>
+        <param>
+          <type>const <ref refid="structlns2_1_1GridMap" kindref="compound">GridMap</ref> &amp;</type>
+          <declname>grid</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref> &amp;</type>
+          <declname>start</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref> &amp;</type>
+          <declname>goal</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1FootprintModel" kindref="compound">FootprintModel</ref> &amp;</type>
+          <declname>fp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/gridmap_utils.hpp" line="15" column="6" declfile="include/iros_llm_swarm_mapf/lns2/gridmap_utils.hpp" declline="15" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="gridmap__utils_8hpp_1a6eb7219af785bc8f954e32b09ea64d84" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref></type>
+        <definition>Cell lns2::find_nearest_free_cell</definition>
+        <argsstring>(const GridMap &amp;grid, const Cell &amp;wanted, const FootprintModel &amp;fp, int max_radius_cells=10)</argsstring>
+        <name>find_nearest_free_cell</name>
+        <param>
+          <type>const <ref refid="structlns2_1_1GridMap" kindref="compound">GridMap</ref> &amp;</type>
+          <declname>grid</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref> &amp;</type>
+          <declname>wanted</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1FootprintModel" kindref="compound">FootprintModel</ref> &amp;</type>
+          <declname>fp</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_radius_cells</declname>
+          <defval>10</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/gridmap_utils.hpp" line="25" column="6" declfile="include/iros_llm_swarm_mapf/lns2/gridmap_utils.hpp" declline="25" declcolumn="6"/>
+      </memberdef>
       <memberdef kind="function" id="soft__astar_8hpp_1a157f76b1ed7d471f08d4531b4f3b2f0c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type><ref refid="structlns2_1_1SoftAStarResult" kindref="compound">SoftAStarResult</ref></type>
         <definition>SoftAStarResult lns2::soft_astar</definition>
@@ -320,7 +379,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_swarm_mapf/lns2/soft_astar.hpp" line="83" column="17" declfile="include/iros_llm_swarm_mapf/lns2/soft_astar.hpp" declline="83" declcolumn="17"/>
+        <location file="include/iros_llm_swarm_mapf/lns2/soft_astar.hpp" line="93" column="17" declfile="include/iros_llm_swarm_mapf/lns2/soft_astar.hpp" declline="93" declcolumn="17"/>
       </memberdef>
       <memberdef kind="function" id="types_8hpp_1a2379149130506eb849516adf8188b882" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
         <type><ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref></type>
@@ -342,6 +401,31 @@
         <inbodydescription>
         </inbodydescription>
         <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="42" column="13" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="42" bodyend="44"/>
+      </memberdef>
+      <memberdef kind="function" id="types_8hpp_1ad6cea49538adef77b372c0b4b7a23db2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool lns2::footprint_fits</definition>
+        <argsstring>(const Cell &amp;base, const FootprintModel &amp;fp, const GridMap &amp;grid)</argsstring>
+        <name>footprint_fits</name>
+        <param>
+          <type>const <ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref> &amp;</type>
+          <declname>base</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1FootprintModel" kindref="compound">FootprintModel</ref> &amp;</type>
+          <declname>fp</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structlns2_1_1GridMap" kindref="compound">GridMap</ref> &amp;</type>
+          <declname>grid</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_swarm_mapf/lns2/types.hpp" line="104" column="13" bodyfile="include/iros_llm_swarm_mapf/lns2/types.hpp" bodystart="104" bodyend="112"/>
       </memberdef>
       <memberdef kind="function" id="warm__start_8hpp_1a6f7b0fc44c20cc4b7956f3e4c0d08e35" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>void</type>

@@ -9,10 +9,13 @@
     <includes local="no">vector</includes>
     <includedby refid="collision__table_8hpp" local="yes">include/iros_llm_swarm_mapf/lns2/collision_table.hpp</includedby>
     <includedby refid="destroy__operators_8hpp" local="yes">include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp</includedby>
+    <includedby refid="gridmap__utils_8hpp" local="yes">include/iros_llm_swarm_mapf/lns2/gridmap_utils.hpp</includedby>
     <includedby refid="lns2__solver_8hpp" local="yes">include/iros_llm_swarm_mapf/lns2/lns2_solver.hpp</includedby>
     <includedby refid="soft__astar_8hpp" local="yes">include/iros_llm_swarm_mapf/lns2/soft_astar.hpp</includedby>
     <includedby refid="solution_8hpp" local="yes">include/iros_llm_swarm_mapf/lns2/solution.hpp</includedby>
     <includedby refid="warm__start_8hpp" local="yes">include/iros_llm_swarm_mapf/lns2/warm_start.hpp</includedby>
+    <includedby refid="node__utils_8hpp" local="yes">include/iros_llm_swarm_mapf/node_utils.hpp</includedby>
+    <includedby refid="plan__publisher_8hpp" local="yes">include/iros_llm_swarm_mapf/plan_publisher.hpp</includedby>
     <incdepgraph>
       <node id="1">
         <label>include/iros_llm_swarm_mapf/lns2/types.hpp</label>
@@ -52,6 +55,8 @@
         </childnode>
         <childnode refid="6" relation="include">
         </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
         <childnode refid="4" relation="include">
         </childnode>
         <childnode refid="3" relation="include">
@@ -60,12 +65,20 @@
         </childnode>
         <childnode refid="7" relation="include">
         </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
       </node>
       <node id="3">
         <label>include/iros_llm_swarm_mapf/lns2/soft_astar.hpp</label>
         <link refid="soft__astar_8hpp_source"/>
         <childnode refid="4" relation="include">
         </childnode>
+      </node>
+      <node id="10">
+        <label>include/iros_llm_swarm_mapf/plan_publisher.hpp</label>
+        <link refid="plan__publisher_8hpp_source"/>
       </node>
       <node id="6">
         <label>include/iros_llm_swarm_mapf/lns2/destroy_operators.hpp</label>
@@ -76,6 +89,14 @@
       <node id="7">
         <label>include/iros_llm_swarm_mapf/lns2/warm_start.hpp</label>
         <link refid="warm__start_8hpp_source"/>
+      </node>
+      <node id="8">
+        <label>include/iros_llm_swarm_mapf/lns2/gridmap_utils.hpp</label>
+        <link refid="gridmap__utils_8hpp_source"/>
+      </node>
+      <node id="9">
+        <label>include/iros_llm_swarm_mapf/node_utils.hpp</label>
+        <link refid="node__utils_8hpp_source"/>
       </node>
       <node id="2">
         <label>include/iros_llm_swarm_mapf/lns2/collision_table.hpp</label>
@@ -216,49 +237,60 @@
 <codeline lineno="100"><highlight class="normal"><sp/><sp/>std::size_t<sp/>size()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>offsets.size();<sp/>}</highlight></codeline>
 <codeline lineno="101"><highlight class="normal">};</highlight></codeline>
 <codeline lineno="102"><highlight class="normal"></highlight></codeline>
-<codeline lineno="103"><highlight class="normal"></highlight><highlight class="comment">//<sp/>---------------------------------------------------------------------------</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="104"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Agent<sp/>—<sp/>input<sp/>to<sp/>the<sp/>solver.</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="105"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="106"><highlight class="normal"></highlight><highlight class="comment">//<sp/>IMPORTANT:<sp/>`id`<sp/>must<sp/>be<sp/>a<sp/>DENSE<sp/>internal<sp/>index<sp/>equal<sp/>to<sp/>the<sp/>agent&apos;s</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="107"><highlight class="normal"></highlight><highlight class="comment">//<sp/>position<sp/>in<sp/>the<sp/>std::vector&lt;Agent&gt;<sp/>passed<sp/>to<sp/>the<sp/>solver.<sp/>If<sp/>your<sp/>external</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="108"><highlight class="normal"></highlight><highlight class="comment">//<sp/>identifiers<sp/>are<sp/>sparse<sp/>(e.g.<sp/>robot_12<sp/>and<sp/>robot_17<sp/>out<sp/>of<sp/>a<sp/>fleet<sp/>of<sp/>20),</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="109"><highlight class="normal"></highlight><highlight class="comment">//<sp/>remap<sp/>them<sp/>to<sp/>[0,<sp/>N)<sp/>before<sp/>calling,<sp/>and<sp/>keep<sp/>the<sp/>external<sp/>&lt;-&gt;<sp/>internal</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="110"><highlight class="normal"></highlight><highlight class="comment">//<sp/>mapping<sp/>at<sp/>the<sp/>call<sp/>site.</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="111"><highlight class="normal"></highlight><highlight class="comment">//<sp/>---------------------------------------------------------------------------</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="112" refid="structlns2_1_1Agent" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structlns2_1_1Agent" kindref="compound">Agent</ref><sp/>{</highlight></codeline>
-<codeline lineno="113"><highlight class="normal"><sp/><sp/>AgentId<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
-<codeline lineno="114"><highlight class="normal"><sp/><sp/><ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref><sp/>start;</highlight></codeline>
-<codeline lineno="115"><highlight class="normal"><sp/><sp/><ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref><sp/>goal;</highlight></codeline>
-<codeline lineno="116"><highlight class="normal"><sp/><sp/><ref refid="structlns2_1_1FootprintModel" kindref="compound">FootprintModel</ref><sp/>footprint;<sp/><sp/></highlight><highlight class="comment">//<sp/>owned<sp/>copy<sp/>per<sp/>agent</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="117"><highlight class="normal">};</highlight></codeline>
-<codeline lineno="118"><highlight class="normal"></highlight></codeline>
-<codeline lineno="119"><highlight class="normal"></highlight><highlight class="comment">//<sp/>---------------------------------------------------------------------------</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="120"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Collision<sp/>—<sp/>what<sp/>sample_random_collision<sp/>returns.</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="121"><highlight class="normal"></highlight><highlight class="comment">//<sp/>---------------------------------------------------------------------------</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="122" refid="structlns2_1_1Collision" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structlns2_1_1Collision" kindref="compound">Collision</ref><sp/>{</highlight></codeline>
-<codeline lineno="123"><highlight class="normal"><sp/><sp/>AgentId<sp/>a<sp/>=<sp/>0;</highlight></codeline>
-<codeline lineno="124"><highlight class="normal"><sp/><sp/>AgentId<sp/>b<sp/>=<sp/>0;</highlight></codeline>
-<codeline lineno="125"><highlight class="normal"><sp/><sp/>CellIdx<sp/>cell_idx<sp/>=<sp/>0;<sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>for<sp/>vertex<sp/>collisions;<sp/>one<sp/>shared<sp/>cell</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="126"><highlight class="normal"><sp/><sp/>Timestep<sp/>t<sp/>=<sp/>0;</highlight></codeline>
-<codeline lineno="127"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>Kind<sp/>:<sp/>std::uint8_t<sp/>{<sp/>Vertex<sp/>=<sp/>0,<sp/>Edge<sp/>=<sp/>1<sp/>}<sp/>kind<sp/>=<sp/>Vertex;</highlight></codeline>
+<codeline lineno="103"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Footprint-aware<sp/>static<sp/>validity:<sp/>every<sp/>offset<sp/>cell<sp/>is<sp/>in-bounds<sp/>&amp;<sp/>free.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>footprint_fits(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref>&amp;<sp/>base,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1FootprintModel" kindref="compound">FootprintModel</ref>&amp;<sp/>fp,</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1GridMap" kindref="compound">GridMap</ref>&amp;<sp/>grid)<sp/>{</highlight></codeline>
+<codeline lineno="106"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal">&amp;<sp/>off<sp/>:<sp/>fp.offsets)<sp/>{</highlight></codeline>
+<codeline lineno="107"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref><sp/>c<sp/>=<sp/>base<sp/>+<sp/>off;</highlight></codeline>
+<codeline lineno="108"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!grid.in_bounds(c))<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="109"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(grid.is_blocked(c))<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="111"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="112"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="113"><highlight class="normal"></highlight></codeline>
+<codeline lineno="114"><highlight class="normal"></highlight><highlight class="comment">//<sp/>---------------------------------------------------------------------------</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="115"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Agent<sp/>—<sp/>input<sp/>to<sp/>the<sp/>solver.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="116"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="117"><highlight class="normal"></highlight><highlight class="comment">//<sp/>IMPORTANT:<sp/>`id`<sp/>must<sp/>be<sp/>a<sp/>DENSE<sp/>internal<sp/>index<sp/>equal<sp/>to<sp/>the<sp/>agent&apos;s</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="118"><highlight class="normal"></highlight><highlight class="comment">//<sp/>position<sp/>in<sp/>the<sp/>std::vector&lt;Agent&gt;<sp/>passed<sp/>to<sp/>the<sp/>solver.<sp/>If<sp/>your<sp/>external</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="119"><highlight class="normal"></highlight><highlight class="comment">//<sp/>identifiers<sp/>are<sp/>sparse<sp/>(e.g.<sp/>robot_12<sp/>and<sp/>robot_17<sp/>out<sp/>of<sp/>a<sp/>fleet<sp/>of<sp/>20),</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="120"><highlight class="normal"></highlight><highlight class="comment">//<sp/>remap<sp/>them<sp/>to<sp/>[0,<sp/>N)<sp/>before<sp/>calling,<sp/>and<sp/>keep<sp/>the<sp/>external<sp/>&lt;-&gt;<sp/>internal</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="121"><highlight class="normal"></highlight><highlight class="comment">//<sp/>mapping<sp/>at<sp/>the<sp/>call<sp/>site.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="122"><highlight class="normal"></highlight><highlight class="comment">//<sp/>---------------------------------------------------------------------------</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="123" refid="structlns2_1_1Agent" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structlns2_1_1Agent" kindref="compound">Agent</ref><sp/>{</highlight></codeline>
+<codeline lineno="124"><highlight class="normal"><sp/><sp/>AgentId<sp/></highlight><highlight class="keywordtype">id</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="125"><highlight class="normal"><sp/><sp/><ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref><sp/>start;</highlight></codeline>
+<codeline lineno="126"><highlight class="normal"><sp/><sp/><ref refid="structlns2_1_1Cell" kindref="compound">Cell</ref><sp/>goal;</highlight></codeline>
+<codeline lineno="127"><highlight class="normal"><sp/><sp/><ref refid="structlns2_1_1FootprintModel" kindref="compound">FootprintModel</ref><sp/>footprint;<sp/><sp/></highlight><highlight class="comment">//<sp/>owned<sp/>copy<sp/>per<sp/>agent</highlight><highlight class="normal"></highlight></codeline>
 <codeline lineno="128"><highlight class="normal">};</highlight></codeline>
 <codeline lineno="129"><highlight class="normal"></highlight></codeline>
-<codeline lineno="130"><highlight class="normal">}<sp/><sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>lns2</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="131"><highlight class="normal"></highlight></codeline>
+<codeline lineno="130"><highlight class="normal"></highlight><highlight class="comment">//<sp/>---------------------------------------------------------------------------</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="131"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Collision<sp/>—<sp/>what<sp/>sample_random_collision<sp/>returns.</highlight><highlight class="normal"></highlight></codeline>
 <codeline lineno="132"><highlight class="normal"></highlight><highlight class="comment">//<sp/>---------------------------------------------------------------------------</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="133"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Hash<sp/>specializations</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="134"><highlight class="normal"></highlight><highlight class="comment">//<sp/>---------------------------------------------------------------------------</highlight><highlight class="normal"></highlight></codeline>
-<codeline lineno="135"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">std<sp/>{</highlight></codeline>
-<codeline lineno="136"><highlight class="normal"></highlight></codeline>
-<codeline lineno="137"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;&gt;</highlight></codeline>
-<codeline lineno="138" refid="structstd_1_1hash_3_01lns2_1_1Cell_01_4" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">hash&lt;lns2::<ref refid="structCell" kindref="compound" external="/home/runner/work/llm_swarm/llm_swarm/cross_reference/iros_llm_swarm_mapf/iros_llm_swarm_mapf.tag">Cell</ref>&gt;<sp/>{</highlight></codeline>
-<codeline lineno="139"><highlight class="normal"><sp/><sp/>std::size_t<sp/>operator()(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1Cell" kindref="compound">lns2::Cell</ref>&amp;<sp/>c)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>noexcept<sp/>{</highlight></codeline>
-<codeline lineno="140"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="normal">std::size_t</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(c.row)<sp/>&lt;&lt;<sp/>32)<sp/>^</highlight></codeline>
-<codeline lineno="141"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="normal">std::size_t</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(c.col);</highlight></codeline>
-<codeline lineno="142"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
-<codeline lineno="143"><highlight class="normal">};</highlight></codeline>
-<codeline lineno="144"><highlight class="normal"></highlight></codeline>
-<codeline lineno="145"><highlight class="normal">}<sp/><sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>std</highlight></codeline>
+<codeline lineno="133" refid="structlns2_1_1Collision" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structlns2_1_1Collision" kindref="compound">Collision</ref><sp/>{</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"><sp/><sp/>AgentId<sp/>a<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="135"><highlight class="normal"><sp/><sp/>AgentId<sp/>b<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="136"><highlight class="normal"><sp/><sp/>CellIdx<sp/>cell_idx<sp/>=<sp/>0;<sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>for<sp/>vertex<sp/>collisions;<sp/>one<sp/>shared<sp/>cell</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="137"><highlight class="normal"><sp/><sp/>Timestep<sp/>t<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="138"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">enum</highlight><highlight class="normal"><sp/>Kind<sp/>:<sp/>std::uint8_t<sp/>{<sp/>Vertex<sp/>=<sp/>0,<sp/>Edge<sp/>=<sp/>1<sp/>}<sp/>kind<sp/>=<sp/>Vertex;</highlight></codeline>
+<codeline lineno="139"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="140"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141"><highlight class="normal">}<sp/><sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>lns2</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"></highlight></codeline>
+<codeline lineno="143"><highlight class="normal"></highlight><highlight class="comment">//<sp/>---------------------------------------------------------------------------</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="144"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Hash<sp/>specializations</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="145"><highlight class="normal"></highlight><highlight class="comment">//<sp/>---------------------------------------------------------------------------</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="146"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">std<sp/>{</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"></highlight></codeline>
+<codeline lineno="148"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;&gt;</highlight></codeline>
+<codeline lineno="149" refid="structstd_1_1hash_3_01lns2_1_1Cell_01_4" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal">hash&lt;lns2::<ref refid="structCell" kindref="compound" external="/home/runner/work/llm_swarm/llm_swarm/cross_reference/iros_llm_swarm_mapf/iros_llm_swarm_mapf.tag">Cell</ref>&gt;<sp/>{</highlight></codeline>
+<codeline lineno="150"><highlight class="normal"><sp/><sp/>std::size_t<sp/>operator()(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structlns2_1_1Cell" kindref="compound">lns2::Cell</ref>&amp;<sp/>c)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>noexcept<sp/>{</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="normal">std::size_t</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(c.row)<sp/>&lt;&lt;<sp/>32)<sp/>^</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static_cast&lt;</highlight><highlight class="normal">std::size_t</highlight><highlight class="keyword">&gt;</highlight><highlight class="normal">(c.col);</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="154"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"></highlight></codeline>
+<codeline lineno="156"><highlight class="normal">}<sp/><sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>std</highlight></codeline>
     </programlisting>
     <location file="include/iros_llm_swarm_mapf/lns2/types.hpp"/>
   </compounddef>

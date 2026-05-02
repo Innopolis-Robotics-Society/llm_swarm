@@ -15,7 +15,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="166" column="17" bodyfile="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" bodystart="166" bodyend="-1"/>
+        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="161" column="17" bodyfile="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" bodystart="161" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classlns2_1_1CollisionTable_1ac1ef382b9a41c301df983af723150cfe" prot="private" static="no" mutable="no">
         <type>std::unordered_map&lt; <ref refid="structlns2_1_1CellTime" kindref="compound">CellTime</ref>, std::vector&lt; AgentId &gt; &gt;</type>
@@ -28,7 +28,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="168" column="22" bodyfile="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" bodystart="168" bodyend="-1"/>
+        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="163" column="22" bodyfile="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" bodystart="163" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classlns2_1_1CollisionTable_1a305a7550e30f329be8fd8775aa919ea7" prot="private" static="no" mutable="no">
         <type>std::unordered_map&lt; <ref refid="structlns2_1_1EdgeKey" kindref="compound">EdgeKey</ref>, std::vector&lt; AgentId &gt; &gt;</type>
@@ -41,7 +41,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="169" column="22" bodyfile="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" bodystart="169" bodyend="-1"/>
+        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="164" column="22" bodyfile="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" bodystart="164" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classlns2_1_1CollisionTable_1a13eb5c3366e77c9b2eb08dd7666a8314" prot="private" static="no" mutable="no">
         <type>std::size_t</type>
@@ -55,7 +55,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="171" column="15" bodyfile="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" bodystart="171" bodyend="-1"/>
+        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="166" column="15" bodyfile="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" bodystart="166" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classlns2_1_1CollisionTable_1a474be2d5dcc67bd8b2ae624ffcb372de" prot="private" static="no" mutable="no">
         <type>std::vector&lt; std::size_t &gt;</type>
@@ -68,7 +68,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="172" column="15" bodyfile="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" bodystart="172" bodyend="-1"/>
+        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="167" column="15" bodyfile="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" bodystart="167" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classlns2_1_1CollisionTable_1ab9d7ed411e06d12ede4465d2b8e9eafb" prot="private" static="no" mutable="no">
         <type>std::vector&lt; std::unordered_set&lt; AgentId &gt; &gt;</type>
@@ -81,7 +81,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="173" column="15" bodyfile="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" bodystart="173" bodyend="-1"/>
+        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="168" column="15" bodyfile="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" bodystart="168" bodyend="-1"/>
       </memberdef>
       </sectiondef>
       <sectiondef kind="public-func">
@@ -345,23 +345,11 @@
         </inbodydescription>
         <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="148" column="17"/>
       </memberdef>
-      <memberdef kind="function" id="classlns2_1_1CollisionTable_1aa208aad10aef710dd69501ab1a73354d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+      <memberdef kind="function" id="classlns2_1_1CollisionTable_1a5eae7dcec4b04dc2ebc61299fd00f18e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>void</type>
         <definition>void lns2::CollisionTable::rebuild_touches</definition>
-        <argsstring>(const std::vector&lt; Path &gt; &amp;paths, const std::vector&lt; FootprintModel &gt; &amp;footprints, const std::vector&lt; Timestep &gt; &amp;hold_until)</argsstring>
+        <argsstring>()</argsstring>
         <name>rebuild_touches</name>
-        <param>
-          <type>const std::vector&lt; Path &gt; &amp;</type>
-          <declname>paths</declname>
-        </param>
-        <param>
-          <type>const std::vector&lt; <ref refid="structlns2_1_1FootprintModel" kindref="compound">FootprintModel</ref> &gt; &amp;</type>
-          <declname>footprints</declname>
-        </param>
-        <param>
-          <type>const std::vector&lt; Timestep &gt; &amp;</type>
-          <declname>hold_until</declname>
-        </param>
         <briefdescription>
         </briefdescription>
         <detaileddescription>
@@ -370,30 +358,18 @@
         </inbodydescription>
         <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="155" column="8"/>
       </memberdef>
-      <memberdef kind="function" id="classlns2_1_1CollisionTable_1a079e5c26cf4fbcc48a931d44d3a8ca4c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+      <memberdef kind="function" id="classlns2_1_1CollisionTable_1a334e8636cf0dd35e89833f9b6f5b08e8" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
         <type>std::size_t</type>
         <definition>std::size_t lns2::CollisionTable::debug_full_recount</definition>
-        <argsstring>(const std::vector&lt; Path &gt; &amp;paths, const std::vector&lt; FootprintModel &gt; &amp;footprints, const std::vector&lt; Timestep &gt; &amp;hold_until) const</argsstring>
+        <argsstring>() const</argsstring>
         <name>debug_full_recount</name>
-        <param>
-          <type>const std::vector&lt; Path &gt; &amp;</type>
-          <declname>paths</declname>
-        </param>
-        <param>
-          <type>const std::vector&lt; <ref refid="structlns2_1_1FootprintModel" kindref="compound">FootprintModel</ref> &gt; &amp;</type>
-          <declname>footprints</declname>
-        </param>
-        <param>
-          <type>const std::vector&lt; Timestep &gt; &amp;</type>
-          <declname>hold_until</declname>
-        </param>
         <briefdescription>
         </briefdescription>
         <detaileddescription>
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="160" column="15"/>
+        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="158" column="15"/>
       </memberdef>
       </sectiondef>
       <sectiondef kind="private-func">
@@ -420,7 +396,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="176" column="8"/>
+        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="171" column="8"/>
       </memberdef>
       <memberdef kind="function" id="classlns2_1_1CollisionTable_1a57c095626f3464d555cf3e57185abfa7" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>void</type>
@@ -445,7 +421,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="177" column="8"/>
+        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="172" column="8"/>
       </memberdef>
       <memberdef kind="function" id="classlns2_1_1CollisionTable_1a6798c86788b3d6a619372492c1446382" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>void</type>
@@ -474,7 +450,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="178" column="8"/>
+        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="173" column="8"/>
       </memberdef>
       <memberdef kind="function" id="classlns2_1_1CollisionTable_1ab42c19fa377bb0ff2ee35832a9162ca9" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>void</type>
@@ -503,7 +479,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="179" column="8"/>
+        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="174" column="8"/>
       </memberdef>
       <memberdef kind="function" id="classlns2_1_1CollisionTable_1a9580e641b7d9276310bd205231d0cd53" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
         <templateparamlist>
@@ -533,14 +509,14 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="183" column="8" bodyfile="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" bodystart="183" bodyend="190"/>
+        <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="178" column="8" bodyfile="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" bodystart="178" bodyend="185"/>
       </memberdef>
       </sectiondef>
     <briefdescription>
     </briefdescription>
     <detaileddescription>
     </detaileddescription>
-    <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="75" column="1" bodyfile="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" bodystart="75" bodyend="191"/>
+    <location file="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" line="75" column="1" bodyfile="include/iros_llm_swarm_mapf/lns2/collision_table.hpp" bodystart="75" bodyend="186"/>
     <listofallmembers>
       <member refid="classlns2_1_1CollisionTable_1a6798c86788b3d6a619372492c1446382" prot="private" virt="non-virtual"><scope>lns2::CollisionTable</scope><name>add_edge</name></member>
       <member refid="classlns2_1_1CollisionTable_1a26efd2d82604b0beadfe69746c6fd0b2" prot="public" virt="non-virtual"><scope>lns2::CollisionTable</scope><name>add_path</name></member>
@@ -549,14 +525,14 @@
       <member refid="classlns2_1_1CollisionTable_1a4d5f1f0f11076abc59a6d216b93567ab" prot="public" virt="non-virtual"><scope>lns2::CollisionTable</scope><name>build_tail_counts</name></member>
       <member refid="classlns2_1_1CollisionTable_1ac280dcab5eafc1a4e7aac45dda19cc4d" prot="public" virt="non-virtual"><scope>lns2::CollisionTable</scope><name>collisions_of</name></member>
       <member refid="classlns2_1_1CollisionTable_1ad23099c523adae925dd2c0784a393bf1" prot="public" virt="non-virtual"><scope>lns2::CollisionTable</scope><name>CollisionTable</name></member>
-      <member refid="classlns2_1_1CollisionTable_1a079e5c26cf4fbcc48a931d44d3a8ca4c" prot="public" virt="non-virtual"><scope>lns2::CollisionTable</scope><name>debug_full_recount</name></member>
+      <member refid="classlns2_1_1CollisionTable_1a334e8636cf0dd35e89833f9b6f5b08e8" prot="public" virt="non-virtual"><scope>lns2::CollisionTable</scope><name>debug_full_recount</name></member>
       <member refid="classlns2_1_1CollisionTable_1a305a7550e30f329be8fd8775aa919ea7" prot="private" virt="non-virtual"><scope>lns2::CollisionTable</scope><name>edge_occ_</name></member>
       <member refid="classlns2_1_1CollisionTable_1aca0caad0d0e1b1a43eb9ee4e8d909b0e" prot="public" virt="non-virtual"><scope>lns2::CollisionTable</scope><name>edge_swap_count</name></member>
       <member refid="classlns2_1_1CollisionTable_1a9580e641b7d9276310bd205231d0cd53" prot="private" virt="non-virtual"><scope>lns2::CollisionTable</scope><name>for_each_footprint_cell</name></member>
       <member refid="classlns2_1_1CollisionTable_1a7024cdaadec26bbb5dc93944a3704fe8" prot="private" virt="non-virtual"><scope>lns2::CollisionTable</scope><name>grid_</name></member>
       <member refid="classlns2_1_1CollisionTable_1af420d312a6b360a33488f40e6c3bead9" prot="public" virt="non-virtual"><scope>lns2::CollisionTable</scope><name>num_agents</name></member>
       <member refid="classlns2_1_1CollisionTable_1a474be2d5dcc67bd8b2ae624ffcb372de" prot="private" virt="non-virtual"><scope>lns2::CollisionTable</scope><name>per_agent_</name></member>
-      <member refid="classlns2_1_1CollisionTable_1aa208aad10aef710dd69501ab1a73354d" prot="public" virt="non-virtual"><scope>lns2::CollisionTable</scope><name>rebuild_touches</name></member>
+      <member refid="classlns2_1_1CollisionTable_1a5eae7dcec4b04dc2ebc61299fd00f18e" prot="public" virt="non-virtual"><scope>lns2::CollisionTable</scope><name>rebuild_touches</name></member>
       <member refid="classlns2_1_1CollisionTable_1ab42c19fa377bb0ff2ee35832a9162ca9" prot="private" virt="non-virtual"><scope>lns2::CollisionTable</scope><name>remove_edge</name></member>
       <member refid="classlns2_1_1CollisionTable_1a6d97715310de521cb2507d2d93d9bcb5" prot="public" virt="non-virtual"><scope>lns2::CollisionTable</scope><name>remove_path</name></member>
       <member refid="classlns2_1_1CollisionTable_1a57c095626f3464d555cf3e57185abfa7" prot="private" virt="non-virtual"><scope>lns2::CollisionTable</scope><name>remove_vertex</name></member>
