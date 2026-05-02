@@ -21,6 +21,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/MAPFStep.msg"
   "msg/MAPFPlan.msg"
   "msg/FollowerStatus.msg"
+  "msg/BTState.msg"
   "srv/SetFormation.srv"
   "srv/RemoveFormation.srv"
   "srv/ActivateFormation.srv"
@@ -31,6 +32,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/SaveFormations.srv"
   "action/SetGoals.action"
   "action/LlmDecision.action"
+  "action/LlmCommand.action"
   DEPENDENCIES std_msgs geometry_msgs
 )
 

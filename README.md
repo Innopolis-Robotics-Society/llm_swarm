@@ -46,6 +46,73 @@ ros2 launch iros_llm_swarm_bringup swarm_lns.launch.py
 ros2 launch iros_llm_swarm_bringup swarm_warehouse.launch.py num_robots:=5
 ```
 
+### Full Demo (with LLM)
+
+Запускает всю систему — симуляцию + MAPF + Nav2 + BT + LLM orchestrator (mock).
+
+#### Режим 1 — только реактивный LLM (канал 1, по умолчанию)
+
+BT-ноды сами вызывают LLM при WARN/ERROR через `/llm/decision`.
+Проактивный наблюдатель (`passive_observer`) запускается но молчит.
+
+```bash
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py
+```
+
+#### Режим 2 — оба канала (канал 1 + канал 2)
+
+Дополнительно к каналу 1, `passive_observer` сам наблюдает за `/bt/state`
+и вмешивается при WARN/ERROR, отправляя команды через `/llm/command`.
+
+```bash
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py enable_passive_observer:=true
+```
+
+Запустить только orchestrator с обоими каналами:
+
+```bash
+ros2 launch iros_llm_orchestrator orchestrator.launch.py enable_passive_observer:=true
+```
+
+Проверить что канал 2 активен — в логах должно быть:
+```
+[llm_passive_observer] PassiveObserver up: mode=mock, cooldown=10.0s, trigger=...
+```
+При `enabled=false` нода запускается но при получении `/bt/state` сразу возвращается (silent mode).
+
+Подождать ~22 секунды до сообщения `==== Full demo ready ====`.
+
+Затем в другом терминале (после `source install/setup.bash`) подать сценарий:
+
+```bash
+# Простой MAPF на 4 роботов
+ros2 run iros_llm_swarm_bt fleet_cmd --scenario simple
+
+# Стресс-тест: 20 роботов кросс-свап через всю карту (провоцирует WARN)
+ros2 run iros_llm_swarm_bt fleet_cmd --scenario stress
+
+# Невозможная цель: все 4 робота в одну точку у стены
+ros2 run iros_llm_swarm_bt fleet_cmd --scenario unreachable
+
+# Вернуть систему в idle
+ros2 run iros_llm_swarm_bt fleet_cmd --scenario idle
+```
+
+#### Что наблюдать
+
+В терминале с launch:
+- `[mapf_planner]` логирует план, выполнение, replans
+- `[test_bt_runner]` логирует тики BT, переходы статусов
+- `[decision_server]` (канал 1) реагирует на запросы от MapfPlan/SetFormation
+- `[passive_observer]` (канал 2) триггерится по WARN/ERROR в `/bt/state`
+- `[LlmCommandReceiver]` применяет команды от observer в blackboard
+
+В RViz — роботы движутся по картам.
+
+Датасеты для будущего SFT накапливаются в:
+- `~/.ros/llm_decisions/decisions_YYYYMMDD.jsonl` — канал 1
+- `~/.ros/llm_commands/decisions_YYYYMMDD.jsonl` — канал 2
+
 ### Simple tests
 
 You can play around with swarm a little:

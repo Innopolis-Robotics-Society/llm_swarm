@@ -1,0 +1,33 @@
+import os
+from glob import glob
+
+from setuptools import find_packages, setup
+
+package_name = 'iros_llm_orchestrator'
+
+setup(
+    name=package_name,
+    version='0.0.1',
+    packages=find_packages(exclude=['test']),
+    data_files=[
+        (
+            'share/ament_index/resource_index/packages',
+            ['resource/' + package_name],
+        ),
+        ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')),
+        (os.path.join('share', package_name, 'config'), glob('config/*.yaml')),
+    ],
+    install_requires=['setuptools'],
+    zip_safe=True,
+    maintainer='you',
+    maintainer_email='you@example.com',
+    description='LLM decision action server for swarm BT',
+    license='Apache-2.0',
+    entry_points={
+        'console_scripts': [
+            'decision_server = iros_llm_orchestrator.decision_server:main',
+            'passive_observer = iros_llm_orchestrator.passive_observer:main',
+        ],
+    },
+)
