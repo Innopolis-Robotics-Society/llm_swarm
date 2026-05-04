@@ -1,0 +1,489 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iros_llm_swarm_simulation_lite &mdash; iros_llm_swarm_simulation_lite</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            iros_llm_swarm_simulation_lite
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">iros_llm_swarm_simulation_lite</a><ul>
+<li><a class="reference internal" href="#what-s-in-the-package">What’s in the package</a><ul>
+<li><a class="reference internal" href="#install-layout">Install layout</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#launch-flow">Launch flow</a><ul>
+<li><a class="reference internal" href="#launch-arguments">Launch arguments</a></li>
+<li><a class="reference internal" href="#stage-parameters">Stage parameters</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#worlds-and-maps">Worlds and maps</a><ul>
+<li><a class="reference internal" href="#robot-model-warehouse-robot-inc">Robot model (<code class="docutils literal notranslate"><span class="pre">warehouse_robot.inc</span></code>)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#scenario-catalogue-common-scenarios-yaml">Scenario catalogue (<code class="docutils literal notranslate"><span class="pre">common_scenarios.yaml</span></code>)</a></li>
+<li><a class="reference internal" href="#topics-published-by-stage-per-robot">Topics published by Stage (per robot)</a></li>
+<li><a class="reference internal" href="#build-install-run">Build, install, run</a></li>
+<li><a class="reference internal" href="#cross-references">Cross-references</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">iros_llm_swarm_simulation_lite</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">iros_llm_swarm_simulation_lite</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/user_docs/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <p style="margin: 0 0 1em 0;">
+  <a href="../iros_llm_swarm_docs/index.html">&laquo; IROS LLM Swarm — back to overview</a>
+</p><section id="iros-llm-swarm-simulation-lite">
+<h1>iros_llm_swarm_simulation_lite<a class="headerlink" href="#iros-llm-swarm-simulation-lite" title="Link to this heading"></a></h1>
+<p>The <strong>supported</strong> simulator for the swarm: a thin wrapper around
+<code class="docutils literal notranslate"><span class="pre">stage_ros2</span></code> (a 2D Stage simulation backend for ROS 2) plus the
+project’s own world files, occupancy maps, robot model, and scenario
+catalogue. Used by the integrated bringup launches; the
+heavier 3D Gazebo alternative <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation</span></code> is preview
+and not yet recommended.</p>
+<p>This is a pure Python ament package — it ships only configuration and
+launch logic. The simulator itself comes from <code class="docutils literal notranslate"><span class="pre">stage_ros2</span></code>.</p>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#what-s-in-the-package" id="id1">What’s in the package</a></p>
+<ul>
+<li><p><a class="reference internal" href="#install-layout" id="id2">Install layout</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#launch-flow" id="id3">Launch flow</a></p>
+<ul>
+<li><p><a class="reference internal" href="#launch-arguments" id="id4">Launch arguments</a></p></li>
+<li><p><a class="reference internal" href="#stage-parameters" id="id5">Stage parameters</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#worlds-and-maps" id="id6">Worlds and maps</a></p>
+<ul>
+<li><p><a class="reference internal" href="#robot-model-warehouse-robot-inc" id="id7">Robot model (<code class="docutils literal notranslate"><span class="pre">warehouse_robot.inc</span></code>)</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#scenario-catalogue-common-scenarios-yaml" id="id8">Scenario catalogue (<code class="docutils literal notranslate"><span class="pre">common_scenarios.yaml</span></code>)</a></p></li>
+<li><p><a class="reference internal" href="#topics-published-by-stage-per-robot" id="id9">Topics published by Stage (per robot)</a></p></li>
+<li><p><a class="reference internal" href="#build-install-run" id="id10">Build, install, run</a></p></li>
+<li><p><a class="reference internal" href="#cross-references" id="id11">Cross-references</a></p></li>
+</ul>
+</nav>
+<section id="what-s-in-the-package">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">What’s in the package</a><a class="headerlink" href="#what-s-in-the-package" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">launch/warehouse_swarm.launch.py</span></code> — the only launch file. Spawns
+one <code class="docutils literal notranslate"><span class="pre">stage_ros2/stage_ros2</span></code> instance with the world file selected
+by the <code class="docutils literal notranslate"><span class="pre">scenario</span></code> argument.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">world/</span></code> — four Stage world files (<code class="docutils literal notranslate"><span class="pre">cave</span></code>, <code class="docutils literal notranslate"><span class="pre">large_cave</span></code>,
+<code class="docutils literal notranslate"><span class="pre">warehouse</span></code>, <code class="docutils literal notranslate"><span class="pre">warehouse_four</span></code>). Each <code class="docutils literal notranslate"><span class="pre">.world</span></code> includes the
+shared robot model, declares a <code class="docutils literal notranslate"><span class="pre">floorplan</span></code> against an occupancy
+bitmap, and statically lists all 20 robots with explicit poses.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">map/</span></code> — three Nav2-format <code class="docutils literal notranslate"><span class="pre">.yaml</span></code> map descriptors plus their
+PGM bitmaps. Used by the global <code class="docutils literal notranslate"><span class="pre">map_server</span></code> started by
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">robot_description/warehouse_robot.inc</span></code> — the differential-drive
+robot model used by every world.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scenario/common_scenarios.yaml</span></code> — the scenario catalogue
+consumed by both this package and <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav</span></code>.</p></li>
+</ul>
+<section id="install-layout">
+<h3><a class="toc-backref" href="#id2" role="doc-backlink">Install layout</a><a class="headerlink" href="#install-layout" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> deliberately installs world files, maps, and the
+robot <code class="docutils literal notranslate"><span class="pre">.inc</span></code> into the <strong>same</strong> install directory
+(<code class="docutils literal notranslate"><span class="pre">share/&lt;pkg&gt;/stage_sim</span></code>). Stage resolves bitmap paths in
+<code class="docutils literal notranslate"><span class="pre">floorplan</span> <span class="pre">{</span> <span class="pre">bitmap</span> <span class="pre">&quot;warehouse.pgm&quot;</span> <span class="pre">}</span></code> relative to the world file’s
+location — colocation in the install tree is what makes that
+resolution work without absolute paths in the worlds.</p>
+<p>Scenarios are installed under <code class="docutils literal notranslate"><span class="pre">share/&lt;pkg&gt;/scenario/</span></code>, separate
+from the simulator artefacts. Launch files outside this package
+(notably <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav</span></code>) read the scenario catalogue
+from there.</p>
+</section>
+</section>
+<section id="launch-flow">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Launch flow</a><a class="headerlink" href="#launch-flow" title="Link to this heading"></a></h2>
+<p>The launch file is intentionally minimal: read scenario name, look up
+the world file in the scenario YAML, start one Stage process. There is
+<strong>no per-robot processing here</strong> — Stage spawns every robot listed in
+the world file at simulation startup.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>arg: scenario        ─┐
+arg: scenarios_file  ─┼─▶ resolve world file
+arg: world_file      ─┘     (scenario.world OR fallback)
+                                   │
+                                   ▼
+                      stage_ros2 (one_tf_tree=True,
+                                   enforce_prefixes=True,
+                                   use_sim_time=True,
+                                   is_depth_canonical=True,
+                                   base_watchdog_timeout=0.2)
+</pre></div>
+</div>
+<section id="launch-arguments">
+<h3><a class="toc-backref" href="#id4" role="doc-backlink">Launch arguments</a><a class="headerlink" href="#launch-arguments" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 28.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Argument</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scenario</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cave</span></code></p></td>
+<td><p>Scenario name. Looked up in <code class="docutils literal notranslate"><span class="pre">scenarios_file</span></code>; if found and
+the entry has a <code class="docutils literal notranslate"><span class="pre">world:</span></code> field, that file is used.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">scenarios_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">share/iros_llm_swarm_simulation_lite/scenario/common_scenarios.yaml</span></code></p></td>
+<td><p>Scenario catalogue YAML. Override to use an external file.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">world_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">share/iros_llm_swarm_simulation_lite/stage_sim/cave.world</span></code></p></td>
+<td><p>Fallback world file used only if the scenario lookup fails or
+the entry has no <code class="docutils literal notranslate"><span class="pre">world:</span></code> field. Override directly to bypass
+the scenario flow.</p></td>
+</tr>
+</tbody>
+</table>
+<p>There is <strong>no</strong> <code class="docutils literal notranslate"><span class="pre">num_robots</span></code> argument in this launch. Each world
+file already declares 20 robots inline; Stage spawns whatever the
+world contains, and the upstream layers (<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav</span></code>
+and the bringup files) decide how many of those to attach Nav2 stacks
+to via <em>their</em> <code class="docutils literal notranslate"><span class="pre">num_robots</span></code> argument. Lowering <code class="docutils literal notranslate"><span class="pre">num_robots</span></code> at
+the bringup level does not stop Stage from spawning the unused
+robots; it just leaves them sitting at their initial poses.</p>
+</section>
+<section id="stage-parameters">
+<h3><a class="toc-backref" href="#id5" role="doc-backlink">Stage parameters</a><a class="headerlink" href="#stage-parameters" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 14.0%" />
+<col style="width: 56.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Value</p></th>
+<th class="head"><p>Why</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">one_tf_tree</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>All robots’ TF frames are published into a single shared TF
+tree, so <code class="docutils literal notranslate"><span class="pre">map</span> <span class="pre">→</span> <span class="pre">robot_N/odom</span> <span class="pre">→</span> <span class="pre">robot_N/base_link</span></code> chains
+coexist on one topic without per-robot TF prefixes that would
+require a TF static publisher per pair.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">enforce_prefixes</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>Stage prefixes every frame and topic with the robot name.
+Combined with the world file’s per-robot <code class="docutils literal notranslate"><span class="pre">name</span> <span class="pre">&quot;robot_N&quot;</span></code>,
+this is what produces <code class="docutils literal notranslate"><span class="pre">/robot_N/odom</span></code> and
+<code class="docutils literal notranslate"><span class="pre">robot_N/base_link</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">use_sim_time</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>The simulator owns <code class="docutils literal notranslate"><span class="pre">/clock</span></code>; everything else in the stack
+uses <code class="docutils literal notranslate"><span class="pre">use_sim_time:</span> <span class="pre">true</span></code> to match.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_depth_canonical</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>Format toggle inside <code class="docutils literal notranslate"><span class="pre">stage_ros2</span></code>; kept for forward
+compatibility.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">base_watchdog_timeout</span></code></p></td>
+<td><p>0.2</p></td>
+<td><p>Stage stops a robot if no <code class="docutils literal notranslate"><span class="pre">cmd_vel</span></code> arrives within this many
+seconds. The followers in the swarm publish <code class="docutils literal notranslate"><span class="pre">cmd_vel</span></code> only
+in formation mode; in autonomous mode Nav2 controls velocity
+through a different path (<code class="docutils literal notranslate"><span class="pre">follow_path</span></code> action), so the
+watchdog is per-robot timing rather than fleet-wide. 0.2 s is
+generous enough to survive minor scheduling jitter.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="worlds-and-maps">
+<h2><a class="toc-backref" href="#id6" role="doc-backlink">Worlds and maps</a><a class="headerlink" href="#worlds-and-maps" title="Link to this heading"></a></h2>
+<p>The four bundled worlds:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 16.0%" />
+<col style="width: 18.0%" />
+<col style="width: 44.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>World</p></th>
+<th class="head"><p>Map bitmap</p></th>
+<th class="head"><p>Map <code class="docutils literal notranslate"><span class="pre">.yaml</span></code> resolution / origin</p></th>
+<th class="head"><p>Layout</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cave.world</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cave.pgm</span></code></p></td>
+<td><p>0.05 m / cell, origin <code class="docutils literal notranslate"><span class="pre">[-37.5,</span> <span class="pre">-37.5,</span> <span class="pre">0]</span></code></p></td>
+<td><p>75 × 75 m cave map. Five spawn zones distributed across the
+cave; default warehouse-like 20-robot fleet at varying
+headings.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">large_cave.world</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cave.pgm</span></code> <em>(reused)</em></p></td>
+<td><p>0.1 m / cell, origin <code class="docutils literal notranslate"><span class="pre">[-75,</span> <span class="pre">-75,</span> <span class="pre">0]</span></code></p></td>
+<td><p>150 × 150 m world that <strong>reuses the same</strong> <code class="docutils literal notranslate"><span class="pre">cave.pgm</span></code> at
+half the original resolution. Five spawn zones spread out at
+the larger scale. Recommended only at fine-grained tuning;
+default planner parameters are sized for <code class="docutils literal notranslate"><span class="pre">cave</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">warehouse.world</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">warehouse.pgm</span></code></p></td>
+<td><p>0.05 m / cell, origin <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">0,</span> <span class="pre">0]</span></code></p></td>
+<td><p>30 × 30 m warehouse. Two spawn zones: orange squad
+(<code class="docutils literal notranslate"><span class="pre">robot_0..9</span></code>) bottom-left at ~``(2-4, 2-8)``; blue squad
+(<code class="docutils literal notranslate"><span class="pre">robot_10..19</span></code>) top-right at ~``(26-28, 22-28)``.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">warehouse_four.world</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">warehouse.pgm</span></code></p></td>
+<td><p>0.05 m / cell, origin <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">0,</span> <span class="pre">0]</span></code></p></td>
+<td><p>Same 30 × 30 m warehouse, but the 20 robots are distributed
+across all four corners (5 each).</p></td>
+</tr>
+</tbody>
+</table>
+<p>The <code class="docutils literal notranslate"><span class="pre">warehouse</span></code> map sits at world-aligned origin (<code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">0]</span></code>)
+because the world declares <code class="docutils literal notranslate"><span class="pre">floorplan</span> <span class="pre">{</span> <span class="pre">pose</span> <span class="pre">[15,</span> <span class="pre">15,</span> <span class="pre">0,</span> <span class="pre">0]</span> <span class="pre">size</span>
+<span class="pre">[30,</span> <span class="pre">30,</span> <span class="pre">0.5]</span> <span class="pre">}</span></code> — bottom-left of the bitmap is the world origin.
+The two cave maps centre the bitmap at <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">0)</span></code>, hence the
+negative <code class="docutils literal notranslate"><span class="pre">origin</span></code> values in the YAMLs.</p>
+<section id="robot-model-warehouse-robot-inc">
+<h3><a class="toc-backref" href="#id7" role="doc-backlink">Robot model (<code class="docutils literal notranslate"><span class="pre">warehouse_robot.inc</span></code>)</a><a class="headerlink" href="#robot-model-warehouse-robot-inc" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Footprint:</strong> 30 × 30 × 15 cm bounding box; the actual collision
+shape is an 8-vertex octagon approximating a 30 cm circle.</p></li>
+<li><p><strong>Drive:</strong> <code class="docutils literal notranslate"><span class="pre">diff</span></code> (Stage’s differential-drive model).</p></li>
+<li><p><strong>Sensor:</strong> one 360°-FOV planar laser at body centre (slightly
+below: <code class="docutils literal notranslate"><span class="pre">pose</span> <span class="pre">[0,</span> <span class="pre">0,</span> <span class="pre">-0.05,</span> <span class="pre">0]</span></code>). 180 samples, 0.12 – 3.5 m
+range. Published as <code class="docutils literal notranslate"><span class="pre">/robot_N/base_scan</span></code>.</p></li>
+<li><p><strong>Behavioural flags:</strong> <code class="docutils literal notranslate"><span class="pre">obstacle_return</span> <span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">ranger_return</span> <span class="pre">1.0</span></code>
+— robots see each other on the lidar. This is what causes the
+ghost-trail problem that <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_costmap_plugins</span></code> exists
+to fix.</p></li>
+</ul>
+<p>The robot’s <code class="docutils literal notranslate"><span class="pre">color</span></code> is overridden per-spawn in each world file,
+which is purely cosmetic but useful in RViz and the Stage GUI for
+distinguishing squads.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The Gazebo-side robot in <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation</span></code> uses
+<code class="docutils literal notranslate"><span class="pre">/robot_N/scan</span></code> (no <code class="docutils literal notranslate"><span class="pre">base_</span></code> prefix) and a very different
+sensor profile (181 samples, 10 m max, Gaussian noise). The Nav2
+parameter file in <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav</span></code> is tuned for the
+Stage-side topic name and is not portable between simulators
+without changes.</p>
+</div>
+</section>
+</section>
+<section id="scenario-catalogue-common-scenarios-yaml">
+<h2><a class="toc-backref" href="#id8" role="doc-backlink">Scenario catalogue (<code class="docutils literal notranslate"><span class="pre">common_scenarios.yaml</span></code>)</a><a class="headerlink" href="#scenario-catalogue-common-scenarios-yaml" title="Link to this heading"></a></h2>
+<p>Schema:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">scenarios</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">&lt;scenario_name&gt;</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">world</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;filename&gt;&quot;</span><span class="w">          </span><span class="c1"># relative to share/&lt;pkg&gt;/stage_sim/</span>
+<span class="w">    </span><span class="nt">map</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;filename&gt;&quot;</span><span class="w">            </span><span class="c1"># relative to share/&lt;pkg&gt;/stage_sim/</span>
+<span class="w">    </span><span class="nt">num_robots</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;int&gt;</span><span class="w">            </span><span class="c1"># informational; Stage uses the world&#39;s robot list</span>
+<span class="w">    </span><span class="nt">initial_poses</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">x</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">y</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">yaw</span><span class="p p-Indicator">]</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span>
+</pre></div>
+</div>
+<p>The four shipped scenarios:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 18.0%" />
+<col style="width: 22.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Scenario</p></th>
+<th class="head"><p>World / map</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cave</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cave.world</span></code> / <code class="docutils literal notranslate"><span class="pre">cave.yaml</span></code></p></td>
+<td><p>Default. 20 robots distributed across five cave zones at
+varying headings.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">large_cave</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">large_cave.world</span></code> / <code class="docutils literal notranslate"><span class="pre">large_cave.yaml</span></code></p></td>
+<td><p>Same robot count and zone layout but spread across the
+150 × 150 m world. <strong>Not recommended on default planner
+parameters</strong> — distances are large and the default MAPF
+horizon may be too short.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">warehouse_2</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">warehouse.world</span></code> / <code class="docutils literal notranslate"><span class="pre">warehouse.yaml</span></code></p></td>
+<td><p>Two-squad layout: orange <code class="docutils literal notranslate"><span class="pre">robot_0..9</span></code> bottom-left, blue
+<code class="docutils literal notranslate"><span class="pre">robot_10..19</span></code> top-right.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">warehouse_4</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">warehouse_four.world</span></code> / <code class="docutils literal notranslate"><span class="pre">warehouse.yaml</span></code></p></td>
+<td><p>Four-corner layout: 5 robots per corner. Same map; different
+world.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The catalogue is consumed in two places:</p>
+<ol class="arabic simple">
+<li><p><strong>This package’s launch</strong> uses the <code class="docutils literal notranslate"><span class="pre">world:</span></code> field to choose the
+world file.</p></li>
+<li><p><strong>``iros_llm_swarm_local_nav``’s launch</strong> uses the
+<code class="docutils literal notranslate"><span class="pre">initial_poses</span></code> field for per-robot AMCL setup (currently inert
+— AMCL is disabled) and the <code class="docutils literal notranslate"><span class="pre">map:</span></code> field to pick the global
+map. The two consumers operate independently; the same scenario
+YAML drives both.</p></li>
+</ol>
+</section>
+<section id="topics-published-by-stage-per-robot">
+<h2><a class="toc-backref" href="#id9" role="doc-backlink">Topics published by Stage (per robot)</a><a class="headerlink" href="#topics-published-by-stage-per-robot" title="Link to this heading"></a></h2>
+<p>With <code class="docutils literal notranslate"><span class="pre">one_tf_tree</span></code> and <code class="docutils literal notranslate"><span class="pre">enforce_prefixes</span></code> set, Stage publishes
+the following per robot. The <code class="docutils literal notranslate"><span class="pre">stage_ros2</span></code> defaults are followed:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/robot_N/odom</span></code> — <code class="docutils literal notranslate"><span class="pre">nav_msgs/Odometry</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/robot_N/base_scan</span></code> — <code class="docutils literal notranslate"><span class="pre">sensor_msgs/LaserScan</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/robot_N/base_pose_ground_truth</span></code> —
+<code class="docutils literal notranslate"><span class="pre">nav_msgs/Odometry</span></code> (ground truth, useful for evaluation).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/tf</span></code> (shared) — frames <code class="docutils literal notranslate"><span class="pre">robot_N/odom</span> <span class="pre">→</span>
+<span class="pre">robot_N/base_link</span></code>. <code class="docutils literal notranslate"><span class="pre">map</span> <span class="pre">→</span> <span class="pre">robot_N/odom</span></code> is supplied by
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav</span></code>’s static publisher (AMCL is off).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/clock</span></code> — <code class="docutils literal notranslate"><span class="pre">rosgraph_msgs/Clock</span></code>.</p></li>
+</ul>
+<p>Stage subscribes to <code class="docutils literal notranslate"><span class="pre">/robot_N/cmd_vel</span></code> (<code class="docutils literal notranslate"><span class="pre">geometry_msgs/Twist</span></code>)
+to drive each robot’s diff-drive model.</p>
+</section>
+<section id="build-install-run">
+<h2><a class="toc-backref" href="#id10" role="doc-backlink">Build, install, run</a><a class="headerlink" href="#build-install-run" title="Link to this heading"></a></h2>
+<p>The package is pure Python — no build step beyond <code class="docutils literal notranslate"><span class="pre">colcon</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">colcon</span> <span class="n">build</span> <span class="o">--</span><span class="n">packages</span><span class="o">-</span><span class="n">select</span> <span class="n">iros_llm_swarm_simulation_lite</span>
+</pre></div>
+</div>
+<p>Standalone launch (Stage only — no Nav2, no MAPF, no followers):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_simulation_lite</span> <span class="n">warehouse_swarm</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span>
+<span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_simulation_lite</span> <span class="n">warehouse_swarm</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span> \
+  <span class="n">scenario</span><span class="o">:=</span><span class="n">warehouse_2</span>
+</pre></div>
+</div>
+<p>In the integrated bringup launches (<code class="docutils literal notranslate"><span class="pre">swarm_mapf*.launch.py</span></code> /
+<code class="docutils literal notranslate"><span class="pre">swarm_lns*.launch.py</span></code>) this launch is included at <code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">=</span> <span class="pre">0</span></code> and
+everything else is layered on top.</p>
+</section>
+<section id="cross-references">
+<h2><a class="toc-backref" href="#id11" role="doc-backlink">Cross-references</a><a class="headerlink" href="#cross-references" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Nav2 stack that reads the maps and consumes <code class="docutils literal notranslate"><span class="pre">/robot_N/base_scan</span></code>:
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav</span></code>.</p></li>
+<li><p>The custom costmap layer that compensates for inter-robot lidar
+cross-marking on this simulator’s sparse scanner:
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_costmap_plugins</span></code>.</p></li>
+<li><p>Alternative 3D simulator (preview, not yet stable):
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation</span></code>.</p></li>
+<li><p>Bringup orchestration that includes this launch:
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_bringup</span></code>.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

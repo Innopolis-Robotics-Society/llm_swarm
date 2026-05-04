@@ -41,6 +41,12 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Project Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">System Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../packages.html">Package Map</a></li>
+</ul>
+<ul>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_bringup/index.html#http://">iros_llm_swarm_bringup</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_bt/index.html#http://">iros_llm_swarm_bt</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_costmap_plugins/index.html#http://">iros_llm_swarm_costmap_plugins</a></li>
@@ -80,6 +86,61 @@
              
   <section id="iros-llm-swarm-documentation">
 <h1>IROS LLM Swarm Documentation<a class="headerlink" href="#iros-llm-swarm-documentation" title="Link to this heading"></a></h1>
+<p>A ROS 2 Humble research stack for orchestrating 20 differential-drive
+robots in a 2D Stage simulation: fleet-level MAPF planning, per-robot
+Nav2 navigation, leader-follower formations, and a behavior-tree
+front-end — all behind a single <code class="docutils literal notranslate"><span class="pre">/swarm/set_goals</span></code> action.</p>
+<p>Start with <a class="reference internal" href="overview.html"><span class="doc">Project Overview</span></a> for a tour of what the project does and why,
+then move on to <a class="reference internal" href="getting_started.html"><span class="doc">Getting Started</span></a> to bring the stack up. The
+<a class="reference internal" href="architecture.html"><span class="doc">System Architecture</span></a> and <a class="reference internal" href="packages.html"><span class="doc">Package Map</span></a> pages are the reference for how
+the pieces fit together.</p>
+<section id="project-overview">
+<h2>Project overview<a class="headerlink" href="#project-overview" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Project Overview</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#what-the-project-does">What the project does</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#design-goals">Design goals</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#scope-and-known-limits">Scope and known limits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#roadmap-high-level">Roadmap (high level)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="overview.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#bring-up-the-container">Bring up the container</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#build">Build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#launch-a-mission">Launch a mission</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#send-a-mission">Send a mission</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#local-nav-only-smoke-test">Local-nav-only smoke test</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#behavior-tree-smoke-test">Behavior tree smoke test</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">System Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#layered-view">Layered view</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#topic-graph">Topic graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#actions">Actions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#formation-services">Formation services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#tf-tree">TF tree</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#mission-lifecycle">Mission lifecycle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#per-robot-follower">Per-robot follower</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#startup-sequence">Startup sequence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#environment-notes">Environment notes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="packages.html">Package Map</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="packages.html#overview-table">Overview table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="packages.html#per-package-roles">Per-package roles</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="per-package-documentation">
+<h2>Per-package documentation<a class="headerlink" href="#per-package-documentation" title="Link to this heading"></a></h2>
+<p>The links below open each package’s own rosdoc2-generated site, built
+alongside this aggregator.</p>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_bringup/index.html#http://">iros_llm_swarm_bringup</a></li>
@@ -95,6 +156,7 @@
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_simulation_lite/index.html#http://">iros_llm_swarm_simulation_lite</a></li>
 </ul>
 </div>
+</section>
 </section>
 
 

@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>iros_llm_swarm_formation &mdash; iros_llm_swarm_formation 0.1.0 documentation</title>
+  <title>iros_llm_swarm_formation &mdash; iros_llm_swarm_formation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
@@ -18,8 +18,7 @@
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Standard Documents" href="standards.html" /> 
+    <link rel="search" title="Search" href="search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -41,16 +40,37 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul>
-<li class="toctree-l1"><a class="reference internal" href="standards.html">Standard Documents</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="standard_docs/PACKAGE.html">PACKAGE</a></li>
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">iros_llm_swarm_formation</a><ul>
+<li><a class="reference internal" href="#role-in-the-stack">Role in the stack</a></li>
+<li><a class="reference internal" href="#formation-manager-node">formation_manager_node</a><ul>
+<li><a class="reference internal" href="#internal-record">Internal record</a></li>
+<li><a class="reference internal" href="#footprint-computation">Footprint computation</a></li>
+<li><a class="reference internal" href="#services">Services</a></li>
+<li><a class="reference internal" href="#yaml-schema">YAML schema</a></li>
+<li><a class="reference internal" href="#initial-load-behavior">Initial-load behavior</a></li>
+<li><a class="reference internal" href="#parameters">Parameters</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#formation-monitor-node">formation_monitor_node</a><ul>
+<li><a class="reference internal" href="#tracking-state">Tracking state</a></li>
+<li><a class="reference internal" href="#state-machine">State machine</a></li>
+<li><a class="reference internal" href="#failure-detection">Failure detection</a></li>
+<li><a class="reference internal" href="#per-follower-error">Per-follower error</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#topics-services-parameters">Topics, services, parameters</a><ul>
+<li><a class="reference internal" href="#manager-node">manager_node</a></li>
+<li><a class="reference internal" href="#monitor-node">monitor_node</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#build-and-launch">Build and launch</a></li>
+<li><a class="reference internal" href="#cross-references">Cross-references</a></li>
 </ul>
 </li>
 </ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
-</ul>
-
+</div>
         </div>
       </div>
     </nav>
@@ -75,35 +95,552 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="iros-llm-swarm-formation">
+  <p style="margin: 0 0 1em 0;">
+  <a href="../iros_llm_swarm_docs/index.html">&laquo; IROS LLM Swarm — back to overview</a>
+</p><section id="iros-llm-swarm-formation">
 <h1>iros_llm_swarm_formation<a class="headerlink" href="#iros-llm-swarm-formation" title="Link to this heading"></a></h1>
-<dl class="simple">
-<dt>Formation control for the IROS LLM swarm — leader-follower with PD controllers.</dt><dd><p>Manages formation definitions, publishes configs, and runs per-follower controllers.</p>
-</dd>
-</dl>
-<div class="toctree-wrapper compound">
+<p>Centralized <strong>formation registry and health monitor</strong> for the swarm.
+Two Python nodes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">formation_manager_node</span></code> — owns the in-memory formation registry,
+exposes the <code class="docutils literal notranslate"><span class="pre">/formation/*</span></code> CRUD services, and publishes the
+latched <code class="docutils literal notranslate"><span class="pre">/formations/config</span></code> snapshot.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">formation_monitor_node</span></code> — subscribes to the registry, observes
+leader and follower odometry, computes per-follower errors, and
+publishes <code class="docutils literal notranslate"><span class="pre">/formations/status</span></code> with a per-formation state machine.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>No PD controllers live in this package.</strong> The package’s
+<code class="docutils literal notranslate"><span class="pre">&lt;description&gt;</span></code> mentions “leader-follower with PD controllers”,
+but the actual PD math is implemented in the per-robot followers:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_robot/motion_controller_node</span></code> for the PBS
+stack.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns/path_follower_node</span></code> for the LNS2
+stack.</p></li>
+</ul>
+<p>This package only declares <strong>who</strong> follows <strong>whom</strong> and <strong>at what
+offset</strong>, then watches the result. The followers translate that
+declaration into <code class="docutils literal notranslate"><span class="pre">cmd_vel</span></code> themselves.</p>
+</div>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#role-in-the-stack" id="id1">Role in the stack</a></p></li>
+<li><p><a class="reference internal" href="#formation-manager-node" id="id2">formation_manager_node</a></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="standards.html">Standard Documents</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="standard_docs/PACKAGE.html">PACKAGE</a></li>
+<li><p><a class="reference internal" href="#internal-record" id="id3">Internal record</a></p></li>
+<li><p><a class="reference internal" href="#footprint-computation" id="id4">Footprint computation</a></p></li>
+<li><p><a class="reference internal" href="#services" id="id5">Services</a></p></li>
+<li><p><a class="reference internal" href="#yaml-schema" id="id6">YAML schema</a></p></li>
+<li><p><a class="reference internal" href="#initial-load-behavior" id="id7">Initial-load behavior</a></p></li>
+<li><p><a class="reference internal" href="#parameters" id="id8">Parameters</a></p></li>
 </ul>
 </li>
+<li><p><a class="reference internal" href="#formation-monitor-node" id="id9">formation_monitor_node</a></p>
+<ul>
+<li><p><a class="reference internal" href="#tracking-state" id="id10">Tracking state</a></p></li>
+<li><p><a class="reference internal" href="#state-machine" id="id11">State machine</a></p></li>
+<li><p><a class="reference internal" href="#failure-detection" id="id12">Failure detection</a></p></li>
+<li><p><a class="reference internal" href="#per-follower-error" id="id13">Per-follower error</a></p></li>
 </ul>
+</li>
+<li><p><a class="reference internal" href="#topics-services-parameters" id="id14">Topics, services, parameters</a></p>
+<ul>
+<li><p><a class="reference internal" href="#manager-node" id="id15">manager_node</a></p></li>
+<li><p><a class="reference internal" href="#monitor-node" id="id16">monitor_node</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#build-and-launch" id="id17">Build and launch</a></p></li>
+<li><p><a class="reference internal" href="#cross-references" id="id18">Cross-references</a></p></li>
+</ul>
+</nav>
+<section id="role-in-the-stack">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Role in the stack</a><a class="headerlink" href="#role-in-the-stack" title="Link to this heading"></a></h2>
+<p>The formation layer is a thin overlay on top of the existing follower
+nodes. Activating a formation flips affected followers from AUTONOMOUS
+mode (consuming MAPF paths / plans) to FORMATION_FOLLOWER mode (PD
+tracking of a leader’s body-frame offset). The flip is event-driven by
+<code class="docutils literal notranslate"><span class="pre">/formations/config</span></code>; the followers do not restart.</p>
+<p>Data flow:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>YAML on disk
+   │
+   ▼
+formation_manager_node            ──▶  /formations/config (latched)
+   ▲      ▲                                   │
+   │      │ /formation/* services             │
+   │                                          ▼
+BT / CLI / scripted client       formation_monitor_node + per-robot followers
+                                              │
+                                              ▼
+                                      /formations/status
+</pre></div>
 </div>
-<div class="toctree-wrapper compound">
+<p>The manager owns the canonical state. The monitor is read-only — it
+sees the same snapshot every consumer sees and adds telemetry on top.</p>
+</section>
+<section id="formation-manager-node">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">formation_manager_node</a><a class="headerlink" href="#formation-manager-node" title="Link to this heading"></a></h2>
+<p>Single-instance Python node. Holds the formation registry as a
+dictionary indexed by <code class="docutils literal notranslate"><span class="pre">formation_id</span></code>. After every mutation it
+republishes the <strong>full</strong> registry on <code class="docutils literal notranslate"><span class="pre">/formations/config</span></code> (latched
+<code class="docutils literal notranslate"><span class="pre">TRANSIENT_LOCAL</span></code> + <code class="docutils literal notranslate"><span class="pre">RELIABLE</span></code> + <code class="docutils literal notranslate"><span class="pre">depth=1</span></code>), so late subscribers
+immediately see the current state.</p>
+<section id="internal-record">
+<h3><a class="toc-backref" href="#id3" role="doc-backlink">Internal record</a><a class="headerlink" href="#internal-record" title="Link to this heading"></a></h3>
+<p>A formation is stored as a small <code class="docutils literal notranslate"><span class="pre">_Formation</span></code> object with these
+fields:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">formation_id</span></code> — unique string key.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">leader_ns</span></code> — e.g. <code class="docutils literal notranslate"><span class="pre">&quot;robot_0&quot;</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">follower_ns</span></code> — list of follower namespaces.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">offsets</span></code> — list of <code class="docutils literal notranslate"><span class="pre">(dx,</span> <span class="pre">dy)</span></code> tuples in the leader’s body frame
+(<code class="docutils literal notranslate"><span class="pre">+x</span></code> forward, <code class="docutils literal notranslate"><span class="pre">+y</span></code> left), parallel to <code class="docutils literal notranslate"><span class="pre">follower_ns</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">active</span></code> — whether followers should currently be tracking.</p></li>
+</ul>
+<p>Conversion to <code class="docutils literal notranslate"><span class="pre">FormationConfig</span></code> adds a computed <code class="docutils literal notranslate"><span class="pre">footprint</span></code>
+polygon (see below) and stamps the message.</p>
+</section>
+<section id="footprint-computation">
+<h3><a class="toc-backref" href="#id4" role="doc-backlink">Footprint computation</a><a class="headerlink" href="#footprint-computation" title="Link to this heading"></a></h3>
+<p>Every published <code class="docutils literal notranslate"><span class="pre">FormationConfig</span></code> carries a <code class="docutils literal notranslate"><span class="pre">footprint</span></code> polygon
+that the MAPF planner can use to plan the formation as a single
+compound entity. The manager computes it as a 16-point circle
+approximation:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">(cx,</span> <span class="pre">cy)</span></code> is the centroid of the follower offsets.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">radius</span></code> is the maximum distance from any offset to the centroid,
+plus <code class="docutils literal notranslate"><span class="pre">robot_radius</span></code> (per-robot envelope), plus
+<code class="docutils literal notranslate"><span class="pre">footprint_padding</span></code> (extra safety margin).</p></li>
+<li><p>The circle is rasterized to 16 <code class="docutils literal notranslate"><span class="pre">Point32</span></code> samples around
+<code class="docutils literal notranslate"><span class="pre">(cx,</span> <span class="pre">cy)</span></code> with that radius.</p></li>
+</ol>
+<p>Both <code class="docutils literal notranslate"><span class="pre">robot_radius</span></code> and <code class="docutils literal notranslate"><span class="pre">footprint_padding</span></code> are node parameters.
+The leader’s own footprint contribution is implicit: offsets are in
+the leader body frame, so <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">0)</span></code> is the leader’s centre, and the
+circle’s centroid is the geometric mean of just the followers — the
+leader is at the origin and is automatically inside the circle for
+the typical “leader at front” formation.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">offsets</span></code> is empty, the polygon is a circle of radius
+<code class="docutils literal notranslate"><span class="pre">robot_radius</span></code> at the origin (leader-only “formation”).</p>
+</section>
+<section id="services">
+<h3><a class="toc-backref" href="#id5" role="doc-backlink">Services</a><a class="headerlink" href="#services" title="Link to this heading"></a></h3>
+<p>All services live under the <code class="docutils literal notranslate"><span class="pre">/formation/*</span></code> namespace. Type
+definitions are in <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces</span></code>; only
+manager-specific behavior is documented here.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 28.0%" />
+<col style="width: 72.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Service</p></th>
+<th class="head"><p>Behavior</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/formation/set</span></code></p></td>
+<td><p>Create or overwrite. Validates that <code class="docutils literal notranslate"><span class="pre">offsets_x</span></code> /
+<code class="docutils literal notranslate"><span class="pre">offsets_y</span></code> lengths match <code class="docutils literal notranslate"><span class="pre">follower_ns</span></code>. <code class="docutils literal notranslate"><span class="pre">activate=true</span></code>
+activates atomically with the registration. Republishes
+<code class="docutils literal notranslate"><span class="pre">/formations/config</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/formation/remove</span></code></p></td>
+<td><p>Refuses to remove an <strong>active</strong> formation — disband it first
+via <code class="docutils literal notranslate"><span class="pre">/formation/deactivate</span></code> to avoid orphan trackers in the
+monitor or in followers. Republishes on success.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/formation/activate</span></code> / <code class="docutils literal notranslate"><span class="pre">/formation/deactivate</span></code></p></td>
+<td><p>Toggle the <code class="docutils literal notranslate"><span class="pre">active</span></code> flag. Idempotent — already-active /
+already-inactive transitions return success without
+republishing changes (still no-ops).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/formation/get</span></code></p></td>
+<td><p>Returns one <code class="docutils literal notranslate"><span class="pre">FormationConfig</span></code> with the freshly computed
+footprint at the current time.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/formation/list</span></code></p></td>
+<td><p>Returns all formations (active and inactive) with computed
+footprints.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/formation/load</span></code></p></td>
+<td><p>Loads from YAML (see schema below). <code class="docutils literal notranslate"><span class="pre">clear_existing=true</span></code>
+wipes the registry before loading. <code class="docutils literal notranslate"><span class="pre">activate</span></code> is applied to
+every loaded formation. Returns <code class="docutils literal notranslate"><span class="pre">loaded_count</span></code> (entries that
+parsed successfully — malformed entries are logged and skipped,
+not fatal).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/formation/save</span></code></p></td>
+<td><p>Persists the registry to a YAML file in the same schema.
+<code class="docutils literal notranslate"><span class="pre">only_active=true</span></code> skips inactive entries. Returns
+<code class="docutils literal notranslate"><span class="pre">saved_count</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Side-effect summary: every mutation
+(<code class="docutils literal notranslate"><span class="pre">/formation/set</span></code>, <code class="docutils literal notranslate"><span class="pre">/formation/remove</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/formation/activate</span></code>, <code class="docutils literal notranslate"><span class="pre">/formation/deactivate</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/formation/load</span></code>) republishes the latched
+<code class="docutils literal notranslate"><span class="pre">/formations/config</span></code>. <code class="docutils literal notranslate"><span class="pre">get</span></code>, <code class="docutils literal notranslate"><span class="pre">list</span></code>, <code class="docutils literal notranslate"><span class="pre">save</span></code> are pure reads.</p>
+</section>
+<section id="yaml-schema">
+<h3><a class="toc-backref" href="#id6" role="doc-backlink">YAML schema</a><a class="headerlink" href="#yaml-schema" title="Link to this heading"></a></h3>
+<p>The YAML format used by <code class="docutils literal notranslate"><span class="pre">config_file</span></code> (startup load) and by
+<code class="docutils literal notranslate"><span class="pre">/formation/load</span></code> / <code class="docutils literal notranslate"><span class="pre">/formation/save</span></code> is <strong>not</strong> a 1:1 copy of the
+ROS service request fields:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">formations</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;wedge&quot;</span>
+<span class="w">    </span><span class="nt">leader</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;robot_1&quot;</span>
+<span class="w">    </span><span class="nt">followers</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">ns</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;robot_2&quot;</span>
+<span class="w">        </span><span class="nt">dx</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-1.0</span>
+<span class="w">        </span><span class="nt">dy</span><span class="p">:</span><span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">0.6</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">ns</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;robot_0&quot;</span>
+<span class="w">        </span><span class="nt">dx</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-1.0</span>
+<span class="w">        </span><span class="nt">dy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-0.6</span>
+</pre></div>
 </div>
+<p>Field mapping:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">id</span></code> ↔ <code class="docutils literal notranslate"><span class="pre">formation_id</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">leader</span></code> ↔ <code class="docutils literal notranslate"><span class="pre">leader_ns</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">followers[].ns</span></code> ↔ entry in <code class="docutils literal notranslate"><span class="pre">follower_ns</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">followers[].dx</span></code> / <code class="docutils literal notranslate"><span class="pre">followers[].dy</span></code> ↔ entries in
+<code class="docutils literal notranslate"><span class="pre">offsets_x</span></code> / <code class="docutils literal notranslate"><span class="pre">offsets_y</span></code></p></li>
+</ul>
+<p>Offsets are in the leader <strong>body</strong> frame: <code class="docutils literal notranslate"><span class="pre">+x</span></code> forward, <code class="docutils literal notranslate"><span class="pre">+y</span></code> left,
+units in metres.</p>
+<p>Two example files ship with the package: <code class="docutils literal notranslate"><span class="pre">config/formations_1.yaml</span></code>
+(wedge of three robots around <code class="docutils literal notranslate"><span class="pre">robot_1</span></code>, line of four robots around
+<code class="docutils literal notranslate"><span class="pre">robot_5</span></code>) and <code class="docutils literal notranslate"><span class="pre">config/formations_2.yaml</span></code> (similar layout shifted
+across the warehouse).</p>
+</section>
+<section id="initial-load-behavior">
+<h3><a class="toc-backref" href="#id7" role="doc-backlink">Initial-load behavior</a><a class="headerlink" href="#initial-load-behavior" title="Link to this heading"></a></h3>
+<p>On startup, if <code class="docutils literal notranslate"><span class="pre">config_file</span></code> is non-empty, the manager loads it
+synchronously and stamps every formation with <code class="docutils literal notranslate"><span class="pre">active</span> <span class="pre">=</span> <span class="pre">auto_activate</span></code>
+(parameter, default <code class="docutils literal notranslate"><span class="pre">false</span></code>). After loading it always publishes the
+registry once (so a freshly-launched monitor or follower immediately
+sees the snapshot, even if it is empty).</p>
+</section>
+<section id="parameters">
+<h3><a class="toc-backref" href="#id8" role="doc-backlink">Parameters</a><a class="headerlink" href="#parameters" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 26.0%" />
+<col style="width: 14.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">config_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+<td><p>YAML file loaded at startup. Empty string skips the load.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">auto_activate</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>Whether YAML-loaded formations should start active. Runtime
+<code class="docutils literal notranslate"><span class="pre">/formation/load</span></code> ignores this parameter and uses its own
+<code class="docutils literal notranslate"><span class="pre">activate</span></code> field.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">footprint_padding</span></code></p></td>
+<td><p>0.2</p></td>
+<td><p>Extra metres added to the footprint circle radius.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">robot_radius</span></code></p></td>
+<td><p>0.3</p></td>
+<td><p>Per-robot envelope added to the footprint circle radius.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="formation-monitor-node">
+<h2><a class="toc-backref" href="#id9" role="doc-backlink">formation_monitor_node</a><a class="headerlink" href="#formation-monitor-node" title="Link to this heading"></a></h2>
+<p>Single-instance Python node. Subscribes to the latched
+<code class="docutils literal notranslate"><span class="pre">/formations/config</span></code> and to per-robot <code class="docutils literal notranslate"><span class="pre">/&lt;ns&gt;/odom</span></code> of every
+participant; publishes <code class="docutils literal notranslate"><span class="pre">/formations/status</span></code> at <code class="docutils literal notranslate"><span class="pre">monitor_hz</span></code> with a
+per-formation state machine and per-follower error metrics.</p>
+<section id="tracking-state">
+<h3><a class="toc-backref" href="#id10" role="doc-backlink">Tracking state</a><a class="headerlink" href="#tracking-state" title="Link to this heading"></a></h3>
+<p>The monitor maintains:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">self._formations:</span> <span class="pre">dict[formation_id,</span> <span class="pre">_FormationState]</span></code> — the
+shadow registry (config + leader/follower state + state machine).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">self._ns_to_formations:</span> <span class="pre">dict[ns,</span> <span class="pre">list[formation_id]]</span></code> — reverse
+index used to route incoming odom to every formation a robot
+participates in. Built so a robot can theoretically belong to
+multiple formations at once; in the typical use case each robot
+participates in zero or one.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">self._odom_subs:</span> <span class="pre">dict[ns,</span> <span class="pre">Subscription]</span></code> — odom subscriptions
+reused across formations. Created lazily on registry updates and
+dropped only when a robot leaves all formations it was in.</p></li>
+</ul>
+<p>When the registry changes, the monitor diffs old vs new membership
+per formation and:</p>
+<ul class="simple">
+<li><p>Subscribes to odom for newly added robots.</p></li>
+<li><p>Drops the subscription for robots that no longer appear anywhere.</p></li>
+<li><p>Preserves accumulated <code class="docutils literal notranslate"><span class="pre">_RobotState</span></code> (last position, error,
+stuck-sample) for robots that remain — so an in-flight stuck
+detection isn’t reset just because the registry was republished.</p></li>
+</ul>
+</section>
+<section id="state-machine">
+<h3><a class="toc-backref" href="#id11" role="doc-backlink">State machine</a><a class="headerlink" href="#state-machine" title="Link to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>INACTIVE  ──(formation activated)─────────▶  FORMING
+FORMING   ──(all errors &lt; stable_thresh)──▶  STABLE
+STABLE    ──(any error &gt; degraded_thresh)─▶  DEGRADED
+DEGRADED  ──(all errors &lt; stable_thresh)──▶  STABLE
+DEGRADED  ──(stuck or lost detected)──────▶  BROKEN
+BROKEN    ──(disband then re-activate)────▶  INACTIVE → FORMING
+any state ──(formation disbanded)─────────▶  INACTIVE
+</pre></div>
+</div>
+<p>Two key properties:</p>
+<ul class="simple">
+<li><p><strong>Hysteresis between STABLE and DEGRADED.</strong> While <code class="docutils literal notranslate"><span class="pre">max_error</span></code> sits
+in the band <code class="docutils literal notranslate"><span class="pre">(stable_thresh,</span> <span class="pre">degraded_thresh]</span></code> the monitor keeps
+the previous state instead of oscillating. Crossing the upper
+threshold goes to DEGRADED; crossing back below the lower one goes
+to STABLE.</p></li>
+<li><p><strong>BROKEN is sticky.</strong> Once a formation enters BROKEN
+(follower lost, follower stuck, or leader lost), the monitor will
+not transition back to STABLE / DEGRADED on its own. The only way
+out is a registry change — typically a deactivate / activate
+cycle from the manager — which resets the state to INACTIVE and
+then FORMING.</p></li>
+</ul>
+</section>
+<section id="failure-detection">
+<h3><a class="toc-backref" href="#id12" role="doc-backlink">Failure detection</a><a class="headerlink" href="#failure-detection" title="Link to this heading"></a></h3>
+<ul>
+<li><p><strong>LEADER_LOST</strong> — leader’s last odom is older than
+<code class="docutils literal notranslate"><span class="pre">odom_timeout_s</span></code>, or never arrived. Reported with
+<code class="docutils literal notranslate"><span class="pre">failure_code</span> <span class="pre">=</span> <span class="pre">FAILURE_LEADER_LOST</span></code>. All follower errors are
+reported as <code class="docutils literal notranslate"><span class="pre">-1.0</span></code> for that tick (the world-frame target cannot
+be computed without leader pose).</p></li>
+<li><p><strong>FOLLOWER_LOST</strong> — at least one follower’s odom timed out. The
+affected followers are listed in <code class="docutils literal notranslate"><span class="pre">failure_reason</span></code>; their entries
+in <code class="docutils literal notranslate"><span class="pre">follower_errors_m</span></code> are <code class="docutils literal notranslate"><span class="pre">-1.0</span></code>. The remaining followers
+still get errors computed for them.</p></li>
+<li><p><strong>FOLLOWER_STUCK</strong> — the per-follower stuck check triggers when:</p>
+<ul class="simple">
+<li><p>the follower’s error exceeds <code class="docutils literal notranslate"><span class="pre">degraded_thresh_m</span></code>, <strong>and</strong></p></li>
+<li><p>the error has improved by less than <code class="docutils literal notranslate"><span class="pre">stuck_delta_m</span></code> over the
+last <code class="docutils literal notranslate"><span class="pre">stuck_window_s</span></code>.</p></li>
+</ul>
+<p>A robot sitting at a small steady error never trips this, since the
+<code class="docutils literal notranslate"><span class="pre">error</span> <span class="pre">&gt;</span> <span class="pre">degraded</span></code> precondition gates the check.</p>
+</li>
+</ul>
+</section>
+<section id="per-follower-error">
+<h3><a class="toc-backref" href="#id13" role="doc-backlink">Per-follower error</a><a class="headerlink" href="#per-follower-error" title="Link to this heading"></a></h3>
+<p>For each follower with valid odom, the monitor computes the expected
+world-frame target</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>T = leader_pos + R(leader_yaw) · offset
+</pre></div>
+</div>
+<p>and reports the Euclidean distance from the follower’s current
+position to <code class="docutils literal notranslate"><span class="pre">T</span></code> in <code class="docutils literal notranslate"><span class="pre">follower_errors_m[i]</span></code>. Aggregates
+<code class="docutils literal notranslate"><span class="pre">max_error_m</span></code> and <code class="docutils literal notranslate"><span class="pre">mean_error_m</span></code> are computed only over valid
+errors (<code class="docutils literal notranslate"><span class="pre">e</span> <span class="pre">≥</span> <span class="pre">0</span></code>); they are <code class="docutils literal notranslate"><span class="pre">-1.0</span></code> if no follower has valid odom.</p>
+</section>
+</section>
+<section id="topics-services-parameters">
+<h2><a class="toc-backref" href="#id14" role="doc-backlink">Topics, services, parameters</a><a class="headerlink" href="#topics-services-parameters" title="Link to this heading"></a></h2>
+<section id="manager-node">
+<h3><a class="toc-backref" href="#id15" role="doc-backlink">manager_node</a><a class="headerlink" href="#manager-node" title="Link to this heading"></a></h3>
+<p>Published:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 38.0%" />
+<col style="width: 32.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Topic</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>QoS</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/formations/config</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces/FormationsConfig</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">KeepLast(1)</span> <span class="pre">+</span> <span class="pre">transient_local</span> <span class="pre">+</span> <span class="pre">reliable</span></code> (latched).</p></td>
+</tr>
+</tbody>
+</table>
+<p>Services exposed (request / response types in
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces</span></code>):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/formation/set</span></code>, <code class="docutils literal notranslate"><span class="pre">/formation/remove</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/formation/activate</span></code>, <code class="docutils literal notranslate"><span class="pre">/formation/deactivate</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/formation/get</span></code>, <code class="docutils literal notranslate"><span class="pre">/formation/list</span></code>, <code class="docutils literal notranslate"><span class="pre">/formation/load</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/formation/save</span></code>.</p></li>
+</ul>
+</section>
+<section id="monitor-node">
+<h3><a class="toc-backref" href="#id16" role="doc-backlink">monitor_node</a><a class="headerlink" href="#monitor-node" title="Link to this heading"></a></h3>
+<p>Subscribed:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 38.0%" />
+<col style="width: 32.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Topic</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>QoS / notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/formations/config</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces/FormationsConfig</span></code></p></td>
+<td><p>Latched (matches the manager).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/&lt;ns&gt;/odom</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nav_msgs/Odometry</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">depth=10</span></code>. One subscription per participating robot,
+dynamically created and dropped as registry membership
+changes.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Published:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 38.0%" />
+<col style="width: 32.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Topic</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>QoS</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/formations/status</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces/FormationsStatus</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">depth=10</span></code>, default reliability. Published at
+<code class="docutils literal notranslate"><span class="pre">monitor_hz</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Parameters:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 26.0%" />
+<col style="width: 14.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">monitor_hz</span></code></p></td>
+<td><p>10.0</p></td>
+<td><p>Status publication rate.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">stable_thresh_m</span></code></p></td>
+<td><p>0.15</p></td>
+<td><p>All errors below this ⇒ STABLE.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">degraded_thresh_m</span></code></p></td>
+<td><p>0.35</p></td>
+<td><p>Any error above this ⇒ DEGRADED.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">odom_timeout_s</span></code></p></td>
+<td><p>1.0</p></td>
+<td><p>Maximum age of last odom before LOST.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">stuck_window_s</span></code></p></td>
+<td><p>3.0</p></td>
+<td><p>Window over which a follower’s error must improve to avoid
+being flagged stuck.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">stuck_delta_m</span></code></p></td>
+<td><p>0.05</p></td>
+<td><p>Minimum improvement (m) within <code class="docutils literal notranslate"><span class="pre">stuck_window_s</span></code> to count as
+progress.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="build-and-launch">
+<h2><a class="toc-backref" href="#id17" role="doc-backlink">Build and launch</a><a class="headerlink" href="#build-and-launch" title="Link to this heading"></a></h2>
+<p>The package is Python; only <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces</span></code> is a hard
+build prerequisite (its message and service types are imported at
+runtime):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">colcon</span> <span class="n">build</span> <span class="o">--</span><span class="n">packages</span><span class="o">-</span><span class="n">select</span> <span class="n">iros_llm_swarm_interfaces</span>
+<span class="n">colcon</span> <span class="n">build</span> <span class="o">--</span><span class="n">packages</span><span class="o">-</span><span class="n">select</span> <span class="n">iros_llm_swarm_formation</span>
+</pre></div>
+</div>
+<p>There is <strong>no launch file</strong> in this package. Both nodes are spawned
+by the integrated bringup launches:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">swarm_mapf_formation.launch.py</span></code> (PBS + formation).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">swarm_lns_formation.launch.py</span></code> (LNS2 + formation).</p></li>
+</ul>
+<p>Each one starts <code class="docutils literal notranslate"><span class="pre">formation_manager_node</span></code> (with a YAML
+<code class="docutils literal notranslate"><span class="pre">config_file</span></code>) and <code class="docutils literal notranslate"><span class="pre">formation_monitor_node</span></code> alongside the per-robot
+followers at <code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">=</span> <span class="pre">12</span> <span class="pre">s</span></code>.</p>
+<p>To run either node manually for debugging:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ros2</span> <span class="n">run</span> <span class="n">iros_llm_swarm_formation</span> <span class="n">formation_manager_node</span>
+<span class="n">ros2</span> <span class="n">run</span> <span class="n">iros_llm_swarm_formation</span> <span class="n">formation_monitor_node</span>
+</pre></div>
+</div>
+<p>Then poke at the registry:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ros2</span> <span class="n">service</span> <span class="n">call</span> <span class="o">/</span><span class="n">formation</span><span class="o">/</span><span class="nb">set</span> <span class="n">iros_llm_swarm_interfaces</span><span class="o">/</span><span class="n">srv</span><span class="o">/</span><span class="n">SetFormation</span> <span class="s2">&quot;</span>
+<span class="n">formation_id</span><span class="p">:</span> <span class="s1">&#39;line&#39;</span>
+<span class="n">leader_ns</span><span class="p">:</span> <span class="s1">&#39;robot_0&#39;</span>
+<span class="n">follower_ns</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;robot_1&#39;</span><span class="p">,</span> <span class="s1">&#39;robot_2&#39;</span><span class="p">]</span>
+<span class="n">offsets_x</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.0</span><span class="p">]</span>
+<span class="n">offsets_y</span><span class="p">:</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]</span>
+<span class="n">activate</span><span class="p">:</span> <span class="n">true</span>
+<span class="s2">&quot;</span>
+
+<span class="n">ros2</span> <span class="n">topic</span> <span class="n">echo</span> <span class="o">/</span><span class="n">formations</span><span class="o">/</span><span class="n">config</span>
+<span class="n">ros2</span> <span class="n">topic</span> <span class="n">echo</span> <span class="o">/</span><span class="n">formations</span><span class="o">/</span><span class="n">status</span>
+</pre></div>
+</div>
+</section>
+<section id="cross-references">
+<h2><a class="toc-backref" href="#id18" role="doc-backlink">Cross-references</a><a class="headerlink" href="#cross-references" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Message and service definitions: <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces</span></code>
+(<code class="docutils literal notranslate"><span class="pre">FormationConfig</span></code>, <code class="docutils literal notranslate"><span class="pre">FormationsConfig</span></code>, <code class="docutils literal notranslate"><span class="pre">FormationStatus</span></code>,
+<code class="docutils literal notranslate"><span class="pre">FormationsStatus</span></code>, plus the <code class="docutils literal notranslate"><span class="pre">/formation/*</span></code> service types).</p></li>
+<li><p>Per-robot consumers of <code class="docutils literal notranslate"><span class="pre">/formations/config</span></code>:
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_robot</span></code> (<code class="docutils literal notranslate"><span class="pre">motion_controller_node</span></code>, PBS) and
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns</span></code> (<code class="docutils literal notranslate"><span class="pre">path_follower_node</span></code>, LNS2).</p></li>
+<li><p>BT nodes that wrap formation services: <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_bt</span></code>.</p></li>
+</ul>
+</section>
 </section>
 
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="standards.html" class="btn btn-neutral float-right" title="Standard Documents" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright The &lt;iros_llm_swarm_formation&gt; Contributors. License: MIT.</p>
+    <p>&#169; Copyright .</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

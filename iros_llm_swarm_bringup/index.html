@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>iros_llm_swarm_bringup &mdash; iros_llm_swarm_bringup 0.0.0 documentation</title>
+  <title>iros_llm_swarm_bringup &mdash; iros_llm_swarm_bringup</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
@@ -18,8 +18,7 @@
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="iros_llm_swarm_bringup" href="modules.html" /> 
+    <link rel="search" title="Search" href="search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -41,23 +40,28 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">Python API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="iros_llm_swarm_bringup.html">iros_llm_swarm_bringup package</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="iros_llm_swarm_bringup.html#module-iros_llm_swarm_bringup">Module contents</a></li>
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">iros_llm_swarm_bringup</a><ul>
+<li><a class="reference internal" href="#picking-a-launch">Picking a launch</a></li>
+<li><a class="reference internal" href="#common-architecture">Common architecture</a></li>
+<li><a class="reference internal" href="#per-launch-detail">Per-launch detail</a><ul>
+<li><a class="reference internal" href="#swarm-warehouse-launch-py">swarm_warehouse.launch.py</a></li>
+<li><a class="reference internal" href="#swarm-mapf-launch-py">swarm_mapf.launch.py</a></li>
+<li><a class="reference internal" href="#swarm-mapf-formation-launch-py">swarm_mapf_formation.launch.py</a></li>
+<li><a class="reference internal" href="#swarm-lns-launch-py">swarm_lns.launch.py</a></li>
+<li><a class="reference internal" href="#swarm-lns-formation-launch-py">swarm_lns_formation.launch.py</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#argument-reference">Argument reference</a></li>
+<li><a class="reference internal" href="#inconsistencies-and-gotchas">Inconsistencies and gotchas</a></li>
+<li><a class="reference internal" href="#rviz-configuration">RViz configuration</a></li>
+<li><a class="reference internal" href="#build-install-run">Build, install, run</a></li>
+<li><a class="reference internal" href="#cross-references">Cross-references</a></li>
 </ul>
 </li>
 </ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="standards.html">Standard Documents</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="standard_docs/PACKAGE.html">PACKAGE</a></li>
-</ul>
-</li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
-</ul>
-
+</div>
         </div>
       </div>
     </nav>
@@ -82,36 +86,474 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="iros-llm-swarm-bringup">
+  <p style="margin: 0 0 1em 0;">
+  <a href="../iros_llm_swarm_docs/index.html">&laquo; IROS LLM Swarm — back to overview</a>
+</p><section id="iros-llm-swarm-bringup">
 <h1>iros_llm_swarm_bringup<a class="headerlink" href="#iros-llm-swarm-bringup" title="Link to this heading"></a></h1>
-<p>TODO: Package description</p>
-<div class="toctree-wrapper compound">
+<p>Top-level launch orchestration for the swarm. The package contains
+<strong>no node code</strong> — five launch files plus the shared RViz config.
+Each launch file composes the per-package launches from
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation_lite</span></code>, <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav</span></code>,
+the active MAPF planner, the per-robot followers, and (optionally)
+the formation layer, with a fixed staggered timing pattern.</p>
+<p>This is the entry point for every full-system run.</p>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#picking-a-launch" id="id1">Picking a launch</a></p></li>
+<li><p><a class="reference internal" href="#common-architecture" id="id2">Common architecture</a></p></li>
+<li><p><a class="reference internal" href="#per-launch-detail" id="id3">Per-launch detail</a></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">Python API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="iros_llm_swarm_bringup.html">iros_llm_swarm_bringup package</a></li>
+<li><p><a class="reference internal" href="#swarm-warehouse-launch-py" id="id4">swarm_warehouse.launch.py</a></p></li>
+<li><p><a class="reference internal" href="#swarm-mapf-launch-py" id="id5">swarm_mapf.launch.py</a></p></li>
+<li><p><a class="reference internal" href="#swarm-mapf-formation-launch-py" id="id6">swarm_mapf_formation.launch.py</a></p></li>
+<li><p><a class="reference internal" href="#swarm-lns-launch-py" id="id7">swarm_lns.launch.py</a></p></li>
+<li><p><a class="reference internal" href="#swarm-lns-formation-launch-py" id="id8">swarm_lns_formation.launch.py</a></p></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="standards.html">Standard Documents</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="standard_docs/PACKAGE.html">PACKAGE</a></li>
+<li><p><a class="reference internal" href="#argument-reference" id="id9">Argument reference</a></p></li>
+<li><p><a class="reference internal" href="#inconsistencies-and-gotchas" id="id10">Inconsistencies and gotchas</a></p></li>
+<li><p><a class="reference internal" href="#rviz-configuration" id="id11">RViz configuration</a></p></li>
+<li><p><a class="reference internal" href="#build-install-run" id="id12">Build, install, run</a></p></li>
+<li><p><a class="reference internal" href="#cross-references" id="id13">Cross-references</a></p></li>
+</ul>
+</nav>
+<section id="picking-a-launch">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Picking a launch</a><a class="headerlink" href="#picking-a-launch" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 32.0%" />
+<col style="width: 12.0%" />
+<col style="width: 56.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Launch file</p></th>
+<th class="head"><p>MAPF</p></th>
+<th class="head"><p>Components</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_warehouse.launch.py</span></code></p></td>
+<td><p>none</p></td>
+<td><p>Stage + Nav2 + RViz only. Sanity-check the simulator and Nav2
+layer without any planner.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_mapf.launch.py</span></code></p></td>
+<td><p>PBS</p></td>
+<td><p>Adds <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf/mapf_planner_node</span></code> and the
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_robot/motion_controller_node</span></code> followers.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_mapf_formation.launch.py</span></code></p></td>
+<td><p>PBS</p></td>
+<td><p>Same as above plus <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_formation</span></code> manager and
+monitor.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_lns.launch.py</span></code></p></td>
+<td><p>LNS2</p></td>
+<td><p>Adds the <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns/mapf_lns2.launch.py</span></code> stack
+(LNS2 planner and its bundled <code class="docutils literal notranslate"><span class="pre">path_follower_node</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_lns_formation.launch.py</span></code></p></td>
+<td><p>LNS2</p></td>
+<td><p>Same as above plus formation manager and monitor.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The two <strong>PBS</strong> launches use the legacy planner
+(<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf</span></code>) and its companion follower
+(<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_robot/motion_controller_node</span></code>). The two <strong>LNS2</strong>
+launches use the supported planner stack (<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns</span></code>)
+which spawns its own <code class="docutils literal notranslate"><span class="pre">path_follower_node</span></code> per robot — the
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_robot</span></code> follower is <strong>not</strong> included in LNS launches.</p>
+</section>
+<section id="common-architecture">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Common architecture</a><a class="headerlink" href="#common-architecture" title="Link to this heading"></a></h2>
+<p>Every launch follows the same staggered shape:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>t = 0  s : Stage simulator + RViz
+t = 1  s : Nav2 (one map_server + per-robot controller / behavior /
+           lifecycle, plus the static map → robot_N/odom transforms)
+t = 10 s : MAPF planner    (waits for /map; transient_local QoS
+                            makes the late subscribe a no-cost
+                            receive)
+t = 12 s : Per-robot followers (and, if applicable, formation
+                            manager + monitor — they start
+                            together with the followers so that
+                            followers are subscribed to
+                            /formations/config before its first
+                            latched message arrives)
+</pre></div>
+</div>
+<p>The stagger is implemented by wrapping each layer’s
+<code class="docutils literal notranslate"><span class="pre">IncludeLaunchDescription</span></code> (or <code class="docutils literal notranslate"><span class="pre">Node</span></code>) in a
+<code class="docutils literal notranslate"><span class="pre">TimerAction(period=N.0,</span> <span class="pre">actions=[...])</span></code>. <code class="docutils literal notranslate"><span class="pre">LogInfo</span></code> messages on
+the same timer make the boot order visible in the launch output.</p>
+<p>The full-system launches do <strong>not</strong> publish anything themselves; they
+only compose the layer launches with hard-coded delays. To inspect or
+modify timing, edit the relevant <code class="docutils literal notranslate"><span class="pre">.launch.py</span></code> directly.</p>
+</section>
+<section id="per-launch-detail">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Per-launch detail</a><a class="headerlink" href="#per-launch-detail" title="Link to this heading"></a></h2>
+<section id="swarm-warehouse-launch-py">
+<h3><a class="toc-backref" href="#id4" role="doc-backlink">swarm_warehouse.launch.py</a><a class="headerlink" href="#swarm-warehouse-launch-py" title="Link to this heading"></a></h3>
+<p>Bare environment without a planner. Useful for verifying the
+simulator and Nav2 are correctly wired before bringing up MAPF.</p>
+<ul class="simple">
+<li><p><strong>Components:</strong> Stage (<code class="docutils literal notranslate"><span class="pre">warehouse_swarm.launch.py</span></code>) at t=0;
+Nav2 (<code class="docutils literal notranslate"><span class="pre">robot_local_nav.launch.py</span></code>) at t=1; RViz at t=0.</p></li>
+<li><p><strong>Default world:</strong> <code class="docutils literal notranslate"><span class="pre">warehouse.world</span></code>.</p></li>
+<li><p><strong>Arguments:</strong> <code class="docutils literal notranslate"><span class="pre">world_file</span></code>, <code class="docutils literal notranslate"><span class="pre">num_robots</span></code> (default <code class="docutils literal notranslate"><span class="pre">20</span></code>),
+<code class="docutils literal notranslate"><span class="pre">rviz_cfg</span></code>, <code class="docutils literal notranslate"><span class="pre">use_sim_time</span></code> (default <code class="docutils literal notranslate"><span class="pre">true</span></code>).</p></li>
+</ul>
+<p>Smoke test against this stack with <code class="docutils literal notranslate"><span class="pre">test_local_planne</span></code> from
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav</span></code>.</p>
+</section>
+<section id="swarm-mapf-launch-py">
+<h3><a class="toc-backref" href="#id5" role="doc-backlink">swarm_mapf.launch.py</a><a class="headerlink" href="#swarm-mapf-launch-py" title="Link to this heading"></a></h3>
+<p>PBS planner stack on Stage.</p>
+<ul class="simple">
+<li><p><strong>Default world:</strong> <code class="docutils literal notranslate"><span class="pre">warehouse_four.world</span></code>.</p></li>
+<li><p><strong>t=10s — ``mapf_planner_node`` parameters explicit in the launch:</strong></p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">time_step_sec</span></code> (arg, default 0.4)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">inflation_radius:</span> <span class="pre">0.75</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_pbs_expansions:</span> <span class="pre">5000</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_astar_expansions:</span> <span class="pre">1000000</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cost_curve:</span> <span class="pre">&quot;quadratic&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">urgency:</span> <span class="pre">1.0</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">replan_threshold_m:</span> <span class="pre">1.5</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">proximity_penalty:</span> <span class="pre">50</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pbs_resolution:</span> <span class="pre">0.2</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">replan_cooldown_sec:</span> <span class="pre">30.0</span></code></p></li>
 </ul>
 </li>
+<li><p><strong>t=12s — followers:</strong> <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_robot/motion_controllers.launch.py</span></code>.</p></li>
+<li><p><strong>Arguments:</strong> <code class="docutils literal notranslate"><span class="pre">num_robots</span></code>, <code class="docutils literal notranslate"><span class="pre">use_sim_time</span></code>,
+<code class="docutils literal notranslate"><span class="pre">time_step_sec</span></code>, <code class="docutils literal notranslate"><span class="pre">world_file</span></code>, <code class="docutils literal notranslate"><span class="pre">rviz_cfg</span></code>.</p></li>
 </ul>
+<p>A trailing <code class="docutils literal notranslate"><span class="pre">LogInfo</span></code> at t=15 s announces the stack is ready.</p>
+</section>
+<section id="swarm-mapf-formation-launch-py">
+<h3><a class="toc-backref" href="#id6" role="doc-backlink">swarm_mapf_formation.launch.py</a><a class="headerlink" href="#swarm-mapf-formation-launch-py" title="Link to this heading"></a></h3>
+<p>PBS planner with formation overlay.</p>
+<ul class="simple">
+<li><p><strong>Default world:</strong> <code class="docutils literal notranslate"><span class="pre">warehouse.world</span></code> <em>(differs from</em>
+<code class="docutils literal notranslate"><span class="pre">swarm_mapf</span></code><em>)</em>.</p></li>
+<li><p><strong>Default formations YAML:</strong> <code class="docutils literal notranslate"><span class="pre">formations_1.yaml</span></code>
+(wedge around <code class="docutils literal notranslate"><span class="pre">robot_1</span></code>, line around <code class="docutils literal notranslate"><span class="pre">robot_5</span></code> —
+matching the warehouse two-squad layout).</p></li>
+<li><p><strong>t=10s — ``mapf_planner_node`` parameters minimal in the launch:</strong>
+only <code class="docutils literal notranslate"><span class="pre">num_robots</span></code>, <code class="docutils literal notranslate"><span class="pre">time_step_sec</span></code>, <code class="docutils literal notranslate"><span class="pre">use_sim_time</span></code>,
+<code class="docutils literal notranslate"><span class="pre">map_topic</span></code> and <code class="docutils literal notranslate"><span class="pre">default_robot_radius=0.22</span></code> are set inline;
+everything else takes the planner’s compile-time defaults. This is
+intentionally a thinner override than <code class="docutils literal notranslate"><span class="pre">swarm_mapf.launch.py</span></code> —
+expect different planner behaviour even with the same map.</p></li>
+<li><p><strong>t=12s — followers + formation_manager + formation_monitor in the
+same TimerAction.</strong> This is critical: a follower that subscribes
+to the latched <code class="docutils literal notranslate"><span class="pre">/formations/config</span></code> topic <em>after</em> the manager’s
+first publish would still receive the latched message, but the
+three nodes are started together to keep the boot trace
+predictable.</p></li>
+<li><p><strong>formation_manager parameters:</strong> <code class="docutils literal notranslate"><span class="pre">config_file:</span>
+<span class="pre">formations_cfg</span></code> (default
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_formation/config/formations_1.yaml</span></code>),
+<code class="docutils literal notranslate"><span class="pre">auto_activate:</span> <span class="pre">True</span></code>, <code class="docutils literal notranslate"><span class="pre">footprint_padding:</span> <span class="pre">0.2</span></code>,
+<code class="docutils literal notranslate"><span class="pre">robot_radius:</span> <span class="pre">0.3</span></code>.</p></li>
+<li><p><strong>formation_monitor parameters:</strong> <code class="docutils literal notranslate"><span class="pre">monitor_hz:</span> <span class="pre">10</span></code>,
+<code class="docutils literal notranslate"><span class="pre">stable_thresh_m:</span> <span class="pre">0.15</span></code>, <code class="docutils literal notranslate"><span class="pre">degraded_thresh_m:</span> <span class="pre">0.35</span></code>,
+<code class="docutils literal notranslate"><span class="pre">odom_timeout_s:</span> <span class="pre">1.0</span></code>, <code class="docutils literal notranslate"><span class="pre">stuck_window_s:</span> <span class="pre">3.0</span></code>,
+<code class="docutils literal notranslate"><span class="pre">stuck_delta_m:</span> <span class="pre">0.05</span></code>.</p></li>
+<li><p><strong>Arguments:</strong> <code class="docutils literal notranslate"><span class="pre">num_robots</span></code>, <code class="docutils literal notranslate"><span class="pre">use_sim_time</span></code>,
+<code class="docutils literal notranslate"><span class="pre">time_step_sec</span></code>, <code class="docutils literal notranslate"><span class="pre">world_file</span></code>, <code class="docutils literal notranslate"><span class="pre">rviz_cfg</span></code>,
+<code class="docutils literal notranslate"><span class="pre">formations_cfg</span></code>.</p></li>
+</ul>
+</section>
+<section id="swarm-lns-launch-py">
+<h3><a class="toc-backref" href="#id7" role="doc-backlink">swarm_lns.launch.py</a><a class="headerlink" href="#swarm-lns-launch-py" title="Link to this heading"></a></h3>
+<p>LNS2 planner stack on Stage. The cleanest of the four MAPF
+launches: it delegates planner + follower spawning entirely to
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns/mapf_lns2.launch.py</span></code>.</p>
+<ul>
+<li><p><strong>Scenario-based simulator selection.</strong> This launch is the only
+one that uses the <code class="docutils literal notranslate"><span class="pre">scenario</span></code> argument with strict choices
+(<code class="docutils literal notranslate"><span class="pre">cave</span></code> / <code class="docutils literal notranslate"><span class="pre">large_cave</span></code> / <code class="docutils literal notranslate"><span class="pre">warehouse_2</span></code> / <code class="docutils literal notranslate"><span class="pre">warehouse_4</span></code>)
+and the <code class="docutils literal notranslate"><span class="pre">scenarios_file</span></code> argument, both forwarded to the Stage
+launch. There is no <code class="docutils literal notranslate"><span class="pre">world_file</span></code> argument here — set
+<code class="docutils literal notranslate"><span class="pre">scenario</span></code> instead.</p></li>
+<li><p><strong>Default scenario:</strong> <code class="docutils literal notranslate"><span class="pre">cave</span></code>.</p></li>
+<li><p><strong>t=10s — full LNS2 stack</strong> via include: this single
+<code class="docutils literal notranslate"><span class="pre">IncludeLaunchDescription</span></code> produces both the planner node
+(<code class="docutils literal notranslate"><span class="pre">mapf_lns2_node</span></code>) and <code class="docutils literal notranslate"><span class="pre">num_robots</span></code> per-robot
+<code class="docutils literal notranslate"><span class="pre">path_follower_node</span></code> instances. The motion-controller include
+from <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_robot</span></code> is <strong>not</strong> added — the LNS follower
+replaces it.</p></li>
+<li><p><strong>Planner parameters</strong> come from
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns/config/mapf_lns2.yaml</span></code>, not from this
+bringup file. This launch passes only <code class="docutils literal notranslate"><span class="pre">num_robots</span></code> and
+<code class="docutils literal notranslate"><span class="pre">use_sim_time</span></code> through.</p></li>
+<li><p><strong>Arguments:</strong> <code class="docutils literal notranslate"><span class="pre">scenario</span></code>, <code class="docutils literal notranslate"><span class="pre">scenarios_file</span></code>, <code class="docutils literal notranslate"><span class="pre">num_robots</span></code>,
+<code class="docutils literal notranslate"><span class="pre">use_sim_time</span></code>, <code class="docutils literal notranslate"><span class="pre">rviz_cfg</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">time_step_sec</span></code> is <strong>not</strong> declared here even though the
+<code class="docutils literal notranslate"><span class="pre">swarm_mapf*</span></code> launches define it; the LNS planner reads its own
+<code class="docutils literal notranslate"><span class="pre">time_step_sec</span></code> from its YAML.</p>
+</li>
+</ul>
+</section>
+<section id="swarm-lns-formation-launch-py">
+<h3><a class="toc-backref" href="#id8" role="doc-backlink">swarm_lns_formation.launch.py</a><a class="headerlink" href="#swarm-lns-formation-launch-py" title="Link to this heading"></a></h3>
+<p>LNS2 planner with formation overlay.</p>
+<ul class="simple">
+<li><p><strong>Default world:</strong> <code class="docutils literal notranslate"><span class="pre">warehouse_four.world</span></code> <em>(differs from</em>
+<code class="docutils literal notranslate"><span class="pre">swarm_mapf_formation</span></code><em>)</em>. Note also that this launch uses
+<code class="docutils literal notranslate"><span class="pre">world_file</span></code> instead of <code class="docutils literal notranslate"><span class="pre">scenario</span></code>, unlike the non-formation
+<code class="docutils literal notranslate"><span class="pre">swarm_lns.launch.py</span></code> — the two LNS launches expose
+<strong>different</strong> simulator-selection interfaces.</p></li>
+<li><p><strong>Default formations YAML:</strong> <code class="docutils literal notranslate"><span class="pre">formations_2.yaml</span></code>
+(wedge around <code class="docutils literal notranslate"><span class="pre">robot_1</span></code>, line around <code class="docutils literal notranslate"><span class="pre">robot_17</span></code> —
+matching the four-corner layout where <code class="docutils literal notranslate"><span class="pre">robot_5</span></code> does not exist
+in the same place as in <code class="docutils literal notranslate"><span class="pre">warehouse</span></code>).</p></li>
+<li><p><strong>t=10s:</strong> LNS2 stack via include (planner + path_followers).</p></li>
+<li><p><strong>t=12s:</strong> <code class="docutils literal notranslate"><span class="pre">formation_manager</span></code> only (inside <code class="docutils literal notranslate"><span class="pre">TimerAction</span></code>).
+<code class="docutils literal notranslate"><span class="pre">formation_monitor</span></code> is <strong>launched at root, not inside a
+TimerAction</strong> — so it starts at t=0. This is asymmetric with
+<code class="docutils literal notranslate"><span class="pre">swarm_mapf_formation.launch.py</span></code> where both formation nodes
+are wrapped in the t=12 timer. The monitor sits idle until the
+manager begins publishing on <code class="docutils literal notranslate"><span class="pre">/formations/config</span></code>, so the
+asymmetry is functionally fine but worth knowing when reading
+the boot trace.</p></li>
+<li><p><strong>Arguments:</strong> same as <code class="docutils literal notranslate"><span class="pre">swarm_lns_formation</span></code> minus the
+<code class="docutils literal notranslate"><span class="pre">scenario</span></code> flow — <code class="docutils literal notranslate"><span class="pre">num_robots</span></code>, <code class="docutils literal notranslate"><span class="pre">use_sim_time</span></code>,
+<code class="docutils literal notranslate"><span class="pre">time_step_sec</span></code> <em>(declared but unused)</em>, <code class="docutils literal notranslate"><span class="pre">world_file</span></code>,
+<code class="docutils literal notranslate"><span class="pre">rviz_cfg</span></code>, <code class="docutils literal notranslate"><span class="pre">formations_cfg</span></code>.</p></li>
+</ul>
+</section>
+</section>
+<section id="argument-reference">
+<h2><a class="toc-backref" href="#id9" role="doc-backlink">Argument reference</a><a class="headerlink" href="#argument-reference" title="Link to this heading"></a></h2>
+<p>Common arguments (where they appear):</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 24.0%" />
+<col style="width: 16.0%" />
+<col style="width: 38.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Argument</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>In launches</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_robots</span></code></p></td>
+<td><p>20</p></td>
+<td><p>all</p></td>
+<td><p>Number of robots to attach a Nav2 stack to (and, in MAPF
+launches, to plan for). Stage always spawns the world’s full
+robot list — see <em>Inconsistencies</em> below.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">use_sim_time</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>all</p></td>
+<td><p>Use the simulator clock everywhere.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rviz_cfg</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">share/iros_llm_swarm_bringup/rviz/swarm_20.rviz</span></code></p></td>
+<td><p>all</p></td>
+<td><p>RViz config file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">world_file</span></code></p></td>
+<td><p>varies (see below)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">swarm_warehouse</span></code>, <code class="docutils literal notranslate"><span class="pre">swarm_mapf</span></code>,
+<code class="docutils literal notranslate"><span class="pre">swarm_mapf_formation</span></code>, <code class="docutils literal notranslate"><span class="pre">swarm_lns_formation</span></code></p></td>
+<td><p>Stage world file. Forwarded to
+<code class="docutils literal notranslate"><span class="pre">warehouse_swarm.launch.py</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scenario</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cave</span></code> (with choices)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">swarm_lns</span></code> <em>only</em></p></td>
+<td><p>Named entry in the scenarios YAML; resolves the world file
+indirectly.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">scenarios_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">share/iros_llm_swarm_simulation_lite/scenario/common_scenarios.yaml</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">swarm_lns</span></code> <em>only</em></p></td>
+<td><p>Override the scenarios catalogue.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">time_step_sec</span></code></p></td>
+<td><p>0.4</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">swarm_mapf</span></code>, <code class="docutils literal notranslate"><span class="pre">swarm_mapf_formation</span></code>,
+<code class="docutils literal notranslate"><span class="pre">swarm_lns_formation</span></code> (declared but unused)</p></td>
+<td><p>Per-step time for the PBS planner; must match the follower’s
+schedule tolerance.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">formations_cfg</span></code></p></td>
+<td><p>varies (<code class="docutils literal notranslate"><span class="pre">formations_1.yaml</span></code> or <code class="docutils literal notranslate"><span class="pre">formations_2.yaml</span></code>)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">swarm_mapf_formation</span></code>, <code class="docutils literal notranslate"><span class="pre">swarm_lns_formation</span></code></p></td>
+<td><p>Formation YAML loaded by <code class="docutils literal notranslate"><span class="pre">formation_manager_node</span></code> with
+<code class="docutils literal notranslate"><span class="pre">auto_activate:</span> <span class="pre">True</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Default world per launch:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 38.0%" />
+<col style="width: 32.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Launch file</p></th>
+<th class="head"><p>Default world</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_warehouse</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">warehouse.world</span></code></p></td>
+<td><p>30 × 30 m, two squads.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_mapf</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">warehouse_four.world</span></code></p></td>
+<td><p>30 × 30 m, four-corner layout. <em>Different</em> from the formation
+PBS launch.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_mapf_formation</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">warehouse.world</span></code></p></td>
+<td><p>Two-squad layout to match <code class="docutils literal notranslate"><span class="pre">formations_1.yaml</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_lns</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cave.world</span></code> (via <code class="docutils literal notranslate"><span class="pre">scenario:</span> <span class="pre">cave</span></code>)</p></td>
+<td><p>Only launch using the scenario flow.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_lns_formation</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">warehouse_four.world</span></code></p></td>
+<td><p>Four-corner layout to match <code class="docutils literal notranslate"><span class="pre">formations_2.yaml</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="inconsistencies-and-gotchas">
+<h2><a class="toc-backref" href="#id10" role="doc-backlink">Inconsistencies and gotchas</a><a class="headerlink" href="#inconsistencies-and-gotchas" title="Link to this heading"></a></h2>
+<p>Several details of the launch files are surprising on first read.
+Capturing them so they don’t get rediscovered repeatedly.</p>
+<ol class="arabic simple">
+<li><p><strong>Two simulator-selection interfaces.</strong> <code class="docutils literal notranslate"><span class="pre">swarm_lns</span></code> is the only
+launch that uses the <code class="docutils literal notranslate"><span class="pre">scenario</span></code> / <code class="docutils literal notranslate"><span class="pre">scenarios_file</span></code> argument
+pair. The others take a literal <code class="docutils literal notranslate"><span class="pre">world_file</span></code> path. Picking
+<code class="docutils literal notranslate"><span class="pre">swarm_lns</span></code> and <code class="docutils literal notranslate"><span class="pre">swarm_lns_formation</span></code> looks symmetric from
+the outside but uses <strong>different</strong> argument shapes — see
+<code class="docutils literal notranslate"><span class="pre">ros2</span> <span class="pre">launch</span> <span class="pre">iros_llm_swarm_bringup</span> <span class="pre">&lt;name&gt;</span> <span class="pre">--show-args</span></code>.</p></li>
+<li><p><strong>Different default worlds across the four MAPF launches.</strong> PBS:
+<code class="docutils literal notranslate"><span class="pre">warehouse_four.world</span></code> (no formation) vs <code class="docutils literal notranslate"><span class="pre">warehouse.world</span></code>
+(with formation). LNS: <code class="docutils literal notranslate"><span class="pre">cave</span></code> (no formation) vs
+<code class="docutils literal notranslate"><span class="pre">warehouse_four.world</span></code> (with formation). Stick to passing
+<code class="docutils literal notranslate"><span class="pre">world_file</span></code> / <code class="docutils literal notranslate"><span class="pre">scenario</span></code> explicitly when scripting runs.</p></li>
+<li><p><strong>PBS launches drive a legacy planner.</strong> Both <code class="docutils literal notranslate"><span class="pre">swarm_mapf*</span></code>
+launches spawn <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf/mapf_planner_node</span></code> as the
+planner. That package is the older PBS implementation that the
+project is moving away from; for new work prefer the
+<code class="docutils literal notranslate"><span class="pre">swarm_lns*</span></code> launches even when “MAPF” is the task description.</p></li>
+<li><p><strong>``num_robots`` does not shrink the simulator.</strong> Stage spawns
+every robot listed in the world file (always 20 in shipped
+worlds); the <code class="docutils literal notranslate"><span class="pre">num_robots</span></code> argument only caps how many of those
+get a Nav2 stack and a follower attached. Robots beyond the cap
+sit idle at their initial poses with no controller.</p></li>
+<li><p><strong>``time_step_sec`` is declared but unused in
+``swarm_lns_formation``.</strong> Leftover from the PBS template; LNS
+reads its own <code class="docutils literal notranslate"><span class="pre">time_step_sec</span></code> from
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns/config/mapf_lns2.yaml</span></code>. Setting it on
+the bringup CLI does nothing.</p></li>
+<li><p><strong>Asymmetric formation_monitor placement in
+``swarm_lns_formation``.</strong> <code class="docutils literal notranslate"><span class="pre">formation_monitor</span></code> is launched at
+root (effectively t=0) instead of inside the t=12 <code class="docutils literal notranslate"><span class="pre">TimerAction</span></code>
+that holds <code class="docutils literal notranslate"><span class="pre">formation_manager</span></code>. The monitor harmlessly idles
+until the manager begins publishing — but the boot trace will
+show the monitor much earlier than the manager.</p></li>
+<li><p><strong>MAPF parameter coverage differs.</strong> <code class="docutils literal notranslate"><span class="pre">swarm_mapf.launch.py</span></code>
+sets a long list of PBS parameters inline; the formation variant
+sets very few and relies on planner defaults. Consequently the
+two PBS launches do not produce identical planner behaviour out
+of the box.</p></li>
+<li><p><strong>``auto_activate: True`` is hard-coded</strong> in both formation
+launches. The YAML-loaded formations become active immediately
+at startup. To start with a passive registry, override the
+parameter (e.g. <code class="docutils literal notranslate"><span class="pre">auto_activate:=False</span></code> from the CLI is <strong>not</strong>
+wired through — edit the <code class="docutils literal notranslate"><span class="pre">.launch.py</span></code> or call
+<code class="docutils literal notranslate"><span class="pre">/formation/deactivate</span></code> after startup).</p></li>
+</ol>
+</section>
+<section id="rviz-configuration">
+<h2><a class="toc-backref" href="#id11" role="doc-backlink">RViz configuration</a><a class="headerlink" href="#rviz-configuration" title="Link to this heading"></a></h2>
+<p>The shared config <code class="docutils literal notranslate"><span class="pre">rviz/swarm_20.rviz</span></code> contains:</p>
+<ul class="simple">
+<li><p>Static displays: <code class="docutils literal notranslate"><span class="pre">Grid</span></code>, <code class="docutils literal notranslate"><span class="pre">TF</span></code>, two <code class="docutils literal notranslate"><span class="pre">Map</span></code> displays
+(global + local costmap pre-wired), <code class="docutils literal notranslate"><span class="pre">LaserScan</span></code>,
+<code class="docutils literal notranslate"><span class="pre">PointCloud2</span></code>, <code class="docutils literal notranslate"><span class="pre">PoseWithCovariance</span></code>.</p></li>
+<li><p>One <code class="docutils literal notranslate"><span class="pre">Polygon</span></code> display for the formation footprint.</p></li>
+<li><p>One <code class="docutils literal notranslate"><span class="pre">Odometry</span></code> display.</p></li>
+<li><p>Twenty <code class="docutils literal notranslate"><span class="pre">Path</span></code> displays — pre-wired to the per-robot MAPF path
+topics so all 20 schedules are visible during a mission.</p></li>
+</ul>
+<p>Override with <code class="docutils literal notranslate"><span class="pre">rviz_cfg:=</span></code> to point at a different file.</p>
+</section>
+<section id="build-install-run">
+<h2><a class="toc-backref" href="#id12" role="doc-backlink">Build, install, run</a><a class="headerlink" href="#build-install-run" title="Link to this heading"></a></h2>
+<p>Pure Python ament package; just launch and config files installed:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">colcon</span> <span class="n">build</span> <span class="o">--</span><span class="n">packages</span><span class="o">-</span><span class="n">select</span> <span class="n">iros_llm_swarm_bringup</span>
+</pre></div>
 </div>
-<div class="toctree-wrapper compound">
+<p>Examples (each assumes the workspace’s <code class="docutils literal notranslate"><span class="pre">setup.bash</span></code> is sourced and
+<code class="docutils literal notranslate"><span class="pre">CYCLONEDDS_URI</span></code> points at <code class="docutils literal notranslate"><span class="pre">cyclonedds_swarm.xml</span></code> — see the
+project <code class="docutils literal notranslate"><span class="pre">README</span></code>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Stage + Nav2 only</span>
+<span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_bringup</span> <span class="n">swarm_warehouse</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span>
+<span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_bringup</span> <span class="n">swarm_warehouse</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span> <span class="n">num_robots</span><span class="o">:=</span><span class="mi">5</span>
+
+<span class="c1"># PBS stack</span>
+<span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_bringup</span> <span class="n">swarm_mapf</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span>
+<span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_bringup</span> <span class="n">swarm_mapf_formation</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span>
+
+<span class="c1"># LNS2 stack (preferred for new work)</span>
+<span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_bringup</span> <span class="n">swarm_lns</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span> <span class="n">scenario</span><span class="o">:=</span><span class="n">warehouse_2</span>
+<span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_bringup</span> <span class="n">swarm_lns_formation</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span> \
+  <span class="n">formations_cfg</span><span class="o">:=/</span><span class="nb">abs</span><span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">formations</span><span class="o">.</span><span class="n">yaml</span>
+</pre></div>
 </div>
+<p>After the stack reports “MAPF stack ready” (~15 s), drive it via the
+<code class="docutils literal notranslate"><span class="pre">/swarm/set_goals</span></code> action — for example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ros2</span> <span class="n">run</span> <span class="n">iros_llm_swarm_mapf</span> <span class="n">test_send_goals</span> <span class="o">--</span><span class="n">goal</span><span class="o">-</span><span class="n">x</span> <span class="mf">13.5</span> <span class="o">--</span><span class="n">goal</span><span class="o">-</span><span class="n">y</span> <span class="mf">16.5</span>
+</pre></div>
+</div>
+</section>
+<section id="cross-references">
+<h2><a class="toc-backref" href="#id13" role="doc-backlink">Cross-references</a><a class="headerlink" href="#cross-references" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Stage simulator launch (always at t=0):
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation_lite</span></code>.</p></li>
+<li><p>Nav2 layer (always at t=1): <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav</span></code>.</p></li>
+<li><p>PBS planner (in <code class="docutils literal notranslate"><span class="pre">swarm_mapf*</span></code>): <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf</span></code>.</p></li>
+<li><p>LNS planner (in <code class="docutils literal notranslate"><span class="pre">swarm_lns*</span></code>): <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns</span></code>
+(planner <em>and</em> per-robot followers).</p></li>
+<li><p>PBS-side per-robot follower (in <code class="docutils literal notranslate"><span class="pre">swarm_mapf*</span></code>):
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_robot</span></code>.</p></li>
+<li><p>Formation registry / monitor (in <code class="docutils literal notranslate"><span class="pre">swarm_*_formation</span></code>):
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_formation</span></code>.</p></li>
+<li><p>Test clients to drive the stack: see <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf</span></code>
+(<code class="docutils literal notranslate"><span class="pre">test_send_goals</span></code>) and <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav</span></code>
+(<code class="docutils literal notranslate"><span class="pre">test_local_planne</span></code>).</p></li>
+</ul>
+</section>
 </section>
 
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="modules.html" class="btn btn-neutral float-right" title="iros_llm_swarm_bringup" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright The &lt;iros_llm_swarm_bringup&gt; Contributors. License: TODO: License declaration.</p>
+    <p>&#169; Copyright .</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

@@ -1,0 +1,463 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iros_llm_swarm_robot &mdash; iros_llm_swarm_robot</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            iros_llm_swarm_robot
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">iros_llm_swarm_robot</a><ul>
+<li><a class="reference internal" href="#role-in-the-stack">Role in the stack</a></li>
+<li><a class="reference internal" href="#modes">Modes</a><ul>
+<li><a class="reference internal" href="#autonomous-mode-schedule-aware-path-execution">AUTONOMOUS mode: schedule-aware path execution</a></li>
+<li><a class="reference internal" href="#formation-follower-mode-pd-controller">FORMATION_FOLLOWER mode: PD controller</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#topics-action-client-services">Topics, action client, services</a></li>
+<li><a class="reference internal" href="#parameters">Parameters</a></li>
+<li><a class="reference internal" href="#internal-cancellation-invariants">Internal cancellation invariants</a></li>
+<li><a class="reference internal" href="#build-and-launch">Build and launch</a></li>
+<li><a class="reference internal" href="#cross-references">Cross-references</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">iros_llm_swarm_robot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">iros_llm_swarm_robot</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/user_docs/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <p style="margin: 0 0 1em 0;">
+  <a href="../iros_llm_swarm_docs/index.html">&laquo; IROS LLM Swarm — back to overview</a>
+</p><section id="iros-llm-swarm-robot">
+<h1>iros_llm_swarm_robot<a class="headerlink" href="#iros-llm-swarm-robot" title="Link to this heading"></a></h1>
+<p>Per-robot dual-mode motion controller for the <strong>PBS</strong> MAPF stack
+(<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf</span></code>). One executable, <code class="docutils literal notranslate"><span class="pre">motion_controller_node</span></code>,
+spawned once per robot by the launch file. It receives the per-robot
+schedule from the planner, drives Nav2’s <code class="docutils literal notranslate"><span class="pre">follow_path</span></code> action while
+respecting the schedule’s timing tolerance, and switches to a PD
+formation-follower mode when <code class="docutils literal notranslate"><span class="pre">/formations/config</span></code> activates a
+formation containing this robot.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Legacy pairing.</strong> This controller is the follower paired with the
+legacy PBS planner. The bringup launches that use it are
+<code class="docutils literal notranslate"><span class="pre">swarm_mapf.launch.py</span></code> and <code class="docutils literal notranslate"><span class="pre">swarm_mapf_formation.launch.py</span></code>.</p>
+<p>The newer LNS2 stack uses a different follower —
+<code class="docutils literal notranslate"><span class="pre">path_follower_node</span></code> from <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns</span></code> — and a
+different per-robot input contract (<code class="docutils literal notranslate"><span class="pre">MAPFPlan</span></code> with explicit
+<code class="docutils literal notranslate"><span class="pre">hold_sec</span></code> per step + <code class="docutils literal notranslate"><span class="pre">plan_id</span></code> echo via <code class="docutils literal notranslate"><span class="pre">FollowerStatus</span></code>).
+The two followers cover overlapping responsibilities but are not
+interchangeable: <code class="docutils literal notranslate"><span class="pre">motion_controller_node</span></code> consumes
+<code class="docutils literal notranslate"><span class="pre">nav_msgs/Path</span></code> and does not publish <code class="docutils literal notranslate"><span class="pre">FollowerStatus</span></code>.</p>
+</div>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#role-in-the-stack" id="id1">Role in the stack</a></p></li>
+<li><p><a class="reference internal" href="#modes" id="id2">Modes</a></p>
+<ul>
+<li><p><a class="reference internal" href="#autonomous-mode-schedule-aware-path-execution" id="id3">AUTONOMOUS mode: schedule-aware path execution</a></p></li>
+<li><p><a class="reference internal" href="#formation-follower-mode-pd-controller" id="id4">FORMATION_FOLLOWER mode: PD controller</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#topics-action-client-services" id="id5">Topics, action client, services</a></p></li>
+<li><p><a class="reference internal" href="#parameters" id="id6">Parameters</a></p></li>
+<li><p><a class="reference internal" href="#internal-cancellation-invariants" id="id7">Internal cancellation invariants</a></p></li>
+<li><p><a class="reference internal" href="#build-and-launch" id="id8">Build and launch</a></p></li>
+<li><p><a class="reference internal" href="#cross-references" id="id9">Cross-references</a></p></li>
+</ul>
+</nav>
+<section id="role-in-the-stack">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Role in the stack</a><a class="headerlink" href="#role-in-the-stack" title="Link to this heading"></a></h2>
+<p>For each robot <code class="docutils literal notranslate"><span class="pre">id</span></code>, one <code class="docutils literal notranslate"><span class="pre">motion_controller_node</span></code> runs in the
+<code class="docutils literal notranslate"><span class="pre">robot_&lt;id&gt;</span></code> namespace and:</p>
+<ul class="simple">
+<li><p>Receives a <code class="docutils literal notranslate"><span class="pre">nav_msgs/Path</span></code> on <code class="docutils literal notranslate"><span class="pre">/&lt;ns&gt;/mapf_path</span></code> from
+<code class="docutils literal notranslate"><span class="pre">mapf_planner_node</span></code>. Each <code class="docutils literal notranslate"><span class="pre">PoseStamped</span></code> carries a <em>scheduled</em>
+arrival time in <code class="docutils literal notranslate"><span class="pre">header.stamp</span></code>.</p></li>
+<li><p>Drives Nav2’s <code class="docutils literal notranslate"><span class="pre">/&lt;ns&gt;/follow_path</span></code> action chunk-by-chunk so the
+robot does not run ahead of the PBS schedule by more than
+<code class="docutils literal notranslate"><span class="pre">schedule_tolerance_sec</span></code>.</p></li>
+<li><p>Listens to <code class="docutils literal notranslate"><span class="pre">/formations/config</span></code> (latched). If a formation is
+active and lists this robot as a follower, transitions to the
+FORMATION_FOLLOWER mode and runs a PD controller that tracks the
+leader’s body-frame offset, publishing <code class="docutils literal notranslate"><span class="pre">cmd_vel</span></code> directly.</p></li>
+<li><p>Switches back to AUTONOMOUS when the formation is dissolved or this
+robot is removed from it.</p></li>
+</ul>
+<p>The node never restarts; mode switches happen at runtime by event.</p>
+</section>
+<section id="modes">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Modes</a><a class="headerlink" href="#modes" title="Link to this heading"></a></h2>
+<p>The active mode is one of:</p>
+<ul class="simple">
+<li><p><strong>AUTONOMOUS</strong> (default) — consume <code class="docutils literal notranslate"><span class="pre">mapf_path</span></code>, dispatch to
+Nav2’s <code class="docutils literal notranslate"><span class="pre">follow_path</span></code>.</p></li>
+<li><p><strong>FORMATION_FOLLOWER</strong> — track the leader’s body-frame offset via a
+PD controller publishing <code class="docutils literal notranslate"><span class="pre">cmd_vel</span></code>.</p></li>
+</ul>
+<p>Mode transitions are driven by <code class="docutils literal notranslate"><span class="pre">/formations/config</span></code>:</p>
+<ul class="simple">
+<li><p>A <code class="docutils literal notranslate"><span class="pre">FormationConfig</span></code> arrives with <code class="docutils literal notranslate"><span class="pre">active</span> <span class="pre">=</span> <span class="pre">true</span></code> and this
+robot’s namespace in <code class="docutils literal notranslate"><span class="pre">follower_ns</span></code> → switch to FORMATION_FOLLOWER
+with the listed leader and offset. Cancel any in-flight Nav2 goal
+before subscribing to the leader’s odom and starting the PD timer.</p></li>
+<li><p>The same formation arrives with <code class="docutils literal notranslate"><span class="pre">active</span> <span class="pre">=</span> <span class="pre">false</span></code>, this robot is
+removed from <code class="docutils literal notranslate"><span class="pre">follower_ns</span></code>, or no formation snapshot lists this
+robot at all → switch back to AUTONOMOUS. Stop the PD timer,
+publish a zero <code class="docutils literal notranslate"><span class="pre">Twist</span></code>, drop the leader subscription.</p></li>
+</ul>
+<section id="autonomous-mode-schedule-aware-path-execution">
+<h3><a class="toc-backref" href="#id3" role="doc-backlink">AUTONOMOUS mode: schedule-aware path execution</a><a class="headerlink" href="#autonomous-mode-schedule-aware-path-execution" title="Link to this heading"></a></h3>
+<p>A <code class="docutils literal notranslate"><span class="pre">mapf_path</span></code> is consumed in <em>chunks</em>. Starting from the current
+waypoint index, the controller walks the pose list looking for the
+first pose whose <code class="docutils literal notranslate"><span class="pre">header.stamp</span></code> is more than
+<code class="docutils literal notranslate"><span class="pre">schedule_tolerance_sec</span></code> in the future. That pose is the next
+<em>hold point</em>; everything from the current index up to and including
+that pose is sent to Nav2 as a single <code class="docutils literal notranslate"><span class="pre">follow_path</span></code> goal. When Nav2
+reports the goal complete, the controller waits the residual time
+(if any) until the hold point’s scheduled arrival time, then dispatches
+the next chunk. The cycle ends when the path’s last pose has been
+sent.</p>
+<p>An empty <code class="docutils literal notranslate"><span class="pre">mapf_path</span></code> is a <strong>cancel</strong> signal: any in-flight Nav2 goal
+is cancelled and the active path is dropped. The PBS planner uses
+this to halt deviated robots before replanning.</p>
+<p>If no own-odometry has been received yet when a path arrives, the
+first chunk is deferred via a 100 ms wall timer that polls until odom
+is available.</p>
+</section>
+<section id="formation-follower-mode-pd-controller">
+<h3><a class="toc-backref" href="#id4" role="doc-backlink">FORMATION_FOLLOWER mode: PD controller</a><a class="headerlink" href="#formation-follower-mode-pd-controller" title="Link to this heading"></a></h3>
+<p>Target position (world frame) is computed from the leader’s pose and
+the assigned body-frame offset:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>T = leader_pos + R(leader_yaw) · offset
+</pre></div>
+</div>
+<p>with <code class="docutils literal notranslate"><span class="pre">offset</span></code> taken from <code class="docutils literal notranslate"><span class="pre">FormationConfig.offsets[my_slot]</span></code> (<code class="docutils literal notranslate"><span class="pre">+x</span></code>
+forward, <code class="docutils literal notranslate"><span class="pre">+y</span></code> left). The position error is fed through a PD
+controller in world coordinates, then projected into the robot’s body
+frame to produce <code class="docutils literal notranslate"><span class="pre">cmd_vel</span></code>:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ex = T.x - own.x
+ey = T.y - own.y
+vx_w = kp·ex + kd·(ex - prev_ex)
+vy_w = kp·ey + kd·(ey - prev_ey)
+v     = clamp( cos(own_yaw)·vx_w + sin(own_yaw)·vy_w,  ±max_v)
+omega = clamp(-sin(own_yaw)·vx_w + cos(own_yaw)·vy_w,  ±max_omega)
+</pre></div>
+</div>
+<p>The PD timer fires at <code class="docutils literal notranslate"><span class="pre">control_hz</span></code>. If either own-odom or
+leader-odom is missing in a tick, the step is skipped (no <code class="docutils literal notranslate"><span class="pre">cmd_vel</span></code>
+is published).</p>
+<p>Re-subscription to a different leader’s odom happens implicitly when
+the formation snapshot reports a new <code class="docutils literal notranslate"><span class="pre">leader_ns</span></code> for this robot.</p>
+</section>
+</section>
+<section id="topics-action-client-services">
+<h2><a class="toc-backref" href="#id5" role="doc-backlink">Topics, action client, services</a><a class="headerlink" href="#topics-action-client-services" title="Link to this heading"></a></h2>
+<p>Subscribed:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 30.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Topic</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/&lt;ns&gt;/mapf_path</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nav_msgs/Path</span></code></p></td>
+<td><p>Always subscribed; only acted on in AUTONOMOUS mode. Empty list
+= cancel signal.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/&lt;ns&gt;/odom</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nav_msgs/Odometry</span></code></p></td>
+<td><p>Always.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/&lt;leader_ns&gt;/odom</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nav_msgs/Odometry</span></code></p></td>
+<td><p>FORMATION_FOLLOWER only; subscription created when entering
+formation, replaced when the leader changes, dropped on exit.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/formations/config</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces/FormationsConfig</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">KeepLast(1)</span> <span class="pre">+</span> <span class="pre">transient_local</span> <span class="pre">+</span> <span class="pre">reliable</span></code> (latched).</p></td>
+</tr>
+</tbody>
+</table>
+<p>Published:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 30.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Topic</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/&lt;ns&gt;/cmd_vel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">geometry_msgs/Twist</span></code></p></td>
+<td><p>FORMATION_FOLLOWER mode (PD output) and on AUTONOMOUS entry
+(single zero-Twist to stop drift).</p></td>
+</tr>
+</tbody>
+</table>
+<p>Action client:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 30.0%" />
+<col style="width: 35.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Action</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/&lt;ns&gt;/follow_path</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nav2_msgs/action/FollowPath</span></code></p></td>
+<td><p>One in-flight goal at a time. Cancelled on path replacement,
+on empty-path receipt, and on entering FORMATION mode.
+Goal payload uses <code class="docutils literal notranslate"><span class="pre">controller_id</span> <span class="pre">=</span> <span class="pre">&quot;FollowPath&quot;</span></code> and
+<code class="docutils literal notranslate"><span class="pre">goal_checker_id</span> <span class="pre">=</span> <span class="pre">&quot;goal_checker&quot;</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This node does <strong>not</strong> publish
+<code class="docutils literal notranslate"><span class="pre">/&lt;ns&gt;/follower_status</span></code>. The PBS planner detects schedule
+deviation by polling odometry directly. The LNS2 follower in
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns</span></code> does publish <code class="docutils literal notranslate"><span class="pre">FollowerStatus</span></code> —
+keep this in mind when reading code that expects the status
+contract.</p>
+</div>
+</section>
+<section id="parameters">
+<h2><a class="toc-backref" href="#id6" role="doc-backlink">Parameters</a><a class="headerlink" href="#parameters" title="Link to this heading"></a></h2>
+<p>Defaults below are the node’s compile-time defaults. The values used
+in the supported launch file come from <code class="docutils literal notranslate"><span class="pre">config/motion_controller.yaml</span></code>
+and override several of these — both columns are listed.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 16.0%" />
+<col style="width: 16.0%" />
+<col style="width: 38.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Node default</p></th>
+<th class="head"><p>YAML value</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">robot_id</span></code></p></td>
+<td><p>0</p></td>
+<td><p>per-robot</p></td>
+<td><p>Index used to derive <code class="docutils literal notranslate"><span class="pre">robot_&lt;id&gt;</span></code>. Set per spawn by
+<code class="docutils literal notranslate"><span class="pre">motion_controllers.launch.py</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">path_frame</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;map&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;map&quot;</span></code></p></td>
+<td><p>Frame for chunks sent to Nav2.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">schedule_tolerance_sec</span></code></p></td>
+<td><p>0.5</p></td>
+<td><p>0.3</p></td>
+<td><p>Max look-ahead in time at which a pose is still considered
+“in the same chunk”. Larger ⇒ longer Nav2 chunks, less hold
+overhead, looser PBS schedule compliance.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kp</span></code></p></td>
+<td><p>1.2</p></td>
+<td><p>2.5</p></td>
+<td><p>PD proportional gain (FORMATION mode).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kd</span></code></p></td>
+<td><p>0.3</p></td>
+<td><p>0.8</p></td>
+<td><p>PD derivative gain (FORMATION mode).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">max_v</span></code></p></td>
+<td><p>0.5</p></td>
+<td><p>0.8</p></td>
+<td><p>Max linear velocity (m/s) (FORMATION mode).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">max_omega</span></code></p></td>
+<td><p>1.0</p></td>
+<td><p>1.8</p></td>
+<td><p>Max angular velocity (rad/s) (FORMATION mode).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">control_hz</span></code></p></td>
+<td><p>20.0</p></td>
+<td><p>20.0</p></td>
+<td><p>PD loop rate (FORMATION mode).</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="internal-cancellation-invariants">
+<h2><a class="toc-backref" href="#id7" role="doc-backlink">Internal cancellation invariants</a><a class="headerlink" href="#internal-cancellation-invariants" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">cancel_nav2()</span></code> is the single chokepoint that brings the node back
+to a clean state. It cancels any pending hold timer, the
+deferred-start timer (used when entering AUTONOMOUS before odom has
+arrived), the in-flight Nav2 goal (if any), drops the active path,
+and resets the waypoint index. It is called on every mode transition
+and on every fresh <code class="docutils literal notranslate"><span class="pre">mapf_path</span></code> arrival.</p>
+</section>
+<section id="build-and-launch">
+<h2><a class="toc-backref" href="#id8" role="doc-backlink">Build and launch</a><a class="headerlink" href="#build-and-launch" title="Link to this heading"></a></h2>
+<p>The package builds one executable. <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces</span></code> must
+be built first — its message types are required headers:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">colcon</span> <span class="n">build</span> <span class="o">--</span><span class="n">packages</span><span class="o">-</span><span class="n">select</span> <span class="n">iros_llm_swarm_interfaces</span>
+<span class="n">colcon</span> <span class="n">build</span> <span class="o">--</span><span class="n">packages</span><span class="o">-</span><span class="n">select</span> <span class="n">iros_llm_swarm_robot</span>
+</pre></div>
+</div>
+<p>The package’s own launch file spawns one controller per robot:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_robot</span> <span class="n">motion_controllers</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span>
+<span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_robot</span> <span class="n">motion_controllers</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span> <span class="n">num_robots</span><span class="o">:=</span><span class="mi">10</span>
+</pre></div>
+</div>
+<p>Arguments:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 28.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Argument</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_robots</span></code></p></td>
+<td><p>20</p></td>
+<td><p>Number of <code class="docutils literal notranslate"><span class="pre">motion_controller_node</span></code> instances to spawn.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">use_sim_time</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>Use the simulator clock.</p></td>
+</tr>
+</tbody>
+</table>
+<p>In the integrated bringup this launch is included by
+<code class="docutils literal notranslate"><span class="pre">swarm_mapf.launch.py</span></code> (PBS) and <code class="docutils literal notranslate"><span class="pre">swarm_mapf_formation.launch.py</span></code>
+(PBS + formation), starting at <code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">=</span> <span class="pre">12</span> <span class="pre">s</span></code> after the simulator,
+Nav2, and the PBS planner have settled. The LNS bringup
+(<code class="docutils literal notranslate"><span class="pre">swarm_lns*.launch.py</span></code>) does <strong>not</strong> include this controller — it
+spawns <code class="docutils literal notranslate"><span class="pre">path_follower_node</span></code> from <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns</span></code>
+instead.</p>
+</section>
+<section id="cross-references">
+<h2><a class="toc-backref" href="#id9" role="doc-backlink">Cross-references</a><a class="headerlink" href="#cross-references" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>PBS planner that produces the <code class="docutils literal notranslate"><span class="pre">mapf_path</span></code> consumed here:
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf</span></code>.</p></li>
+<li><p>Newer follower paired with the LNS2 planner:
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns</span></code> (<code class="docutils literal notranslate"><span class="pre">path_follower_node</span></code>).</p></li>
+<li><p>Formation publisher / monitor and YAML schema:
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_formation</span></code>.</p></li>
+<li><p>Message and service types: <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces</span></code> (in
+particular <code class="docutils literal notranslate"><span class="pre">FormationsConfig</span></code> and <code class="docutils literal notranslate"><span class="pre">FormationConfig</span></code>).</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

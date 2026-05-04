@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>iros_llm_swarm_local_nav &mdash; iros_llm_swarm_local_nav 0.0.0 documentation</title>
+  <title>iros_llm_swarm_local_nav &mdash; iros_llm_swarm_local_nav</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
@@ -18,8 +18,7 @@
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="iros_llm_swarm_local_nav" href="modules.html" /> 
+    <link rel="search" title="Search" href="search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -41,27 +40,29 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">Python API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="iros_llm_swarm_local_nav.html">iros_llm_swarm_local_nav package</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="iros_llm_swarm_local_nav.html#submodules">Submodules</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="iros_llm_swarm_local_nav.test_local_planne.html">iros_llm_swarm_local_nav.test_local_planne module</a></li>
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">iros_llm_swarm_local_nav</a><ul>
+<li><a class="reference internal" href="#what-this-package-does-and-does-not">What this package does — and does not</a></li>
+<li><a class="reference internal" href="#layered-output-of-the-launch">Layered output of the launch</a></li>
+<li><a class="reference internal" href="#per-robot-yaml-processing">Per-robot YAML processing</a></li>
+<li><a class="reference internal" href="#tooling-nodes-spawned-per-robot">Tooling: nodes spawned per robot</a><ul>
+<li><a class="reference internal" href="#controller-server"><code class="docutils literal notranslate"><span class="pre">controller_server</span></code></a></li>
+<li><a class="reference internal" href="#behavior-server"><code class="docutils literal notranslate"><span class="pre">behavior_server</span></code></a></li>
+<li><a class="reference internal" href="#lifecycle-manager-per-robot"><code class="docutils literal notranslate"><span class="pre">lifecycle_manager</span></code> (per robot)</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="iros_llm_swarm_local_nav.html#module-iros_llm_swarm_local_nav">Module contents</a></li>
+<li><a class="reference internal" href="#local-and-global-costmaps">Local and global costmaps</a></li>
+<li><a class="reference internal" href="#static-map-robot-i-odom-tf">Static <code class="docutils literal notranslate"><span class="pre">map</span> <span class="pre">→</span> <span class="pre">robot_i/odom</span></code> TF</a></li>
+<li><a class="reference internal" href="#scenario-initial-pose-loading">Scenario / initial-pose loading</a></li>
+<li><a class="reference internal" href="#launch-arguments">Launch arguments</a></li>
+<li><a class="reference internal" href="#smoke-test-client-test-local-planne">Smoke-test client: <code class="docutils literal notranslate"><span class="pre">test_local_planne</span></code></a></li>
+<li><a class="reference internal" href="#build-install-run">Build, install, run</a></li>
+<li><a class="reference internal" href="#cross-references">Cross-references</a></li>
 </ul>
 </li>
 </ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="standards.html">Standard Documents</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="standard_docs/PACKAGE.html">PACKAGE</a></li>
-</ul>
-</li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
-</ul>
-
+</div>
         </div>
       </div>
     </nav>
@@ -86,36 +87,421 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="iros-llm-swarm-local-nav">
+  <p style="margin: 0 0 1em 0;">
+  <a href="../iros_llm_swarm_docs/index.html">&laquo; IROS LLM Swarm — back to overview</a>
+</p><section id="iros-llm-swarm-local-nav">
 <h1>iros_llm_swarm_local_nav<a class="headerlink" href="#iros-llm-swarm-local-nav" title="Link to this heading"></a></h1>
-<p>TODO: Package description</p>
-<div class="toctree-wrapper compound">
+<p>Per-robot Nav2 stack spawner. The package is a Python launch
+orchestrator plus a tuned Nav2 parameter file: a single launch file
+brings up one shared <code class="docutils literal notranslate"><span class="pre">map_server</span></code> and N copies of
+<code class="docutils literal notranslate"><span class="pre">controller_server</span></code> / <code class="docutils literal notranslate"><span class="pre">behavior_server</span></code> / lifecycle managers, one
+under each <code class="docutils literal notranslate"><span class="pre">robot_&lt;id&gt;</span></code> namespace, with namespace substitution in
+the YAML happening at launch time.</p>
+<p>A standalone smoke-test client (<code class="docutils literal notranslate"><span class="pre">test_local_planne</span></code>) is also
+provided for exercising Nav2 in isolation, without the MAPF layer.</p>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#what-this-package-does-and-does-not" id="id1">What this package does — and does not</a></p></li>
+<li><p><a class="reference internal" href="#layered-output-of-the-launch" id="id2">Layered output of the launch</a></p></li>
+<li><p><a class="reference internal" href="#per-robot-yaml-processing" id="id3">Per-robot YAML processing</a></p></li>
+<li><p><a class="reference internal" href="#tooling-nodes-spawned-per-robot" id="id4">Tooling: nodes spawned per robot</a></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">Python API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="iros_llm_swarm_local_nav.html">iros_llm_swarm_local_nav package</a></li>
+<li><p><a class="reference internal" href="#controller-server" id="id5"><code class="docutils literal notranslate"><span class="pre">controller_server</span></code></a></p></li>
+<li><p><a class="reference internal" href="#behavior-server" id="id6"><code class="docutils literal notranslate"><span class="pre">behavior_server</span></code></a></p></li>
+<li><p><a class="reference internal" href="#lifecycle-manager-per-robot" id="id7"><code class="docutils literal notranslate"><span class="pre">lifecycle_manager</span></code> (per robot)</a></p></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="standards.html">Standard Documents</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="standard_docs/PACKAGE.html">PACKAGE</a></li>
+<li><p><a class="reference internal" href="#local-and-global-costmaps" id="id8">Local and global costmaps</a></p></li>
+<li><p><a class="reference internal" href="#static-map-robot-i-odom-tf" id="id9">Static <code class="docutils literal notranslate"><span class="pre">map</span> <span class="pre">→</span> <span class="pre">robot_i/odom</span></code> TF</a></p></li>
+<li><p><a class="reference internal" href="#scenario-initial-pose-loading" id="id10">Scenario / initial-pose loading</a></p></li>
+<li><p><a class="reference internal" href="#launch-arguments" id="id11">Launch arguments</a></p></li>
+<li><p><a class="reference internal" href="#smoke-test-client-test-local-planne" id="id12">Smoke-test client: <code class="docutils literal notranslate"><span class="pre">test_local_planne</span></code></a></p></li>
+<li><p><a class="reference internal" href="#build-install-run" id="id13">Build, install, run</a></p></li>
+<li><p><a class="reference internal" href="#cross-references" id="id14">Cross-references</a></p></li>
 </ul>
-</li>
+</nav>
+<section id="what-this-package-does-and-does-not">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">What this package does — and does not</a><a class="headerlink" href="#what-this-package-does-and-does-not" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Spawns</strong> the per-robot Nav2 stack for the swarm.</p></li>
+<li><p><strong>Owns</strong> the Nav2 parameter file (<code class="docutils literal notranslate"><span class="pre">robot_nav2_params.yaml</span></code>) tuned
+for 20 differential-drive robots in 2D Stage simulation.</p></li>
+<li><p><strong>Defines</strong> the static <code class="docutils literal notranslate"><span class="pre">map</span> <span class="pre">→</span> <span class="pre">robot_&lt;id&gt;/odom</span></code> transform that
+replaces AMCL.</p></li>
+<li><p><strong>Does not</strong> know about the MAPF layer at all. It exposes a vanilla
+per-robot <code class="docutils literal notranslate"><span class="pre">follow_path</span></code> action; whoever consumes it
+(<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_robot</span></code>’s <code class="docutils literal notranslate"><span class="pre">motion_controller_node</span></code>,
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns</span></code>’s <code class="docutils literal notranslate"><span class="pre">path_follower_node</span></code>, or the
+bundled <code class="docutils literal notranslate"><span class="pre">test_local_planne</span></code> test client) can speak to it directly.</p></li>
+<li><p><strong>Does not</strong> spawn the simulator; the Stage world ships from
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation_lite</span></code> and is launched separately by
+the bringup files.</p></li>
 </ul>
+</section>
+<section id="layered-output-of-the-launch">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Layered output of the launch</a><a class="headerlink" href="#layered-output-of-the-launch" title="Link to this heading"></a></h2>
+<p>For <code class="docutils literal notranslate"><span class="pre">num_robots</span> <span class="pre">=</span> <span class="pre">N</span></code>, the launch produces the following nodes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Once</span> <span class="n">globally</span><span class="p">:</span>
+  <span class="n">map_server</span>
+  <span class="n">lifecycle_manager_map</span>  <span class="p">(</span><span class="n">autostart</span><span class="p">,</span> <span class="n">manages</span> <span class="p">[</span><span class="n">map_server</span><span class="p">])</span>
+
+<span class="n">Per</span> <span class="n">robot</span><span class="p">,</span> <span class="n">namespace</span> <span class="n">robot_i</span><span class="p">,</span> <span class="n">staggered</span> <span class="n">by</span> <span class="mf">0.3</span> <span class="o">*</span> <span class="n">i</span> <span class="n">seconds</span><span class="p">:</span>
+  <span class="n">static_transform_publisher</span>  <span class="nb">map</span> <span class="o">-&gt;</span> <span class="n">robot_i</span><span class="o">/</span><span class="n">odom</span>  <span class="p">(</span><span class="n">identity</span><span class="p">)</span>
+  <span class="n">controller_server</span>
+  <span class="n">behavior_server</span>
+  <span class="n">lifecycle_manager_nav</span>        <span class="p">(</span><span class="n">autostart</span><span class="p">,</span> <span class="n">manages</span>
+                                 <span class="p">[</span><span class="n">controller_server</span><span class="p">,</span> <span class="n">behavior_server</span><span class="p">])</span>
+</pre></div>
 </div>
-<div class="toctree-wrapper compound">
+<p>The 0.3 s stagger between robots is set via <code class="docutils literal notranslate"><span class="pre">TimerAction(period=0.3</span> <span class="pre">*</span> <span class="pre">i)</span></code>
+to spread DDS discovery and Nav2 startup over time — bringing all 20
+stacks up simultaneously triggers race conditions in lifecycle
+transitions.</p>
+<p>AMCL is <em>not</em> spawned by default. The launch file contains the AMCL
+node block commented out, with a TODO note explaining why: at 20
+robots the cross-robot LiDAR interference pollutes the particle
+filter, the localisation drifts within seconds, and Nav2 then
+mis-corrects the costmap relative to the simulator. The replacement
+is the static <code class="docutils literal notranslate"><span class="pre">map</span> <span class="pre">→</span> <span class="pre">robot_i/odom</span></code> identity transform — Stage’s
+<code class="docutils literal notranslate"><span class="pre">one_tf_tree</span></code> mode already publishes <code class="docutils literal notranslate"><span class="pre">robot_i/odom</span> <span class="pre">→</span>
+<span class="pre">robot_i/base_link</span></code> correctly, so an identity <code class="docutils literal notranslate"><span class="pre">map</span> <span class="pre">→</span> <span class="pre">odom</span></code> is
+sufficient as long as the simulator is the ground-truth source of
+both frames. AMCL can be re-enabled by uncommenting the block in
+<code class="docutils literal notranslate"><span class="pre">robot_local_nav.launch.py</span></code>; the YAML already has matching <code class="docutils literal notranslate"><span class="pre">amcl:</span></code>
+parameters under the per-robot namespace.</p>
+</section>
+<section id="per-robot-yaml-processing">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Per-robot YAML processing</a><a class="headerlink" href="#per-robot-yaml-processing" title="Link to this heading"></a></h2>
+<p>The Nav2 parameter file uses <code class="docutils literal notranslate"><span class="pre">&lt;robot_namespace&gt;</span></code> as a textual
+placeholder anywhere a frame name or topic should be per-robot:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">amcl</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">ros__parameters</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">odom_frame_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;robot_namespace&gt;/odom&quot;</span>
+<span class="w">    </span><span class="nt">base_frame_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;robot_namespace&gt;/base_link&quot;</span>
+
+<span class="nt">local_costmap</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">local_costmap</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">ros__parameters</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">global_frame</span><span class="p">:</span><span class="w">     </span><span class="s">&quot;&lt;robot_namespace&gt;/odom&quot;</span>
+<span class="w">      </span><span class="nt">robot_base_frame</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;robot_namespace&gt;/base_link&quot;</span>
+<span class="w">      </span><span class="nt">obstacle_layer</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">base_scan</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">topic</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/&lt;robot_namespace&gt;/base_scan&quot;</span>
+</pre></div>
 </div>
+<p>The launch routes the file through two transformations from
+<code class="docutils literal notranslate"><span class="pre">nav2_common.launch</span></code>:</p>
+<ol class="arabic simple">
+<li><p><strong>``ReplaceString``</strong> — substitutes every literal
+<code class="docutils literal notranslate"><span class="pre">&lt;robot_namespace&gt;</span></code> with <code class="docutils literal notranslate"><span class="pre">robot_i</span></code>. Produces a per-robot
+intermediate file in memory.</p></li>
+<li><p><strong>``RewrittenYaml``</strong> — wraps the result under the root key
+<code class="docutils literal notranslate"><span class="pre">robot_i</span></code> so each Nav2 node, when launched in that namespace,
+reads its parameters from
+<code class="docutils literal notranslate"><span class="pre">robot_i.&lt;original_section&gt;.&lt;...&gt;</span></code>. <code class="docutils literal notranslate"><span class="pre">convert_types:</span> <span class="pre">true</span></code> is
+set so YAML-ints/floats keep their original types.</p></li>
+</ol>
+<p>The result is fed to every Nav2 node in the per-robot
+<code class="docutils literal notranslate"><span class="pre">GroupAction</span></code> via a <code class="docutils literal notranslate"><span class="pre">ParameterFile(...</span> <span class="pre">allow_substs=True)</span></code>.</p>
+</section>
+<section id="tooling-nodes-spawned-per-robot">
+<h2><a class="toc-backref" href="#id4" role="doc-backlink">Tooling: nodes spawned per robot</a><a class="headerlink" href="#tooling-nodes-spawned-per-robot" title="Link to this heading"></a></h2>
+<section id="controller-server">
+<h3><a class="toc-backref" href="#id5" role="doc-backlink"><code class="docutils literal notranslate"><span class="pre">controller_server</span></code></a><a class="headerlink" href="#controller-server" title="Link to this heading"></a></h3>
+<p>Drives the local trajectory. The shipped configuration uses
+<strong>Regulated Pure Pursuit</strong>, <em>not</em> DWB. The YAML carries a long
+in-line rationale; the short version:</p>
+<ul class="simple">
+<li><p>DWB is a reactive sampling planner that treats the MAPF path as a
+<em>suggestion</em> and assembles its own trajectories from a critic stack.
+At low <code class="docutils literal notranslate"><span class="pre">BaseObstacle</span></code> weight it ignores the costmap and runs
+through obstacles; at high weight it invents detours that diverge
+from the MAPF schedule. Both behaviours are wrong for a fleet that
+is supposed to follow a centrally-planned conflict-free schedule.</p></li>
+<li><p>Regulated Pure Pursuit follows the polyline literally: it picks a
+carrot point <code class="docutils literal notranslate"><span class="pre">lookahead_dist</span></code> ahead and steers toward it, with
+three regulators on top — slow on tight curvature, slow near
+obstacles in the costmap, and stop on a near-future predicted
+collision. No trajectory invention.</p></li>
+</ul>
+<p>Key parameters (full set in
+<code class="docutils literal notranslate"><span class="pre">config/robot_nav2_params.yaml</span></code>):</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 38.0%" />
+<col style="width: 14.0%" />
+<col style="width: 48.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">controller_frequency</span></code></p></td>
+<td><p>10.0</p></td>
+<td><p>Loop rate (Hz). Pure Pursuit is light enough to run at 20 Hz
+too if motion looks chunky.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">FollowPath.desired_linear_vel</span></code></p></td>
+<td><p>0.5</p></td>
+<td><p>Cruise speed.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FollowPath.lookahead_dist</span></code></p></td>
+<td><p>0.6</p></td>
+<td><p>Carrot radius. ~3 MAPF cells at 0.2 m resolution. Lower =
+tighter tracking; higher = smoother but corner-cutting.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">use_regulated_linear_velocity_scaling</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>Slow on tight curvature.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">use_cost_regulated_linear_velocity_scaling</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>Slow when neighbouring robots appear in the local costmap.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">use_collision_detection</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>Predict collisions <code class="docutils literal notranslate"><span class="pre">max_allowed_time_to_collision_up_to_carrot</span></code>
+seconds ahead and stop if any are predicted.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">use_rotate_to_heading</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>Rotate in place if the carrot is more than 45° off-axis (only
+applies to differential-drive base).</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="behavior-server">
+<h3><a class="toc-backref" href="#id6" role="doc-backlink"><code class="docutils literal notranslate"><span class="pre">behavior_server</span></code></a><a class="headerlink" href="#behavior-server" title="Link to this heading"></a></h3>
+<p>Hosts the recovery behaviours: <code class="docutils literal notranslate"><span class="pre">spin</span></code>, <code class="docutils literal notranslate"><span class="pre">backup</span></code>, <code class="docutils literal notranslate"><span class="pre">wait</span></code>. No
+behaviour-tree-driven recovery sequence is configured at this layer —
+recovery is invoked by the controller stack on its own when needed.</p>
+</section>
+<section id="lifecycle-manager-per-robot">
+<h3><a class="toc-backref" href="#id7" role="doc-backlink"><code class="docutils literal notranslate"><span class="pre">lifecycle_manager</span></code> (per robot)</a><a class="headerlink" href="#lifecycle-manager-per-robot" title="Link to this heading"></a></h3>
+<p>Manages <code class="docutils literal notranslate"><span class="pre">controller_server</span></code> and <code class="docutils literal notranslate"><span class="pre">behavior_server</span></code> with
+<code class="docutils literal notranslate"><span class="pre">autostart:</span> <span class="pre">true</span></code>. <code class="docutils literal notranslate"><span class="pre">amcl</span></code> is intentionally absent from the
+managed list — the commented launch block, if re-enabled, also
+contains the matching addition to <code class="docutils literal notranslate"><span class="pre">node_names</span></code>.</p>
+</section>
+</section>
+<section id="local-and-global-costmaps">
+<h2><a class="toc-backref" href="#id8" role="doc-backlink">Local and global costmaps</a><a class="headerlink" href="#local-and-global-costmaps" title="Link to this heading"></a></h2>
+<p><strong>Local costmap</strong> (rolling 8 × 8 m window at 0.05 m / cell, updated
+at 20 Hz, published at 5 Hz):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">obstacle_layer</span></code> — uses
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_costmap_plugins/ResettingObstacleLayer</span></code> (see that
+package’s documentation). The plugin wipes the layer’s grid every
+cycle before re-marking, which is the swarm-specific fix for the
+ghost-trail problem caused by sparse-ray scans + many moving
+neighbours. Configured with <code class="docutils literal notranslate"><span class="pre">observation_persistence:</span> <span class="pre">0.0</span></code> to
+match: every observation must re-occur every cycle to stay
+visible.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">inflation_layer</span></code> — standard
+<code class="docutils literal notranslate"><span class="pre">nav2_costmap_2d::InflationLayer</span></code> with
+<code class="docutils literal notranslate"><span class="pre">inflation_radius:</span> <span class="pre">0.40</span></code> and <code class="docutils literal notranslate"><span class="pre">cost_scaling_factor:</span> <span class="pre">3.0</span></code>.</p></li>
+</ul>
+<p><strong>Global costmap</strong> uses the static-map flow:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">static_layer</span></code> — subscribes to <code class="docutils literal notranslate"><span class="pre">/map</span></code> (transient local).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">inflation_layer</span></code> — same plugin as in the local costmap, with
+<code class="docutils literal notranslate"><span class="pre">inflation_radius:</span> <span class="pre">0.5</span></code>.</p></li>
+</ul>
+<p>The global costmap is <strong>not</strong> wiped per cycle (the static layer
+relies on a single transient_local snapshot of the world map).</p>
+</section>
+<section id="static-map-robot-i-odom-tf">
+<h2><a class="toc-backref" href="#id9" role="doc-backlink">Static <code class="docutils literal notranslate"><span class="pre">map</span> <span class="pre">→</span> <span class="pre">robot_i/odom</span></code> TF</a><a class="headerlink" href="#static-map-robot-i-odom-tf" title="Link to this heading"></a></h2>
+<p>For each robot, the launch spawns a <code class="docutils literal notranslate"><span class="pre">static_transform_publisher</span></code>
+publishing identity (zero translation, zero rotation) from <code class="docutils literal notranslate"><span class="pre">map</span></code> to
+<code class="docutils literal notranslate"><span class="pre">robot_&lt;id&gt;/odom</span></code>. Because Stage runs in <code class="docutils literal notranslate"><span class="pre">one_tf_tree</span></code> mode and
+publishes <code class="docutils literal notranslate"><span class="pre">robot_&lt;id&gt;/odom</span> <span class="pre">→</span> <span class="pre">robot_&lt;id&gt;/base_link</span></code> itself, the
+identity <code class="docutils literal notranslate"><span class="pre">map</span> <span class="pre">→</span> <span class="pre">odom</span></code> is sufficient: every robot’s frames live on
+the same TF graph as the simulator’s ground truth, with the
+simulator as the canonical source of the localisation chain.</p>
+<p>This identity TF replaces AMCL for the reasons described above. If
+ground-truth-equivalent localisation ever needs to be relaxed, the
+AMCL block in the launch file is the entry point — it already
+contains the matching <code class="docutils literal notranslate"><span class="pre">set_initial_pose</span></code> call wired to per-robot
+<code class="docutils literal notranslate"><span class="pre">initial_poses</span></code>.</p>
+</section>
+<section id="scenario-initial-pose-loading">
+<h2><a class="toc-backref" href="#id10" role="doc-backlink">Scenario / initial-pose loading</a><a class="headerlink" href="#scenario-initial-pose-loading" title="Link to this heading"></a></h2>
+<p>The launch ingests initial-pose lists from two sources:</p>
+<ol class="arabic simple">
+<li><p><strong>Direct argument.</strong> If <code class="docutils literal notranslate"><span class="pre">initial_poses</span></code> is anything other than
+the literal string <code class="docutils literal notranslate"><span class="pre">&quot;None&quot;</span></code>, it is parsed as
+<code class="docutils literal notranslate"><span class="pre">&quot;x,y,yaw;</span> <span class="pre">x,y,yaw;</span> <span class="pre">...&quot;</span></code> (semicolons separate robots, commas
+separate components). Tuples that fail to parse are silently
+skipped.</p></li>
+<li><p><strong>Scenario YAML.</strong> When <code class="docutils literal notranslate"><span class="pre">initial_poses</span> <span class="pre">==</span> <span class="pre">&quot;None&quot;</span></code> (the default),
+the launch reads
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation_lite/scenario/common_scenarios.yaml</span></code>
+and looks up the entry under
+<code class="docutils literal notranslate"><span class="pre">scenarios.&lt;scenario&gt;</span></code>. Each scenario provides <code class="docutils literal notranslate"><span class="pre">initial_poses</span></code>
+(a list of <code class="docutils literal notranslate"><span class="pre">[x,</span> <span class="pre">y,</span> <span class="pre">yaw]</span></code>) and optionally a <code class="docutils literal notranslate"><span class="pre">map</span></code> filename
+(relative to <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation_lite/stage_sim/</span></code>). When
+the scenario provides a map, it overrides the <code class="docutils literal notranslate"><span class="pre">map_file</span></code>
+argument; otherwise the launch falls back to <code class="docutils literal notranslate"><span class="pre">map_file</span></code>.</p></li>
+</ol>
+<p>If fewer poses are available than <code class="docutils literal notranslate"><span class="pre">num_robots</span></code>, missing slots are
+zero-padded with <code class="docutils literal notranslate"><span class="pre">(0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0)</span></code>. AMCL would consume the per-pose
+<code class="docutils literal notranslate"><span class="pre">set_initial_pose</span></code> parameters; with AMCL disabled they are
+currently inert, but the parsing is preserved so toggling AMCL back
+on is a one-block change.</p>
+</section>
+<section id="launch-arguments">
+<h2><a class="toc-backref" href="#id11" role="doc-backlink">Launch arguments</a><a class="headerlink" href="#launch-arguments" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 24.0%" />
+<col style="width: 26.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Argument</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_robots</span></code></p></td>
+<td><p>20</p></td>
+<td><p>Number of robots to bring up.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">scenario</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cave</span></code></p></td>
+<td><p>Scenario name to look up in the scenarios YAML.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scenarios_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation_lite/scenario/common_scenarios.yaml</span></code></p></td>
+<td><p>YAML containing scenario definitions.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">initial_poses</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;None&quot;</span></code></p></td>
+<td><p>Inline <code class="docutils literal notranslate"><span class="pre">&quot;x,y,yaw;</span> <span class="pre">...&quot;</span></code> poses. <code class="docutils literal notranslate"><span class="pre">&quot;None&quot;</span></code> means use the
+scenarios YAML.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">map_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation_lite/stage_sim/cave.yaml</span></code></p></td>
+<td><p>Map YAML used when the scenario does not specify one.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">nav2_params_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav/config/robot_nav2_params.yaml</span></code></p></td>
+<td><p>Nav2 parameter file.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="smoke-test-client-test-local-planne">
+<h2><a class="toc-backref" href="#id12" role="doc-backlink">Smoke-test client: <code class="docutils literal notranslate"><span class="pre">test_local_planne</span></code></a><a class="headerlink" href="#smoke-test-client-test-local-planne" title="Link to this heading"></a></h2>
+<p>A standalone Python client that bypasses the MAPF layer and sends
+<code class="docutils literal notranslate"><span class="pre">FollowPath</span></code> action goals directly to each robot’s
+<code class="docutils literal notranslate"><span class="pre">controller_server</span></code>. Useful for sanity-checking the per-robot Nav2
+stack in isolation: if every robot accepts a goal, drives toward it,
+and stops on encountering an obstacle, the local-nav layer is wired
+correctly.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The console-script name has a trailing-letter typo —
+<code class="docutils literal notranslate"><span class="pre">test_local_planne</span></code> (no <code class="docutils literal notranslate"><span class="pre">r</span></code>) — preserved across releases.
+The repository’s <code class="docutils literal notranslate"><span class="pre">README</span></code> and <code class="docutils literal notranslate"><span class="pre">CLAUDE.md</span></code> reference both
+<code class="docutils literal notranslate"><span class="pre">test_local_planner</span></code> and <code class="docutils literal notranslate"><span class="pre">test_local_planne</span></code>; only the latter
+actually resolves to a binary. Treat that spelling as canonical
+when invoking it:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ros2</span> <span class="n">run</span> <span class="n">iros_llm_swarm_local_nav</span> <span class="n">test_local_planne</span> <span class="o">...</span>
+</pre></div>
+</div>
+</div>
+<p>The client has two modes, selected by command-line argument:</p>
+<ul class="simple">
+<li><p><strong>Random in odom</strong> (default) — for each robot, pick a uniformly
+random goal within <code class="docutils literal notranslate"><span class="pre">--radius</span></code> metres in the robot’s odom frame
+and send a 10-step straight-line <code class="docutils literal notranslate"><span class="pre">FollowPath</span></code> goal toward it.</p></li>
+<li><p><strong>Fixed goal</strong> — when <code class="docutils literal notranslate"><span class="pre">--goal-x</span></code> and <code class="docutils literal notranslate"><span class="pre">--goal-y</span></code> are provided,
+send every robot to the same global point. <code class="docutils literal notranslate"><span class="pre">--goal-frame</span></code>
+selects <code class="docutils literal notranslate"><span class="pre">&quot;map&quot;</span></code> (default) or <code class="docutils literal notranslate"><span class="pre">&quot;odom&quot;</span></code>. In <code class="docutils literal notranslate"><span class="pre">map</span></code> mode the
+client uses <code class="docutils literal notranslate"><span class="pre">tf2_ros</span></code> to transform the goal into each robot’s
+<code class="docutils literal notranslate"><span class="pre">odom</span></code> frame, since <code class="docutils literal notranslate"><span class="pre">FollowPath</span></code> operates per-robot in the
+local frame.</p></li>
+</ul>
+<p>Arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">--</span><span class="n">num</span>         <span class="n">Number</span> <span class="n">of</span> <span class="n">robots</span> <span class="n">to</span> <span class="n">drive</span> <span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="mi">20</span><span class="p">)</span>
+<span class="o">--</span><span class="n">radius</span>      <span class="n">Random</span> <span class="n">goal</span> <span class="n">radius</span> <span class="ow">in</span> <span class="n">odom</span> <span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">)</span>
+<span class="o">--</span><span class="n">goal</span><span class="o">-</span><span class="n">x</span>      <span class="n">Fixed</span><span class="o">-</span><span class="n">goal</span> <span class="n">x</span> <span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span>
+<span class="o">--</span><span class="n">goal</span><span class="o">-</span><span class="n">y</span>      <span class="n">Fixed</span><span class="o">-</span><span class="n">goal</span> <span class="n">y</span> <span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="kc">None</span><span class="p">)</span>
+<span class="o">--</span><span class="n">goal</span><span class="o">-</span><span class="n">frame</span>  <span class="n">Frame</span> <span class="k">for</span> <span class="n">fixed</span> <span class="n">goal</span><span class="p">:</span> <span class="s2">&quot;map&quot;</span> <span class="ow">or</span> <span class="s2">&quot;odom&quot;</span> <span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="s2">&quot;map&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Behaviour caveats:</p>
+<ul class="simple">
+<li><p>The client builds a 10-step straight-line <code class="docutils literal notranslate"><span class="pre">Path</span></code> between the
+robot’s current odom pose and the goal. There is <strong>no obstacle
+awareness</strong> in the client itself — the controller stack is what
+must avoid obstacles. With Regulated Pure Pursuit and a populated
+costmap the robot will slow and stop in front of obstacles; the
+goal is then unreachable until the obstacle clears. This is the
+expected demonstration of “what Nav2 does without MAPF” in the
+bundled README.</p></li>
+<li><p>“Random in map” is intentionally <strong>not</strong> supported in the current
+client — the in-line warning in the source file explains why
+(computing a random offset in map requires the inverse map↔odom
+TF and the implementation does not bother). Pass the goal in
+<code class="docutils literal notranslate"><span class="pre">odom</span></code> if you want random goals.</p></li>
+</ul>
+</section>
+<section id="build-install-run">
+<h2><a class="toc-backref" href="#id13" role="doc-backlink">Build, install, run</a><a class="headerlink" href="#build-install-run" title="Link to this heading"></a></h2>
+<p>Pure Python package; only <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation_lite</span></code> is a
+runtime dependency for default scenarios:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">colcon</span> <span class="n">build</span> <span class="o">--</span><span class="n">packages</span><span class="o">-</span><span class="n">select</span> <span class="n">iros_llm_swarm_local_nav</span>
+</pre></div>
+</div>
+<p>Standalone launch:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_local_nav</span> <span class="n">robot_local_nav</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span>
+<span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_local_nav</span> <span class="n">robot_local_nav</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span> <span class="n">num_robots</span><span class="o">:=</span><span class="mi">10</span>
+<span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_local_nav</span> <span class="n">robot_local_nav</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span> \
+  <span class="n">initial_poses</span><span class="o">:=</span><span class="s1">&#39;2,2,0; 3,3,0; 4,4,0&#39;</span> <span class="n">num_robots</span><span class="o">:=</span><span class="mi">3</span>
+</pre></div>
+</div>
+<p>Smoke test against a running stack:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ros2</span> <span class="n">run</span> <span class="n">iros_llm_swarm_local_nav</span> <span class="n">test_local_planne</span> <span class="o">--</span><span class="n">num</span> <span class="mi">20</span> \
+  <span class="o">--</span><span class="n">goal</span><span class="o">-</span><span class="n">x</span> <span class="mf">13.5</span> <span class="o">--</span><span class="n">goal</span><span class="o">-</span><span class="n">y</span> <span class="mf">16.5</span>
+</pre></div>
+</div>
+<p>In the integrated bringup launches
+(<code class="docutils literal notranslate"><span class="pre">swarm_mapf*.launch.py</span></code> / <code class="docutils literal notranslate"><span class="pre">swarm_lns*.launch.py</span></code>), this launch
+file is included with a 1 s delay after the simulator starts.</p>
+</section>
+<section id="cross-references">
+<h2><a class="toc-backref" href="#id14" role="doc-backlink">Cross-references</a><a class="headerlink" href="#cross-references" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Nav2 plugin loaded by the local costmap:
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_costmap_plugins</span></code> (<code class="docutils literal notranslate"><span class="pre">ResettingObstacleLayer</span></code>).</p></li>
+<li><p>Map server input: maps and worlds ship from
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation_lite</span></code>.</p></li>
+<li><p>Scenario definitions:
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation_lite/scenario/common_scenarios.yaml</span></code>.</p></li>
+<li><p>Action <code class="docutils literal notranslate"><span class="pre">follow_path</span></code> consumers:
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_robot/motion_controller_node</span></code> (PBS stack) and
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns/path_follower_node</span></code> (LNS stack).</p></li>
+</ul>
+</section>
 </section>
 
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="modules.html" class="btn btn-neutral float-right" title="iros_llm_swarm_local_nav" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright The &lt;iros_llm_swarm_local_nav&gt; Contributors. License: TODO: License declaration.</p>
+    <p>&#169; Copyright .</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

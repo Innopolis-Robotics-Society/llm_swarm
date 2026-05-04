@@ -1,0 +1,214 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iros_llm_swarm_mapf_lns &mdash; iros_llm_swarm_mapf_lns</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            iros_llm_swarm_mapf_lns
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../algorithm.html">LNS2 Algorithm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ros_api.html">ROS API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">iros_llm_swarm_mapf_lns</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">iros_llm_swarm_mapf_lns</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/user_docs/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <p style="margin: 0 0 1em 0;">
+  <a href="../iros_llm_swarm_docs/index.html">&laquo; IROS LLM Swarm — back to overview</a>
+</p><section id="iros-llm-swarm-mapf-lns">
+<h1>iros_llm_swarm_mapf_lns<a class="headerlink" href="#iros-llm-swarm-mapf-lns" title="Link to this heading"></a></h1>
+<p>LNS2 (Large Neighborhood Search v2) Multi-Agent Path Finding planner for
+the <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm</span></code> simulation, plus the per-robot follower that
+executes its plans against Nav2.</p>
+<p>The package exposes the same fleet-level contract as the legacy PBS
+planner — <code class="docutils literal notranslate"><span class="pre">/swarm/set_goals</span></code> action, per-robot <code class="docutils literal notranslate"><span class="pre">mapf_plan</span></code> topics,
+<code class="docutils literal notranslate"><span class="pre">follower_status</span></code> feedback — so launch files and behavior trees can
+swap the planner backend without further wiring.</p>
+<div class="toctree-wrapper compound">
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Refactoring in progress.</strong> <code class="docutils literal notranslate"><span class="pre">mapf_lns2_node.cpp</span></code> is currently a
+single ~2400-line file that interleaves the LNS2 control loop, the
+action server, schedule monitoring, life-cycle bookkeeping, and ROS
+plumbing. A refactor that decomposes it along the module boundaries
+already used by the planner code (<code class="docutils literal notranslate"><span class="pre">node_utils</span></code>, <code class="docutils literal notranslate"><span class="pre">plan_publisher</span></code>,
+<code class="docutils literal notranslate"><span class="pre">robot_lifecycle</span></code>, plus an extracted “mission” object) is planned.
+This document describes the <strong>current behaviour and contract</strong>;
+internals will move, but the ROS API will not.</p>
+</div>
+<section id="role-in-the-stack">
+<h2>Role in the stack<a class="headerlink" href="#role-in-the-stack" title="Link to this heading"></a></h2>
+<p>Two executables are built from this package:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">mapf_lns2_node</span></code> — fleet-level planner. Hosts the
+<code class="docutils literal notranslate"><span class="pre">/swarm/set_goals</span></code> action server, runs the LNS2 solver on the
+downsampled occupancy grid, publishes time-indexed plans on
+<code class="docutils literal notranslate"><span class="pre">/robot_*/mapf_plan</span></code>, and monitors execution to trigger replans on
+deviation, stall, or follower failure.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">path_follower_node</span></code> — per-robot follower (one instance per robot
+spawned by the launch file). Subscribes to its own <code class="docutils literal notranslate"><span class="pre">mapf_plan</span></code>,
+drives Nav2’s <code class="docutils literal notranslate"><span class="pre">follow_path</span></code> action segment by segment, and reports
+state on <code class="docutils literal notranslate"><span class="pre">follower_status</span></code>. Also implements a PD-based formation
+follower mode driven by <code class="docutils literal notranslate"><span class="pre">/formations/config</span></code>.</p></li>
+</ul>
+<p>Both executables are bound by the contract laid out in
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces</span></code> (<code class="docutils literal notranslate"><span class="pre">MAPFPlan</span></code>, <code class="docutils literal notranslate"><span class="pre">MAPFStep</span></code>,
+<code class="docutils literal notranslate"><span class="pre">FollowerStatus</span></code>, <code class="docutils literal notranslate"><span class="pre">SetGoals.action</span></code>).</p>
+<p>A static library <code class="docutils literal notranslate"><span class="pre">lns2</span></code> is also installed and exported via
+<code class="docutils literal notranslate"><span class="pre">ament_export_targets</span></code> so other packages can link the pure-algorithm
+solver without dragging in the ROS layer.</p>
+</section>
+<section id="mission-flow">
+<h2>Mission flow<a class="headerlink" href="#mission-flow" title="Link to this heading"></a></h2>
+<p>The fleet-level lifecycle for one <code class="docutils literal notranslate"><span class="pre">/swarm/set_goals</span></code> call:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Client                         mapf_lns2_node                    path_follower_node × N
+   │                                  │                                    │
+   ├─── SetGoals(robot_ids, goals) ──▶│                                    │
+   │                                  │ build agents from current odom     │
+   │                                  │ + footprints + map                 │
+   │  feedback: validating            │                                    │
+   │◀─────────────────────────────────│                                    │
+   │  feedback: planning              │ LNS2: prioritized initial soln     │
+   │◀─────────────────────────────────│ + destroy/repair to 0 collisions   │
+   │                                  │                                    │
+   │                                  │── MAPFPlan (per robot) ───────────▶│
+   │  feedback: executing             │                                    │ FollowPath segments
+   │◀─────────────────────────────────│  watch follower_status + odom      │ → Nav2
+   │                                  │  → arrived/active/deviated counts  │
+   │                                  │                                    │
+   │                                  │  on deviation/stall: trigger       │
+   │  feedback: replanning            │  warm-start (or cold) replan       │
+   │◀─────────────────────────────────│  → publish new MAPFPlan(plan_id+1) │
+   │                                  │                                    │
+   │  result: success/failure         │  all robots arrived OR             │
+   │◀─────────────────────────────────│  unplanable budget exhausted       │
+</pre></div>
+</div>
+<p>Cancellation broadcasts an empty <code class="docutils literal notranslate"><span class="pre">MAPFPlan</span></code> and a zero <code class="docutils literal notranslate"><span class="pre">Twist</span></code> to
+every active robot, then completes the action with
+<code class="docutils literal notranslate"><span class="pre">error_code</span> <span class="pre">=</span> <span class="pre">CANCELLED</span></code>.</p>
+</section>
+<section id="what-s-documented-in-this-package">
+<h2>What’s documented in this package<a class="headerlink" href="#what-s-documented-in-this-package" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="algorithm.html"><span class="doc">LNS2 Algorithm</span></a> — LNS2 algorithm internals: types, soft A*, collision
+table, destroy operators, warm start, and the module layout under
+<code class="docutils literal notranslate"><span class="pre">include/iros_llm_swarm_mapf/lns2/</span></code>.</p></li>
+<li><p><a class="reference internal" href="ros_api.html"><span class="doc">ROS API</span></a> — full ROS contract: action server, topics, parameters
+for both <code class="docutils literal notranslate"><span class="pre">mapf_lns2_node</span></code> and <code class="docutils literal notranslate"><span class="pre">path_follower_node</span></code>.</p></li>
+</ul>
+<p>Type definitions consumed and produced by this package live in
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces</span></code>; see its docs for field semantics.</p>
+</section>
+<section id="build">
+<h2>Build<a class="headerlink" href="#build" title="Link to this heading"></a></h2>
+<p>The package depends on <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces</span></code>. Build that first
+when adding new types:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">colcon</span> <span class="n">build</span> <span class="o">--</span><span class="n">packages</span><span class="o">-</span><span class="n">select</span> <span class="n">iros_llm_swarm_interfaces</span>
+<span class="n">colcon</span> <span class="n">build</span> <span class="o">--</span><span class="n">packages</span><span class="o">-</span><span class="n">select</span> <span class="n">iros_llm_swarm_mapf_lns</span>
+</pre></div>
+</div>
+<p>The pure-algorithm side (<code class="docutils literal notranslate"><span class="pre">lns2</span></code> static library) has no ROS
+dependencies and is exported by <code class="docutils literal notranslate"><span class="pre">ament_export_targets(lns2Targets)</span></code>
+for downstream consumers (e.g. unit tests, alternative front-ends).</p>
+</section>
+<section id="smoke-and-stress-tests">
+<h2>Smoke and stress tests<a class="headerlink" href="#smoke-and-stress-tests" title="Link to this heading"></a></h2>
+<p>Two standalone executables under <code class="docutils literal notranslate"><span class="pre">src/lns2/</span></code> exercise the algorithm
+without ROS:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">smoke_test.cpp</span></code> — deterministic small-scenario sanity checks.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stress_test.cpp</span></code> — randomized fleet/horizon sweeps used during
+algorithm tuning.</p></li>
+</ul>
+<p>These are not built by default by <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code> — wire them in
+manually when iterating on the solver.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

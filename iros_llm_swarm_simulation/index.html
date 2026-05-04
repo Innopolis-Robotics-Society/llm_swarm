@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>iros_llm_swarm_simulation &mdash; iros_llm_swarm_simulation 0.0.0 documentation</title>
+  <title>iros_llm_swarm_simulation &mdash; iros_llm_swarm_simulation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
@@ -18,8 +18,7 @@
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="iros_llm_swarm_simulation" href="modules.html" /> 
+    <link rel="search" title="Search" href="search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -41,23 +40,26 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">Python API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="iros_llm_swarm_simulation.html">iros_llm_swarm_simulation package</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="iros_llm_swarm_simulation.html#module-iros_llm_swarm_simulation">Module contents</a></li>
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">iros_llm_swarm_simulation</a><ul>
+<li><a class="reference internal" href="#what-s-in-the-package">What’s in the package</a></li>
+<li><a class="reference internal" href="#architecture">Architecture</a><ul>
+<li><a class="reference internal" href="#per-robot-xacro-processing">Per-robot xacro processing</a></li>
+<li><a class="reference internal" href="#staggering">Staggering</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#robot-model">Robot model</a></li>
+<li><a class="reference internal" href="#sensor-bridges">Sensor bridges</a></li>
+<li><a class="reference internal" href="#per-robot-ros-2-topics">Per-robot ROS 2 topics</a></li>
+<li><a class="reference internal" href="#launch-arguments">Launch arguments</a></li>
+<li><a class="reference internal" href="#compatibility-notes">Compatibility notes</a></li>
+<li><a class="reference internal" href="#build-install-run">Build, install, run</a></li>
+<li><a class="reference internal" href="#cross-references">Cross-references</a></li>
 </ul>
 </li>
 </ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="standards.html">Standard Documents</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="standard_docs/PACKAGE.html">PACKAGE</a></li>
-</ul>
-</li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
-</ul>
-
+</div>
         </div>
       </div>
     </nav>
@@ -82,36 +84,327 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="iros-llm-swarm-simulation">
+  <p style="margin: 0 0 1em 0;">
+  <a href="../iros_llm_swarm_docs/index.html">&laquo; IROS LLM Swarm — back to overview</a>
+</p><section id="iros-llm-swarm-simulation">
 <h1>iros_llm_swarm_simulation<a class="headerlink" href="#iros-llm-swarm-simulation" title="Link to this heading"></a></h1>
-<p>ROS2 Humble swarm simulation with Ignition Gazebo (Fortress)</p>
-<div class="toctree-wrapper compound">
+<p>3D Ignition Gazebo (Fortress) simulator for the swarm. Builds robots
+from a xacro-generated URDF, spawns them into an empty Gazebo world
+through <code class="docutils literal notranslate"><span class="pre">ros_gz_sim</span></code>, runs <code class="docutils literal notranslate"><span class="pre">ros2_control</span></code> with <code class="docutils literal notranslate"><span class="pre">diff_drive_controller</span></code>
+inside Gazebo, and bridges sensor data to ROS 2 via
+<code class="docutils literal notranslate"><span class="pre">ros_gz_bridge</span></code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><strong>Preview only — not yet recommended for daily use.</strong> The launch
+file boots up to 20 robots in principle, but stable end-to-end
+operation with the rest of the swarm stack (MAPF, formation, BT)
+is <strong>not</strong> guaranteed at this scale. The supported simulator is
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation_lite</span></code> (2D Stage); use this package
+for individual experimentation with 3D physics or as the
+integration target for future work, not as the day-to-day
+simulator.</p>
+<p>Several aspects of the integration with the rest of the stack are
+currently incompatible by default — see the <em>Compatibility notes</em>
+section below.</p>
+</div>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#what-s-in-the-package" id="id1">What’s in the package</a></p></li>
+<li><p><a class="reference internal" href="#architecture" id="id2">Architecture</a></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="modules.html">Python API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="iros_llm_swarm_simulation.html">iros_llm_swarm_simulation package</a></li>
+<li><p><a class="reference internal" href="#per-robot-xacro-processing" id="id3">Per-robot xacro processing</a></p></li>
+<li><p><a class="reference internal" href="#staggering" id="id4">Staggering</a></p></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="standards.html">Standard Documents</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="standard_docs/PACKAGE.html">PACKAGE</a></li>
+<li><p><a class="reference internal" href="#robot-model" id="id5">Robot model</a></p></li>
+<li><p><a class="reference internal" href="#sensor-bridges" id="id6">Sensor bridges</a></p></li>
+<li><p><a class="reference internal" href="#per-robot-ros-2-topics" id="id7">Per-robot ROS 2 topics</a></p></li>
+<li><p><a class="reference internal" href="#launch-arguments" id="id8">Launch arguments</a></p></li>
+<li><p><a class="reference internal" href="#compatibility-notes" id="id9">Compatibility notes</a></p></li>
+<li><p><a class="reference internal" href="#build-install-run" id="id10">Build, install, run</a></p></li>
+<li><p><a class="reference internal" href="#cross-references" id="id11">Cross-references</a></p></li>
 </ul>
-</li>
+</nav>
+<section id="what-s-in-the-package">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">What’s in the package</a><a class="headerlink" href="#what-s-in-the-package" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">launch/swarm_simulation.launch.py</span></code> — boots Gazebo and spawns N
+differential-drive robots. Default <code class="docutils literal notranslate"><span class="pre">n_robots</span> <span class="pre">=</span> <span class="pre">5</span></code> (vs 20 in the
+Stage launch).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">robot_description/robot.urdf.xacro</span></code> — the robot model.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">world/swarm_world.sdf</span></code> — a deliberately empty world: physics,
+required Gazebo plugins, lighting, ground plane. Robots are
+<strong>not</strong> declared in the world; they are spawned dynamically by the
+launch file.</p></li>
 </ul>
+</section>
+<section id="architecture">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Architecture</a><a class="headerlink" href="#architecture" title="Link to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Once globally:
+  gazebo (one process, swarm_world.sdf)
+  clock_bridge   /clock @ rosgraph_msgs ↔ gz.msgs.Clock
+
+Per robot (staggered, namespace robot_&lt;id&gt;):
+  robot_state_publisher
+  ros_gz_sim create        (spawn the URDF model in Gazebo)
+  parameter_bridge         (LiDAR + IMU bridges)
+  controller spawners      (joint_state_broadcaster + diff_drive_controller)
+</pre></div>
 </div>
-<div class="toctree-wrapper compound">
+<p>The <code class="docutils literal notranslate"><span class="pre">ros2_control</span></code> <code class="docutils literal notranslate"><span class="pre">controller_manager</span></code> is <strong>not</strong> spawned by the
+launch as a separate node — it is hosted inside Gazebo by the
+<code class="docutils literal notranslate"><span class="pre">gz_ros2_control-system</span></code> plugin embedded in the URDF. The
+controller spawners launched in ROS 2 connect to that controller
+manager via the namespaced action server
+<code class="docutils literal notranslate"><span class="pre">/robot_&lt;id&gt;/controller_manager</span></code>.</p>
+<section id="per-robot-xacro-processing">
+<h3><a class="toc-backref" href="#id3" role="doc-backlink">Per-robot xacro processing</a><a class="headerlink" href="#per-robot-xacro-processing" title="Link to this heading"></a></h3>
+<p>For each robot the launch:</p>
+<ol class="arabic simple">
+<li><p>Writes a per-fleet <code class="docutils literal notranslate"><span class="pre">controllers_swarm.yaml</span></code> to a fresh
+<code class="docutils literal notranslate"><span class="pre">/tmp/swarm_ctrl_*/</span></code> directory containing one
+<code class="docutils literal notranslate"><span class="pre">controller_manager</span></code> + one <code class="docutils literal notranslate"><span class="pre">diff_drive_controller</span></code> block per
+robot.</p></li>
+<li><p>Calls <code class="docutils literal notranslate"><span class="pre">xacro.process_file</span></code> with three mappings:
+<code class="docutils literal notranslate"><span class="pre">robot_name</span></code> (Gazebo model name, <code class="docutils literal notranslate"><span class="pre">robot_&lt;id&gt;</span></code>),
+<code class="docutils literal notranslate"><span class="pre">ros_namespace</span></code> (matching ROS 2 namespace), and
+<code class="docutils literal notranslate"><span class="pre">controllers_yaml</span></code> (path to the YAML written above).</p></li>
+<li><p>Feeds the resulting URDF string to <code class="docutils literal notranslate"><span class="pre">robot_state_publisher</span></code> in
+the per-robot namespace.</p></li>
+<li><p>Calls <code class="docutils literal notranslate"><span class="pre">ros_gz_sim/create</span> <span class="pre">-topic</span> <span class="pre">/robot_&lt;id&gt;/robot_description</span></code>
+to materialise the model in Gazebo at the requested pose.</p></li>
+<li><p>Starts a <code class="docutils literal notranslate"><span class="pre">parameter_bridge</span></code> that bridges the model’s Ignition
+sensor topics to ROS 2 (see <em>Sensor bridges</em> below).</p></li>
+<li><p>Starts two controller spawners against
+<code class="docutils literal notranslate"><span class="pre">/robot_&lt;id&gt;/controller_manager</span></code>: the joint state broadcaster
+first, then the diff-drive controller a second later.</p></li>
+</ol>
+<p>The xacro embeds <code class="docutils literal notranslate"><span class="pre">gz_ros2_control::GazeboSimROS2ControlPlugin</span></code> in
+the URDF itself with <code class="docutils literal notranslate"><span class="pre">&lt;namespace&gt;</span></code> set to <code class="docutils literal notranslate"><span class="pre">robot_&lt;id&gt;</span></code>. Gazebo
+loads the plugin per spawned model and starts a controller manager
+in that namespace, reading parameters from the <code class="docutils literal notranslate"><span class="pre">controllers_yaml</span></code>
+path passed in via xacro.</p>
+</section>
+<section id="staggering">
+<h3><a class="toc-backref" href="#id4" role="doc-backlink">Staggering</a><a class="headerlink" href="#staggering" title="Link to this heading"></a></h3>
+<p>Robot bringup is heavily staggered to avoid the controller-manager
+ABI race that occurs when many ros2_control instances start
+simultaneously:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">base_delay</span>  <span class="o">=</span> <span class="mf">3.0</span>                 <span class="c1"># wait for Gazebo to be ready</span>
+<span class="n">robot_delay</span> <span class="o">=</span> <span class="n">base_delay</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">5</span>  <span class="c1"># 5 s between robots</span>
+<span class="n">ctrl_delay</span>  <span class="o">=</span> <span class="n">robot_delay</span> <span class="o">+</span> <span class="mi">8</span>     <span class="c1"># extra wait for the per-robot</span>
+                                  <span class="c1"># controller_manager to come up</span>
+<span class="n">spawn</span> <span class="n">jsb_spawner</span>   <span class="n">at</span> <span class="n">t</span> <span class="o">=</span> <span class="n">ctrl_delay</span>
+<span class="n">spawn</span> <span class="n">ddc_spawner</span>   <span class="n">at</span> <span class="n">t</span> <span class="o">=</span> <span class="n">ctrl_delay</span> <span class="o">+</span> <span class="mi">1</span>
+</pre></div>
 </div>
+<p>For <code class="docutils literal notranslate"><span class="pre">n_robots</span> <span class="pre">=</span> <span class="pre">5</span></code> the last spawner fires at <code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">=</span> <span class="pre">3</span> <span class="pre">+</span> <span class="pre">4*5</span> <span class="pre">+</span> <span class="pre">8</span> <span class="pre">+</span> <span class="pre">1</span>
+<span class="pre">=</span> <span class="pre">32</span> <span class="pre">s</span></code>. Scaling to 20 robots pushes the last spawner past
+<code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">=</span> <span class="pre">100</span> <span class="pre">s</span></code>. The startup cost is the dominant compatibility issue
+with the integrated bringup, which is tuned for the few-second
+startup of the Stage simulator.</p>
+</section>
+</section>
+<section id="robot-model">
+<h2><a class="toc-backref" href="#id5" role="doc-backlink">Robot model</a><a class="headerlink" href="#robot-model" title="Link to this heading"></a></h2>
+<p>Defined in <code class="docutils literal notranslate"><span class="pre">robot_description/robot.urdf.xacro</span></code>:</p>
+<ul class="simple">
+<li><p><strong>Body:</strong> 30 × 30 × 15 cm box, mass 5 kg, inertia computed from
+the box dimensions.</p></li>
+<li><p><strong>Drive:</strong> two <code class="docutils literal notranslate"><span class="pre">continuous</span></code> revolute joints
+(<code class="docutils literal notranslate"><span class="pre">left_wheel_joint</span></code> / <code class="docutils literal notranslate"><span class="pre">right_wheel_joint</span></code>) with 5 cm radius,
+4 cm width, 25 cm separation. <code class="docutils literal notranslate"><span class="pre">mu1</span> <span class="pre">=</span> <span class="pre">mu2</span> <span class="pre">=</span> <span class="pre">1.0</span></code> plus
+<code class="docutils literal notranslate"><span class="pre">kp</span> <span class="pre">=</span> <span class="pre">1e6</span> <span class="pre">/</span> <span class="pre">kd</span> <span class="pre">=</span> <span class="pre">100</span></code> per Gazebo wheel for high traction.</p></li>
+<li><p><strong>Casters:</strong> two passive spheres at the front and back of the
+body, 2.5 cm radius, <code class="docutils literal notranslate"><span class="pre">mu1</span> <span class="pre">=</span> <span class="pre">mu2</span> <span class="pre">=</span> <span class="pre">0</span></code> — pure sliders, no
+steering geometry.</p></li>
+<li><p><strong>LiDAR:</strong> GPU lidar mounted on top of the body. 360° FOV, 181
+samples, 0.10 – 10 m range, 0.01 m resolution, Gaussian noise
+<code class="docutils literal notranslate"><span class="pre">stddev</span> <span class="pre">=</span> <span class="pre">0.01</span></code>. Publishes to Ignition topic
+<code class="docutils literal notranslate"><span class="pre">/&lt;rname&gt;/scan_raw</span></code> at 10 Hz.</p></li>
+<li><p><strong>IMU:</strong> at body centre. 100 Hz, Gaussian noise on angular
+velocity (<code class="docutils literal notranslate"><span class="pre">stddev</span> <span class="pre">=</span> <span class="pre">0.009</span></code>) and linear acceleration
+(<code class="docutils literal notranslate"><span class="pre">stddev</span> <span class="pre">=</span> <span class="pre">0.021</span></code>). Publishes to <code class="docutils literal notranslate"><span class="pre">/&lt;rname&gt;/imu_raw</span></code>.</p></li>
+<li><p><strong>TF root:</strong> <code class="docutils literal notranslate"><span class="pre">${rname}/base_footprint</span></code> (zero-inertia ground
+anchor) → <code class="docutils literal notranslate"><span class="pre">${rname}/base_link</span></code> (lifted by the wheel radius).</p></li>
+</ul>
+<p>The diff-drive controller publishes <code class="docutils literal notranslate"><span class="pre">odom</span> <span class="pre">→</span> <span class="pre">base_link</span></code> itself
+(<code class="docutils literal notranslate"><span class="pre">enable_odom_tf:</span> <span class="pre">true</span></code>) and uses
+<code class="docutils literal notranslate"><span class="pre">odom_frame_id</span> <span class="pre">=</span> <span class="pre">&quot;${rname}/odom&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">base_frame_id</span> <span class="pre">=</span> <span class="pre">&quot;${rname}/base_link&quot;</span></code>.</p>
+</section>
+<section id="sensor-bridges">
+<h2><a class="toc-backref" href="#id6" role="doc-backlink">Sensor bridges</a><a class="headerlink" href="#sensor-bridges" title="Link to this heading"></a></h2>
+<p>The Ignition topics produced by the URDF’s <code class="docutils literal notranslate"><span class="pre">&lt;sensor&gt;</span></code> blocks are
+remapped to canonical ROS 2 names via <code class="docutils literal notranslate"><span class="pre">ros_gz_bridge</span></code>:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 38.0%" />
+<col style="width: 32.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Ignition topic</p></th>
+<th class="head"><p>ROS 2 topic</p></th>
+<th class="head"><p>Type</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/robot_&lt;id&gt;/scan_raw</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/robot_&lt;id&gt;/scan</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sensor_msgs/LaserScan</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/robot_&lt;id&gt;/imu_raw</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/robot_&lt;id&gt;/imu</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sensor_msgs/Imu</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>The clock bridge is a separate, single-instance node bridging
+<code class="docutils literal notranslate"><span class="pre">/clock</span></code> (<code class="docutils literal notranslate"><span class="pre">rosgraph_msgs/Clock</span></code> ↔ <code class="docutils literal notranslate"><span class="pre">gz.msgs.Clock</span></code>).</p>
+</section>
+<section id="per-robot-ros-2-topics">
+<h2><a class="toc-backref" href="#id7" role="doc-backlink">Per-robot ROS 2 topics</a><a class="headerlink" href="#per-robot-ros-2-topics" title="Link to this heading"></a></h2>
+<p>After all spawners settle:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/robot_&lt;id&gt;/cmd_vel</span></code> — <code class="docutils literal notranslate"><span class="pre">geometry_msgs/Twist</span></code>, consumed by the
+diff-drive controller.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/robot_&lt;id&gt;/odom</span></code> — <code class="docutils literal notranslate"><span class="pre">nav_msgs/Odometry</span></code>, published by the
+diff-drive controller.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/robot_&lt;id&gt;/scan</span></code> — <code class="docutils literal notranslate"><span class="pre">sensor_msgs/LaserScan</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/robot_&lt;id&gt;/imu</span></code> — <code class="docutils literal notranslate"><span class="pre">sensor_msgs/Imu</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/robot_&lt;id&gt;/joint_states</span></code> — <code class="docutils literal notranslate"><span class="pre">sensor_msgs/JointState</span></code>,
+published by the joint state broadcaster.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/robot_&lt;id&gt;/robot_description</span></code> —
+<code class="docutils literal notranslate"><span class="pre">std_msgs/String</span></code> (latched URDF), published by
+<code class="docutils literal notranslate"><span class="pre">robot_state_publisher</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/clock</span></code> — <code class="docutils literal notranslate"><span class="pre">rosgraph_msgs/Clock</span></code> (shared).</p></li>
+</ul>
+</section>
+<section id="launch-arguments">
+<h2><a class="toc-backref" href="#id8" role="doc-backlink">Launch arguments</a><a class="headerlink" href="#launch-arguments" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 18.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Argument</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">n_robots</span></code></p></td>
+<td><p>5</p></td>
+<td><p>Number of robots to spawn. Note: the launch file uses
+<code class="docutils literal notranslate"><span class="pre">n_robots</span></code> (not <code class="docutils literal notranslate"><span class="pre">num_robots</span></code> like the rest of the stack).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">positions_yaml</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+<td><p>Absolute path to a YAML containing
+<code class="docutils literal notranslate"><span class="pre">[[x0,</span> <span class="pre">y0,</span> <span class="pre">yaw0],</span> <span class="pre">...]</span></code>. Empty string means the launch
+generates a square auto-grid (<code class="docutils literal notranslate"><span class="pre">ceil(sqrt(N))</span></code> columns,
+1.5 m spacing).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">z_spawn</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.3</span></code></p></td>
+<td><p>Height at which robots are added during automatic placement.
+Spawning at zero would clip the wheels into the ground plane.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># 5 robots, auto-grid</span>
+<span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_simulation</span> <span class="n">swarm_simulation</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span>
+
+<span class="c1"># Specific count and positions</span>
+<span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_simulation</span> <span class="n">swarm_simulation</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span> \
+  <span class="n">n_robots</span><span class="o">:=</span><span class="mi">10</span> <span class="n">positions_yaml</span><span class="o">:=/</span><span class="nb">abs</span><span class="o">/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">positions</span><span class="o">.</span><span class="n">yaml</span>
+</pre></div>
+</div>
+</section>
+<section id="compatibility-notes">
+<h2><a class="toc-backref" href="#id9" role="doc-backlink">Compatibility notes</a><a class="headerlink" href="#compatibility-notes" title="Link to this heading"></a></h2>
+<p>This package is <strong>not</strong> plug-compatible with the rest of the swarm
+stack out of the box. Known divergences from the Stage backend:</p>
+<ol class="arabic simple">
+<li><p><strong>Sensor topic name.</strong> Gazebo bridges to <code class="docutils literal notranslate"><span class="pre">/robot_&lt;id&gt;/scan</span></code>;
+the Stage robot publishes <code class="docutils literal notranslate"><span class="pre">/robot_&lt;id&gt;/base_scan</span></code>. The Nav2
+parameter file in <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav</span></code> is wired to
+<code class="docutils literal notranslate"><span class="pre">base_scan</span></code>. Switching to Gazebo requires changing the
+<code class="docutils literal notranslate"><span class="pre">obstacle_layer.base_scan.topic</span></code> entry in
+<code class="docutils literal notranslate"><span class="pre">robot_nav2_params.yaml</span></code> (or remapping at launch time).</p></li>
+<li><p><strong>Sensor characteristics.</strong> The Gazebo lidar reaches 10 m and is
+noisy; the Stage lidar reaches 3.5 m and is noise-free.
+<code class="docutils literal notranslate"><span class="pre">ResettingObstacleLayer</span></code> was introduced for the Stage sparse-
+scanner ghost-trail problem — its trade-offs are different on a
+denser, longer-range Gazebo scan, and may not be needed (or may
+need re-tuning).</p></li>
+<li><p><strong>Spawn names vs world list.</strong> The Stage worlds hardcode 20
+robot names with explicit colors and poses. The Gazebo launch
+names robots <code class="docutils literal notranslate"><span class="pre">robot_0</span></code> … <code class="docutils literal notranslate"><span class="pre">robot_&lt;n_robots-1&gt;</span></code> from the launch
+argument; there is no static “fleet of 20” baked into the world
+file.</p></li>
+<li><p><strong>Map server has no map.</strong> The bundled
+<code class="docutils literal notranslate"><span class="pre">swarm_world.sdf</span></code> is empty (just ground plane). Nav2’s
+<code class="docutils literal notranslate"><span class="pre">map_server</span></code> expects an occupancy grid; without one, the
+global costmap collapses to “everything free” and obstacle
+information has to come purely from the per-robot lidars and
+their local costmaps. For now <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav</span></code>
+defaults its map argument to a Stage map yaml, which is
+geometrically meaningless against the empty Gazebo world.</p></li>
+<li><p><strong>Startup time scales with N.</strong> With <code class="docutils literal notranslate"><span class="pre">i</span> <span class="pre">*</span> <span class="pre">5</span> <span class="pre">s</span></code> per-robot
+stagger, 20 robots take ~110 s to bring up, well beyond the 1 s
+delays the bringup files use between layers.</p></li>
+<li><p><strong>Per-robot frames.</strong> Gazebo’s URDF prefixes frames as
+<code class="docutils literal notranslate"><span class="pre">robot_&lt;id&gt;/base_link</span></code> etc., matching the Stage convention,
+but <code class="docutils literal notranslate"><span class="pre">base_footprint</span></code> is added (and is the URDF’s root). The
+static TF in <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav</span></code> connects
+<code class="docutils literal notranslate"><span class="pre">map</span> <span class="pre">→</span> <span class="pre">robot_&lt;id&gt;/odom</span></code>; the diff-drive controller fills in
+<code class="docutils literal notranslate"><span class="pre">odom</span> <span class="pre">→</span> <span class="pre">base_link</span></code>. <code class="docutils literal notranslate"><span class="pre">base_footprint</span></code> to <code class="docutils literal notranslate"><span class="pre">base_link</span></code> is a
+fixed joint internal to the URDF.</p></li>
+</ol>
+<p>Treat this package as the integration target rather than a daily
+driver. When the swarm stack is ready to switch to 3D physics, the
+list above is the punch-list.</p>
+</section>
+<section id="build-install-run">
+<h2><a class="toc-backref" href="#id10" role="doc-backlink">Build, install, run</a><a class="headerlink" href="#build-install-run" title="Link to this heading"></a></h2>
+<p>Pure Python; runtime dependencies are listed in <code class="docutils literal notranslate"><span class="pre">package.xml</span></code>
+(<code class="docutils literal notranslate"><span class="pre">ros_gz_sim</span></code>, <code class="docutils literal notranslate"><span class="pre">ros_gz_bridge</span></code>, <code class="docutils literal notranslate"><span class="pre">ros2_control</span></code>, friends).</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">colcon</span> <span class="n">build</span> <span class="o">--</span><span class="n">packages</span><span class="o">-</span><span class="n">select</span> <span class="n">iros_llm_swarm_simulation</span>
+<span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_simulation</span> <span class="n">swarm_simulation</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span> <span class="n">n_robots</span><span class="o">:=</span><span class="mi">3</span>
+</pre></div>
+</div>
+<p>The integrated bringup files do <strong>not</strong> include this launch — they
+include <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation_lite/warehouse_swarm.launch.py</span></code>
+instead.</p>
+</section>
+<section id="cross-references">
+<h2><a class="toc-backref" href="#id11" role="doc-backlink">Cross-references</a><a class="headerlink" href="#cross-references" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>The supported simulator that the bringup files actually use:
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation_lite</span></code>.</p></li>
+<li><p>Nav2 stack tuned for the Stage backend (will need topic / map
+changes to drive Gazebo): <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav</span></code>.</p></li>
+<li><p>Roadmap: the project’s <code class="docutils literal notranslate"><span class="pre">README</span></code> lists “Transition to Gazebo
+Harmonic for 3D simulation” as a future item; this package is the
+Fortress-era starting point.</p></li>
+</ul>
+</section>
 </section>
 
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="modules.html" class="btn btn-neutral float-right" title="iros_llm_swarm_simulation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright The &lt;iros_llm_swarm_simulation&gt; Contributors. License: Apache-2.0.</p>
+    <p>&#169; Copyright .</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

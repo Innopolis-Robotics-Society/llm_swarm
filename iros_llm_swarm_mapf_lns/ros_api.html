@@ -1,0 +1,719 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ROS API &mdash; iros_llm_swarm_mapf_lns</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=01f34227"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="LNS2 Algorithm" href="algorithm.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            iros_llm_swarm_mapf_lns
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="algorithm.html">LNS2 Algorithm</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">ROS API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#mapf-lns2-node">mapf_lns2_node</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#action-server">Action server</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#topics">Topics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parameters">Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#internal-modules">Internal modules</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#path-follower-node">path_follower_node</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#state-machine-autonomous-mode">State machine (AUTONOMOUS mode)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#topics-and-actions">Topics and actions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Parameters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#note-on-motion-controller-naming">Note on motion-controller naming</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#launch">Launch</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">iros_llm_swarm_mapf_lns</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">ROS API</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/ros_api.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <p style="margin: 0 0 1em 0;">
+  <a href="../iros_llm_swarm_docs/index.html">&laquo; IROS LLM Swarm — back to overview</a>
+</p><section id="ros-api">
+<h1>ROS API<a class="headerlink" href="#ros-api" title="Link to this heading"></a></h1>
+<p>This page documents the <strong>ROS contract</strong> of both executables built by
+the package: <code class="docutils literal notranslate"><span class="pre">mapf_lns2_node</span></code> (fleet-level planner) and
+<code class="docutils literal notranslate"><span class="pre">path_follower_node</span></code> (per-robot follower).</p>
+<p>The action and message types referenced here are owned by
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces</span></code>; see its docs for field-level semantics.</p>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#mapf-lns2-node" id="id2">mapf_lns2_node</a></p>
+<ul>
+<li><p><a class="reference internal" href="#action-server" id="id3">Action server</a></p></li>
+<li><p><a class="reference internal" href="#topics" id="id4">Topics</a></p></li>
+<li><p><a class="reference internal" href="#parameters" id="id5">Parameters</a></p></li>
+<li><p><a class="reference internal" href="#internal-modules" id="id6">Internal modules</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#path-follower-node" id="id7">path_follower_node</a></p>
+<ul>
+<li><p><a class="reference internal" href="#state-machine-autonomous-mode" id="id8">State machine (AUTONOMOUS mode)</a></p></li>
+<li><p><a class="reference internal" href="#topics-and-actions" id="id9">Topics and actions</a></p></li>
+<li><p><a class="reference internal" href="#id1" id="id10">Parameters</a></p></li>
+<li><p><a class="reference internal" href="#note-on-motion-controller-naming" id="id11">Note on motion-controller naming</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#launch" id="id12">Launch</a></p></li>
+</ul>
+</nav>
+<section id="mapf-lns2-node">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">mapf_lns2_node</a><a class="headerlink" href="#mapf-lns2-node" title="Link to this heading"></a></h2>
+<p>Single instance per fleet. Subscribes to the shared occupancy grid and
+to every robot’s odometry / footprint / follower status; hosts the
+<code class="docutils literal notranslate"><span class="pre">/swarm/set_goals</span></code> action server and publishes per-robot
+<code class="docutils literal notranslate"><span class="pre">MAPFPlan</span></code> messages.</p>
+<section id="action-server">
+<h3><a class="toc-backref" href="#id3" role="doc-backlink">Action server</a><a class="headerlink" href="#action-server" title="Link to this heading"></a></h3>
+<p>Action: <code class="docutils literal notranslate"><span class="pre">/swarm/set_goals</span></code> of type
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces/action/SetGoals</span></code>.</p>
+<p>Long-lived semantics — see the action description in
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces</span></code>. The lifecycle phases reported in
+<code class="docutils literal notranslate"><span class="pre">feedback.status</span></code> are <code class="docutils literal notranslate"><span class="pre">&quot;validating&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;planning&quot;</span></code>,
+<code class="docutils literal notranslate"><span class="pre">&quot;executing&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;replanning&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;failed&quot;</span></code>.</p>
+<p>Failure path: planning errors complete the action with
+<code class="docutils literal notranslate"><span class="pre">error_code</span> <span class="pre">=</span> <span class="pre">PBS_FAILED</span></code> (the constant is reused as a generic
+“planner failed” by the LNS backend) plus a populated
+<code class="docutils literal notranslate"><span class="pre">feedback.warning</span></code> and a <code class="docutils literal notranslate"><span class="pre">message</span></code> describing the cause.
+Cancellation completes with <code class="docutils literal notranslate"><span class="pre">error_code</span> <span class="pre">=</span> <span class="pre">CANCELLED</span></code> after broadcasting
+zero <code class="docutils literal notranslate"><span class="pre">Twist</span></code> and an empty <code class="docutils literal notranslate"><span class="pre">MAPFPlan</span></code> to every active robot.</p>
+</section>
+<section id="topics">
+<h3><a class="toc-backref" href="#id4" role="doc-backlink">Topics</a><a class="headerlink" href="#topics" title="Link to this heading"></a></h3>
+<p>Subscribed:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 38.0%" />
+<col style="width: 32.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Topic</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>QoS / notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/map</span></code> (configurable)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nav_msgs/OccupancyGrid</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">KeepLast(1)</span> <span class="pre">+</span> <span class="pre">transient_local</span> <span class="pre">+</span> <span class="pre">reliable</span></code>. The topic name is
+parameterized via <code class="docutils literal notranslate"><span class="pre">map_topic</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/robot_&lt;id&gt;/odom</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nav_msgs/Odometry</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">depth=10</span></code>. Polled to derive each agent’s current cell at
+plan / replan time.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/robot_&lt;id&gt;/local_costmap/published_footprint</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">geometry_msgs/PolygonStamped</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">depth=1</span></code>. Per-robot footprint radius is computed as the
+maximum vertex distance from the polygon’s centroid. Falls
+back to <code class="docutils literal notranslate"><span class="pre">default_robot_radius</span></code> until first message arrives.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/robot_&lt;id&gt;/follower_status</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces/FollowerStatus</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">depth=10</span></code>. Used by the schedule monitor to detect
+PLAN_COMPLETE, FAILED, and stale-vs-current <code class="docutils literal notranslate"><span class="pre">plan_id</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Published:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 38.0%" />
+<col style="width: 32.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Topic</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>QoS / notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/robot_&lt;id&gt;/mapf_plan</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces/MAPFPlan</span></code></p></td>
+<td><p>Per-robot plan. <code class="docutils literal notranslate"><span class="pre">plan_id</span></code> increments on every publish; an
+empty <code class="docutils literal notranslate"><span class="pre">steps</span></code> list cancels the follower.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/robot_&lt;id&gt;/cmd_vel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">geometry_msgs/Twist</span></code></p></td>
+<td><p>Used only on cancel for emergency stop (broadcast zero
+velocity).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/mapf_grid</span></code> (optional)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nav_msgs/OccupancyGrid</span></code></p></td>
+<td><p>Debug visualization of the planner’s downsampled grid.
+Enabled by <code class="docutils literal notranslate"><span class="pre">publish_debug_grid</span></code>;
+<code class="docutils literal notranslate"><span class="pre">KeepLast(1)</span> <span class="pre">+</span> <span class="pre">transient_local</span> <span class="pre">+</span> <span class="pre">reliable</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="parameters">
+<h3><a class="toc-backref" href="#id5" role="doc-backlink">Parameters</a><a class="headerlink" href="#parameters" title="Link to this heading"></a></h3>
+<p>All parameters are read once at startup; the production defaults live
+in <code class="docutils literal notranslate"><span class="pre">config/mapf_lns2.yaml</span></code> and are loaded by <code class="docutils literal notranslate"><span class="pre">mapf_lns2.launch.py</span></code>.</p>
+<p>Fleet and physics:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 32.0%" />
+<col style="width: 14.0%" />
+<col style="width: 54.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_robots</span></code></p></td>
+<td><p>20</p></td>
+<td><p>Number of robots the planner controls. External robot IDs are
+<code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">num_robots)</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">time_step_sec</span></code></p></td>
+<td><p>0.5</p></td>
+<td><p>Wall-clock seconds per planning timestep. Must match what the
+follower expects (see <code class="docutils literal notranslate"><span class="pre">schedule_tolerance_sec</span></code> below).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">map_topic</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/map</span></code></p></td>
+<td><p>Topic name for the static occupancy grid.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grid_resolution</span></code></p></td>
+<td><p>0.2</p></td>
+<td><p>Meters per cell on the planner grid (downsampled from the map).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">default_robot_radius</span></code></p></td>
+<td><p>0.22</p></td>
+<td><p>Fallback footprint radius (m) until <code class="docutils literal notranslate"><span class="pre">published_footprint</span></code>
+arrives.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">inflation_radius</span></code></p></td>
+<td><p>0.0</p></td>
+<td><p>Extra radius added to each footprint on top of the measured
+value.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">max_speed</span></code></p></td>
+<td><p>0.5</p></td>
+<td><p>Informational; the LNS solver does not use it directly.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">goal_reached_m</span></code></p></td>
+<td><p>0.5</p></td>
+<td><p>Arrival tolerance for the “all done” check.</p></td>
+</tr>
+</tbody>
+</table>
+<p>LNS2 core:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 32.0%" />
+<col style="width: 14.0%" />
+<col style="width: 54.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">collision_penalty</span></code></p></td>
+<td><p>10000</p></td>
+<td><p>Soft A* penalty per collision unit. Must satisfy
+<code class="docutils literal notranslate"><span class="pre">penalty</span> <span class="pre">&gt;</span> <span class="pre">horizon</span> <span class="pre">×</span> <span class="pre">step_cost</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">horizon_steps</span></code></p></td>
+<td><p>300</p></td>
+<td><p>Hard upper bound on planning timesteps.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">max_astar_expansions</span></code></p></td>
+<td><p>200000</p></td>
+<td><p>Per-A*-call expansion cap during the <strong>initial</strong> mission solve.
+Values up to 900000 are used in production for crowded fleets.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">neighborhood_size</span></code></p></td>
+<td><p>8</p></td>
+<td><p>Destroy-set size per LNS iteration (~40% of fleet at 20
+robots).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">time_budget_ms</span></code></p></td>
+<td><p>500</p></td>
+<td><p>Wall-clock budget for the repair loop on the initial solve
+(production: 10000).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">plateau_limit</span></code></p></td>
+<td><p>200</p></td>
+<td><p>Iterations with no improvement before the loop terminates
+(production: 1500).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">segment_size</span></code></p></td>
+<td><p>50</p></td>
+<td><p>Number of iterations between ALNS weight updates.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">alns_reaction</span></code></p></td>
+<td><p>0.1</p></td>
+<td><p>EMA reaction coefficient for ALNS weight updates.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">diagonal_moves</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>4-connected by default; diagonals are MAPF-unsafe in dense
+fleets.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">initial_build_time_budget_ms</span></code></p></td>
+<td><p>6000</p></td>
+<td><p>Wall-clock cap for the prioritized greedy construction phase
+during <code class="docutils literal notranslate"><span class="pre">execute_goal</span></code>. 0 = no limit.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Replan and warm start:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 38.0%" />
+<col style="width: 14.0%" />
+<col style="width: 48.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">replan_check_hz</span></code></p></td>
+<td><p>2.0</p></td>
+<td><p>Schedule monitor tick rate.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">replan_cooldown_sec</span></code></p></td>
+<td><p>2.0</p></td>
+<td><p>Minimum gap between consecutive replans.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">replan_time_budget_ms</span></code></p></td>
+<td><p>1500</p></td>
+<td><p>Wall-clock budget for both warm and cold replans.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">replan_segment_size</span></code></p></td>
+<td><p>8</p></td>
+<td><p>ALNS segment size during replans (smaller than the initial
+solve so weights adapt quickly to the smaller iteration count).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">replan_max_astar_expansions</span></code></p></td>
+<td><p>200000</p></td>
+<td><p>A* cap for cold replans. Lower than <code class="docutils literal notranslate"><span class="pre">max_astar_expansions</span></code> to
+keep cold-replan latency bounded.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">warm_start_enabled</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>When <code class="docutils literal notranslate"><span class="pre">false</span></code>, every replan is a cold start.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">warm_patch_radius_cells</span></code></p></td>
+<td><p>10</p></td>
+<td><p>Max L∞ distance (cells) between expected and actual cell that
+still triggers a splice instead of a stub.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">warm_splice_max_expansions</span></code></p></td>
+<td><p>2000</p></td>
+<td><p>BFS budget when splicing actual → tail. <code class="docutils literal notranslate"><span class="pre">0</span></code> disables splice.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">warm_max_collisions_per_agent</span></code></p></td>
+<td><p>4</p></td>
+<td><p>Per-agent seed collision threshold; exceeding it falls back to
+cold start.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Stall detection and lives:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 38.0%" />
+<col style="width: 14.0%" />
+<col style="width: 48.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">stall_timeout_sec</span></code></p></td>
+<td><p>4.0</p></td>
+<td><p>Time without meaningful movement before a robot is considered
+stalled.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">stall_move_thresh_m</span></code></p></td>
+<td><p>0.15</p></td>
+<td><p>Movement below this is “not moving”.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">progress_log_interval_sec</span></code></p></td>
+<td><p>3.0</p></td>
+<td><p>Periodic summary cadence; 0 disables.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">empty_fails_before_unplanable</span></code></p></td>
+<td><p>3</p></td>
+<td><p>Consecutive empty-path solves before benching the robot
+(production override: 6).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">stall_iters_before_unplanable</span></code></p></td>
+<td><p>10</p></td>
+<td><p>Consecutive stalled monitor ticks before benching
+(production override: 13).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">max_lives</span></code></p></td>
+<td><p>3</p></td>
+<td><p>Total bench events a robot can survive (production: 6).
+<code class="docutils literal notranslate"><span class="pre">max_lives</span> <span class="pre">=</span> <span class="pre">1</span></code> recovers permanent-on-first-fail behaviour.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">unplanable_retry_delay_sec</span></code></p></td>
+<td><p>8.0</p></td>
+<td><p>How long a benched robot stays out before being put back in
+the planning pool (production: 5.0).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">publish_debug_grid</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>Publish <code class="docutils literal notranslate"><span class="pre">/mapf_grid</span></code> for RViz inspection.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="internal-modules">
+<h3><a class="toc-backref" href="#id6" role="doc-backlink">Internal modules</a><a class="headerlink" href="#internal-modules" title="Link to this heading"></a></h3>
+<p>These currently live as separate translation units alongside
+<code class="docutils literal notranslate"><span class="pre">mapf_lns2_node.cpp</span></code> and will be the target of the upcoming refactor:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">node_utils.{hpp,cpp}</span></code> — pure helpers: world↔cell conversion,
+grid path → <code class="docutils literal notranslate"><span class="pre">MAPFStep[]</span></code> compression, blocking arrived / skipped
+robot cells on the planner grid.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">plan_publisher.{hpp,cpp}</span></code> — owns per-robot <code class="docutils literal notranslate"><span class="pre">MAPFPlan</span></code> and
+<code class="docutils literal notranslate"><span class="pre">cmd_vel</span></code> publishers and the monotonic <code class="docutils literal notranslate"><span class="pre">plan_id</span></code> counter.
+Also implements <code class="docutils literal notranslate"><span class="pre">publish_stop_all</span></code> (used by cancel) and
+<code class="docutils literal notranslate"><span class="pre">publish_cancel_for(rid)</span></code> (used to cancel a single benched
+robot).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">robot_lifecycle.{hpp,cpp}</span></code> — bundles per-robot mission-scoped
+state (arrival latch, last-movement baseline, three failure
+counters, lives remaining, unplanable membership and bench
+timestamp). Exposes <code class="docutils literal notranslate"><span class="pre">reset_for_new_mission</span></code>, <code class="docutils literal notranslate"><span class="pre">bench</span></code>,
+<code class="docutils literal notranslate"><span class="pre">revive</span></code>, and <code class="docutils literal notranslate"><span class="pre">mark_movement</span></code>.</p></li>
+</ul>
+</section>
+</section>
+<section id="path-follower-node">
+<h2><a class="toc-backref" href="#id7" role="doc-backlink">path_follower_node</a><a class="headerlink" href="#path-follower-node" title="Link to this heading"></a></h2>
+<p>Spawned per robot by the launch file. Each instance is parameterized
+by <code class="docutils literal notranslate"><span class="pre">robot_id</span></code>; its namespace is <code class="docutils literal notranslate"><span class="pre">robot_&lt;id&gt;</span></code>. The follower has two
+modes selected at runtime by <code class="docutils literal notranslate"><span class="pre">/formations/config</span></code>:</p>
+<ul class="simple">
+<li><p><strong>AUTONOMOUS</strong> (default) — receives <code class="docutils literal notranslate"><span class="pre">MAPFPlan</span></code> and dispatches it
+segment-by-segment to Nav2’s <code class="docutils literal notranslate"><span class="pre">follow_path</span></code>.</p></li>
+<li><p><strong>FORMATION_FOLLOWER</strong> — runs a PD controller against the leader’s
+<code class="docutils literal notranslate"><span class="pre">odom</span></code> and the offset declared in <code class="docutils literal notranslate"><span class="pre">/formations/config</span></code>,
+publishing directly to <code class="docutils literal notranslate"><span class="pre">cmd_vel</span></code>.</p></li>
+</ul>
+<section id="state-machine-autonomous-mode">
+<h3><a class="toc-backref" href="#id8" role="doc-backlink">State machine (AUTONOMOUS mode)</a><a class="headerlink" href="#state-machine-autonomous-mode" title="Link to this heading"></a></h3>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>IDLE  ── new plan ──▶  NAVIGATING(seg)  ── seg done + hold &gt; 0 ──▶  HOLDING
+                              │                                          │
+                      seg done + last step                        hold expires
+                              │                                          │
+                              ▼                                          ▼
+                        PLAN_COMPLETE                          NAVIGATING(next seg)
+</pre></div>
+</div>
+<p>A <em>segment</em> is the longest run of steps from <code class="docutils literal notranslate"><span class="pre">current_step_index</span></code>
+where every step except the final one has <code class="docutils literal notranslate"><span class="pre">hold_sec</span> <span class="pre">==</span> <span class="pre">0</span></code>. The
+follower dispatches each segment as a single <code class="docutils literal notranslate"><span class="pre">FollowPath</span></code> action
+goal — there is no per-waypoint chunking.</p>
+<p>A new <code class="docutils literal notranslate"><span class="pre">MAPFPlan</span></code> with a different <code class="docutils literal notranslate"><span class="pre">plan_id</span></code> cancels any in-flight
+<code class="docutils literal notranslate"><span class="pre">follow_path</span></code> goal and starts at step 0 of the new plan. An empty
+<code class="docutils literal notranslate"><span class="pre">MAPFPlan.steps</span></code> list is treated as a cancel request and transitions
+the follower to IDLE.</p>
+</section>
+<section id="topics-and-actions">
+<h3><a class="toc-backref" href="#id9" role="doc-backlink">Topics and actions</a><a class="headerlink" href="#topics-and-actions" title="Link to this heading"></a></h3>
+<p>Subscribed:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 38.0%" />
+<col style="width: 32.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Topic</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/&lt;ns&gt;/mapf_plan</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces/MAPFPlan</span></code></p></td>
+<td><p>Always subscribed; only acted on in AUTONOMOUS mode.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/&lt;ns&gt;/odom</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nav_msgs/Odometry</span></code></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/&lt;leader_ns&gt;/odom</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nav_msgs/Odometry</span></code></p></td>
+<td><p>FORMATION mode only, dynamically subscribed when this
+follower’s leader changes.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/formations/config</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces/FormationsConfig</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">KeepLast(1)</span> <span class="pre">+</span> <span class="pre">transient_local</span> <span class="pre">+</span> <span class="pre">reliable</span></code> (latched).</p></td>
+</tr>
+</tbody>
+</table>
+<p>Published:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 38.0%" />
+<col style="width: 32.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Topic</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/&lt;ns&gt;/follower_status</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces/FollowerStatus</span></code></p></td>
+<td><p>Heartbeat at <code class="docutils literal notranslate"><span class="pre">status_pub_hz</span></code> plus immediate publishes on
+state transitions.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/&lt;ns&gt;/cmd_vel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">geometry_msgs/Twist</span></code></p></td>
+<td><p>FORMATION mode only.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Action client:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 38.0%" />
+<col style="width: 32.0%" />
+<col style="width: 30.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Action</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/&lt;ns&gt;/follow_path</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nav2_msgs/action/FollowPath</span></code></p></td>
+<td><p>One in-flight goal at a time; cancelled when a new plan
+arrives or the follower transitions to IDLE.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id1">
+<h3><a class="toc-backref" href="#id10" role="doc-backlink">Parameters</a><a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 14.0%" />
+<col style="width: 56.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">robot_id</span></code></p></td>
+<td><p>0</p></td>
+<td><p>Index used to derive the namespace <code class="docutils literal notranslate"><span class="pre">robot_&lt;id&gt;</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">path_frame</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">map</span></code></p></td>
+<td><p>Frame the MAPF plan and <code class="docutils literal notranslate"><span class="pre">follow_path</span></code> goals are published in.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">status_pub_hz</span></code></p></td>
+<td><p>2.0</p></td>
+<td><p>Heartbeat rate for <code class="docutils literal notranslate"><span class="pre">follower_status</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">schedule_tolerance_sec</span></code></p></td>
+<td><p>5.0</p></td>
+<td><p>Soft tolerance for arrival timing relative to the planner’s
+schedule. Set in the launch file (not a node default).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kp</span></code></p></td>
+<td><p>1.2</p></td>
+<td><p>PD proportional gain (FORMATION mode).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kd</span></code></p></td>
+<td><p>0.3</p></td>
+<td><p>PD derivative gain (FORMATION mode).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">max_v</span></code></p></td>
+<td><p>0.5</p></td>
+<td><p>Max linear velocity (m/s) (FORMATION mode).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">max_omega</span></code></p></td>
+<td><p>1.0</p></td>
+<td><p>Max angular velocity (rad/s) (FORMATION mode).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">control_hz</span></code></p></td>
+<td><p>20.0</p></td>
+<td><p>PD loop rate (FORMATION mode).</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="note-on-motion-controller-naming">
+<h3><a class="toc-backref" href="#id11" role="doc-backlink">Note on motion-controller naming</a><a class="headerlink" href="#note-on-motion-controller-naming" title="Link to this heading"></a></h3>
+<p>The aggregator’s architecture page describes a generic dual-mode
+“motion controller”. For the LNS2 stack, that role is filled by
+<strong>this</strong> <code class="docutils literal notranslate"><span class="pre">path_follower_node</span></code>, not by <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_robot</span></code>’s
+<code class="docutils literal notranslate"><span class="pre">motion_controller_node</span></code> — the LNS launch file
+(<code class="docutils literal notranslate"><span class="pre">mapf_lns2.launch.py</span></code>) spawns one <code class="docutils literal notranslate"><span class="pre">path_follower_node</span></code> per robot.
+The two implementations cover the same contract but evolved
+independently; the LNS follower will be retained as the supported
+follower for this planner.</p>
+</section>
+</section>
+<section id="launch">
+<h2><a class="toc-backref" href="#id12" role="doc-backlink">Launch</a><a class="headerlink" href="#launch" title="Link to this heading"></a></h2>
+<p>The package’s own launch file brings up just the planner and
+followers; the simulator, Nav2, and (optionally) formation layer are
+composed by <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_bringup</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">swarm_lns.launch.py</span></code>,
+<code class="docutils literal notranslate"><span class="pre">swarm_lns_formation.launch.py</span></code>).</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ros2<span class="w"> </span>launch<span class="w"> </span>iros_llm_swarm_mapf_lns<span class="w"> </span>mapf_lns2.launch.py
+ros2<span class="w"> </span>launch<span class="w"> </span>iros_llm_swarm_mapf_lns<span class="w"> </span>mapf_lns2.launch.py<span class="w"> </span>num_robots:<span class="o">=</span><span class="m">10</span>
+</pre></div>
+</div>
+<p>Launch arguments:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 28.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Argument</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">num_robots</span></code></p></td>
+<td><p>20</p></td>
+<td><p>Number of <code class="docutils literal notranslate"><span class="pre">path_follower_node</span></code> instances to spawn.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">use_sim_time</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>Use simulator clock for both planner and followers.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">params_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">config/mapf_lns2.yaml</span></code></p></td>
+<td><p>YAML parameter file for <code class="docutils literal notranslate"><span class="pre">mapf_lns2_node</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">log_level</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">info</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">rclcpp</span></code> log level (<code class="docutils literal notranslate"><span class="pre">debug</span></code> / <code class="docutils literal notranslate"><span class="pre">info</span></code> / <code class="docutils literal notranslate"><span class="pre">warn</span></code> /
+<code class="docutils literal notranslate"><span class="pre">error</span></code>).</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="algorithm.html" class="btn btn-neutral float-left" title="LNS2 Algorithm" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

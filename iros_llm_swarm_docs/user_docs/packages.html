@@ -1,0 +1,328 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Package Map &mdash; IROS LLM Swarm Documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            IROS LLM Swarm Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Project Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">System Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../packages.html">Package Map</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_bringup/index.html#http://">iros_llm_swarm_bringup</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_bt/index.html#http://">iros_llm_swarm_bt</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_costmap_plugins/index.html#http://">iros_llm_swarm_costmap_plugins</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_formation/index.html#http://">iros_llm_swarm_formation</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_interfaces/index.html#http://">iros_llm_swarm_interfaces</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_local_nav/index.html#http://">iros_llm_swarm_local_nav</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_mapf/index.html#http://">iros_llm_swarm_mapf</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_mapf_lns/index.html#http://">iros_llm_swarm_mapf_lns</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_robot/index.html#http://">iros_llm_swarm_robot</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_simulation/index.html#http://">iros_llm_swarm_simulation</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_simulation_lite/index.html#http://">iros_llm_swarm_simulation_lite</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">IROS LLM Swarm Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Package Map</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/user_docs/packages.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="package-map">
+<h1>Package Map<a class="headerlink" href="#package-map" title="Link to this heading"></a></h1>
+<p>The repository is split into small, single-purpose ROS 2 packages. The
+table below summarizes each package; the per-package generated
+documentation (linked from the main <a class="reference internal" href="index.html"><span class="doc">IROS LLM Swarm Documentation</span></a>) goes deeper into APIs,
+parameters, and internals.</p>
+<section id="overview-table">
+<h2>Overview table<a class="headerlink" href="#overview-table" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 12.0%" />
+<col style="width: 58.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Package</p></th>
+<th class="head"><p>Language</p></th>
+<th class="head"><p>Role</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces</span></code></p></td>
+<td><p>msg / srv / action</p></td>
+<td><p>Shared ROS 2 type definitions used by every other package.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf</span></code></p></td>
+<td><p>C++17</p></td>
+<td><p>PBS Multi-Agent Path Finding planner with N-connected Euclidean
+A* and capsule-based conflict detection.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns</span></code></p></td>
+<td><p>C++17</p></td>
+<td><p>LNS2 Multi-Agent Path Finding planner — drop-in alternative to
+PBS, sharing the same action interface.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_robot</span></code></p></td>
+<td><p>C++17</p></td>
+<td><p>Per-robot dual-mode follower paired with the legacy PBS
+planner (<code class="docutils literal notranslate"><span class="pre">motion_controller_node</span></code>). LNS2 uses its own
+follower from <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_formation</span></code></p></td>
+<td><p>Python</p></td>
+<td><p>Centralized leader-follower formation manager and monitor.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_bt</span></code></p></td>
+<td><p>C++17</p></td>
+<td><p>BehaviorTree.CPP v3 action nodes wrapping the MAPF and formation
+interfaces.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav</span></code></p></td>
+<td><p>Python</p></td>
+<td><p>Per-robot Nav2 stack spawner (controller, behavior, lifecycle).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_costmap_plugins</span></code></p></td>
+<td><p>C++17</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ResettingObstacleLayer</span></code> Nav2 costmap plugin.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation_lite</span></code></p></td>
+<td><p>Python</p></td>
+<td><p>2D Stage simulator launch, world files, and robot models.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation</span></code></p></td>
+<td><p>Python</p></td>
+<td><p>Gazebo Harmonic 3D simulation (preview, not yet stable).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_bringup</span></code></p></td>
+<td><p>Python</p></td>
+<td><p>Top-level launch orchestration for the full stack.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_docs</span></code></p></td>
+<td><p>—</p></td>
+<td><p>This package: rosdoc2 aggregator that produces the unified site.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="per-package-roles">
+<h2>Per-package roles<a class="headerlink" href="#per-package-roles" title="Link to this heading"></a></h2>
+<section id="iros-llm-swarm-interfaces">
+<h3>iros_llm_swarm_interfaces<a class="headerlink" href="#iros-llm-swarm-interfaces" title="Link to this heading"></a></h3>
+<p>Type-only package. Defines every custom <code class="docutils literal notranslate"><span class="pre">msg</span></code>, <code class="docutils literal notranslate"><span class="pre">srv</span></code>, and <code class="docutils literal notranslate"><span class="pre">action</span></code>
+shared across the swarm: <code class="docutils literal notranslate"><span class="pre">SetGoals.action</span></code>, <code class="docutils literal notranslate"><span class="pre">FormationsConfig.msg</span></code>,
+<code class="docutils literal notranslate"><span class="pre">FollowerStatus.msg</span></code>, the <code class="docutils literal notranslate"><span class="pre">/formation/*</span></code> service definitions, and so
+on. <strong>Build this package first</strong> when adding new types — the C++ and
+Python packages depend on its generated headers and modules.</p>
+</section>
+<section id="iros-llm-swarm-mapf">
+<h3>iros_llm_swarm_mapf<a class="headerlink" href="#iros-llm-swarm-mapf" title="Link to this heading"></a></h3>
+<p>Reference MAPF planner. Implements PBS (Priority-Based Search) on top of
+N-connected Euclidean A*, with backward-Dijkstra heuristics, gradient
+inflation (hard footprint plus soft penalty zone), and capsule-based
+conflict detection. Hosts the <code class="docutils literal notranslate"><span class="pre">/swarm/set_goals</span></code> action server and
+publishes time-indexed paths to <code class="docutils literal notranslate"><span class="pre">/robot_*/mapf_path</span></code>. Includes a
+schedule monitor that triggers replanning when robots deviate beyond a
+configurable threshold.</p>
+<p>Entry point: <code class="docutils literal notranslate"><span class="pre">src/mapf_planner_node.cpp</span></code>.</p>
+</section>
+<section id="iros-llm-swarm-mapf-lns">
+<h3>iros_llm_swarm_mapf_lns<a class="headerlink" href="#iros-llm-swarm-mapf-lns" title="Link to this heading"></a></h3>
+<p>The actively maintained MAPF stack. <code class="docutils literal notranslate"><span class="pre">mapf_lns2_node</span></code> shares the
+fleet-level <code class="docutils literal notranslate"><span class="pre">/swarm/set_goals</span></code> action with the legacy PBS planner
+but uses Large Neighborhood Search (LNS2) internally — ALNS-style
+destroy/repair operators, soft-constraint A* (collision penalties
+rather than hard blocks), and warm-start from the previous plan on
+replan. <code class="docutils literal notranslate"><span class="pre">path_follower_node</span></code> is the per-robot follower for this
+stack; it consumes <code class="docutils literal notranslate"><span class="pre">MAPFPlan</span></code> (with explicit <code class="docutils literal notranslate"><span class="pre">hold_sec</span></code> and a
+<code class="docutils literal notranslate"><span class="pre">plan_id</span></code> echo via <code class="docutils literal notranslate"><span class="pre">FollowerStatus</span></code>) and is the LNS-side
+counterpart to <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_robot</span></code>’s <code class="docutils literal notranslate"><span class="pre">motion_controller_node</span></code>.</p>
+<p>Entry points: <code class="docutils literal notranslate"><span class="pre">src/mapf_lns2_node.cpp</span></code>, <code class="docutils literal notranslate"><span class="pre">src/path_follower_node.cpp</span></code>.</p>
+</section>
+<section id="iros-llm-swarm-robot">
+<h3>iros_llm_swarm_robot<a class="headerlink" href="#iros-llm-swarm-robot" title="Link to this heading"></a></h3>
+<p>Per-robot dual-mode follower paired with the <strong>legacy PBS planner</strong>
+(<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf</span></code>). In <strong>AUTONOMOUS</strong> mode it consumes
+<code class="docutils literal notranslate"><span class="pre">nav_msgs/Path</span></code> on <code class="docutils literal notranslate"><span class="pre">/&lt;ns&gt;/mapf_path</span></code> and dispatches it to Nav2’s
+<code class="docutils literal notranslate"><span class="pre">follow_path</span></code> action in chunks bounded by
+<code class="docutils literal notranslate"><span class="pre">schedule_tolerance_sec</span></code>, so the robot stays close to the PBS
+schedule. In <strong>FORMATION_FOLLOWER</strong> mode a PD controller tracks the
+leader’s body-frame offset directly via <code class="docutils literal notranslate"><span class="pre">cmd_vel</span></code>. Mode switching is
+event-driven by <code class="docutils literal notranslate"><span class="pre">/formations/config</span></code>; the node does not restart.</p>
+<p>Entry point: <code class="docutils literal notranslate"><span class="pre">src/motion_controller_node.cpp</span></code>. Spawned by
+<code class="docutils literal notranslate"><span class="pre">swarm_mapf*.launch.py</span></code>. Does <strong>not</strong> publish <code class="docutils literal notranslate"><span class="pre">FollowerStatus</span></code> —
+the PBS planner detects deviation by polling odometry. The LNS2 stack
+uses a different follower; see <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns</span></code>.</p>
+</section>
+<section id="iros-llm-swarm-formation">
+<h3>iros_llm_swarm_formation<a class="headerlink" href="#iros-llm-swarm-formation" title="Link to this heading"></a></h3>
+<p>Centralized formation layer. <code class="docutils literal notranslate"><span class="pre">formation_manager_node</span></code> exposes the
+<code class="docutils literal notranslate"><span class="pre">/formation/*</span></code> CRUD services and publishes the latched
+<code class="docutils literal notranslate"><span class="pre">/formations/config</span></code> topic. <code class="docutils literal notranslate"><span class="pre">formation_monitor_node</span></code> watches odometry
+of leaders and followers, computes per-follower position errors, and
+publishes a state machine
+(<code class="docutils literal notranslate"><span class="pre">INACTIVE</span> <span class="pre">→</span> <span class="pre">FORMING</span> <span class="pre">→</span> <span class="pre">STABLE</span> <span class="pre">↔</span> <span class="pre">DEGRADED</span> <span class="pre">→</span> <span class="pre">BROKEN</span></code>) on
+<code class="docutils literal notranslate"><span class="pre">/formations/status</span></code>.</p>
+</section>
+<section id="iros-llm-swarm-bt">
+<h3>iros_llm_swarm_bt<a class="headerlink" href="#iros-llm-swarm-bt" title="Link to this heading"></a></h3>
+<p>BehaviorTree.CPP v3 action nodes that wrap the swarm’s ROS 2 interfaces:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">MapfPlan</span></code> — async client for <code class="docutils literal notranslate"><span class="pre">/swarm/set_goals</span></code> with optional LLM
+callback hook.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SetFormation</span></code> / <code class="docutils literal notranslate"><span class="pre">DisableFormation</span></code> — formation service wrappers.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CheckMode</span></code> — blackboard mode-transition checks.</p></li>
+</ul>
+<p>Reference tree: <code class="docutils literal notranslate"><span class="pre">behavior_trees/swarm_navigate_to_pose.xml</span></code>. The BT
+runner is intended as the integration point for higher-level mission
+logic (including future LLM agents).</p>
+</section>
+<section id="iros-llm-swarm-local-nav">
+<h3>iros_llm_swarm_local_nav<a class="headerlink" href="#iros-llm-swarm-local-nav" title="Link to this heading"></a></h3>
+<p>Spawns a Nav2 stack per robot:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">controller_server</span></code> for local trajectory tracking.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">behavior_server</span></code> for recovery actions.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">lifecycle_manager</span></code> for the above.</p></li>
+<li><p>A static <code class="docutils literal notranslate"><span class="pre">map</span> <span class="pre">→</span> <span class="pre">robot_N/odom</span></code> transform (AMCL is disabled).</p></li>
+</ul>
+<p>A single shared <code class="docutils literal notranslate"><span class="pre">map_server</span></code> serves all robots. Per-robot launches are
+staggered (~0.3 s apart) to avoid startup race conditions, and Nav2
+parameter files are routed through <code class="docutils literal notranslate"><span class="pre">ReplaceString</span></code> and
+<code class="docutils literal notranslate"><span class="pre">RewrittenYaml</span></code> so the same templates work for every namespace.</p>
+</section>
+<section id="iros-llm-swarm-costmap-plugins">
+<h3>iros_llm_swarm_costmap_plugins<a class="headerlink" href="#iros-llm-swarm-costmap-plugins" title="Link to this heading"></a></h3>
+<p>Custom Nav2 costmap layer: <code class="docutils literal notranslate"><span class="pre">ResettingObstacleLayer</span></code>. A drop-in
+replacement for <code class="docutils literal notranslate"><span class="pre">nav2_costmap_2d::ObstacleLayer</span></code> that resets its
+internal grid every <code class="docutils literal notranslate"><span class="pre">updateBounds()</span></code> call before re-marking. This
+fixes ghost-obstacle trails caused by laser cells that fall <em>between</em>
+rays and are never explicitly cleared via raytracing.</p>
+</section>
+<section id="iros-llm-swarm-simulation-lite">
+<h3>iros_llm_swarm_simulation_lite<a class="headerlink" href="#iros-llm-swarm-simulation-lite" title="Link to this heading"></a></h3>
+<p>The supported 2D simulation backend. Wraps <code class="docutils literal notranslate"><span class="pre">stage_ros2</span></code> with project
+world files (<code class="docutils literal notranslate"><span class="pre">cave</span></code>, <code class="docutils literal notranslate"><span class="pre">warehouse_2</span></code>, <code class="docutils literal notranslate"><span class="pre">warehouse_4</span></code>, <code class="docutils literal notranslate"><span class="pre">large_cave</span></code>),
+<code class="docutils literal notranslate"><span class="pre">.pgm</span></code> / <code class="docutils literal notranslate"><span class="pre">.yaml</span></code> map files, and the differential-drive robot model
+(<code class="docutils literal notranslate"><span class="pre">warehouse_robot.inc</span></code>). Stage runs with a unified TF tree and
+namespace-enforced prefixes so all robots coexist in the same TF graph.</p>
+</section>
+<section id="iros-llm-swarm-simulation">
+<h3>iros_llm_swarm_simulation<a class="headerlink" href="#iros-llm-swarm-simulation" title="Link to this heading"></a></h3>
+<p>Gazebo Harmonic (full 3D) simulation. Contains URDF / Xacro robot
+descriptions and an SDF world. <strong>Not yet recommended for daily use</strong> —
+it can spawn 20 robots, but Nav2 stability at this density is not
+guaranteed. Kept in tree as the target for future work; use
+<code class="docutils literal notranslate"><span class="pre">_lite</span></code> until further notice.</p>
+</section>
+<section id="iros-llm-swarm-bringup">
+<h3>iros_llm_swarm_bringup<a class="headerlink" href="#iros-llm-swarm-bringup" title="Link to this heading"></a></h3>
+<p>Top-level launch orchestration only — no node code lives here. Provides
+the four primary launch files:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">swarm_mapf.launch.py</span></code> — PBS planner stack.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">swarm_lns.launch.py</span></code> — LNS2 planner stack.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">swarm_mapf_formation.launch.py</span></code> — PBS + formation layer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">swarm_lns_formation.launch.py</span></code> — LNS2 + formation layer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">swarm_warehouse.launch.py</span></code> — base scenario without the MAPF
+layer (simulator + Nav2 + RViz only).</p></li>
+</ul>
+<p>Each one composes the simulator, Nav2, planner, per-robot followers,
+and (optionally) the formation manager / monitor with the staggered
+timing described in <a class="reference internal" href="architecture.html"><span class="doc">System Architecture</span></a>.</p>
+</section>
+<section id="iros-llm-swarm-docs">
+<h3>iros_llm_swarm_docs<a class="headerlink" href="#iros-llm-swarm-docs" title="Link to this heading"></a></h3>
+<p>The aggregator package you are reading. Builds a unified Sphinx site
+that links to each package’s own rosdoc2-generated documentation. Its
+own source lives under <code class="docutils literal notranslate"><span class="pre">doc/</span></code>; per-package docs are produced by
+running <code class="docutils literal notranslate"><span class="pre">rosdoc2</span> <span class="pre">build</span></code> from the workspace root.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

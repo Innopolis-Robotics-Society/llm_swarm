@@ -1,0 +1,317 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Getting Started &mdash; IROS LLM Swarm Documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="System Architecture" href="architecture.html" />
+    <link rel="prev" title="Project Overview" href="overview.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            IROS LLM Swarm Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="overview.html">Project Overview</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Getting Started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#bring-up-the-container">Bring up the container</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#build">Build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#launch-a-mission">Launch a mission</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#send-a-mission">Send a mission</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#local-nav-only-smoke-test">Local-nav-only smoke test</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#behavior-tree-smoke-test">Behavior tree smoke test</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">System Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="packages.html">Package Map</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_bringup/index.html#http://">iros_llm_swarm_bringup</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_bt/index.html#http://">iros_llm_swarm_bt</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_costmap_plugins/index.html#http://">iros_llm_swarm_costmap_plugins</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_formation/index.html#http://">iros_llm_swarm_formation</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_interfaces/index.html#http://">iros_llm_swarm_interfaces</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_local_nav/index.html#http://">iros_llm_swarm_local_nav</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_mapf/index.html#http://">iros_llm_swarm_mapf</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_mapf_lns/index.html#http://">iros_llm_swarm_mapf_lns</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_robot/index.html#http://">iros_llm_swarm_robot</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_simulation/index.html#http://">iros_llm_swarm_simulation</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_simulation_lite/index.html#http://">iros_llm_swarm_simulation_lite</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">IROS LLM Swarm Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Getting Started</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/getting_started.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="getting-started">
+<h1>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading"></a></h1>
+<p>This page walks through bringing the stack up from a fresh clone, running
+the first mission, and pointing at the right launch file for each
+scenario. For the <em>why</em> behind each component, see <a class="reference internal" href="overview.html"><span class="doc">Project Overview</span></a> and
+<a class="reference internal" href="architecture.html"><span class="doc">System Architecture</span></a>.</p>
+<section id="prerequisites">
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Docker with Compose v2.</p></li>
+<li><p>X11 forwarding configured if you want RViz / Stage GUIs (the provided
+<code class="docutils literal notranslate"><span class="pre">docker-compose.yaml</span></code> mounts <code class="docutils literal notranslate"><span class="pre">/tmp/.X11-unix</span></code> and forwards
+<code class="docutils literal notranslate"><span class="pre">DISPLAY</span></code>; run <code class="docutils literal notranslate"><span class="pre">xhost</span> <span class="pre">+local:docker</span></code> on the host first).</p></li>
+<li><p>No host-side ROS 2 install is required — everything lives in the
+container.</p></li>
+</ul>
+</section>
+<section id="bring-up-the-container">
+<h2>Bring up the container<a class="headerlink" href="#bring-up-the-container" title="Link to this heading"></a></h2>
+<p>From the repository root:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">docker</span> <span class="n">compose</span> <span class="n">up</span> <span class="n">terminal</span>
+<span class="n">docker</span> <span class="n">compose</span> <span class="n">exec</span> <span class="n">terminal</span> <span class="n">bash</span>
+</pre></div>
+</div>
+<p>Inside the container, source the workspace and pin the DDS profile:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">source</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">fabian</span><span class="o">/</span><span class="n">ros2_ws</span><span class="o">/</span><span class="n">install</span><span class="o">/</span><span class="n">setup</span><span class="o">.</span><span class="n">bash</span>
+<span class="n">export</span> <span class="n">RMW_IMPLEMENTATION</span><span class="o">=</span><span class="n">rmw_cyclonedds_cpp</span>
+<span class="n">export</span> <span class="n">ROS_DOMAIN_ID</span><span class="o">=</span><span class="mi">42</span>
+<span class="n">export</span> <span class="n">CYCLONEDDS_URI</span><span class="o">=</span><span class="n">file</span><span class="p">:</span><span class="o">///</span><span class="n">home</span><span class="o">/</span><span class="n">fabian</span><span class="o">/</span><span class="n">ros2_ws</span><span class="o">/</span><span class="n">src</span><span class="o">/</span><span class="n">scripts</span><span class="o">/</span><span class="n">cyclonedds_swarm</span><span class="o">.</span><span class="n">xml</span>
+</pre></div>
+</div>
+<p>The CycloneDDS profile is required even at 20 robots — the default
+profile struggles with the discovery fan-out.</p>
+</section>
+<section id="build">
+<h2>Build<a class="headerlink" href="#build" title="Link to this heading"></a></h2>
+<p>When adding new types, build <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces</span></code> first so the
+generated headers and Python modules are available to the rest of the
+workspace:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cd</span> <span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">fabian</span><span class="o">/</span><span class="n">ros2_ws</span>
+<span class="n">colcon</span> <span class="n">build</span> <span class="o">--</span><span class="n">packages</span><span class="o">-</span><span class="n">select</span> <span class="n">iros_llm_swarm_interfaces</span>
+<span class="n">colcon</span> <span class="n">build</span>
+</pre></div>
+</div>
+<p>For routine work, <code class="docutils literal notranslate"><span class="pre">colcon</span> <span class="pre">build</span></code> alone is enough. Per-package builds
+are useful when iterating on one component:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">colcon</span> <span class="n">build</span> <span class="o">--</span><span class="n">packages</span><span class="o">-</span><span class="n">select</span> <span class="n">iros_llm_swarm_mapf_lns</span>
+</pre></div>
+</div>
+</section>
+<section id="launch-a-mission">
+<h2>Launch a mission<a class="headerlink" href="#launch-a-mission" title="Link to this heading"></a></h2>
+<p>The supported scenarios all live in <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_bringup</span></code>:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 38.0%" />
+<col style="width: 62.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Launch file</p></th>
+<th class="head"><p>Stack</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_warehouse.launch.py</span></code></p></td>
+<td><p>Stage + Nav2 + RViz only — useful for poking at Nav2 without
+the MAPF layer.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_mapf.launch.py</span></code></p></td>
+<td><p>Stage + Nav2 + PBS planner + per-robot followers
+(<code class="docutils literal notranslate"><span class="pre">motion_controller_node</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_lns.launch.py</span></code></p></td>
+<td><p>Stage + Nav2 + LNS2 planner + per-robot followers
+(<code class="docutils literal notranslate"><span class="pre">path_follower_node</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_mapf_formation.launch.py</span></code></p></td>
+<td><p>PBS planner with formation manager / monitor.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_lns_formation.launch.py</span></code></p></td>
+<td><p>LNS2 planner with formation manager / monitor.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_bringup</span> <span class="n">swarm_lns</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span>
+</pre></div>
+</div>
+<p>Useful launch arguments (all four files):</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 18.0%" />
+<col style="width: 18.0%" />
+<col style="width: 64.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Argument</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scenario</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cave</span></code></p></td>
+<td><p>World preset: <code class="docutils literal notranslate"><span class="pre">cave</span></code>, <code class="docutils literal notranslate"><span class="pre">large_cave</span></code>, <code class="docutils literal notranslate"><span class="pre">warehouse_2</span></code>,
+<code class="docutils literal notranslate"><span class="pre">warehouse_4</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_robots</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">20</span></code></p></td>
+<td><p>Number of robots controlled by the planner. The world always
+spawns its full robot set; this caps how many receive goals.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">world_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">warehouse.world</span></code></p></td>
+<td><p>Stage world file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rviz_cfg</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">swarm_20.rviz</span></code></p></td>
+<td><p>RViz config file.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">use_sim_time</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>Use the simulator clock.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="send-a-mission">
+<h2>Send a mission<a class="headerlink" href="#send-a-mission" title="Link to this heading"></a></h2>
+<p>Once the stack is up and <code class="docutils literal notranslate"><span class="pre">/map</span></code> is available, the planner is ready to
+accept goals on <code class="docutils literal notranslate"><span class="pre">/swarm/set_goals</span></code>. Convenience clients live in
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># All robots toward a single point (auto-distributed in a 1 m grid)</span>
+<span class="n">ros2</span> <span class="n">run</span> <span class="n">iros_llm_swarm_mapf</span> <span class="n">test_send_goals</span> <span class="o">--</span><span class="n">goal</span><span class="o">-</span><span class="n">x</span> <span class="mf">13.5</span> <span class="o">--</span><span class="n">goal</span><span class="o">-</span><span class="n">y</span> <span class="mf">16.5</span>
+
+<span class="c1"># Random goals within a radius around the map center (15, 15)</span>
+<span class="n">ros2</span> <span class="n">run</span> <span class="n">iros_llm_swarm_mapf</span> <span class="n">test_send_goals</span> <span class="o">--</span><span class="n">random</span> <span class="o">--</span><span class="n">radius</span> <span class="mf">5.0</span>
+
+<span class="c1"># Goals from a JSON file</span>
+<span class="n">ros2</span> <span class="n">run</span> <span class="n">iros_llm_swarm_mapf</span> <span class="n">test_send_goals</span> <span class="o">--</span><span class="n">json</span><span class="o">-</span><span class="n">file</span> <span class="n">goals</span><span class="o">.</span><span class="n">json</span>
+</pre></div>
+</div>
+<p>JSON goal format:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="s2">&quot;goals&quot;</span><span class="p">:</span> <span class="p">[</span>
+    <span class="p">{</span> <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;gx&quot;</span><span class="p">:</span> <span class="mf">15.0</span><span class="p">,</span> <span class="s2">&quot;gy&quot;</span><span class="p">:</span> <span class="mf">12.5</span> <span class="p">},</span>
+    <span class="p">{</span> <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;gx&quot;</span><span class="p">:</span> <span class="mf">16.2</span><span class="p">,</span> <span class="s2">&quot;gy&quot;</span><span class="p">:</span> <span class="mf">14.8</span> <span class="p">}</span>
+  <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>The action is long-lived: it stays active until every robot arrives, or
+until the client cancels with <code class="docutils literal notranslate"><span class="pre">Ctrl+C</span></code>. Feedback is printed during
+each phase (<code class="docutils literal notranslate"><span class="pre">planning</span></code> → <code class="docutils literal notranslate"><span class="pre">executing</span></code> → <code class="docutils literal notranslate"><span class="pre">replanning</span></code> → completion).</p>
+</section>
+<section id="local-nav-only-smoke-test">
+<h2>Local-nav-only smoke test<a class="headerlink" href="#local-nav-only-smoke-test" title="Link to this heading"></a></h2>
+<p>To exercise just the Nav2 layer without MAPF:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ros2</span> <span class="n">run</span> <span class="n">iros_llm_swarm_local_nav</span> <span class="n">test_local_planner</span> <span class="o">--</span><span class="n">num</span> <span class="mi">20</span> \
+    <span class="o">--</span><span class="n">goal</span><span class="o">-</span><span class="n">x</span> <span class="mf">13.5</span> <span class="o">--</span><span class="n">goal</span><span class="o">-</span><span class="n">y</span> <span class="mf">16.5</span>
+</pre></div>
+</div>
+<p>Robots will drive straight at the obstacle and stop — the local planner
+alone cannot resolve fleet conflicts. This is expected; the MAPF layer
+is what makes the swarm coherent.</p>
+</section>
+<section id="behavior-tree-smoke-test">
+<h2>Behavior tree smoke test<a class="headerlink" href="#behavior-tree-smoke-test" title="Link to this heading"></a></h2>
+<p>To run the included behavior tree from a single command:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ros2</span> <span class="n">run</span> <span class="n">iros_llm_swarm_bt</span> <span class="n">test_bt_runner</span>
+</pre></div>
+</div>
+<p>This loads <code class="docutils literal notranslate"><span class="pre">behavior_trees/swarm_navigate_to_pose.xml</span></code> and exercises
+the <code class="docutils literal notranslate"><span class="pre">MapfPlan</span></code> / <code class="docutils literal notranslate"><span class="pre">SetFormation</span></code> / <code class="docutils literal notranslate"><span class="pre">DisableFormation</span></code> /
+<code class="docutils literal notranslate"><span class="pre">CheckMode</span></code> action nodes against a running stack.</p>
+</section>
+<section id="where-to-go-next">
+<h2>Where to go next<a class="headerlink" href="#where-to-go-next" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="packages.html"><span class="doc">Package Map</span></a> — pick a package and dive into its API and parameters.</p></li>
+<li><p>The per-package documentation linked from <a class="reference internal" href="index.html"><span class="doc">IROS LLM Swarm Documentation</span></a> covers internals
+not repeated here (planner cost models, BT XML schema, formation YAML
+layout, costmap plugin parameters, …).</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="overview.html" class="btn btn-neutral float-left" title="Project Overview" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="architecture.html" class="btn btn-neutral float-right" title="System Architecture" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

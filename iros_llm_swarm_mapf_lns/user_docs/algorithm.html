@@ -1,0 +1,486 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LNS2 Algorithm &mdash; iros_llm_swarm_mapf_lns</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=01f34227"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            iros_llm_swarm_mapf_lns
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../algorithm.html">LNS2 Algorithm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../ros_api.html">ROS API</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">iros_llm_swarm_mapf_lns</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">LNS2 Algorithm</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/user_docs/algorithm.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <p style="margin: 0 0 1em 0;">
+  <a href="../iros_llm_swarm_docs/index.html">&laquo; IROS LLM Swarm — back to overview</a>
+</p><section id="lns2-algorithm">
+<h1>LNS2 Algorithm<a class="headerlink" href="#lns2-algorithm" title="Link to this heading"></a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">lns2</span></code> static library under <code class="docutils literal notranslate"><span class="pre">include/iros_llm_swarm_mapf/lns2/</span></code>
+implements the algorithm side of the planner: pure C++17, no ROS
+dependencies. The ROS node (<a class="reference internal" href="ros_api.html"><span class="doc">ROS API</span></a>) wraps it but does not poke
+into its data structures directly.</p>
+<p>This page describes the <strong>algorithm as currently shipped</strong>. It is the
+component most likely to change during the upcoming refactor; treat
+function names and small data layout details as advisory rather than
+load-bearing.</p>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#big-picture" id="id1">Big picture</a></p></li>
+<li><p><a class="reference internal" href="#module-layout" id="id2">Module layout</a></p></li>
+<li><p><a class="reference internal" href="#types" id="id3">Types</a></p></li>
+<li><p><a class="reference internal" href="#soft-a" id="id4">Soft A*</a></p></li>
+<li><p><a class="reference internal" href="#collision-table" id="id5">Collision table</a></p></li>
+<li><p><a class="reference internal" href="#destroy-operators" id="id6">Destroy operators</a></p></li>
+<li><p><a class="reference internal" href="#solution-wrapper" id="id7">Solution wrapper</a></p></li>
+<li><p><a class="reference internal" href="#top-level-solver-loop" id="id8">Top-level solver loop</a></p>
+<ul>
+<li><p><a class="reference internal" href="#initial-solution-time-cap" id="id9">Initial-solution time cap</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#warm-start" id="id10">Warm start</a></p></li>
+<li><p><a class="reference internal" href="#cross-references" id="id11">Cross-references</a></p></li>
+</ul>
+</nav>
+<section id="big-picture">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Big picture</a><a class="headerlink" href="#big-picture" title="Link to this heading"></a></h2>
+<p>LNS2 (<cite>Li, Chan, Ma, Koenig 2022</cite>) is a metaheuristic for MAPF that
+treats path-finding as a repair problem: build an initial joint plan
+that may contain collisions, then iteratively <em>destroy</em> a small subset
+of agent paths and <em>repair</em> them with a single-agent solver until the
+plan is collision-free (or a budget is exhausted).</p>
+<p>The implementation has three pillars:</p>
+<ol class="arabic simple">
+<li><p><strong>Soft A*</strong> — a single-agent space-time A* whose edge cost mixes
+path length with a <em>soft</em> collision count derived from the current
+joint plan. Penalty weight is set high enough that the lex order is
+<code class="docutils literal notranslate"><span class="pre">(collisions,</span> <span class="pre">path_length)</span></code>: minimizing the soft cost minimizes
+collisions first, length second.</p></li>
+<li><p><strong>Collision table</strong> — footprint-aware vertex + edge occupancy index
+with O(1) lookups and incremental updates. The destroy/repair loop
+only re-plans a few agents per iteration; the table makes
+“how many agents currently sit in this cell at this timestep?” cheap.</p></li>
+<li><p><strong>Adaptive Large Neighborhood Search (ALNS)</strong> — four destroy
+operators compete via segment-based weight updates. A reward is
+recorded for each operator on each iteration; periodically the
+weights are updated by an EMA toward the average observed reward.</p></li>
+</ol>
+</section>
+<section id="module-layout">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Module layout</a><a class="headerlink" href="#module-layout" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>File</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">types.hpp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Cell</span></code>, <code class="docutils literal notranslate"><span class="pre">CellOffset</span></code>, <code class="docutils literal notranslate"><span class="pre">GridMap</span></code>, <code class="docutils literal notranslate"><span class="pre">Path</span></code>,
+<code class="docutils literal notranslate"><span class="pre">FootprintModel</span></code>, <code class="docutils literal notranslate"><span class="pre">Agent</span></code>, <code class="docutils literal notranslate"><span class="pre">Collision</span></code>. Scalar aliases
+(<code class="docutils literal notranslate"><span class="pre">AgentId</span></code>, <code class="docutils literal notranslate"><span class="pre">Timestep</span></code>, <code class="docutils literal notranslate"><span class="pre">CellIdx</span></code>, <code class="docutils literal notranslate"><span class="pre">Cost</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gridmap_utils.hpp</span></code></p></td>
+<td><p>Footprint-aware static reachability (BFS) and
+<code class="docutils literal notranslate"><span class="pre">find_nearest_free_cell</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">soft_astar.hpp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SoftAStarParams</span></code>, <code class="docutils literal notranslate"><span class="pre">SoftAStarResult</span></code>, <code class="docutils literal notranslate"><span class="pre">HeuristicCache</span></code>,
+and the <code class="docutils literal notranslate"><span class="pre">soft_astar()</span></code> function.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">collision_table.hpp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CollisionTable</span></code> — vertex + edge occupancy index with
+incremental <code class="docutils literal notranslate"><span class="pre">add_path</span></code> / <code class="docutils literal notranslate"><span class="pre">remove_path</span></code> and O(1) count
+lookups.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">solution.hpp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Solution</span></code> — paths + collision table + per-agent
+<code class="docutils literal notranslate"><span class="pre">hold_until</span></code>, with <code class="docutils literal notranslate"><span class="pre">Snapshot</span></code> / <code class="docutils literal notranslate"><span class="pre">restore</span></code> for rollback.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">destroy_operators.hpp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DestroyOp</span></code> enum, four operator classes
+(CollisionBased, RandomWalk, Random, Bottleneck), and
+<code class="docutils literal notranslate"><span class="pre">ALNSWeights</span></code> (segment EMA reaction).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">warm_start.hpp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">build_warm_seed</span></code> — constructs a <code class="docutils literal notranslate"><span class="pre">Solution</span></code> from the
+previous plan shifted forward in time, plus
+<code class="docutils literal notranslate"><span class="pre">should_warm_start</span></code> decision heuristic.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">lns2_solver.hpp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">LNS2Solver</span></code> — top-level entry point with <code class="docutils literal notranslate"><span class="pre">solve()</span></code> (cold
+start) and <code class="docutils literal notranslate"><span class="pre">solve_from()</span></code> (warm start).</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="types">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Types</a><a class="headerlink" href="#types" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Agent</span></code> is the input shape used by the solver:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">Agent</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">AgentId</span><span class="w">        </span><span class="n">id</span><span class="p">;</span><span class="w">          </span><span class="c1">// dense index in [0, N)</span>
+<span class="w">  </span><span class="n">Cell</span><span class="w">           </span><span class="n">start</span><span class="p">;</span>
+<span class="w">  </span><span class="n">Cell</span><span class="w">           </span><span class="n">goal</span><span class="p">;</span>
+<span class="w">  </span><span class="n">FootprintModel</span><span class="w"> </span><span class="n">footprint</span><span class="p">;</span><span class="w">   </span><span class="c1">// owned per-agent; circular envelope</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+<p>The contract is that <code class="docutils literal notranslate"><span class="pre">id</span></code> equals the agent’s position in the
+<code class="docutils literal notranslate"><span class="pre">std::vector&lt;Agent&gt;</span></code> passed to the solver. Sparse external IDs (e.g.
+<code class="docutils literal notranslate"><span class="pre">robot_12</span></code> and <code class="docutils literal notranslate"><span class="pre">robot_17</span></code> out of a fleet of 20) are remapped to a
+dense range by the caller; the ROS node keeps the external ↔ internal
+mapping at the call site (<code class="docutils literal notranslate"><span class="pre">planned_ext_ids</span></code> in <code class="docutils literal notranslate"><span class="pre">node_utils</span></code>).</p>
+<p><code class="docutils literal notranslate"><span class="pre">Path</span></code> is a <code class="docutils literal notranslate"><span class="pre">std::vector&lt;Cell&gt;</span></code> indexed by discrete timestep:
+<code class="docutils literal notranslate"><span class="pre">path[k]</span></code> is the agent’s cell at <code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">=</span> <span class="pre">k</span></code>. After <code class="docutils literal notranslate"><span class="pre">path.size()</span> <span class="pre">-</span> <span class="pre">1</span></code>
+the agent is assumed to remain at its goal — the <em>hold-at-goal</em> tail —
+and <code class="docutils literal notranslate"><span class="pre">Solution</span></code> tracks a <code class="docutils literal notranslate"><span class="pre">hold_until_</span></code> timestep to which that tail
+extends in the collision table.</p>
+<p><code class="docutils literal notranslate"><span class="pre">FootprintModel</span></code> is a heading-independent set of cell offsets
+relative to base_link. Built once per agent via <code class="docutils literal notranslate"><span class="pre">from_radius</span></code>; the
+solver never rotates or rebuilds it during a search.</p>
+</section>
+<section id="soft-a">
+<h2><a class="toc-backref" href="#id4" role="doc-backlink">Soft A*</a><a class="headerlink" href="#soft-a" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">soft_astar()</span></code> is the per-agent inner solver. State is <code class="docutils literal notranslate"><span class="pre">(cell,</span> <span class="pre">t)</span></code>;
+edge cost is</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>step_cost
+  + collision_penalty * (# other agents occupying next footprint cells at t+1)
+  + collision_penalty * (# other agents swap-traversing the edge at t)
+</pre></div>
+</div>
+<p>The heuristic <code class="docutils literal notranslate"><span class="pre">h</span></code> is the true distance on the static graph,
+precomputed by a backward BFS from the goal and cached per
+<code class="docutils literal notranslate"><span class="pre">(goal,</span> <span class="pre">diagonal)</span></code> key in <code class="docutils literal notranslate"><span class="pre">HeuristicCache</span></code>. The cache invalidates
+itself if a different <code class="docutils literal notranslate"><span class="pre">GridMap</span></code> pointer is passed than last time —
+sufficient for the solver, but callers that mutate <code class="docutils literal notranslate"><span class="pre">blocked</span></code> cells in
+place must call <code class="docutils literal notranslate"><span class="pre">HeuristicCache::clear()</span></code> themselves.</p>
+<p>Termination is when <code class="docutils literal notranslate"><span class="pre">f_min</span></code> over OPEN ≥ best known total cost
+(<code class="docutils literal notranslate"><span class="pre">g</span> <span class="pre">+</span> <span class="pre">tail</span></code>); failure is exhaustion of either the timestep horizon
+or the per-call expansion cap.</p>
+<p>Parameters (<code class="docutils literal notranslate"><span class="pre">SoftAStarParams</span></code>):</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">step_cost</span></code></p></td>
+<td><p>1</p></td>
+<td><p>Cost of one move (including <code class="docutils literal notranslate"><span class="pre">stay</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">collision_penalty</span></code></p></td>
+<td><p>10000</p></td>
+<td><p>Cost per collision unit. Must satisfy
+<code class="docutils literal notranslate"><span class="pre">penalty</span> <span class="pre">&gt;</span> <span class="pre">horizon</span> <span class="pre">×</span> <span class="pre">step_cost</span></code> so the lex order is
+<code class="docutils literal notranslate"><span class="pre">(collisions,</span> <span class="pre">length)</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">horizon</span></code></p></td>
+<td><p>300</p></td>
+<td><p>Hard upper bound on <code class="docutils literal notranslate"><span class="pre">t</span></code> — the search fails if it cannot land
+at the goal within this horizon.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">max_expansions</span></code></p></td>
+<td><p>200000</p></td>
+<td><p>Per-call expansion cap. Prevents pathological searches from
+blocking the loop forever.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">diagonal_moves</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>4-connected by default; diagonals are MAPF-unsafe in dense
+fleets.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="collision-table">
+<h2><a class="toc-backref" href="#id5" role="doc-backlink">Collision table</a><a class="headerlink" href="#collision-table" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">CollisionTable</span></code> is a footprint-aware vertex + edge occupancy index:</p>
+<ul class="simple">
+<li><p><strong>Vertex occupancy</strong>: <code class="docutils literal notranslate"><span class="pre">vertex_occ_[(cell,</span> <span class="pre">t)]</span> <span class="pre">-&gt;</span> <span class="pre">{agents}</span></code>. Every
+footprint cell of every agent at every timestep up to its
+<code class="docutils literal notranslate"><span class="pre">hold_until</span></code> contributes a record.</p></li>
+<li><p><strong>Edge occupancy</strong>: <code class="docutils literal notranslate"><span class="pre">edge_occ_[(from,</span> <span class="pre">to,</span> <span class="pre">t)]</span> <span class="pre">-&gt;</span> <span class="pre">{agents}</span></code>. Each
+agent step at time <code class="docutils literal notranslate"><span class="pre">t</span></code> writes one entry. Swap detection asks
+“who’s traversing <code class="docutils literal notranslate"><span class="pre">(to,</span> <span class="pre">from,</span> <span class="pre">t)</span></code>?” — if anyone is, both have an
+edge collision.</p></li>
+</ul>
+<p>Counters are kept in lockstep with the maps:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">total_collisions()</span></code> — sum over unordered agent pairs of shared
+<code class="docutils literal notranslate"><span class="pre">(cell,</span> <span class="pre">t)</span></code> and swap edges.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">per_agent_collisions[i]</span></code> — sum of pair collisions involving <code class="docutils literal notranslate"><span class="pre">i</span></code>.
+<code class="docutils literal notranslate"><span class="pre">sum(per_agent)</span> <span class="pre">==</span> <span class="pre">2</span> <span class="pre">×</span> <span class="pre">total_collisions()</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">touches_[i]</span></code> — superset of agents that currently share at least
+one entry with <code class="docutils literal notranslate"><span class="pre">i</span></code>. May over-approximate after removals;
+<code class="docutils literal notranslate"><span class="pre">rebuild_touches()</span></code> resets it.</p></li>
+</ul>
+<p>The table is updated incrementally by <code class="docutils literal notranslate"><span class="pre">add_path</span></code> /
+<code class="docutils literal notranslate"><span class="pre">remove_path</span></code> calls funneled through <code class="docutils literal notranslate"><span class="pre">Solution</span></code>. <code class="docutils literal notranslate"><span class="pre">Solution</span></code> owns
+the only mutating path; direct mutation outside that wrapper would
+desync <code class="docutils literal notranslate"><span class="pre">per_agent_</span></code> and the maps.</p>
+<p>For sampling, <code class="docutils literal notranslate"><span class="pre">sample_random_collision()</span></code> returns a uniformly chosen
+<code class="docutils literal notranslate"><span class="pre">(a,</span> <span class="pre">b,</span> <span class="pre">cell,</span> <span class="pre">t,</span> <span class="pre">kind)</span></code> tuple to seed the destroy step.</p>
+</section>
+<section id="destroy-operators">
+<h2><a class="toc-backref" href="#id6" role="doc-backlink">Destroy operators</a><a class="headerlink" href="#destroy-operators" title="Link to this heading"></a></h2>
+<p>Four operators implement the <code class="docutils literal notranslate"><span class="pre">DestroyOperator</span></code> interface and live
+under <code class="docutils literal notranslate"><span class="pre">destroy_operators.hpp</span></code>:</p>
+<ul class="simple">
+<li><p><strong>CollisionBased</strong> — sample a random collision, take its two agents,
+expand outward by <code class="docutils literal notranslate"><span class="pre">touches_</span></code> until the requested neighborhood size
+is reached.</p></li>
+<li><p><strong>RandomWalk</strong> — pick a random agent and walk along its
+conflict-graph neighbours.</p></li>
+<li><p><strong>Random</strong> — uniform random subset.</p></li>
+<li><p><strong>Bottleneck</strong> — bias toward agents with the highest collision count.</p></li>
+</ul>
+<p>Selection between operators is adaptive (ALNS):</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">ALNSWeights::sample()</span></code> picks an operator proportionally to its
+current weight.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ALNSWeights::record(op,</span> <span class="pre">reward)</span></code> accumulates rewards. Reward
+constants are:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>R_IMPROVE_BEST  = 10.0   // better than any previous solution
+R_IMPROVE_LOCAL = 5.0    // better than before this iteration
+R_NO_CHANGE     = 1.0    // rollback
+</pre></div>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">flush_segment(reaction,</span> <span class="pre">w_min)</span></code> is called every <code class="docutils literal notranslate"><span class="pre">segment_size</span></code>
+iterations and applies an EMA update toward each operator’s average
+reward. Operators <strong>not used</strong> in the segment decay slowly toward
+<code class="docutils literal notranslate"><span class="pre">w_min</span></code> so a never-selected operator does not stay frozen at a
+high initial weight — and a stuck-at-floor one is not trapped there
+forever.</p></li>
+</ul>
+</section>
+<section id="solution-wrapper">
+<h2><a class="toc-backref" href="#id7" role="doc-backlink">Solution wrapper</a><a class="headerlink" href="#solution-wrapper" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">Solution</span></code> ties paths, footprints, hold-at-goal timesteps, and the
+collision table into a single object:</p>
+<ul class="simple">
+<li><p>The only mutators are <code class="docutils literal notranslate"><span class="pre">set_path()</span></code> and <code class="docutils literal notranslate"><span class="pre">clear_path()</span></code>; both
+funnel through the table to keep counts consistent.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">set_global_hold(h)</span></code> adjusts <code class="docutils literal notranslate"><span class="pre">hold_until</span></code> for <em>all</em> agents to a
+shared horizon (typically <code class="docutils literal notranslate"><span class="pre">max(path.size())</span> <span class="pre">-</span> <span class="pre">1</span></code> across the
+current repair set, or the full horizon after a successful repair).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">take_and_clear(ids)</span></code> produces a <code class="docutils literal notranslate"><span class="pre">Snapshot</span></code> and clears the named
+agents; <code class="docutils literal notranslate"><span class="pre">restore(snap)</span></code> undoes it. This is the rollback primitive
+used when an iteration produces a worse solution than its starting
+point.</p></li>
+</ul>
+</section>
+<section id="top-level-solver-loop">
+<h2><a class="toc-backref" href="#id8" role="doc-backlink">Top-level solver loop</a><a class="headerlink" href="#top-level-solver-loop" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">LNS2Solver</span></code> exposes two entry points:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">solve()</span></code> — cold start. Builds an initial solution greedily
+(agents sorted by <code class="docutils literal notranslate"><span class="pre">h</span></code>-distance to goal; each one planned ignoring
+unplanned siblings, then committed to the table), then runs the
+repair loop.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">solve_from(seed,</span> <span class="pre">…)</span></code> — warm start. Takes a pre-built <code class="docutils literal notranslate"><span class="pre">Solution</span></code>
+(typically produced by <code class="docutils literal notranslate"><span class="pre">build_warm_seed</span></code>) and runs the repair loop
+directly.</p></li>
+</ul>
+<p>The repair loop iterates until any of:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">time_budget_ms</span></code> wall time exhausted,</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">plateau_limit</span></code> iterations with no improvement,</p></li>
+<li><p>the solution becomes collision-free.</p></li>
+</ul>
+<p>One iteration:</p>
+<ol class="arabic simple">
+<li><p>Sample destroy operator from <code class="docutils literal notranslate"><span class="pre">ALNSWeights</span></code>.</p></li>
+<li><p>Operator returns <code class="docutils literal notranslate"><span class="pre">neighborhood_size</span></code> agent IDs.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Solution::take_and_clear</span></code> snapshots and clears them.</p></li>
+<li><p>For each agent (in random order), call <code class="docutils literal notranslate"><span class="pre">soft_astar</span></code> against the
+current table; commit the new path with <code class="docutils literal notranslate"><span class="pre">set_path</span></code>.</p></li>
+<li><p>Compare collision count to the snapshot. Accept (keep new paths and
+<code class="docutils literal notranslate"><span class="pre">record(op,</span> <span class="pre">+reward)</span></code>) or rollback (<code class="docutils literal notranslate"><span class="pre">restore(snap)</span></code> and
+<code class="docutils literal notranslate"><span class="pre">record(op,</span> <span class="pre">R_NO_CHANGE)</span></code>).</p></li>
+</ol>
+<p>Diagnostics live in <code class="docutils literal notranslate"><span class="pre">LNS2Stats</span></code>: total iterations, accepted
+iterations, A* call counts and total expansions, per-operator usage
+and improvement counts, final operator weights, wall time.</p>
+<section id="initial-solution-time-cap">
+<h3><a class="toc-backref" href="#id9" role="doc-backlink">Initial-solution time cap</a><a class="headerlink" href="#initial-solution-time-cap" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">LNS2Params::initial_time_budget_ms</span></code> caps the wall-clock cost of the
+prioritized greedy construction phase. When the budget is exhausted the
+loop stops early; remaining agents get no initial path and the repair
+loop handles them as stubs. Set to 0 to disable. Used by the ROS node
+to keep <code class="docutils literal notranslate"><span class="pre">execute_goal</span></code> latency bounded under dense start
+configurations.</p>
+</section>
+</section>
+<section id="warm-start">
+<h2><a class="toc-backref" href="#id10" role="doc-backlink">Warm start</a><a class="headerlink" href="#warm-start" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">build_warm_seed</span></code> produces a <code class="docutils literal notranslate"><span class="pre">Solution</span></code> that the solver can repair
+in place, starting from the last successful plan shifted forward in
+time. The current implementation applies a <strong>common</strong> time shift
+<code class="docutils literal notranslate"><span class="pre">delta_steps</span></code> to every agent (this fixes the older per-agent k-shift
+bug, which destroyed the relative timing of the schedule whenever one
+robot fell behind). For each agent it then classifies the seed:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">SeedStatus</span></code></p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">OnTrack</span></code></p></td>
+<td><p>Actual cell == expected cell at <code class="docutils literal notranslate"><span class="pre">t</span> <span class="pre">=</span> <span class="pre">delta</span></code>; tail of the
+previous path is reused directly.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Spliced</span></code></p></td>
+<td><p>Actual near expected; a short BFS splice (≤
+<code class="docutils literal notranslate"><span class="pre">patch_radius_cells</span></code> Chebyshev) joins <code class="docutils literal notranslate"><span class="pre">actual_cell</span></code> back
+onto the tail.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">StubFar</span></code></p></td>
+<td><p>Actual far from expected; one-cell hold (“frozen”). Repair must
+re-plan it.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">StubNew</span></code></p></td>
+<td><p>Agent was not in the previous plan; one-cell hold at actual.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">StubGoal</span></code></p></td>
+<td><p>Goal changed since the previous plan; one-cell hold at actual.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">StubInvalid</span></code></p></td>
+<td><p>Previous path no longer statically valid (e.g. footprint no
+longer fits because the map changed); one-cell hold.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">StubArrived</span></code></p></td>
+<td><p>Previous plan fully elapsed and the robot is at its goal.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Missing</span></code></p></td>
+<td><p>No odometry; agent left out of the repair set.</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">WarmStartReport</span></code> aggregates these counts and computes seed
+collisions. <code class="docutils literal notranslate"><span class="pre">should_warm_start()</span></code> decides whether the seed is worth
+running <code class="docutils literal notranslate"><span class="pre">solve_from</span></code> on (vs. paying for a cold start) using two
+thresholds:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">max_collisions_per_agent</span></code> — per-agent collision ceiling on the
+seed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max_stubs_ratio</span></code> — fraction of stubs the repair must actively
+resolve.</p></li>
+</ul>
+<p>If either threshold is exceeded, the ROS node falls back to <code class="docutils literal notranslate"><span class="pre">solve()</span></code>.</p>
+</section>
+<section id="cross-references">
+<h2><a class="toc-backref" href="#id11" role="doc-backlink">Cross-references</a><a class="headerlink" href="#cross-references" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>ROS-side parameter mapping (<code class="docutils literal notranslate"><span class="pre">time_budget_ms</span></code> ↔ params YAML): see
+<a class="reference internal" href="ros_api.html"><span class="doc">ROS API</span></a>.</p></li>
+<li><p>Type definitions (<code class="docutils literal notranslate"><span class="pre">Path</span></code>, <code class="docutils literal notranslate"><span class="pre">Cell</span></code>, <code class="docutils literal notranslate"><span class="pre">Agent</span></code>) are owned by this
+algorithm library; they are <strong>not</strong> the ROS message types. The ROS
+side converts between grid cells and world coordinates via
+<code class="docutils literal notranslate"><span class="pre">world_to_cell</span></code> / <code class="docutils literal notranslate"><span class="pre">cell_to_world</span></code> in <code class="docutils literal notranslate"><span class="pre">node_utils.hpp</span></code>.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

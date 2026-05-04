@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>iros_llm_swarm_costmap_plugins &mdash; iros_llm_swarm_costmap_plugins 0.0.0 documentation</title>
+  <title>iros_llm_swarm_costmap_plugins &mdash; iros_llm_swarm_costmap_plugins</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
@@ -18,8 +18,7 @@
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Standard Documents" href="standards.html" /> 
+    <link rel="search" title="Search" href="search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -41,16 +40,22 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul>
-<li class="toctree-l1"><a class="reference internal" href="standards.html">Standard Documents</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="standard_docs/PACKAGE.html">PACKAGE</a></li>
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">iros_llm_swarm_costmap_plugins</a><ul>
+<li><a class="reference internal" href="#why-this-plugin-exists">Why this plugin exists</a></li>
+<li><a class="reference internal" href="#implementation">Implementation</a><ul>
+<li><a class="reference internal" href="#pluginlib-registration">Pluginlib registration</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#how-to-use-it">How to use it</a></li>
+<li><a class="reference internal" href="#considerations-and-limits">Considerations and limits</a></li>
+<li><a class="reference internal" href="#build-and-install">Build and install</a></li>
+<li><a class="reference internal" href="#cross-references">Cross-references</a></li>
 </ul>
 </li>
 </ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
-</ul>
-
+</div>
         </div>
       </div>
     </nav>
@@ -75,32 +80,189 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="iros-llm-swarm-costmap-plugins">
+  <p style="margin: 0 0 1em 0;">
+  <a href="../iros_llm_swarm_docs/index.html">&laquo; IROS LLM Swarm — back to overview</a>
+</p><section id="iros-llm-swarm-costmap-plugins">
 <h1>iros_llm_swarm_costmap_plugins<a class="headerlink" href="#iros-llm-swarm-costmap-plugins" title="Link to this heading"></a></h1>
-<p>TODO: Package description</p>
-<div class="toctree-wrapper compound">
+<p>A single-class Nav2 costmap plugin: <code class="docutils literal notranslate"><span class="pre">ResettingObstacleLayer</span></code>. Drop-in
+replacement for <code class="docutils literal notranslate"><span class="pre">nav2_costmap_2d::ObstacleLayer</span></code> that wipes its
+internal grid every cycle before re-marking observations. Used by the
+swarm’s per-robot local costmaps to eliminate ghost-obstacle trails
+left by other moving robots.</p>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#why-this-plugin-exists" id="id1">Why this plugin exists</a></p></li>
+<li><p><a class="reference internal" href="#implementation" id="id2">Implementation</a></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="standards.html">Standard Documents</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="standard_docs/PACKAGE.html">PACKAGE</a></li>
+<li><p><a class="reference internal" href="#pluginlib-registration" id="id3">Pluginlib registration</a></p></li>
 </ul>
 </li>
+<li><p><a class="reference internal" href="#how-to-use-it" id="id4">How to use it</a></p></li>
+<li><p><a class="reference internal" href="#considerations-and-limits" id="id5">Considerations and limits</a></p></li>
+<li><p><a class="reference internal" href="#build-and-install" id="id6">Build and install</a></p></li>
+<li><p><a class="reference internal" href="#cross-references" id="id7">Cross-references</a></p></li>
 </ul>
+</nav>
+<section id="why-this-plugin-exists">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Why this plugin exists</a><a class="headerlink" href="#why-this-plugin-exists" title="Link to this heading"></a></h2>
+<p>The default <code class="docutils literal notranslate"><span class="pre">ObstacleLayer</span></code> clears costmap cells via <strong>raytracing</strong>:
+for each laser ray that does not hit an obstacle, every cell it passes
+through is marked free. Cells that fall <strong>between</strong> consecutive rays
+of a sparse 2D scanner are never traversed by any ray, and rely on
+some <em>other</em> ray either marking them or clearing them on a future
+scan.</p>
+<p>In a single-robot scenario this is rarely a problem — the robot moves
+relative to static obstacles, so cells that were marked occupied by a
+ray on one scan are usually re-cleared by an adjacent ray on the next
+scan. With <strong>multi-robot</strong> scans, however, each robot’s neighbours are
+<em>moving</em> obstacles whose cells get marked, then never cleared because
+the sparse rays do not pass through the exact cell the neighbour just
+vacated. Over a few seconds the local costmap builds up “ghost” trails
+behind every other robot, the local planner steers around obstacles
+that are not there, and the controller misbehaves.</p>
+<p>This plugin sidesteps the problem by <strong>discarding the entire previous
+costmap state</strong> before every <code class="docutils literal notranslate"><span class="pre">updateBounds()</span></code> call. The next
+mark-from-scan pass then re-creates a costmap that reflects only what
+is observed <em>right now</em> — no leftover state, no ghosts.</p>
+</section>
+<section id="implementation">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Implementation</a><a class="headerlink" href="#implementation" title="Link to this heading"></a></h2>
+<p>The whole plugin is a 15-line subclass:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">namespace</span><span class="w"> </span><span class="nn">iros_llm_swarm_costmap_plugins</span><span class="w"> </span><span class="p">{</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ResettingObstacleLayer</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">nav2_costmap_2d</span><span class="o">::</span><span class="n">ObstacleLayer</span><span class="w"> </span><span class="p">{</span>
+<span class="k">public</span><span class="o">:</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">updateBounds</span><span class="p">(</span>
+<span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="n">robot_x</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">robot_y</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">robot_yaw</span><span class="p">,</span>
+<span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">min_x</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">min_y</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">max_x</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">max_y</span><span class="p">)</span><span class="w"> </span><span class="k">override</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="n">resetMaps</span><span class="p">();</span>
+<span class="w">    </span><span class="n">ObstacleLayer</span><span class="o">::</span><span class="n">updateBounds</span><span class="p">(</span><span class="n">robot_x</span><span class="p">,</span><span class="w"> </span><span class="n">robot_y</span><span class="p">,</span><span class="w"> </span><span class="n">robot_yaw</span><span class="p">,</span>
+<span class="w">                                 </span><span class="n">min_x</span><span class="p">,</span><span class="w"> </span><span class="n">min_y</span><span class="p">,</span><span class="w"> </span><span class="n">max_x</span><span class="p">,</span><span class="w"> </span><span class="n">max_y</span><span class="p">);</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">};</span>
+
+<span class="p">}</span><span class="w">  </span><span class="c1">// namespace iros_llm_swarm_costmap_plugins</span>
+
+<span class="n">PLUGINLIB_EXPORT_CLASS</span><span class="p">(</span>
+<span class="w">  </span><span class="n">iros_llm_swarm_costmap_plugins</span><span class="o">::</span><span class="n">ResettingObstacleLayer</span><span class="p">,</span>
+<span class="w">  </span><span class="n">nav2_costmap_2d</span><span class="o">::</span><span class="n">Layer</span><span class="p">)</span>
+</pre></div>
 </div>
-<div class="toctree-wrapper compound">
+<p>What <code class="docutils literal notranslate"><span class="pre">resetMaps()</span></code> does, inherited from <code class="docutils literal notranslate"><span class="pre">Costmap2D</span></code>: walks the
+internal <code class="docutils literal notranslate"><span class="pre">costmap_</span></code> byte array and writes <code class="docutils literal notranslate"><span class="pre">NO_INFORMATION</span></code> (255)
+to every cell. The base <code class="docutils literal notranslate"><span class="pre">ObstacleLayer::updateBounds()</span></code> then runs
+its normal mark + raytrace passes against the latest observation
+buffer, producing a costmap that has only the obstacles currently
+visible to this robot’s scanner.</p>
+<section id="pluginlib-registration">
+<h3><a class="toc-backref" href="#id3" role="doc-backlink">Pluginlib registration</a><a class="headerlink" href="#pluginlib-registration" title="Link to this heading"></a></h3>
+<p>The plugin is registered with the <code class="docutils literal notranslate"><span class="pre">nav2_costmap_2d::Layer</span></code> base type
+in <code class="docutils literal notranslate"><span class="pre">resetting_obstacle_layer.xml</span></code>:</p>
+<div class="highlight-xml notranslate"><div class="highlight"><pre><span></span><span class="nt">&lt;library</span><span class="w"> </span><span class="na">path=</span><span class="s">&quot;resetting_obstacle_layer&quot;</span><span class="nt">&gt;</span>
+<span class="w">  </span><span class="nt">&lt;class</span><span class="w"> </span><span class="na">name=</span><span class="s">&quot;iros_llm_swarm_costmap_plugins/ResettingObstacleLayer&quot;</span>
+<span class="w">         </span><span class="na">type=</span><span class="s">&quot;iros_llm_swarm_costmap_plugins::ResettingObstacleLayer&quot;</span>
+<span class="w">         </span><span class="na">base_class_type=</span><span class="s">&quot;nav2_costmap_2d::Layer&quot;</span><span class="nt">&gt;</span>
+<span class="w">    </span><span class="nt">&lt;description&gt;</span>ObstacleLayer<span class="w"> </span>that<span class="w"> </span>resets<span class="w"> </span>its<span class="w"> </span>internal<span class="w"> </span>grid<span class="w"> </span>every<span class="w"> </span>cycle<span class="w"> </span>before<span class="w"> </span>marking<span class="nt">&lt;/description&gt;</span>
+<span class="w">  </span><span class="nt">&lt;/class&gt;</span>
+<span class="nt">&lt;/library&gt;</span>
+</pre></div>
 </div>
+<p>The exported class name is the <strong>string</strong> Nav2 looks for in the
+costmap <code class="docutils literal notranslate"><span class="pre">plugin:</span></code> field (see usage below). The <code class="docutils literal notranslate"><span class="pre">library</span> <span class="pre">path</span></code>
+matches the shared library installed by <code class="docutils literal notranslate"><span class="pre">CMakeLists.txt</span></code>
+(<code class="docutils literal notranslate"><span class="pre">libresetting_obstacle_layer.so</span></code>).</p>
+</section>
+</section>
+<section id="how-to-use-it">
+<h2><a class="toc-backref" href="#id4" role="doc-backlink">How to use it</a><a class="headerlink" href="#how-to-use-it" title="Link to this heading"></a></h2>
+<p>In any costmap section (local or global), set the layer’s
+<code class="docutils literal notranslate"><span class="pre">plugin</span></code> to the exported class name. The plugin behaves exactly
+like the standard <code class="docutils literal notranslate"><span class="pre">ObstacleLayer</span></code> for every other parameter — the
+override is invisible to configuration:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">local_costmap</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">local_costmap</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">ros__parameters</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">plugins</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;obstacle_layer&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;inflation_layer&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">      </span><span class="nt">obstacle_layer</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">plugin</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;iros_llm_swarm_costmap_plugins/ResettingObstacleLayer&quot;</span>
+<span class="w">        </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">        </span><span class="nt">observation_persistence</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.0</span><span class="w">   </span><span class="c1"># see note below</span>
+<span class="w">        </span><span class="nt">clearing</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">        </span><span class="nt">marking</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">        </span><span class="nt">observation_sources</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">base_scan</span>
+<span class="w">        </span><span class="nt">base_scan</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">topic</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/&lt;robot_namespace&gt;/base_scan&quot;</span>
+<span class="w">          </span><span class="nt">data_type</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;LaserScan&quot;</span>
+<span class="w">          </span><span class="nt">obstacle_max_range</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4.0</span>
+<span class="w">          </span><span class="nt">raytrace_max_range</span><span class="p">:</span><span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">5.0</span>
+<span class="w">          </span><span class="nt">max_obstacle_height</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2.0</span>
+</pre></div>
+</div>
+<p>The swarm’s own per-robot local costmap config in
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav/config/robot_nav2_params.yaml</span></code> uses the
+plugin exactly this way.</p>
+</section>
+<section id="considerations-and-limits">
+<h2><a class="toc-backref" href="#id5" role="doc-backlink">Considerations and limits</a><a class="headerlink" href="#considerations-and-limits" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Marking-only behaviour.</strong> Because the costmap is wiped before every
+update, <code class="docutils literal notranslate"><span class="pre">observation_persistence</span></code> becomes effectively meaningless —
+every cell that is not re-marked by the current scan disappears
+immediately. Setting <code class="docutils literal notranslate"><span class="pre">observation_persistence:</span> <span class="pre">0.0</span></code> makes this
+intent explicit in the config.</p></li>
+<li><p><strong>Local costmap only, in practice.</strong> This plugin is designed for the
+<em>rolling-window local costmap</em>, where the wipe-and-remark cost is
+bounded by the small window size. Wiping a full-map costmap every
+cycle is much more expensive and removes the only memory the
+costmap had of unobserved obstacles — usually not what you want for
+a global costmap. The swarm’s global costmap uses the standard
+<code class="docutils literal notranslate"><span class="pre">StaticLayer</span></code> + <code class="docutils literal notranslate"><span class="pre">InflationLayer</span></code> instead.</p></li>
+<li><p><strong>Non-laser sources.</strong> The reset happens before <em>all</em> observation
+sources are processed, regardless of type. If you mix laser and
+pointcloud sources on the same layer, every pointcloud mark must
+also re-occur every cycle to remain visible.</p></li>
+<li><p><strong>Plugin ABI.</strong> <code class="docutils literal notranslate"><span class="pre">resetMaps()</span></code> is a public method on
+<code class="docutils literal notranslate"><span class="pre">Costmap2D</span></code>; <code class="docutils literal notranslate"><span class="pre">updateBounds</span></code> is virtual on <code class="docutils literal notranslate"><span class="pre">Layer</span></code>. Both are
+stable Nav2 surfaces. If a future Nav2 release renames or
+re-shapes them, this plugin will need a small port.</p></li>
+</ul>
+</section>
+<section id="build-and-install">
+<h2><a class="toc-backref" href="#id6" role="doc-backlink">Build and install</a><a class="headerlink" href="#build-and-install" title="Link to this heading"></a></h2>
+<p>A single shared library, no headers exported:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">colcon</span> <span class="n">build</span> <span class="o">--</span><span class="n">packages</span><span class="o">-</span><span class="n">select</span> <span class="n">iros_llm_swarm_costmap_plugins</span>
+</pre></div>
+</div>
+<p>Built artefacts:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">libresetting_obstacle_layer.so</span></code> — the shared library.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">share/iros_llm_swarm_costmap_plugins/resetting_obstacle_layer.xml</span></code>
+— the pluginlib description (auto-discovered by Nav2 via
+<code class="docutils literal notranslate"><span class="pre">pluginlib_export_plugin_description_file</span></code>).</p></li>
+</ul>
+<p>Sourcing the workspace’s <code class="docutils literal notranslate"><span class="pre">setup.bash</span></code> exposes the plugin to any
+Nav2 instance running in that environment.</p>
+</section>
+<section id="cross-references">
+<h2><a class="toc-backref" href="#id7" role="doc-backlink">Cross-references</a><a class="headerlink" href="#cross-references" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Producer of the YAML that loads this plugin:
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav</span></code> (per-robot Nav2 launch + config).</p></li>
+<li><p>Upstream class documentation: <code class="docutils literal notranslate"><span class="pre">nav2_costmap_2d::ObstacleLayer</span></code>.</p></li>
+</ul>
+</section>
 </section>
 
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="standards.html" class="btn btn-neutral float-right" title="Standard Documents" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright The &lt;iros_llm_swarm_costmap_plugins&gt; Contributors. License: TODO: License declaration.</p>
+    <p>&#169; Copyright .</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
