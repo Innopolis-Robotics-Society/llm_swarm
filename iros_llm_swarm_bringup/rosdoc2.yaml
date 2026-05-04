@@ -1,0 +1,15 @@
+type: 'rosdoc2 config'
+version: 1
+
+---
+
+settings:
+  never_run_doxygen: true
+  never_run_sphinx_apidoc: true
+  disable_breathe: true
+
+builders:
+  - sphinx:
+      name: 'iros_llm_swarm_bringup'
+      output_dir: ''
+      sphinx_sourcedir: 'doc'
