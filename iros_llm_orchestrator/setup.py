@@ -28,6 +28,7 @@ setup(
         'console_scripts': [
             'decision_server = iros_llm_orchestrator.decision_server:main',
             'passive_observer = iros_llm_orchestrator.passive_observer:main',
+            'user_chat = iros_llm_orchestrator.user_chat_node:main',
         ],
     },
 )

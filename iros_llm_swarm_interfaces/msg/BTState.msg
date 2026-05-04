@@ -23,5 +23,10 @@ geometry_msgs/Point[] goals         # mapf context
 string formation_id                 # formation context
 string leader_ns                    # formation context
 
+# True while a BT node has an active /llm/decision request in flight.
+# PassiveObserver checks this to avoid double-triggering channel 2
+# when channel 1 is already consulting the LLM for the same event.
+bool llm_thinking
+
 # Timestamp (ms since epoch).
 int64 stamp_ms

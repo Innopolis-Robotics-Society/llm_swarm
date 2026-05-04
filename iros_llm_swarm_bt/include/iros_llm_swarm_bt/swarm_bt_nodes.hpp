@@ -81,6 +81,20 @@ private:
   std::deque<std::string> info_buffer_;
   std::size_t             max_info_buffer_{50};
 
+  // Snapshot written from the ROS executor thread (on_feedback),
+  // applied to the blackboard only inside onRunning() (BT thread).
+  // Blackboard is not thread-safe — never write it outside the BT thread.
+  struct FeedbackSnapshot {
+    std::string summary;
+    std::string status;       // "OK" | "WARN"
+    std::string error;
+    std::string warn_event;   // non-empty → trigger send_to_llm("WARN", ...)
+    std::string info_event;   // non-empty → candidate for periodic INFO log
+    bool updated{false};
+  };
+  std::mutex         snapshot_mutex_;
+  FeedbackSnapshot   pending_snapshot_;
+
   // Periodic log to LLM (0 = disabled)
   double        llm_log_interval_sec_{0.0};
   rclcpp::Time  last_llm_log_time_{0, 0, RCL_ROS_TIME};

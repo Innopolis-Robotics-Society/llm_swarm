@@ -99,6 +99,11 @@ class PassiveObserver(Node):
         if msg.action_status not in self.TRIGGER_STATUSES:
             return
 
+        # Channel 1 (BT node → /llm/decision) is already active for this
+        # event — don't pile on a parallel channel-2 call for the same issue.
+        if msg.llm_thinking:
+            return
+
         now = self.get_clock().now().nanoseconds / 1e9
         cooldown = float(self.get_parameter('cooldown_sec').value)
         if now - self.last_action_time < cooldown:
@@ -114,7 +119,10 @@ class PassiveObserver(Node):
             f'action={msg.active_action} error={msg.last_error!r}'
         )
 
-        self.executor.create_task(self.think_and_command(msg))
+        # executor.create_task() would fail if called before add_node() assigns
+        # self.executor, and it doesn't accept coroutines on all rclpy versions.
+        # Use the dedicated asyncio loop that was started in __init__ instead.
+        asyncio.run_coroutine_threadsafe(self.think_and_command(msg), self._loop)
 
     async def think_and_command(self, trigger_msg: BTState):
         prompt = ''
