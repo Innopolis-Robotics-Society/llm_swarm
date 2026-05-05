@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<robot name="swarm_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <xacro:arg name="robot_name"  default="robot_0"/>
+  <!-- RGBA string, например "0 1 1 1" для cyan -->
+  <xacro:arg name="robot_color" default="0.5 0.5 0.5 1"/>
+
+  <xacro:property name="rname"  value="$(arg robot_name)"/>
+  <xacro:property name="rcolor" value="$(arg robot_color)"/>
+
+  <xacro:property name="body_radius" value="0.15"/>
+  <xacro:property name="body_z"      value="0.15"/>
+  <xacro:property name="nose_radius" value="0.025"/>
+
+  <material name="${rname}_body_color">
+    <color rgba="${rcolor}"/>
+  </material>
+
+  <material name="${rname}_nose_color">
+    <color rgba="0.1 0.1 0.1 1.0"/>
+  </material>
+
+  <!-- base_link — цилиндрический корпус. Корень дерева (Stage публикует
+       odom → base_link напрямую). -->
+  <link name="${rname}/base_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="${body_radius}" length="${body_z}"/>
+      </geometry>
+      <material name="${rname}_body_color"/>
+    </visual>
+  </link>
+
+  <!-- "Пимпочка" — маркер фронта робота: сфера у переднего края крыши, +X = вперёд -->
+  <link name="${rname}/front_marker">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="${nose_radius}"/>
+      </geometry>
+      <material name="${rname}_nose_color"/>
+    </visual>
+  </link>
+
+  <joint name="${rname}/front_marker_joint" type="fixed">
+    <parent link="${rname}/base_link"/>
+    <child  link="${rname}/front_marker"/>
+    <origin xyz="${body_radius - nose_radius} 0 ${body_z/2 + nose_radius/2}" rpy="0 0 0"/>
+  </joint>
+
+</robot>
