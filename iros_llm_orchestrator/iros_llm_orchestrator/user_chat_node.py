@@ -209,13 +209,17 @@ class UserChatNode(Node):
         self.create_subscription(BTState, '/bt/state', self._on_bt_state, qos)
 
         self._last_status        = 'OK'
-        # _last_mode is written from ROS callback thread and read from asyncio
-        # loop thread — use a threading.Lock to protect it. Empty string is a
-        # sentinel meaning "no /bt/state seen yet" so the first tick always
-        # registers as a transition.
+        # _last_mode and _mode_seq are written from the ROS callback thread
+        # and read from the asyncio loop thread — protect with a Lock. Empty
+        # string is a sentinel meaning "no /bt/state seen yet" so the first
+        # tick always registers as a transition. _mode_seq is a monotonic
+        # transition counter; _send_leaf snapshots it before sending a goal
+        # so it can detect the transition triggered by THIS leaf rather than
+        # depending on a global "ever busy" flag (which races against the
+        # previous step's idle->busy->idle cycle).
         self._mode_lock          = threading.Lock()
         self._last_mode          = ''
-        self._mode_ever_busy     = False
+        self._mode_seq           = 0
         self._history: list[dict] = []
         self._bt_event_analyzing = False
 
@@ -232,9 +236,10 @@ class UserChatNode(Node):
         with self._mode_lock:
             return self._last_mode
 
-    def _set_mode(self, mode: str):
+    def _get_mode_state(self) -> tuple[str, int]:
+        """Atomically read (mode, seq) so callers see a consistent pair."""
         with self._mode_lock:
-            self._last_mode = mode
+            return self._last_mode, self._mode_seq
 
     # ------------------------------------------------------------------
     # BT feedback
@@ -242,13 +247,18 @@ class UserChatNode(Node):
 
     def _on_bt_state(self, msg: BTState):
         # Track @mode transitions — replaces the legacy /fleet/mode topic.
-        prev_mode = self._get_mode()
-        if msg.mode != prev_mode:
-            self._set_mode(msg.mode)
-            self._slog.debug(f'mode: {prev_mode!r} → {msg.mode!r}')
-            if msg.mode != 'idle':
-                self._mode_ever_busy = True
-            elif prev_mode and prev_mode != 'idle':
+        # Do the compare-and-swap under the lock so a re-entrant callback
+        # cannot double-count a transition or interleave seq increments.
+        with self._mode_lock:
+            prev_mode = self._last_mode
+            transitioned = msg.mode != prev_mode
+            if transitioned:
+                self._last_mode = msg.mode
+                self._mode_seq += 1
+                seq = self._mode_seq
+        if transitioned:
+            self._slog.debug(f'mode: {prev_mode!r} → {msg.mode!r} (seq={seq})')
+            if prev_mode and prev_mode != 'idle' and msg.mode == 'idle':
                 self._out(f'\n  {OK}  Step finished → idle')
                 self._prompt()
 
@@ -405,7 +415,17 @@ class UserChatNode(Node):
         goal.offsets_x    = [float(o) for o in command.get('offsets_x', [])]
         goal.offsets_y    = [float(o) for o in command.get('offsets_y', [])]
 
-        # Step 1: send goal and wait for BT to accept it
+        # Snapshot the mode-transition counter BEFORE sending so we can tell
+        # the difference between a transition triggered by THIS leaf and a
+        # leftover transition from the previous step. Without this snapshot,
+        # the second leaf in a sequence races: the BT publishes idle→<mode>
+        # while we are still inside `await get_result_async`, and a stale
+        # "ever busy" flag would otherwise be reset right after, leaving the
+        # subsequent <mode>→idle transition undetectable (the BTState callback
+        # only fires on actual mode changes).
+        seq_at_send = self._get_mode_state()[1]
+
+        # Step 1: send goal and wait for BT to accept it.
         handle = await self._cmd_client.send_goal_async(goal)
         if not handle.accepted:
             self._out(f'  {ERR}  BT rejected goal (say "stop" to cancel current mission).')
@@ -418,28 +438,41 @@ class UserChatNode(Node):
             self._slog.error(f'send_leaf: BT error: {result.result.info}')
             return False
 
-        self._slog.debug('send_leaf: goal accepted and applied to blackboard')
+        self._slog.debug(
+            f'send_leaf: goal accepted and applied (seq_at_send={seq_at_send})')
 
-        # Reset the busy flag for this leaf so a stale "ever busy" from the
-        # previous step doesn't let us declare instant success on a goal the
-        # BT hasn't picked up yet.
-        self._mode_ever_busy = False
-
-        # Step 2: wait at least 3 BT ticks (~300ms) before checking idle.
-        # Formation can complete in 1 tick — we need to let BT actually
-        # process the command before declaring "instantly done". Fast-complete
-        # only counts if we genuinely saw the BT enter a non-idle mode and
-        # come back to idle within the grace window; otherwise we keep polling.
-        await asyncio.sleep(0.35)
-
-        if self._mode_ever_busy and self._get_mode() == 'idle':
-            self._slog.info('send_leaf: mode idle after 350ms — fast complete')
+        # Phase 1: wait up to 1.5s for the BT to actually pick up our goal.
+        # We treat seeing _any_ transition past seq_at_send as proof the BT
+        # processed our blackboard write. Three outcomes:
+        #   * mode now non-idle  → mission running, drop into Phase 2.
+        #   * mode flipped to idle inside the window → fast-complete leaf.
+        #   * no transition at all in 1.5s → ModeDispatch effectively no-op'd
+        #     this leaf (e.g. duplicate goal, validation failure inside the
+        #     BT). Return success rather than block the whole plan; the
+        #     BT-event analyzer surfaces real failures via WARN/ERROR.
+        phase1_deadline = time.monotonic() + 1.5
+        while time.monotonic() < phase1_deadline:
+            mode_now, seq_now = self._get_mode_state()
+            if seq_now > seq_at_send:
+                if mode_now == 'idle':
+                    self._slog.info(
+                        f'send_leaf: {t} fast-completed (returned to idle '
+                        f'in <1.5s, seq {seq_at_send}->{seq_now})')
+                    return True
+                self._slog.debug(
+                    f'send_leaf: BT entered {mode_now!r} (seq {seq_at_send}->{seq_now})')
+                break
+            await asyncio.sleep(0.05)
+        else:
+            self._slog.info(
+                f'send_leaf: BT never transitioned after {t} command '
+                f'(seq stuck at {seq_at_send}) — treating as no-op success')
             return True
 
-        # Step 3: wait for /bt/state.mode to return to idle (mission done)
+        # Phase 2: wait for the mission to finish (mode → idle).
         deadline = time.monotonic() + self._step_timeout
         while time.monotonic() < deadline:
-            if self._mode_ever_busy and self._get_mode() == 'idle':
+            if self._get_mode() == 'idle':
                 self._slog.debug('send_leaf: mission complete (mode=idle)')
                 return True
             await asyncio.sleep(0.1)
