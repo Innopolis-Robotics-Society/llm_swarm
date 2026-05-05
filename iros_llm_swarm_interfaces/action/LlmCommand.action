@@ -1,0 +1,24 @@
+# Command from PassiveObserver to the Nav2 BT (channel 2 — proactive).
+#
+# Unlike LlmDecision (channel 1 — point verdict for a specific BT-node),
+# LlmCommand can switch the entire tree's mode. The action server lives
+# inside the BT process (LlmCommandReceiver) and applies the goal by
+# writing blackboard keys that ModeDispatch picks up on the next tick.
+
+# ---- Goal ----
+string mode                         # "idle" | "mapf" | "formation"
+uint32[] robot_ids                  # used when mode == "mapf"
+geometry_msgs/Point[] goals         # used when mode == "mapf"
+string formation_id                 # used when mode == "formation"
+string leader_ns                    # used when mode == "formation"
+string[] follower_ns                # used when mode == "formation"
+float64[] offsets_x                 # used when mode == "formation"
+float64[] offsets_y                 # used when mode == "formation"
+string reason                       # short justification, logged to dataset
+---
+# ---- Result ----
+bool success
+string info
+---
+# ---- Feedback ----
+string stage                        # "received" | "applied"

@@ -398,16 +398,18 @@ int main(int argc, char ** argv)
     }
     last_mode = current_mode;
 
-    // Skip tick while idle
-    if (current_mode == "idle") {
-      rate.sleep();
-      continue;
-    }
-
+    // Always tick the tree — even in idle mode.
+    // LlmCommandReceiver (SyncActionNode in ReactiveSequence) must be ticked
+    // every cycle to pick up goals sent by user_chat / PassiveObserver.
+    // When mode == idle, CheckMode(idle) → SUCCESS immediately so no robot
+    // actions run; the only cost is BTStatePublisher + LlmCommandReceiver.
     auto status = tree.tickRoot();
 
-    // Terminal status: publish result, halt, go idle
-    if (status == BT::NodeStatus::SUCCESS || status == BT::NodeStatus::FAILURE) {
+    // Terminal status: only meaningful when an action was actually running.
+    // In idle mode the tree returns SUCCESS via CheckMode every tick —
+    // we must NOT treat that as "mission finished" or call haltTree() here.
+    if (current_mode != "idle" &&
+        (status == BT::NodeStatus::SUCCESS || status == BT::NodeStatus::FAILURE)) {
       const bool ok = (status == BT::NodeStatus::SUCCESS);
 
       try {
@@ -423,6 +425,11 @@ int main(int argc, char ** argv)
 
       RCLCPP_INFO(node->get_logger(), "BT: %s -> %s",
         current_mode.c_str(), BT::toStr(status).c_str());
+
+      // Always return to idle after any terminal state.
+      // Without this, mode stays "mapf"/"formation" after SUCCESS and the
+      // next tick immediately restarts the same mission with the same goals.
+      blackboard->set<std::string>("@mode", "idle");
 
       if (!ok) {
         // Signal failure to scenario thread, then go idle so tree stops ticking

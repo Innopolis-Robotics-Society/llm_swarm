@@ -1,0 +1,68 @@
+name: warehouse
+description: >
+  30×30 m rectangular warehouse simulation (Stage 2D).
+  Origin is at the bottom-left corner. +X east, +Y north.
+
+bounds:
+  x_min: 0.0
+  x_max: 30.0
+  y_min: 0.0
+  y_max: 30.0
+
+named_locations:
+  center:             [15.0, 15.0]
+  bottom_left:        [ 2.0,  2.0]
+  bottom_right:       [28.0,  2.0]
+  top_left:           [ 2.0, 28.0]
+  top_right:          [28.0, 28.0]
+  loading_zone:       [ 3.0,  5.0]
+  unloading_zone:     [27.0, 25.0]
+  left_center:        [ 8.0, 15.0]
+  right_center:       [22.0, 15.0]
+  top_center:         [15.0, 22.0]
+  bottom_center:      [15.0,  8.0]
+
+location_aliases:
+  # English aliases
+  center:              center
+  middle:              center
+  loading area:        loading_zone
+  unloading area:      unloading_zone
+  # Russian aliases
+  центр:               center
+  середина:            center
+  левый нижний угол:   bottom_left
+  правый нижний угол:  bottom_right
+  левый верхний угол:  top_left
+  правый верхний угол: top_right
+  зона загрузки:       loading_zone
+  зона выгрузки:       unloading_zone
+
+robot_groups:
+  orange:
+    ids: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    home: [3.0, 5.0]
+    description: "orange robots, based at loading zone (bottom-left)"
+    aliases: ["orange", "оранжевые"]
+  blue:
+    ids: [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    home: [27.0, 25.0]
+    description: "blue robots, based at unloading zone (top-right)"
+    aliases: ["blue", "синие"]
+
+formation_zones:
+  - name: center
+    coords: [15.0, 15.0]
+    radius: 6.0
+  - name: loading_zone
+    coords: [3.0, 5.0]
+    radius: 4.0
+  - name: unloading_zone
+    coords: [27.0, 25.0]
+    radius: 4.0
+
+heuristics: |
+  - The map is open — no walls, no narrow corridors. MAPF failures are rare.
+  - Goals outside [0, 30] on either axis are invalid — the planner will fail.
+  - Formations work anywhere; the warehouse is open enough for any group size.
+  - If robot_stall grows with no arrived progress, replan — likely a local deadlock.

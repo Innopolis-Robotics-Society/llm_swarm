@@ -1,11 +1,19 @@
-# Goal: sent by MapfPlan when WARN/ERROR arrives or periodic log batch is ready
-string level        # "WARN" | "ERROR" | "INFO"
-string event        # human-readable description of what happened
-string[] log_buffer # last N info lines accumulated before this event
+# Goal — запрос BT-нода к LLM-оркестратору.
+string   level        # "WARN" | "INFO"
+string   event        # обычно строка из fb->warning или fb->info
+string[] log_buffer   # последние N строк feedback'а экшена (снимок ring buffer)
 ---
-# Result: LLM decision for BT to act on
-string decision     # "wait" | "abort" | "replan"
-string reasoning    # explanation shown to user (not used by BT)
+# Result — вердикт LLM.
+#
+# Семантика:
+#   "wait"   — BT-нод продолжает выполнение экшена, ничего не меняет
+#   "abort"  — BT-нод отменяет экшен, возвращает FAILURE, блэкбоард не трогает
+#   "replan" — BT-нод отменяет экшен, FAILURE, пишет @mapf_decision="replan"
+#   ""       — воспринимается как "wait" (нейтральный сигнал)
+string decision
 ---
-# Feedback: LLM reasoning streamed to user while thinking
-string reasoning_stream
+# Feedback — LLM сообщает о прогрессе размышлений (опционально).
+#   "received" — запрос принят сервером
+#   "thinking" — началась генерация
+#   "done"     — ответ готов
+string stage

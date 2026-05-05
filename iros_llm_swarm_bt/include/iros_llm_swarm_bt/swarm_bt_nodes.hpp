@@ -10,8 +10,10 @@
 #include "behaviortree_cpp_v3/action_node.h"
 #include "behaviortree_cpp_v3/condition_node.h"
 #include "geometry_msgs/msg/point.hpp"
+#include "iros_llm_swarm_interfaces/action/llm_command.hpp"
 #include "iros_llm_swarm_interfaces/action/llm_decision.hpp"
 #include "iros_llm_swarm_interfaces/action/set_goals.hpp"
+#include "iros_llm_swarm_interfaces/msg/bt_state.hpp"
 #include "iros_llm_swarm_interfaces/srv/deactivate_formation.hpp"
 #include "iros_llm_swarm_interfaces/srv/set_formation.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -31,6 +33,13 @@ inline bool future_ready(const F & f)
 }
 
 // ---------------------------------------------------------------------------
+// LLM types shared by every BT node that talks to /llm/decision
+// ---------------------------------------------------------------------------
+using LlmDecision      = iros_llm_swarm_interfaces::action::LlmDecision;
+using LlmGoalHandle    = rclcpp_action::ClientGoalHandle<LlmDecision>;
+using LlmWrappedResult = rclcpp_action::ClientGoalHandle<LlmDecision>::WrappedResult;
+
+// ---------------------------------------------------------------------------
 // MapfPlan
 // ---------------------------------------------------------------------------
 class MapfPlan : public BT::StatefulActionNode
@@ -40,10 +49,6 @@ public:
   using GoalHandle    = rclcpp_action::ClientGoalHandle<SetGoals>;
   using WrappedResult = rclcpp_action::ClientGoalHandle<SetGoals>::WrappedResult;
   using Feedback      = SetGoals::Feedback;
-
-  using LlmDecision      = iros_llm_swarm_interfaces::action::LlmDecision;
-  using LlmGoalHandle    = rclcpp_action::ClientGoalHandle<LlmDecision>;
-  using LlmWrappedResult = rclcpp_action::ClientGoalHandle<LlmDecision>::WrappedResult;
 
   MapfPlan(const std::string & name, const BT::NodeConfiguration & config);
 
@@ -76,6 +81,20 @@ private:
   std::deque<std::string> info_buffer_;
   std::size_t             max_info_buffer_{50};
 
+  // Snapshot written from the ROS executor thread (on_feedback),
+  // applied to the blackboard only inside onRunning() (BT thread).
+  // Blackboard is not thread-safe — never write it outside the BT thread.
+  struct FeedbackSnapshot {
+    std::string summary;
+    std::string status;       // "OK" | "WARN"
+    std::string error;
+    std::string warn_event;   // non-empty → trigger send_to_llm("WARN", ...)
+    std::string info_event;   // non-empty → candidate for periodic INFO log
+    bool updated{false};
+  };
+  std::mutex         snapshot_mutex_;
+  FeedbackSnapshot   pending_snapshot_;
+
   // Periodic log to LLM (0 = disabled)
   double        llm_log_interval_sec_{0.0};
   rclcpp::Time  last_llm_log_time_{0, 0, RCL_ROS_TIME};
@@ -90,6 +109,14 @@ private:
 
 // ---------------------------------------------------------------------------
 // SetFormation — async wrapper around /formation/set service
+//
+// Flow when the service returns success=false:
+//   1. send WARN event to /llm/decision with the error message,
+//   2. stay RUNNING until the verdict arrives,
+//   3. apply the verdict:
+//        "abort"  -> FAILURE, formation_warn set,
+//        "replan" -> FAILURE, @formation_decision="replan" on blackboard,
+//        "wait"   -> retry the service call (bounded by formation_llm_max_retries).
 // ---------------------------------------------------------------------------
 class SetFormation : public BT::StatefulActionNode
 {
@@ -108,10 +135,35 @@ public:
 private:
   rclcpp::Client<SetFormationSrv>::SharedPtr client_;
   ServiceFuture                              future_;
+
+  // LLM action client
+  rclcpp_action::Client<LlmDecision>::SharedPtr llm_client_;
+  std::shared_future<LlmGoalHandle::SharedPtr>  llm_goal_handle_future_;
+  std::shared_future<LlmWrappedResult>          llm_result_future_;
+  std::shared_ptr<LlmGoalHandle>                llm_goal_handle_;
+  bool                                          llm_pending_{false};
+
+  std::mutex  llm_decision_mutex_;
+  std::string llm_pending_decision_;   // "wait" | "abort" | "replan" | ""
+
+  // Retry budget for "wait" verdicts
+  int retry_count_{0};
+  int max_retries_{2};
+
+  // Last error string surfaced to LLM prompt / output port
+  std::string last_error_;
+
+  bool start_service_call();
+  void send_to_llm(const std::string & level, const std::string & event);
+  void poll_llm_result();
+  void cancel_llm();
 };
 
 // ---------------------------------------------------------------------------
 // DisableFormation — async wrapper around /formation/deactivate service
+//
+// Same pattern as SetFormation on failure, but since there is no plan to
+// "replan" for a disband, the replan verdict is collapsed to abort.
 // ---------------------------------------------------------------------------
 class DisableFormation : public BT::StatefulActionNode
 {
@@ -130,6 +182,25 @@ public:
 private:
   rclcpp::Client<DeactivateFormationSrv>::SharedPtr client_;
   ServiceFuture                                     future_;
+
+  rclcpp_action::Client<LlmDecision>::SharedPtr llm_client_;
+  std::shared_future<LlmGoalHandle::SharedPtr>  llm_goal_handle_future_;
+  std::shared_future<LlmWrappedResult>          llm_result_future_;
+  std::shared_ptr<LlmGoalHandle>                llm_goal_handle_;
+  bool                                          llm_pending_{false};
+
+  std::mutex  llm_decision_mutex_;
+  std::string llm_pending_decision_;
+
+  int retry_count_{0};
+  int max_retries_{2};
+
+  std::string last_error_;
+
+  bool start_service_call();
+  void send_to_llm(const std::string & level, const std::string & event);
+  void poll_llm_result();
+  void cancel_llm();
 };
 
 // ---------------------------------------------------------------------------
@@ -142,6 +213,60 @@ public:
 
   static BT::PortsList providedPorts();
   BT::NodeStatus tick() override;
+};
+
+// ---------------------------------------------------------------------------
+// BTStatePublisher — each tick snapshots blackboard and publishes /bt/state.
+// Always returns SUCCESS so it does not break surrounding ReactiveSequence.
+// ---------------------------------------------------------------------------
+class BTStatePublisher : public BT::SyncActionNode
+{
+public:
+  using BTStateMsg = iros_llm_swarm_interfaces::msg::BTState;
+
+  BTStatePublisher(const std::string & name, const BT::NodeConfiguration & config);
+  static BT::PortsList providedPorts();
+  BT::NodeStatus tick() override;
+
+private:
+  rclcpp::Publisher<BTStateMsg>::SharedPtr publisher_;
+  rclcpp::Clock::SharedPtr clock_;
+
+  std::string get_str(const std::string & key, const std::string & def = "");
+};
+
+// ---------------------------------------------------------------------------
+// LlmCommandReceiver — action server on /llm/command.
+// Goals arrive from PassiveObserver on the executor thread; the actual
+// blackboard writes happen in tick() (BT thread). A mutex protects the
+// pending slot because blackboard is not thread-safe.
+// ---------------------------------------------------------------------------
+class LlmCommandReceiver : public BT::SyncActionNode
+{
+public:
+  using LlmCommand = iros_llm_swarm_interfaces::action::LlmCommand;
+  using GoalHandle = rclcpp_action::ServerGoalHandle<LlmCommand>;
+
+  LlmCommandReceiver(const std::string & name, const BT::NodeConfiguration & config);
+  static BT::PortsList providedPorts();
+  BT::NodeStatus tick() override;
+
+private:
+  rclcpp_action::Server<LlmCommand>::SharedPtr action_server_;
+  std::mutex pending_mutex_;
+  std::shared_ptr<const LlmCommand::Goal> pending_goal_;
+  std::shared_ptr<GoalHandle> pending_handle_;
+
+  rclcpp_action::GoalResponse handle_goal(
+    const rclcpp_action::GoalUUID & uuid,
+    std::shared_ptr<const LlmCommand::Goal> goal);
+
+  rclcpp_action::CancelResponse handle_cancel(
+    const std::shared_ptr<GoalHandle> goal_handle);
+
+  void handle_accepted(const std::shared_ptr<GoalHandle> goal_handle);
+
+  void apply_to_blackboard(std::shared_ptr<const LlmCommand::Goal> goal);
 };
 
 }  // namespace iros_llm_swarm_bt

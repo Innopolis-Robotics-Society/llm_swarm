@@ -1,0 +1,123 @@
+name: cave
+description: >
+  Cave/warehouse hybrid map (cave.pgm). Two variants:
+    cave.yaml       — 75×75 m, resolution 0.05 m/px
+    large_cave.yaml — 150×150 m, resolution 0.10 m/px (all dimensions ×2)
+  Origin at map center (0, 0). +X east, +Y north.
+  Single connected navigable region; 35.6% of the area is traversable.
+
+# Coordinates below are for cave.yaml; multiply by 2 for large_cave.yaml
+bounds:
+  x_min: -37.5
+  x_max:  37.5
+  y_min: -37.5
+  y_max:  37.5
+
+named_locations:
+  # Spacious chambers — safe for navigation and formations
+  nw_hall:        [-27.0,  14.0]   # largest open chamber (clearance 6.6 m)
+  nw_top:         [-28.0,  26.0]   # northern chamber
+  central_hub:    [ -6.0,   2.0]   # central junction, west↔east bridge
+  east_corridor:  [ 22.0,   2.0]   # eastern trunk corridor
+  sw_pocket:      [-30.0, -28.0]   # dead-end southwestern chamber
+
+location_aliases:
+  nw hall:         nw_hall
+  northwest hall:  nw_hall
+  central hub:     central_hub
+  center:          central_hub
+  hub:             central_hub
+  east corridor:   east_corridor
+  sw pocket:       sw_pocket
+  southwest:       sw_pocket
+
+robot_groups:
+  cyan:
+    ids: [0, 1, 2, 3]
+    color: cyan
+    home: [-36.25, 59.25]   # centroid of spawn cluster
+    spawn:
+      robot_0: [-37.0,  58.5]
+      robot_1: [-35.5,  60.0]
+      robot_2: [-37.0,  60.0]
+      robot_3: [-35.5,  58.5]
+    description: "cyan robots, spawn at NW corner (~-36, +59)"
+    aliases: ["cyan", "голубые", "циановые"]
+
+  magenta:
+    ids: [4, 5, 6, 7]
+    color: magenta
+    home: [-37.25, -9.75]
+    spawn:
+      robot_4: [-38.0,  -9.0]
+      robot_5: [-36.5,  -9.0]
+      robot_6: [-38.0, -10.5]
+      robot_7: [-36.5, -10.5]
+    description: "magenta robots, spawn at west side (~-37, -10)"
+    aliases: ["magenta", "пурпурные", "малиновые"]
+
+  green:
+    ids: [8, 9, 10, 11]
+    color: green
+    home: [62.75, 27.25]
+    spawn:
+      robot_8:  [62.0, 26.5]
+      robot_9:  [63.5, 26.5]
+      robot_10: [62.0, 28.0]
+      robot_11: [63.5, 28.0]
+    description: "green robots, spawn at east side (~63, +27)"
+    aliases: ["green", "зелёные"]
+
+  orange:
+    ids: [12, 13, 14, 15]
+    color: orange
+    home: [8.75, -15.75]
+    spawn:
+      robot_12: [ 8.0, -15.0]
+      robot_13: [ 9.5, -15.0]
+      robot_14: [ 8.0, -16.5]
+      robot_15: [ 9.5, -16.5]
+    description: "orange robots, spawn at south-center (~9, -16)"
+    aliases: ["orange", "оранжевые"]
+
+  yellow:
+    ids: [16, 17, 18, 19]
+    color: yellow
+    home: [27.75, 27.25]
+    spawn:
+      robot_16: [27.0, 26.5]
+      robot_17: [28.5, 26.5]
+      robot_18: [27.0, 28.0]
+      robot_19: [28.5, 28.0]
+    description: "yellow robots, spawn at east-north (~28, +27)"
+    aliases: ["yellow", "жёлтые"]
+
+formation_zones:
+  - name: nw_hall
+    coords: [-27.0, 14.0]
+    radius: 6.0
+    note: "best formation spot — most open area on the map"
+  - name: central_hub
+    coords: [-6.0, 2.0]
+    radius: 4.9
+  - name: east_corridor
+    coords: [22.0, 2.0]
+    radius: 4.6
+  - name: sw_pocket
+    coords: [-30.0, -28.0]
+    radius: 4.0
+
+heuristics: |
+  - 23.5% of free area has clearance < 0.5 m — narrow corridors are the main
+    source of MAPF conflicts and robot stalls.
+  - Bottlenecks: transitions near Y ≈ 0 (west↔east link) and exits from NW-Hall
+    into Central-Hub. 1-4 replans there are NORMAL for this topology → wait/replan.
+    ≥ 5 replans with no goal progress → abort is justified.
+  - Goals in East-Rooms (X > 5) often land inside thin walls — if the planner
+    fails immediately → abort (unreachable goal).
+  - Formations ONLY work in: nw_hall, central_hub, east_corridor, sw_pocket.
+    Requesting a formation in a corridor (clearance < 1.5 m) will almost certainly
+    fail → abort with a reason.
+  - A coordinate outside [−37.5, +37.5] (cave.yaml) or [−75, +75] (large_cave.yaml)
+    is a TF/odometry bug, not a real position — abort or replan after localization reset.
+  - If user specifies no map variant, assume cave.yaml (smaller scale).
