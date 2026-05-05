@@ -1,0 +1,142 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BTState &mdash; iros_llm_swarm_interfaces</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            iros_llm_swarm_interfaces
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">BTState</a></li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">iros_llm_swarm_interfaces</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">BTState</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/interfaces/msg/BTState.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <p style="margin: 0 0 1em 0;">
+  <a href="../iros_llm_swarm_docs/index.html">&laquo; IROS LLM Swarm — back to overview</a>
+</p><section id="btstate">
+<h1>BTState<a class="headerlink" href="#btstate" title="Link to this heading"></a></h1>
+<p>This is a ROS message definition.</p>
+<p><strong>Source</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Snapshot of the Nav2 BT state, published each tick by BTStatePublisher.</span>
+<span class="c1"># Consumed by PassiveObserver (Python) which decides whether to emit a</span>
+<span class="c1"># /llm/command goal in response to WARN/ERROR transitions.</span>
+
+<span class="c1"># Current mode driven by @mode on the blackboard.</span>
+<span class="n">string</span> <span class="n">mode</span>                         <span class="c1"># &quot;idle&quot; | &quot;mapf&quot; | &quot;formation&quot;</span>
+
+<span class="c1"># Status of the currently active BT action node.</span>
+<span class="n">string</span> <span class="n">action_status</span>                <span class="c1"># &quot;OK&quot; | &quot;WARN&quot; | &quot;ERROR&quot;</span>
+
+<span class="c1"># Which BT node is currently active (or &quot;none&quot;).</span>
+<span class="n">string</span> <span class="n">active_action</span>                <span class="c1"># &quot;MapfPlan&quot; | &quot;SetFormation&quot; | &quot;DisableFormation&quot; | &quot;none&quot;</span>
+
+<span class="c1"># Human-readable one-line summary of the last feedback / error.</span>
+<span class="n">string</span> <span class="n">action_summary</span>
+
+<span class="c1"># Last error surfaced by the active action (empty when OK).</span>
+<span class="n">string</span> <span class="n">last_error</span>
+
+<span class="c1"># Context of the current task — populated whenever relevant.</span>
+<span class="n">uint32</span><span class="p">[]</span> <span class="n">robot_ids</span>                  <span class="c1"># mapf context</span>
+<span class="n">geometry_msgs</span><span class="o">/</span><span class="n">Point</span><span class="p">[]</span> <span class="n">goals</span>         <span class="c1"># mapf context</span>
+<span class="n">string</span> <span class="n">formation_id</span>                 <span class="c1"># formation context</span>
+<span class="n">string</span> <span class="n">leader_ns</span>                    <span class="c1"># formation context</span>
+
+<span class="c1"># True while a BT node has an active /llm/decision request in flight.</span>
+<span class="c1"># PassiveObserver checks this to avoid double-triggering channel 2</span>
+<span class="c1"># when channel 1 is already consulting the LLM for the same event.</span>
+<span class="nb">bool</span> <span class="n">llm_thinking</span>
+
+<span class="c1"># Timestamp (ms since epoch).</span>
+<span class="n">int64</span> <span class="n">stamp_ms</span>
+</pre></div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

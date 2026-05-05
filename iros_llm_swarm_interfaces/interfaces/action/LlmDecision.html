@@ -75,17 +75,25 @@
 <h1>LlmDecision<a class="headerlink" href="#llmdecision" title="Link to this heading"></a></h1>
 <p>This is a ROS action definition.</p>
 <p><strong>Source</strong></p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Goal: sent by MapfPlan when WARN/ERROR arrives or periodic log batch is ready</span>
-<span class="n">string</span> <span class="n">level</span>        <span class="c1"># &quot;WARN&quot; | &quot;ERROR&quot; | &quot;INFO&quot;</span>
-<span class="n">string</span> <span class="n">event</span>        <span class="c1"># human-readable description of what happened</span>
-<span class="n">string</span><span class="p">[]</span> <span class="n">log_buffer</span> <span class="c1"># last N info lines accumulated before this event</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Goal — запрос BT-нода к LLM-оркестратору.</span>
+<span class="n">string</span>   <span class="n">level</span>        <span class="c1"># &quot;WARN&quot; | &quot;INFO&quot;</span>
+<span class="n">string</span>   <span class="n">event</span>        <span class="c1"># обычно строка из fb-&gt;warning или fb-&gt;info</span>
+<span class="n">string</span><span class="p">[]</span> <span class="n">log_buffer</span>   <span class="c1"># последние N строк feedback&#39;а экшена (снимок ring buffer)</span>
 <span class="o">---</span>
-<span class="c1"># Result: LLM decision for BT to act on</span>
-<span class="n">string</span> <span class="n">decision</span>     <span class="c1"># &quot;wait&quot; | &quot;abort&quot; | &quot;replan&quot;</span>
-<span class="n">string</span> <span class="n">reasoning</span>    <span class="c1"># explanation shown to user (not used by BT)</span>
+<span class="c1"># Result — вердикт LLM.</span>
+<span class="c1">#</span>
+<span class="c1"># Семантика:</span>
+<span class="c1">#   &quot;wait&quot;   — BT-нод продолжает выполнение экшена, ничего не меняет</span>
+<span class="c1">#   &quot;abort&quot;  — BT-нод отменяет экшен, возвращает FAILURE, блэкбоард не трогает</span>
+<span class="c1">#   &quot;replan&quot; — BT-нод отменяет экшен, FAILURE, пишет @mapf_decision=&quot;replan&quot;</span>
+<span class="c1">#   &quot;&quot;       — воспринимается как &quot;wait&quot; (нейтральный сигнал)</span>
+<span class="n">string</span> <span class="n">decision</span>
 <span class="o">---</span>
-<span class="c1"># Feedback: LLM reasoning streamed to user while thinking</span>
-<span class="n">string</span> <span class="n">reasoning_stream</span>
+<span class="c1"># Feedback — LLM сообщает о прогрессе размышлений (опционально).</span>
+<span class="c1">#   &quot;received&quot; — запрос принят сервером</span>
+<span class="c1">#   &quot;thinking&quot; — началась генерация</span>
+<span class="c1">#   &quot;done&quot;     — ответ готов</span>
+<span class="n">string</span> <span class="n">stage</span>
 </pre></div>
 </div>
 </section>
