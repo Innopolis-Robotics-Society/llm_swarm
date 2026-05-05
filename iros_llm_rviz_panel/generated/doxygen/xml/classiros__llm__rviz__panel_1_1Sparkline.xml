@@ -1,0 +1,277 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classiros__llm__rviz__panel_1_1Sparkline" kind="class" language="C++" prot="public">
+    <compoundname>iros_llm_rviz_panel::Sparkline</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">QWidget</basecompoundref>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1Sparkline_1aad6bb15162f261ed259d249ae7539b02" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr std::size_t</type>
+        <definition>constexpr std::size_t iros_llm_rviz_panel::Sparkline::kCapacity</definition>
+        <argsstring></argsstring>
+        <name>kCapacity</name>
+        <initializer>= 60</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/sparkline.hpp" line="26" column="32" bodyfile="include/iros_llm_rviz_panel/sparkline.hpp" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1Sparkline_1a8054901fb2a78280a5e2974fcf7dc2d8" prot="private" static="no" mutable="no">
+        <type>std::array&lt; double, kCapacity &gt;</type>
+        <definition>std::array&lt;double, kCapacity&gt; iros_llm_rviz_panel::Sparkline::values_</definition>
+        <argsstring></argsstring>
+        <name>values_</name>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/sparkline.hpp" line="44" column="14" bodyfile="include/iros_llm_rviz_panel/sparkline.hpp" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1Sparkline_1a38b576c04ab5642e0a4135502638548c" prot="private" static="no" mutable="no">
+        <type>std::size_t</type>
+        <definition>std::size_t iros_llm_rviz_panel::Sparkline::head_</definition>
+        <argsstring></argsstring>
+        <name>head_</name>
+        <initializer>{0}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/sparkline.hpp" line="45" column="15" bodyfile="include/iros_llm_rviz_panel/sparkline.hpp" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1Sparkline_1a153788d3e7e72d46b6d81e9496aa1eef" prot="private" static="no" mutable="no">
+        <type>std::size_t</type>
+        <definition>std::size_t iros_llm_rviz_panel::Sparkline::count_</definition>
+        <argsstring></argsstring>
+        <name>count_</name>
+        <initializer>{0}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/sparkline.hpp" line="46" column="15" bodyfile="include/iros_llm_rviz_panel/sparkline.hpp" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1Sparkline_1a8efe3e36f62e04dc041248c335b95066" prot="private" static="no" mutable="no">
+        <type>QColor</type>
+        <definition>QColor iros_llm_rviz_panel::Sparkline::color_</definition>
+        <argsstring></argsstring>
+        <name>color_</name>
+        <initializer>{0x19, 0x76, 0xD2}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/sparkline.hpp" line="47" column="15" bodyfile="include/iros_llm_rviz_panel/sparkline.hpp" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1Sparkline_1ac9847c27dbf233e18d0b2140230655a6" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool iros_llm_rviz_panel::Sparkline::dirty_</definition>
+        <argsstring></argsstring>
+        <name>dirty_</name>
+        <initializer>{false}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/sparkline.hpp" line="48" column="15" bodyfile="include/iros_llm_rviz_panel/sparkline.hpp" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1Sparkline_1a9694705d3d47028b79dadc7b62d88cfc" prot="public" static="no" const="no" explicit="yes" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>iros_llm_rviz_panel::Sparkline::Sparkline</definition>
+        <argsstring>(QWidget *parent=nullptr)</argsstring>
+        <name>Sparkline</name>
+        <param>
+          <type>QWidget *</type>
+          <declname>parent</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/sparkline.hpp" line="28" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1Sparkline_1a85d36d3afc4056b6531be6e0607d0896" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::Sparkline::push</definition>
+        <argsstring>(double value)</argsstring>
+        <name>push</name>
+        <param>
+          <type>double</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/sparkline.hpp" line="30" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1Sparkline_1a1a2ecfe5ab8545a5a6f9072c0f7f2de6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::Sparkline::clear</definition>
+        <argsstring>()</argsstring>
+        <name>clear</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/sparkline.hpp" line="31" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1Sparkline_1a9862bfbc10263f8d521e73ca1c3073f0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::Sparkline::setColor</definition>
+        <argsstring>(const QColor &amp;c)</argsstring>
+        <name>setColor</name>
+        <param>
+          <type>const QColor &amp;</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/sparkline.hpp" line="32" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1Sparkline_1a65d9903b6463e60afc0ff9c6aa38bdf5" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool iros_llm_rviz_panel::Sparkline::dirty</definition>
+        <argsstring>() const</argsstring>
+        <name>dirty</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/sparkline.hpp" line="34" column="8" bodyfile="include/iros_llm_rviz_panel/sparkline.hpp" bodystart="34" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1Sparkline_1a67251a48001600f93684968f5b7f2570" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::Sparkline::clearDirty</definition>
+        <argsstring>()</argsstring>
+        <name>clearDirty</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/sparkline.hpp" line="35" column="8" bodyfile="include/iros_llm_rviz_panel/sparkline.hpp" bodystart="35" bodyend="35"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1Sparkline_1a8a736899d4e380797e219f10d2ee0e87" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>QSize</type>
+        <definition>QSize iros_llm_rviz_panel::Sparkline::sizeHint</definition>
+        <argsstring>() const override</argsstring>
+        <name>sizeHint</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/sparkline.hpp" line="37" column="9" bodyfile="include/iros_llm_rviz_panel/sparkline.hpp" bodystart="37" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1Sparkline_1a73fc572e13b9344a805a6530340a36e3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>QSize</type>
+        <definition>QSize iros_llm_rviz_panel::Sparkline::minimumSizeHint</definition>
+        <argsstring>() const override</argsstring>
+        <name>minimumSizeHint</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/sparkline.hpp" line="38" column="9" bodyfile="include/iros_llm_rviz_panel/sparkline.hpp" bodystart="38" bodyend="38"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1Sparkline_1af4cfb8e33d245131f2c9fcaedab83d20" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::Sparkline::paintEvent</definition>
+        <argsstring>(QPaintEvent *ev) override</argsstring>
+        <name>paintEvent</name>
+        <param>
+          <type>QPaintEvent *</type>
+          <declname>ev</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/sparkline.hpp" line="41" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>iros_llm_rviz_panel::Sparkline</label>
+        <link refid="classiros__llm__rviz__panel_1_1Sparkline"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>QWidget</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>iros_llm_rviz_panel::Sparkline</label>
+        <link refid="classiros__llm__rviz__panel_1_1Sparkline"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>QWidget</label>
+      </node>
+    </collaborationgraph>
+    <location file="include/iros_llm_rviz_panel/sparkline.hpp" line="21" column="1" bodyfile="include/iros_llm_rviz_panel/sparkline.hpp" bodystart="22" bodyend="49"/>
+    <listofallmembers>
+      <member refid="classiros__llm__rviz__panel_1_1Sparkline_1a1a2ecfe5ab8545a5a6f9072c0f7f2de6" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::Sparkline</scope><name>clear</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1Sparkline_1a67251a48001600f93684968f5b7f2570" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::Sparkline</scope><name>clearDirty</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1Sparkline_1a8efe3e36f62e04dc041248c335b95066" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::Sparkline</scope><name>color_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1Sparkline_1a153788d3e7e72d46b6d81e9496aa1eef" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::Sparkline</scope><name>count_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1Sparkline_1a65d9903b6463e60afc0ff9c6aa38bdf5" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::Sparkline</scope><name>dirty</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1Sparkline_1ac9847c27dbf233e18d0b2140230655a6" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::Sparkline</scope><name>dirty_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1Sparkline_1a38b576c04ab5642e0a4135502638548c" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::Sparkline</scope><name>head_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1Sparkline_1aad6bb15162f261ed259d249ae7539b02" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::Sparkline</scope><name>kCapacity</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1Sparkline_1a73fc572e13b9344a805a6530340a36e3" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::Sparkline</scope><name>minimumSizeHint</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1Sparkline_1af4cfb8e33d245131f2c9fcaedab83d20" prot="protected" virt="non-virtual"><scope>iros_llm_rviz_panel::Sparkline</scope><name>paintEvent</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1Sparkline_1a85d36d3afc4056b6531be6e0607d0896" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::Sparkline</scope><name>push</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1Sparkline_1a9862bfbc10263f8d521e73ca1c3073f0" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::Sparkline</scope><name>setColor</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1Sparkline_1a8a736899d4e380797e219f10d2ee0e87" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::Sparkline</scope><name>sizeHint</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1Sparkline_1a9694705d3d47028b79dadc7b62d88cfc" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::Sparkline</scope><name>Sparkline</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1Sparkline_1a8054901fb2a78280a5e2974fcf7dc2d8" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::Sparkline</scope><name>values_</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

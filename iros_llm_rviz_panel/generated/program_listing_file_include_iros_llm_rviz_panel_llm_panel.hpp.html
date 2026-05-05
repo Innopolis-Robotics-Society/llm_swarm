@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Program Listing for File llm_panel.hpp &mdash; iros_llm_rviz_panel 0.0.1 documentation</title>
+  <title>Program Listing for File llm_panel.hpp &mdash; iros_llm_rviz_panel 0.0.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/collapsible-lists/css/tree_view.css?v=a885cde7" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="../_static/documentation_options.js?v=e3a6060d"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js?v=73120307"></script>
@@ -22,7 +22,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Standard Documents" href="../standards.html" />
+    <link rel="next" title="File sparkline.hpp" href="file_include_iros_llm_rviz_panel_sparkline.hpp.html" />
     <link rel="prev" title="File llm_panel.hpp" href="file_include_iros_llm_rviz_panel_llm_panel.hpp.html" /> 
 </head>
 
@@ -56,7 +56,15 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="index.html#classes-and-structs">Classes and Structs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="structiros__llm__rviz__panel_1_1ActionSummary.html">Struct ActionSummary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structiros__llm__rviz__panel_1_1LlmPanel_1_1FormationZone.html">Struct LlmPanel::FormationZone</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structiros__llm__rviz__panel_1_1LlmPanel_1_1RobotGroup.html">Struct LlmPanel::RobotGroup</a></li>
 <li class="toctree-l4"><a class="reference internal" href="classiros__llm__rviz__panel_1_1LlmPanel.html">Class LlmPanel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classiros__llm__rviz__panel_1_1Sparkline.html">Class Sparkline</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#functions">Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="function_action__summary_8hpp_1a6faf31c1ddac1ed3bf4dcd05aee98a0d.html">Function iros_llm_rviz_panel::parseActionSummary</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="index.html#directories">Directories</a><ul>
@@ -65,7 +73,9 @@
 </ul>
 </li>
 <li class="toctree-l3 current"><a class="reference internal" href="index.html#files">Files</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_rviz_panel_action_summary.hpp.html">File action_summary.hpp</a></li>
 <li class="toctree-l4 current"><a class="reference internal" href="file_include_iros_llm_rviz_panel_llm_panel.hpp.html">File llm_panel.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_rviz_panel_sparkline.hpp.html">File sparkline.hpp</a></li>
 </ul>
 </li>
 </ul>
@@ -126,13 +136,14 @@
 <span class="c1">//</span>
 <span class="c1">// LlmPanel — RViz2 operator panel.</span>
 <span class="c1">//</span>
-<span class="c1">// MVP scope:</span>
-<span class="c1">//   - top status bar (mode / active_action / action_status / llm_thinking /</span>
-<span class="c1">//     last_error) driven by /bt/state, with a STOP ALL button that publishes</span>
-<span class="c1">//     LlmCommand{mode=idle} on /llm/command</span>
-<span class="c1">//   - Chat tab: action client to /llm/chat with streaming via feedback</span>
-<span class="c1">//   - MarkerArray publisher on /llm_panel/markers — goal spheres + labels for</span>
-<span class="c1">//     each robot when mode=mapf</span>
+<span class="c1">// Phases (see PANEL_ROADMAP.md):</span>
+<span class="c1">//   MVP    — top status bar, Chat tab with streaming, STOP ALL, goal markers</span>
+<span class="c1">//   2      — MAPF Live tab: counters, progress bar, sparklines, robot table</span>
+<span class="c1">//   3      — LLM Events tab: /llm/events log with channel filters</span>
+<span class="c1">//   4      — Preview &amp; Execute via /llm/execute_plan (operator-confirmed)</span>
+<span class="c1">//   5      — Quick actions strip (per-group home buttons)</span>
+<span class="c1">//   6      — TF-aware arrows (robot pose → goal) and formation polygon</span>
+<span class="c1">//   8      — Settings persistence via Panel::load/save</span>
 <span class="c1">//</span>
 <span class="c1">// Threading: ROS callbacks fire on the executor thread, GUI updates run on</span>
 <span class="c1">// the Qt main thread. The two are bridged exclusively through Qt signals</span>
@@ -140,8 +151,12 @@
 
 <span class="cp">#pragma once</span>
 
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;array&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cstdint&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;memory&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;mutex&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;string&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;unordered_map&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;vector&gt;</span>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;QString&gt;</span>
@@ -155,76 +170,153 @@
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;geometry_msgs/msg/point.hpp&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;visualization_msgs/msg/marker_array.hpp&gt;</span>
 
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;tf2_ros/buffer.h&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;tf2_ros/transform_listener.h&gt;</span>
+
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iros_llm_swarm_interfaces/msg/bt_state.hpp&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iros_llm_swarm_interfaces/msg/llm_event.hpp&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iros_llm_swarm_interfaces/action/llm_command.hpp&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iros_llm_swarm_interfaces/action/llm_chat.hpp&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iros_llm_swarm_interfaces/action/llm_execute_plan.hpp&gt;</span>
 
+<span class="k">class</span><span class="w"> </span><span class="nc">QCheckBox</span><span class="p">;</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">QHBoxLayout</span><span class="p">;</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">QLabel</span><span class="p">;</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">QLineEdit</span><span class="p">;</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">QProgressBar</span><span class="p">;</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">QPushButton</span><span class="p">;</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">QTabWidget</span><span class="p">;</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">QTableWidget</span><span class="p">;</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">QTextEdit</span><span class="p">;</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">QTimer</span><span class="p">;</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">QToolButton</span><span class="p">;</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">QTreeWidget</span><span class="p">;</span>
 
 <span class="k">namespace</span><span class="w"> </span><span class="nn">iros_llm_rviz_panel</span>
 <span class="p">{</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">Sparkline</span><span class="p">;</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">LlmPanel</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">rviz_common</span><span class="o">::</span><span class="n">Panel</span>
 <span class="p">{</span>
 <span class="w">  </span><span class="n">Q_OBJECT</span>
 
 <span class="k">public</span><span class="o">:</span>
-<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">BTState</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="n">iros_llm_swarm_interfaces</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">BTState</span><span class="p">;</span>
-<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">LlmCommand</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">iros_llm_swarm_interfaces</span><span class="o">::</span><span class="n">action</span><span class="o">::</span><span class="n">LlmCommand</span><span class="p">;</span>
-<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">LlmChat</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="n">iros_llm_swarm_interfaces</span><span class="o">::</span><span class="n">action</span><span class="o">::</span><span class="n">LlmChat</span><span class="p">;</span>
-<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">ChatGoalH</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">rclcpp_action</span><span class="o">::</span><span class="n">ClientGoalHandle</span><span class="o">&lt;</span><span class="n">LlmChat</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">BTState</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="n">iros_llm_swarm_interfaces</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">BTState</span><span class="p">;</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">LlmEvent</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="n">iros_llm_swarm_interfaces</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">LlmEvent</span><span class="p">;</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">LlmCommand</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="n">iros_llm_swarm_interfaces</span><span class="o">::</span><span class="n">action</span><span class="o">::</span><span class="n">LlmCommand</span><span class="p">;</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">LlmChat</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="n">iros_llm_swarm_interfaces</span><span class="o">::</span><span class="n">action</span><span class="o">::</span><span class="n">LlmChat</span><span class="p">;</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">LlmExecutePlan</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">iros_llm_swarm_interfaces</span><span class="o">::</span><span class="n">action</span><span class="o">::</span><span class="n">LlmExecutePlan</span><span class="p">;</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">ChatGoalH</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="n">rclcpp_action</span><span class="o">::</span><span class="n">ClientGoalHandle</span><span class="o">&lt;</span><span class="n">LlmChat</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">ExecGoalH</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="n">rclcpp_action</span><span class="o">::</span><span class="n">ClientGoalHandle</span><span class="o">&lt;</span><span class="n">LlmExecutePlan</span><span class="o">&gt;</span><span class="p">;</span>
 
 <span class="w">  </span><span class="k">explicit</span><span class="w"> </span><span class="n">LlmPanel</span><span class="p">(</span><span class="n">QWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">parent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">);</span>
 <span class="w">  </span><span class="o">~</span><span class="n">LlmPanel</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="p">;</span>
 
-<span class="w">  </span><span class="c1">// rviz_common::Panel interface</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onInitialize</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="p">;</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">rviz_common</span><span class="o">::</span><span class="n">Config</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">config</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="n">rviz_common</span><span class="o">::</span><span class="n">Config</span><span class="w"> </span><span class="n">config</span><span class="p">)</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="k">override</span><span class="p">;</span>
 
 <span class="nl">Q_SIGNALS</span><span class="p">:</span>
-<span class="w">  </span><span class="c1">// Emitted from the ROS executor thread, consumed on the Qt main thread.</span>
+<span class="w">  </span><span class="c1">// ROS-thread → GUI-thread bridges. Always wired with Qt::QueuedConnection.</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">btStateReceived</span><span class="p">(</span><span class="n">QString</span><span class="w"> </span><span class="n">mode</span><span class="p">,</span>
 <span class="w">                       </span><span class="n">QString</span><span class="w"> </span><span class="n">action_status</span><span class="p">,</span>
 <span class="w">                       </span><span class="n">QString</span><span class="w"> </span><span class="n">active_action</span><span class="p">,</span>
 <span class="w">                       </span><span class="n">QString</span><span class="w"> </span><span class="n">last_error</span><span class="p">,</span>
+<span class="w">                       </span><span class="n">QString</span><span class="w"> </span><span class="n">action_summary</span><span class="p">,</span>
 <span class="w">                       </span><span class="kt">bool</span><span class="w">    </span><span class="n">llm_thinking</span><span class="p">);</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">chatChunkReceived</span><span class="p">(</span><span class="n">QString</span><span class="w"> </span><span class="n">chunk</span><span class="p">);</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">chatStageReceived</span><span class="p">(</span><span class="n">QString</span><span class="w"> </span><span class="n">stage</span><span class="p">);</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">chatFinished</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">success</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">info</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">chatStageReceived</span><span class="p">(</span><span class="n">QString</span><span class="w"> </span><span class="n">stage</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">detail</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">chatFinished</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">success</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">info</span><span class="p">,</span>
+<span class="w">                    </span><span class="n">QString</span><span class="w"> </span><span class="n">final_reply</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">plan_json</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">execStageReceived</span><span class="p">(</span><span class="n">QString</span><span class="w"> </span><span class="n">stage</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">detail</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">execFinished</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">success</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">info</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">eventReceived</span><span class="p">(</span><span class="n">qint64</span><span class="w"> </span><span class="n">stamp_ms</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">channel</span><span class="p">,</span>
+<span class="w">                     </span><span class="n">QString</span><span class="w"> </span><span class="n">trigger</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">output</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">reason</span><span class="p">);</span>
 
 <span class="k">private</span><span class="w"> </span><span class="n">Q_SLOTS</span><span class="o">:</span>
-<span class="w">  </span><span class="c1">// User-facing actions</span>
+<span class="w">  </span><span class="c1">// User actions</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">onSendChat</span><span class="p">();</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onStopAll</span><span class="p">();</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onPreviewToggled</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">on</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onExecutePending</span><span class="p">();</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onCancelPending</span><span class="p">();</span>
 
-<span class="w">  </span><span class="c1">// GUI-thread handlers for ROS-thread signals</span>
+<span class="w">  </span><span class="c1">// ROS-thread signal handlers</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onUpdateStatus</span><span class="p">(</span><span class="n">QString</span><span class="w"> </span><span class="n">mode</span><span class="p">,</span>
 <span class="w">                      </span><span class="n">QString</span><span class="w"> </span><span class="n">action_status</span><span class="p">,</span>
 <span class="w">                      </span><span class="n">QString</span><span class="w"> </span><span class="n">active_action</span><span class="p">,</span>
 <span class="w">                      </span><span class="n">QString</span><span class="w"> </span><span class="n">last_error</span><span class="p">,</span>
+<span class="w">                      </span><span class="n">QString</span><span class="w"> </span><span class="n">action_summary</span><span class="p">,</span>
 <span class="w">                      </span><span class="kt">bool</span><span class="w">    </span><span class="n">llm_thinking</span><span class="p">);</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onChatChunk</span><span class="p">(</span><span class="n">QString</span><span class="w"> </span><span class="n">chunk</span><span class="p">);</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onChatStage</span><span class="p">(</span><span class="n">QString</span><span class="w"> </span><span class="n">stage</span><span class="p">);</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onChatFinished</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">success</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">info</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onChatStage</span><span class="p">(</span><span class="n">QString</span><span class="w"> </span><span class="n">stage</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">detail</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onChatFinished</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">success</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">info</span><span class="p">,</span>
+<span class="w">                      </span><span class="n">QString</span><span class="w"> </span><span class="n">final_reply</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">plan_json</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onExecStage</span><span class="p">(</span><span class="n">QString</span><span class="w"> </span><span class="n">stage</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">detail</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onExecFinished</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">success</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">info</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onEventReceived</span><span class="p">(</span><span class="n">qint64</span><span class="w"> </span><span class="n">stamp_ms</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">channel</span><span class="p">,</span>
+<span class="w">                       </span><span class="n">QString</span><span class="w"> </span><span class="n">trigger</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">output</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">reason</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// Periodic refresh — sparklines, TF arrows.</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onMarkerTick</span><span class="p">();</span>
 
 <span class="k">private</span><span class="o">:</span>
+<span class="w">  </span><span class="c1">// ---- Construction ------------------------------------------------------</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">buildUi</span><span class="p">();</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">buildStatusRow</span><span class="p">(</span><span class="n">QHBoxLayout</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">row</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">buildQuickActions</span><span class="p">();</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">buildChatTab</span><span class="p">(</span><span class="n">QWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tab</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">buildMapfTab</span><span class="p">(</span><span class="n">QWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tab</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">buildEventsTab</span><span class="p">(</span><span class="n">QWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tab</span><span class="p">);</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">setupRos</span><span class="p">();</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">publishMarkers</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">BTState</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">msg</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// ---- Map YAML ----------------------------------------------------------</span>
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">RobotGroup</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w">         </span><span class="n">color</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">int</span><span class="o">&gt;</span><span class="w">    </span><span class="n">ids</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">home</span><span class="p">{</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">};</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">spawn</span><span class="p">;</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">FormationZone</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">name</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">&gt;</span><span class="w"> </span><span class="n">coords</span><span class="p">{</span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">};</span>
+<span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="n">radius</span><span class="p">{</span><span class="mf">0.0</span><span class="p">};</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">loadMapYaml</span><span class="p">();</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">rebuildQuickActions</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// ---- Quick actions -----------------------------------------------------</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">sendHomeForGroup</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">RobotGroup</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">g</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">sendFormationLineAt</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FormationZone</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">z</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">RobotGroup</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">g</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// ---- Chat / Exec dispatch ---------------------------------------------</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">sendChatGoal</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">execute_after_planning</span><span class="p">);</span>
+
+<span class="w">  </span><span class="c1">// ---- Markers -----------------------------------------------------------</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">publishGoalMarkers</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">BTState</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">msg</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">publishArrowMarkers</span><span class="p">();</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">publishFormationPolygon</span><span class="p">();</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">publishPreviewMarkers</span><span class="p">();</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">clearPreviewMarkers</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// ---- Plan tree ---------------------------------------------------------</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">renderPlanTree</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">plan_json</span><span class="p">);</span>
 
 <span class="w">  </span><span class="c1">// Shared ROS node — borrowed from RViz, never owned.</span>
 <span class="w">  </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">Node</span><span class="o">::</span><span class="n">SharedPtr</span><span class="w"> </span><span class="n">node_</span><span class="p">;</span>
 
 <span class="w">  </span><span class="c1">// Subscriptions / publishers / clients</span>
 <span class="w">  </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">Subscription</span><span class="o">&lt;</span><span class="n">BTState</span><span class="o">&gt;::</span><span class="n">SharedPtr</span><span class="w">                          </span><span class="n">bt_state_sub_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">Subscription</span><span class="o">&lt;</span><span class="n">LlmEvent</span><span class="o">&gt;::</span><span class="n">SharedPtr</span><span class="w">                         </span><span class="n">events_sub_</span><span class="p">;</span>
 <span class="w">  </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">Publisher</span><span class="o">&lt;</span><span class="n">visualization_msgs</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">MarkerArray</span><span class="o">&gt;::</span><span class="n">SharedPtr</span><span class="w"> </span><span class="n">marker_pub_</span><span class="p">;</span>
 <span class="w">  </span><span class="n">rclcpp_action</span><span class="o">::</span><span class="n">Client</span><span class="o">&lt;</span><span class="n">LlmChat</span><span class="o">&gt;::</span><span class="n">SharedPtr</span><span class="w">                         </span><span class="n">chat_client_</span><span class="p">;</span>
 <span class="w">  </span><span class="n">rclcpp_action</span><span class="o">::</span><span class="n">Client</span><span class="o">&lt;</span><span class="n">LlmCommand</span><span class="o">&gt;::</span><span class="n">SharedPtr</span><span class="w">                      </span><span class="n">cmd_client_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">rclcpp_action</span><span class="o">::</span><span class="n">Client</span><span class="o">&lt;</span><span class="n">LlmExecutePlan</span><span class="o">&gt;::</span><span class="n">SharedPtr</span><span class="w">                  </span><span class="n">exec_client_</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// TF</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">tf2_ros</span><span class="o">::</span><span class="n">Buffer</span><span class="o">&gt;</span><span class="w">            </span><span class="n">tf_buffer_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">tf2_ros</span><span class="o">::</span><span class="n">TransformListener</span><span class="o">&gt;</span><span class="w"> </span><span class="n">tf_listener_</span><span class="p">;</span>
 
 <span class="w">  </span><span class="c1">// ---- Widgets — top status bar -----------------------------------------</span>
 <span class="w">  </span><span class="n">QLabel</span><span class="w">      </span><span class="o">*</span><span class="w"> </span><span class="n">mode_badge_</span><span class="w">     </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
@@ -234,15 +326,64 @@
 <span class="w">  </span><span class="n">QLabel</span><span class="w">      </span><span class="o">*</span><span class="w"> </span><span class="n">error_label_</span><span class="w">    </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
 <span class="w">  </span><span class="n">QPushButton</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">stop_button_</span><span class="w">    </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
 
+<span class="w">  </span><span class="c1">// ---- Widgets — quick actions strip ------------------------------------</span>
+<span class="w">  </span><span class="n">QWidget</span><span class="w">     </span><span class="o">*</span><span class="w"> </span><span class="n">quick_action_bar_</span><span class="w">  </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QHBoxLayout</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">quick_action_row_</span><span class="w">  </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+
 <span class="w">  </span><span class="c1">// ---- Widgets — chat tab -----------------------------------------------</span>
-<span class="w">  </span><span class="n">QTextEdit</span><span class="w">   </span><span class="o">*</span><span class="w"> </span><span class="n">chat_view_</span><span class="w">      </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
-<span class="w">  </span><span class="n">QLineEdit</span><span class="w">   </span><span class="o">*</span><span class="w"> </span><span class="n">chat_input_</span><span class="w">     </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
-<span class="w">  </span><span class="n">QPushButton</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">send_button_</span><span class="w">    </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QTextEdit</span><span class="w">   </span><span class="o">*</span><span class="w"> </span><span class="n">chat_view_</span><span class="w">              </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QLineEdit</span><span class="w">   </span><span class="o">*</span><span class="w"> </span><span class="n">chat_input_</span><span class="w">             </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QPushButton</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">send_button_</span><span class="w">            </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QCheckBox</span><span class="w">   </span><span class="o">*</span><span class="w"> </span><span class="n">preview_mode_checkbox_</span><span class="w">  </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QTreeWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">plan_tree_view_</span><span class="w">         </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QPushButton</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">execute_button_</span><span class="w">         </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QPushButton</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">cancel_button_</span><span class="w">          </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
 
-<span class="w">  </span><span class="n">QTabWidget</span><span class="w">  </span><span class="o">*</span><span class="w"> </span><span class="n">tabs_</span><span class="w">           </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="c1">// ---- Widgets — MAPF tab -----------------------------------------------</span>
+<span class="w">  </span><span class="n">QProgressBar</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">mapf_progress_</span><span class="w">   </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QLabel</span><span class="w">       </span><span class="o">*</span><span class="w"> </span><span class="n">mapf_arrived_</span><span class="w">    </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QLabel</span><span class="w">       </span><span class="o">*</span><span class="w"> </span><span class="n">mapf_active_</span><span class="w">     </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QLabel</span><span class="w">       </span><span class="o">*</span><span class="w"> </span><span class="n">mapf_stalled_</span><span class="w">    </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QLabel</span><span class="w">       </span><span class="o">*</span><span class="w"> </span><span class="n">mapf_replans_</span><span class="w">    </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QLabel</span><span class="w">       </span><span class="o">*</span><span class="w"> </span><span class="n">mapf_event_tail_</span><span class="w"> </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">Sparkline</span><span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="n">mapf_active_spark_</span><span class="w">  </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">Sparkline</span><span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="n">mapf_arrived_spark_</span><span class="w"> </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QTableWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">mapf_robot_table_</span><span class="w">   </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
 
-<span class="w">  </span><span class="c1">// ---- State ------------------------------------------------------------</span>
-<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">chat_in_flight_</span><span class="p">{</span><span class="nb">false</span><span class="p">};</span>
+<span class="w">  </span><span class="c1">// ---- Widgets — events tab ---------------------------------------------</span>
+<span class="w">  </span><span class="n">QTableWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">events_table_</span><span class="w">              </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QCheckBox</span><span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="n">event_filter_decision_</span><span class="w">     </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QCheckBox</span><span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="n">event_filter_observer_</span><span class="w">     </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QCheckBox</span><span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="n">event_filter_user_</span><span class="w">         </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+
+<span class="w">  </span><span class="n">QTabWidget</span><span class="w">   </span><span class="o">*</span><span class="w"> </span><span class="n">tabs_</span><span class="w">   </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// ---- Cached BT state for marker timer (read on GUI thread) ------------</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w">                                </span><span class="n">cached_state_mutex_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w">                               </span><span class="n">cached_mode_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="w">                     </span><span class="n">cached_robot_ids_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">geometry_msgs</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">Point</span><span class="o">&gt;</span><span class="w">    </span><span class="n">cached_goals_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w">                               </span><span class="n">cached_leader_ns_</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// ---- Plan preview state ------------------------------------------------</span>
+<span class="w">  </span><span class="n">QString</span><span class="w">  </span><span class="n">pending_plan_json_</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w">     </span><span class="n">preview_mode_</span><span class="w">  </span><span class="p">{</span><span class="nb">false</span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// ---- Chat in-flight ----------------------------------------------------</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">chat_in_flight_</span><span class="w"> </span><span class="p">{</span><span class="nb">false</span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// ---- Map context (for Phase 5/6) --------------------------------------</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w">                  </span><span class="n">map_name_</span><span class="w">      </span><span class="p">{</span><span class="s">&quot;cave&quot;</span><span class="p">};</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">RobotGroup</span><span class="o">&gt;</span><span class="w">      </span><span class="n">groups_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">FormationZone</span><span class="o">&gt;</span><span class="w">   </span><span class="n">formation_zones_</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">double</span><span class="w">                       </span><span class="n">bounds_xmin_</span><span class="p">{</span><span class="mf">-1e9</span><span class="p">},</span><span class="w"> </span><span class="n">bounds_xmax_</span><span class="p">{</span><span class="mf">1e9</span><span class="p">};</span>
+<span class="w">  </span><span class="kt">double</span><span class="w">                       </span><span class="n">bounds_ymin_</span><span class="p">{</span><span class="mf">-1e9</span><span class="p">},</span><span class="w"> </span><span class="n">bounds_ymax_</span><span class="p">{</span><span class="mf">1e9</span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// ---- Periodic refresh --------------------------------------------------</span>
+<span class="w">  </span><span class="n">QTimer</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">marker_timer_</span><span class="w"> </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// ---- Events buffering --------------------------------------------------</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">kMaxEvents</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">500</span><span class="p">;</span>
 <span class="p">};</span>
 
 <span class="p">}</span><span class="w">  </span><span class="c1">// namespace iros_llm_rviz_panel</span>
@@ -255,7 +396,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="file_include_iros_llm_rviz_panel_llm_panel.hpp.html" class="btn btn-neutral float-left" title="File llm_panel.hpp" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../standards.html" class="btn btn-neutral float-right" title="Standard Documents" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="file_include_iros_llm_rviz_panel_sparkline.hpp.html" class="btn btn-neutral float-right" title="File sparkline.hpp" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

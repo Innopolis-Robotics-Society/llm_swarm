@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PACKAGE &mdash; iros_llm_rviz_panel 0.0.1 documentation</title>
+  <title>PACKAGE &mdash; iros_llm_rviz_panel 0.0.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/collapsible-lists/css/tree_view.css?v=a885cde7" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="../_static/documentation_options.js?v=e3a6060d"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js?v=73120307"></script>
@@ -56,7 +56,15 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../generated/index.html#classes-and-structs">Classes and Structs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../generated/structiros__llm__rviz__panel_1_1ActionSummary.html">Struct ActionSummary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../generated/structiros__llm__rviz__panel_1_1LlmPanel_1_1FormationZone.html">Struct LlmPanel::FormationZone</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../generated/structiros__llm__rviz__panel_1_1LlmPanel_1_1RobotGroup.html">Struct LlmPanel::RobotGroup</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../generated/classiros__llm__rviz__panel_1_1LlmPanel.html">Class LlmPanel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../generated/classiros__llm__rviz__panel_1_1Sparkline.html">Class Sparkline</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../generated/index.html#functions">Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../generated/function_action__summary_8hpp_1a6faf31c1ddac1ed3bf4dcd05aee98a0d.html">Function iros_llm_rviz_panel::parseActionSummary</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../generated/index.html#directories">Directories</a><ul>
@@ -65,7 +73,9 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../generated/index.html#files">Files</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../generated/file_include_iros_llm_rviz_panel_action_summary.hpp.html">File action_summary.hpp</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../generated/file_include_iros_llm_rviz_panel_llm_panel.hpp.html">File llm_panel.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../generated/file_include_iros_llm_rviz_panel_sparkline.hpp.html">File sparkline.hpp</a></li>
 </ul>
 </li>
 </ul>
@@ -123,11 +133,12 @@
 <div class="highlight-xml notranslate"><div class="highlight"><pre><span></span><span class="cp">&lt;?xml version=&quot;1.0&quot;?&gt;</span>
 <span class="nt">&lt;package</span><span class="w"> </span><span class="na">format=</span><span class="s">&quot;3&quot;</span><span class="nt">&gt;</span>
 <span class="w">  </span><span class="nt">&lt;name&gt;</span>iros_llm_rviz_panel<span class="nt">&lt;/name&gt;</span>
-<span class="w">  </span><span class="nt">&lt;version&gt;</span>0.0.1<span class="nt">&lt;/version&gt;</span>
+<span class="w">  </span><span class="nt">&lt;version&gt;</span>0.0.2<span class="nt">&lt;/version&gt;</span>
 <span class="w">  </span><span class="nt">&lt;description&gt;</span>
 <span class="w">    </span>RViz2<span class="w"> </span>panel<span class="w"> </span>for<span class="w"> </span>the<span class="w"> </span>iros_llm_swarm<span class="w"> </span>operator<span class="w"> </span>UI:<span class="w"> </span>streaming<span class="w"> </span>chat<span class="w"> </span>to<span class="w"> </span>/llm/chat,
-<span class="w">    </span>/bt/state<span class="w"> </span>status<span class="w"> </span>bar<span class="w"> </span>with<span class="w"> </span>STOP<span class="w"> </span>ALL<span class="w"> </span>kill-switch,<span class="w"> </span>and<span class="w"> </span>a<span class="w"> </span>MarkerArray<span class="w"> </span>publisher
-<span class="w">    </span>that<span class="w"> </span>visualizes<span class="w"> </span>current<span class="w"> </span>MAPF<span class="w"> </span>goals<span class="w"> </span>in<span class="w"> </span>the<span class="w"> </span>3D<span class="w"> </span>scene.
+<span class="w">    </span>/bt/state<span class="w"> </span>status<span class="w"> </span>bar<span class="w"> </span>with<span class="w"> </span>STOP<span class="w"> </span>ALL<span class="w"> </span>kill-switch,<span class="w"> </span>MAPF<span class="w"> </span>live<span class="w"> </span>stats,<span class="w"> </span>/llm/events
+<span class="w">    </span>log,<span class="w"> </span>plan<span class="w"> </span>preview<span class="w"> </span>and<span class="w"> </span>confirm,<span class="w"> </span>quick-action<span class="w"> </span>group<span class="w"> </span>buttons,<span class="w"> </span>TF-aware<span class="w"> </span>arrows,
+<span class="w">    </span>and<span class="w"> </span>persistent<span class="w"> </span>layout<span class="w"> </span>settings.
 <span class="w">  </span><span class="nt">&lt;/description&gt;</span>
 
 <span class="w">  </span><span class="nt">&lt;maintainer</span><span class="w"> </span><span class="na">email=</span><span class="s">&quot;you@example.com&quot;</span><span class="nt">&gt;</span>you<span class="nt">&lt;/maintainer&gt;</span>
@@ -143,15 +154,19 @@
 <span class="w">  </span><span class="nt">&lt;depend&gt;</span>geometry_msgs<span class="nt">&lt;/depend&gt;</span>
 <span class="w">  </span><span class="nt">&lt;depend&gt;</span>std_msgs<span class="nt">&lt;/depend&gt;</span>
 <span class="w">  </span><span class="nt">&lt;depend&gt;</span>visualization_msgs<span class="nt">&lt;/depend&gt;</span>
+<span class="w">  </span><span class="nt">&lt;depend&gt;</span>tf2_ros<span class="nt">&lt;/depend&gt;</span>
+<span class="w">  </span><span class="nt">&lt;depend&gt;</span>tf2_geometry_msgs<span class="nt">&lt;/depend&gt;</span>
 <span class="w">  </span><span class="nt">&lt;depend&gt;</span>iros_llm_swarm_interfaces<span class="nt">&lt;/depend&gt;</span>
+<span class="w">  </span><span class="nt">&lt;depend&gt;</span>ament_index_cpp<span class="nt">&lt;/depend&gt;</span>
+<span class="w">  </span><span class="nt">&lt;depend&gt;</span>yaml-cpp<span class="nt">&lt;/depend&gt;</span>
 <span class="w">  </span><span class="nt">&lt;depend&gt;</span>libqt5-widgets<span class="nt">&lt;/depend&gt;</span>
 
 <span class="w">  </span><span class="nt">&lt;test_depend&gt;</span>ament_lint_auto<span class="nt">&lt;/test_depend&gt;</span>
 <span class="w">  </span><span class="nt">&lt;test_depend&gt;</span>ament_lint_common<span class="nt">&lt;/test_depend&gt;</span>
+<span class="w">  </span><span class="nt">&lt;test_depend&gt;</span>ament_cmake_gtest<span class="nt">&lt;/test_depend&gt;</span>
 
 <span class="w">  </span><span class="nt">&lt;export&gt;</span>
 <span class="w">    </span><span class="nt">&lt;build_type&gt;</span>ament_cmake<span class="nt">&lt;/build_type&gt;</span>
-<span class="w">    </span><span class="cm">&lt;!-- Re-exposes the plugin to RViz&#39;s pluginlib loader. --&gt;</span>
 <span class="w">    </span><span class="nt">&lt;rviz</span><span class="w"> </span><span class="na">plugin=</span><span class="s">&quot;${prefix}/plugin_description.xml&quot;</span><span class="nt">/&gt;</span>
 <span class="w">  </span><span class="nt">&lt;/export&gt;</span>
 <span class="nt">&lt;/package&gt;</span>

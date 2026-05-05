@@ -1,0 +1,82 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="action__summary_8hpp" kind="file" language="C++">
+    <compoundname>action_summary.hpp</compoundname>
+    <includes local="no">cstdint</includes>
+    <includes local="no">optional</includes>
+    <includes local="no">string</includes>
+    <includes local="no">string_view</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>cstdint</label>
+      </node>
+      <node id="4">
+        <label>string</label>
+      </node>
+      <node id="1">
+        <label>include/iros_llm_rviz_panel/action_summary.hpp</label>
+        <link refid="action__summary_8hpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>string_view</label>
+      </node>
+      <node id="3">
+        <label>optional</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structiros__llm__rviz__panel_1_1ActionSummary" prot="public">iros_llm_rviz_panel::ActionSummary</innerclass>
+    <innernamespace refid="namespaceiros__llm__rviz__panel">iros_llm_rviz_panel</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>2026<sp/>—<sp/>iros_llm_swarm<sp/>contributors.<sp/>Apache-2.0.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Pure-C++<sp/>parser<sp/>for<sp/>BTState.action_summary<sp/>lines.<sp/>No<sp/>Qt,<sp/>no<sp/>ROS<sp/>—<sp/>kept</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//<sp/>dependency-free<sp/>so<sp/>we<sp/>can<sp/>unit-test<sp/>it.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Input<sp/>examples:</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/>[t=1200ms<sp/>status=executing<sp/>arrived=5<sp/>active=15<sp/>stall=0<sp/>replans=0]</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/>[t=2400ms<sp/>status=executing<sp/>arrived=8<sp/>active=12<sp/>stall=0<sp/>replans=0]<sp/>INFO:<sp/>...</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="comment">//<sp/><sp/><sp/>[t=3600ms<sp/>status=executing<sp/>arrived=8<sp/>active=12<sp/>stall=1<sp/>replans=0]<sp/>WARN:<sp/>...</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Tolerance:<sp/>any<sp/>field<sp/>may<sp/>be<sp/>missing<sp/>→<sp/>std::nullopt.<sp/>Reordered<sp/>fields,</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="comment">//<sp/>extra<sp/>whitespace,<sp/>malformed<sp/>numbers,<sp/>or<sp/>an<sp/>empty<sp/>input<sp/>never<sp/>throw.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;cstdint&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;optional&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string_view&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">iros_llm_rviz_panel</highlight></codeline>
+<codeline lineno="22"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="structiros__llm__rviz__panel_1_1ActionSummary" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structiros__llm__rviz__panel_1_1ActionSummary" kindref="compound">ActionSummary</ref></highlight></codeline>
+<codeline lineno="25"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/>std::optional&lt;int64_t&gt;<sp/><sp/><sp/><sp/><sp/>elapsed_ms;</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/>std::optional&lt;std::string&gt;<sp/>status;<sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>&quot;executing&quot;<sp/>/<sp/>&quot;validating&quot;<sp/>/<sp/>...</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>std::optional&lt;int&gt;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>arrived;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/>std::optional&lt;int&gt;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>active;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/>std::optional&lt;int&gt;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>stall;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/>std::optional&lt;int&gt;<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>replans;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>std::string<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>event_tail;<sp/><sp/><sp/></highlight><highlight class="comment">//<sp/>raw<sp/>tail<sp/>after<sp/>`]`,<sp/>or<sp/>empty</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><ref refid="structiros__llm__rviz__panel_1_1ActionSummary" kindref="compound">ActionSummary</ref><sp/>parseActionSummary(std::string_view<sp/>line);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal">}<sp/><sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>iros_llm_rviz_panel</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="include/iros_llm_rviz_panel/action_summary.hpp"/>
+  </compounddef>
+</doxygen>

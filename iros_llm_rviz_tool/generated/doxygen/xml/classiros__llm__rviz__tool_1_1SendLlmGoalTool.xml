@@ -1,0 +1,243 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classiros__llm__rviz__tool_1_1SendLlmGoalTool" kind="class" language="C++" prot="public">
+    <compoundname>iros_llm_rviz_tool::SendLlmGoalTool</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">rviz_default_plugins::tools::PoseTool</basecompoundref>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a18168112afb267feee10c12b539425bf" prot="public" static="no">
+        <type>iros_llm_swarm_interfaces::action::LlmCommand</type>
+        <definition>using iros_llm_rviz_tool::SendLlmGoalTool::LlmCommand =  iros_llm_swarm_interfaces::action::LlmCommand</definition>
+        <argsstring></argsstring>
+        <name>LlmCommand</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" line="46" column="3" bodyfile="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a96932ccea9afa1b3550084902dc5d1de" prot="private" static="no" mutable="no">
+        <type>rclcpp::Node::SharedPtr</type>
+        <definition>rclcpp::Node::SharedPtr iros_llm_rviz_tool::SendLlmGoalTool::node_</definition>
+        <argsstring></argsstring>
+        <name>node_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" line="65" column="52" bodyfile="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a8ea646ca8d365d801ae73b704f7e0a2f" prot="private" static="no" mutable="no">
+        <type>rclcpp_action::Client&lt; LlmCommand &gt;::SharedPtr</type>
+        <definition>rclcpp_action::Client&lt;LlmCommand&gt;::SharedPtr iros_llm_rviz_tool::SendLlmGoalTool::cmd_client_</definition>
+        <argsstring></argsstring>
+        <name>cmd_client_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" line="66" column="41" bodyfile="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a0a5653a9ebb64b0573e00bff8f77c360" prot="private" static="no" mutable="no">
+        <type>std::vector&lt; <ref refid="structiros__llm__rviz__tool_1_1RobotGroup" kindref="compound">RobotGroup</ref> &gt;</type>
+        <definition>std::vector&lt;RobotGroup&gt; iros_llm_rviz_tool::SendLlmGoalTool::groups_</definition>
+        <argsstring></argsstring>
+        <name>groups_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" line="68" column="15" bodyfile="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a9097c021f1a4adf30a258908bf18a327" prot="private" static="no" mutable="no">
+        <type><ref refid="structiros__llm__rviz__tool_1_1MapBounds" kindref="compound">MapBounds</ref></type>
+        <definition>MapBounds iros_llm_rviz_tool::SendLlmGoalTool::bounds_</definition>
+        <argsstring></argsstring>
+        <name>bounds_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" line="69" column="27" bodyfile="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a500d29eac9e8b1c494ac001ef84d0191" prot="private" static="no" mutable="no">
+        <type>std::string</type>
+        <definition>std::string iros_llm_rviz_tool::SendLlmGoalTool::map_name_</definition>
+        <argsstring></argsstring>
+        <name>map_name_</name>
+        <initializer>{&quot;cave&quot;}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" line="70" column="27" bodyfile="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a0d3abbbee36b87aaf0c3b40bb279f004" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>iros_llm_rviz_tool::SendLlmGoalTool::SendLlmGoalTool</definition>
+        <argsstring>()</argsstring>
+        <name>SendLlmGoalTool</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" line="48" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a5271097db4ede1b05b62d46f930a3152" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>iros_llm_rviz_tool::SendLlmGoalTool::~SendLlmGoalTool</definition>
+        <argsstring>() override</argsstring>
+        <name>~SendLlmGoalTool</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" line="49" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a1fc39314f8c1808ee7823086009f8de9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_tool::SendLlmGoalTool::onInitialize</definition>
+        <argsstring>() override</argsstring>
+        <name>onInitialize</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" line="51" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a78458144f955c9be05896d59ea745a08" prot="protected" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_tool::SendLlmGoalTool::onPoseSet</definition>
+        <argsstring>(double x, double y, double theta) override</argsstring>
+        <name>onPoseSet</name>
+        <param>
+          <type>double</type>
+          <declname>x</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>y</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>theta</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" line="55" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a2bdfc5cd9bcddff137081df3bb086bfc" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_tool::SendLlmGoalTool::loadMap</definition>
+        <argsstring>(const std::string &amp;map_name)</argsstring>
+        <name>loadMap</name>
+        <param>
+          <type>const std::string &amp;</type>
+          <declname>map_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" line="58" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a442e3aa8b8db1b8d3f192ca259b75b0c" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>std::vector&lt; std::pair&lt; double, double &gt; &gt;</type>
+        <definition>std::vector&lt;std::pair&lt;double, double&gt; &gt; iros_llm_rviz_tool::SendLlmGoalTool::spreadGoals</definition>
+        <argsstring>(double cx, double cy, std::size_t n) const</argsstring>
+        <name>spreadGoals</name>
+        <param>
+          <type>double</type>
+          <declname>cx</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>cy</declname>
+        </param>
+        <param>
+          <type>std::size_t</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" line="62" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>rviz_default_plugins::tools::PoseTool</label>
+      </node>
+      <node id="1">
+        <label>iros_llm_rviz_tool::SendLlmGoalTool</label>
+        <link refid="classiros__llm__rviz__tool_1_1SendLlmGoalTool"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>rviz_default_plugins::tools::PoseTool</label>
+      </node>
+      <node id="1">
+        <label>iros_llm_rviz_tool::SendLlmGoalTool</label>
+        <link refid="classiros__llm__rviz__tool_1_1SendLlmGoalTool"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" line="41" column="1" bodyfile="include/iros_llm_rviz_tool/send_llm_goal_tool.hpp" bodystart="42" bodyend="71"/>
+    <listofallmembers>
+      <member refid="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a9097c021f1a4adf30a258908bf18a327" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::SendLlmGoalTool</scope><name>bounds_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a8ea646ca8d365d801ae73b704f7e0a2f" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::SendLlmGoalTool</scope><name>cmd_client_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a0a5653a9ebb64b0573e00bff8f77c360" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::SendLlmGoalTool</scope><name>groups_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a18168112afb267feee10c12b539425bf" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::SendLlmGoalTool</scope><name>LlmCommand</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a2bdfc5cd9bcddff137081df3bb086bfc" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::SendLlmGoalTool</scope><name>loadMap</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a500d29eac9e8b1c494ac001ef84d0191" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::SendLlmGoalTool</scope><name>map_name_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a96932ccea9afa1b3550084902dc5d1de" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::SendLlmGoalTool</scope><name>node_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a1fc39314f8c1808ee7823086009f8de9" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::SendLlmGoalTool</scope><name>onInitialize</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a78458144f955c9be05896d59ea745a08" prot="protected" virt="non-virtual"><scope>iros_llm_rviz_tool::SendLlmGoalTool</scope><name>onPoseSet</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a0d3abbbee36b87aaf0c3b40bb279f004" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::SendLlmGoalTool</scope><name>SendLlmGoalTool</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a442e3aa8b8db1b8d3f192ca259b75b0c" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::SendLlmGoalTool</scope><name>spreadGoals</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1SendLlmGoalTool_1a5271097db4ede1b05b62d46f930a3152" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::SendLlmGoalTool</scope><name>~SendLlmGoalTool</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

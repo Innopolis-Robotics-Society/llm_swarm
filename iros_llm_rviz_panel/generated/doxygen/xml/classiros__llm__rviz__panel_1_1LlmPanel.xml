@@ -3,6 +3,8 @@
   <compounddef id="classiros__llm__rviz__panel_1_1LlmPanel" kind="class" language="C++" prot="public">
     <compoundname>iros_llm_rviz_panel::LlmPanel</compoundname>
     <basecompoundref prot="public" virt="non-virtual">rviz_common::Panel</basecompoundref>
+    <innerclass refid="structiros__llm__rviz__panel_1_1LlmPanel_1_1FormationZone" prot="private">iros_llm_rviz_panel::LlmPanel::FormationZone</innerclass>
+    <innerclass refid="structiros__llm__rviz__panel_1_1LlmPanel_1_1RobotGroup" prot="private">iros_llm_rviz_panel::LlmPanel::RobotGroup</innerclass>
       <sectiondef kind="public-type">
       <memberdef kind="typedef" id="classiros__llm__rviz__panel_1_1LlmPanel_1a20e565398fa94fb5d47301fef0a5c839" prot="public" static="no">
         <type>iros_llm_swarm_interfaces::msg::BTState</type>
@@ -15,7 +17,20 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="52" column="3" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="52" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="71" column="3" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classiros__llm__rviz__panel_1_1LlmPanel_1a7eef344c6aea4d13208a72b7393ba647" prot="public" static="no">
+        <type>iros_llm_swarm_interfaces::msg::LlmEvent</type>
+        <definition>using iros_llm_rviz_panel::LlmPanel::LlmEvent =  iros_llm_swarm_interfaces::msg::LlmEvent</definition>
+        <argsstring></argsstring>
+        <name>LlmEvent</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="72" column="3" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="72" bodyend="-1"/>
       </memberdef>
       <memberdef kind="typedef" id="classiros__llm__rviz__panel_1_1LlmPanel_1a93e33c9469d19b4f52d65eccb0a5b148" prot="public" static="no">
         <type>iros_llm_swarm_interfaces::action::LlmCommand</type>
@@ -28,7 +43,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="53" column="3" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="53" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="73" column="3" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="73" bodyend="-1"/>
       </memberdef>
       <memberdef kind="typedef" id="classiros__llm__rviz__panel_1_1LlmPanel_1a23bafeb8b5338f56111a61d5b9bceadf" prot="public" static="no">
         <type>iros_llm_swarm_interfaces::action::LlmChat</type>
@@ -41,7 +56,20 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="54" column="3" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="54" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="74" column="3" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classiros__llm__rviz__panel_1_1LlmPanel_1a85b5bc18030d5b9c0f53c5d56ed2bb60" prot="public" static="no">
+        <type>iros_llm_swarm_interfaces::action::LlmExecutePlan</type>
+        <definition>using iros_llm_rviz_panel::LlmPanel::LlmExecutePlan =  iros_llm_swarm_interfaces::action::LlmExecutePlan</definition>
+        <argsstring></argsstring>
+        <name>LlmExecutePlan</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="75" column="3" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="75" bodyend="-1"/>
       </memberdef>
       <memberdef kind="typedef" id="classiros__llm__rviz__panel_1_1LlmPanel_1a3971a2426bbf9d27ca86d40edd2c74ce" prot="public" static="no">
         <type>rclcpp_action::ClientGoalHandle&lt; LlmChat &gt;</type>
@@ -54,7 +82,20 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="55" column="3" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="55" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="76" column="3" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classiros__llm__rviz__panel_1_1LlmPanel_1af9b9cf60408b839deb2419681908fdc5" prot="public" static="no">
+        <type>rclcpp_action::ClientGoalHandle&lt; LlmExecutePlan &gt;</type>
+        <definition>using iros_llm_rviz_panel::LlmPanel::ExecGoalH =  rclcpp_action::ClientGoalHandle&lt;LlmExecutePlan&gt;</definition>
+        <argsstring></argsstring>
+        <name>ExecGoalH</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="77" column="3" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="77" bodyend="-1"/>
       </memberdef>
       </sectiondef>
       <sectiondef kind="private-attrib">
@@ -69,7 +110,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="97" column="27" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="97" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="173" column="27" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="173" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1aa339fb6b264242d9b0b28ab377615efc" prot="private" static="no" mutable="no">
         <type>rclcpp::Subscription&lt; BTState &gt;::SharedPtr</type>
@@ -82,7 +123,20 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="100" column="61" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="100" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="176" column="61" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="176" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a87829dcdc38173b9d2bf56715ff982b6" prot="private" static="no" mutable="no">
+        <type>rclcpp::Subscription&lt; LlmEvent &gt;::SharedPtr</type>
+        <definition>rclcpp::Subscription&lt;LlmEvent&gt;::SharedPtr iros_llm_rviz_panel::LlmPanel::events_sub_</definition>
+        <argsstring></argsstring>
+        <name>events_sub_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="177" column="60" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="177" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a0afb213be0e88a3181668d905f24bfb9" prot="private" static="no" mutable="no">
         <type>rclcpp::Publisher&lt; visualization_msgs::msg::MarkerArray &gt;::SharedPtr</type>
@@ -95,7 +149,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="101" column="33" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="101" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="178" column="33" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="178" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a921f251e29da2408783c801da8fddad1" prot="private" static="no" mutable="no">
         <type>rclcpp_action::Client&lt; LlmChat &gt;::SharedPtr</type>
@@ -108,7 +162,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="102" column="61" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="102" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="179" column="61" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="179" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1ae54f13ab53af8ef1fa87fb08527024ba" prot="private" static="no" mutable="no">
         <type>rclcpp_action::Client&lt; LlmCommand &gt;::SharedPtr</type>
@@ -121,7 +175,46 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="103" column="58" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="103" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="180" column="58" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="180" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1ae8dcce32a18da56bfe5be5923f5ef961" prot="private" static="no" mutable="no">
+        <type>rclcpp_action::Client&lt; LlmExecutePlan &gt;::SharedPtr</type>
+        <definition>rclcpp_action::Client&lt;LlmExecutePlan&gt;::SharedPtr iros_llm_rviz_panel::LlmPanel::exec_client_</definition>
+        <argsstring></argsstring>
+        <name>exec_client_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="181" column="54" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="181" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1ac6081ea8706f3489d1da1e7eb6928cbd" prot="private" static="no" mutable="no">
+        <type>std::shared_ptr&lt; tf2_ros::Buffer &gt;</type>
+        <definition>std::shared_ptr&lt;tf2_ros::Buffer&gt; iros_llm_rviz_panel::LlmPanel::tf_buffer_</definition>
+        <argsstring></argsstring>
+        <name>tf_buffer_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="184" column="30" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="184" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a26d268b38f67fb5c690699ba0d53f591" prot="private" static="no" mutable="no">
+        <type>std::shared_ptr&lt; tf2_ros::TransformListener &gt;</type>
+        <definition>std::shared_ptr&lt;tf2_ros::TransformListener&gt; iros_llm_rviz_panel::LlmPanel::tf_listener_</definition>
+        <argsstring></argsstring>
+        <name>tf_listener_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="185" column="19" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="185" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1ad10f7fe7cc6c5d375d2a99c7eb0895bf" prot="private" static="no" mutable="no">
         <type>QLabel *</type>
@@ -135,7 +228,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="106" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="106" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="188" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="188" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a6a0c443abc7ced9d64ea8f37f1db58ec" prot="private" static="no" mutable="no">
         <type>QLabel *</type>
@@ -149,7 +242,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="107" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="107" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="189" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="189" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1abd7017307f8eade030d9af70b0ac6883" prot="private" static="no" mutable="no">
         <type>QLabel *</type>
@@ -163,7 +256,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="108" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="108" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="190" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="190" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a7995077dd0731f95e7898b514fda3858" prot="private" static="no" mutable="no">
         <type>QLabel *</type>
@@ -177,7 +270,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="109" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="109" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="191" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="191" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1ae3a38a58870176489aab4865daee144e" prot="private" static="no" mutable="no">
         <type>QLabel *</type>
@@ -191,7 +284,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="110" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="110" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="192" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="192" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a0d84a868891121250b7194c0a2a9cb10" prot="private" static="no" mutable="no">
         <type>QPushButton *</type>
@@ -205,7 +298,35 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="111" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="111" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="193" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="193" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a7cb010055185495abe92c358b141c99d" prot="private" static="no" mutable="no">
+        <type>QWidget *</type>
+        <definition>QWidget* iros_llm_rviz_panel::LlmPanel::quick_action_bar_</definition>
+        <argsstring></argsstring>
+        <name>quick_action_bar_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="196" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="196" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1ad89b2c38ba0a94f1362be12ebfc30d4a" prot="private" static="no" mutable="no">
+        <type>QHBoxLayout *</type>
+        <definition>QHBoxLayout* iros_llm_rviz_panel::LlmPanel::quick_action_row_</definition>
+        <argsstring></argsstring>
+        <name>quick_action_row_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="197" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="197" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a6d74eb924d08379fbd1314c6f3103eed" prot="private" static="no" mutable="no">
         <type>QTextEdit *</type>
@@ -219,7 +340,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="114" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="114" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="200" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="200" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a06c3a350bcb6bd2f2201c246411a0253" prot="private" static="no" mutable="no">
         <type>QLineEdit *</type>
@@ -233,7 +354,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="115" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="115" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="201" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="201" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1ae7c9050d82bd8836ed1c2b3743830ab6" prot="private" static="no" mutable="no">
         <type>QPushButton *</type>
@@ -247,7 +368,245 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="116" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="116" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="202" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="202" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1afa9f3b08a623dc3ab63255267558cb7b" prot="private" static="no" mutable="no">
+        <type>QCheckBox *</type>
+        <definition>QCheckBox* iros_llm_rviz_panel::LlmPanel::preview_mode_checkbox_</definition>
+        <argsstring></argsstring>
+        <name>preview_mode_checkbox_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="203" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="203" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1ac706989912f1a7e60f16cbb51181c22c" prot="private" static="no" mutable="no">
+        <type>QTreeWidget *</type>
+        <definition>QTreeWidget* iros_llm_rviz_panel::LlmPanel::plan_tree_view_</definition>
+        <argsstring></argsstring>
+        <name>plan_tree_view_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="204" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="204" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a1f38bfc2926285a60035927cfbc21850" prot="private" static="no" mutable="no">
+        <type>QPushButton *</type>
+        <definition>QPushButton* iros_llm_rviz_panel::LlmPanel::execute_button_</definition>
+        <argsstring></argsstring>
+        <name>execute_button_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="205" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="205" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a05b8c9d82e9deae885cf6589e1c7f23f" prot="private" static="no" mutable="no">
+        <type>QPushButton *</type>
+        <definition>QPushButton* iros_llm_rviz_panel::LlmPanel::cancel_button_</definition>
+        <argsstring></argsstring>
+        <name>cancel_button_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="206" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="206" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a41f83cc322850e7e2f9c6e31859c72f2" prot="private" static="no" mutable="no">
+        <type>QProgressBar *</type>
+        <definition>QProgressBar* iros_llm_rviz_panel::LlmPanel::mapf_progress_</definition>
+        <argsstring></argsstring>
+        <name>mapf_progress_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="209" column="17" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="209" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a61fda5a79608f9d08b05ef5091299e72" prot="private" static="no" mutable="no">
+        <type>QLabel *</type>
+        <definition>QLabel* iros_llm_rviz_panel::LlmPanel::mapf_arrived_</definition>
+        <argsstring></argsstring>
+        <name>mapf_arrived_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="210" column="17" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="210" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a7fb44d8bcdc0a16c86b2d56d8e04e2d5" prot="private" static="no" mutable="no">
+        <type>QLabel *</type>
+        <definition>QLabel* iros_llm_rviz_panel::LlmPanel::mapf_active_</definition>
+        <argsstring></argsstring>
+        <name>mapf_active_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="211" column="17" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="211" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1adae127a5a06cda2ab7193a1fa2606db5" prot="private" static="no" mutable="no">
+        <type>QLabel *</type>
+        <definition>QLabel* iros_llm_rviz_panel::LlmPanel::mapf_stalled_</definition>
+        <argsstring></argsstring>
+        <name>mapf_stalled_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="212" column="17" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="212" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1abad8cb8de41ebe655795005f86d7f1ba" prot="private" static="no" mutable="no">
+        <type>QLabel *</type>
+        <definition>QLabel* iros_llm_rviz_panel::LlmPanel::mapf_replans_</definition>
+        <argsstring></argsstring>
+        <name>mapf_replans_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="213" column="17" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="213" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1acec6a43b911e5a9ba3941ff513ca22a5" prot="private" static="no" mutable="no">
+        <type>QLabel *</type>
+        <definition>QLabel* iros_llm_rviz_panel::LlmPanel::mapf_event_tail_</definition>
+        <argsstring></argsstring>
+        <name>mapf_event_tail_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="214" column="17" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="214" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a4bf436618560ec41338248e28d2b87b4" prot="private" static="no" mutable="no">
+        <type><ref refid="classiros__llm__rviz__panel_1_1Sparkline" kindref="compound">Sparkline</ref> *</type>
+        <definition>Sparkline* iros_llm_rviz_panel::LlmPanel::mapf_active_spark_</definition>
+        <argsstring></argsstring>
+        <name>mapf_active_spark_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="215" column="17" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="215" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1af262009478c0073fc4025f034fca8055" prot="private" static="no" mutable="no">
+        <type><ref refid="classiros__llm__rviz__panel_1_1Sparkline" kindref="compound">Sparkline</ref> *</type>
+        <definition>Sparkline* iros_llm_rviz_panel::LlmPanel::mapf_arrived_spark_</definition>
+        <argsstring></argsstring>
+        <name>mapf_arrived_spark_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="216" column="17" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="216" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a63815c076087f2973d06cc42ed0fb5e3" prot="private" static="no" mutable="no">
+        <type>QTableWidget *</type>
+        <definition>QTableWidget* iros_llm_rviz_panel::LlmPanel::mapf_robot_table_</definition>
+        <argsstring></argsstring>
+        <name>mapf_robot_table_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="217" column="17" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="217" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a494dd9c38068f9af7c501e103f0f0032" prot="private" static="no" mutable="no">
+        <type>QTableWidget *</type>
+        <definition>QTableWidget* iros_llm_rviz_panel::LlmPanel::events_table_</definition>
+        <argsstring></argsstring>
+        <name>events_table_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="220" column="17" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="220" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1ae7cd9e976b1b80febb49b119cc219860" prot="private" static="no" mutable="no">
+        <type>QCheckBox *</type>
+        <definition>QCheckBox* iros_llm_rviz_panel::LlmPanel::event_filter_decision_</definition>
+        <argsstring></argsstring>
+        <name>event_filter_decision_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="221" column="17" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="221" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a9190fd06e51af5051dccfb55006ab18d" prot="private" static="no" mutable="no">
+        <type>QCheckBox *</type>
+        <definition>QCheckBox* iros_llm_rviz_panel::LlmPanel::event_filter_observer_</definition>
+        <argsstring></argsstring>
+        <name>event_filter_observer_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="222" column="17" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="222" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1ab244faa9c20089f0d660c5017165c1ff" prot="private" static="no" mutable="no">
+        <type>QCheckBox *</type>
+        <definition>QCheckBox* iros_llm_rviz_panel::LlmPanel::event_filter_user_</definition>
+        <argsstring></argsstring>
+        <name>event_filter_user_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="223" column="17" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="223" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1acd678d35a804b271d10d916dd39d352b" prot="private" static="no" mutable="no">
         <type>QTabWidget *</type>
@@ -261,7 +620,99 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="118" column="16" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="118" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="225" column="17" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="225" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a53d8f1723fc871428661b808d5d9df5c" prot="private" static="no" mutable="no">
+        <type>std::mutex</type>
+        <definition>std::mutex iros_llm_rviz_panel::LlmPanel::cached_state_mutex_</definition>
+        <argsstring></argsstring>
+        <name>cached_state_mutex_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="228" column="45" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="228" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a7237ebd8e19919aab997f824bc2016fb" prot="private" static="no" mutable="no">
+        <type>std::string</type>
+        <definition>std::string iros_llm_rviz_panel::LlmPanel::cached_mode_</definition>
+        <argsstring></argsstring>
+        <name>cached_mode_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="229" column="45" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="229" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1aaab8759c4c194e0b75c02051f9ea903a" prot="private" static="no" mutable="no">
+        <type>std::vector&lt; uint32_t &gt;</type>
+        <definition>std::vector&lt;uint32_t&gt; iros_llm_rviz_panel::LlmPanel::cached_robot_ids_</definition>
+        <argsstring></argsstring>
+        <name>cached_robot_ids_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="230" column="35" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="230" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a8475842bc23b62ee9154d610fd4e7b0f" prot="private" static="no" mutable="no">
+        <type>std::vector&lt; geometry_msgs::msg::Point &gt;</type>
+        <definition>std::vector&lt;geometry_msgs::msg::Point&gt; iros_llm_rviz_panel::LlmPanel::cached_goals_</definition>
+        <argsstring></argsstring>
+        <name>cached_goals_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="231" column="18" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="231" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1ab81b2ad85d3c3f78c954c13c390ba34c" prot="private" static="no" mutable="no">
+        <type>std::string</type>
+        <definition>std::string iros_llm_rviz_panel::LlmPanel::cached_leader_ns_</definition>
+        <argsstring></argsstring>
+        <name>cached_leader_ns_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="232" column="45" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="232" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1ae221707091b8277e4624ffefe016a7c5" prot="private" static="no" mutable="no">
+        <type>QString</type>
+        <definition>QString iros_llm_rviz_panel::LlmPanel::pending_plan_json_</definition>
+        <argsstring></argsstring>
+        <name>pending_plan_json_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="235" column="12" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="235" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1aac4bdd55f148f1140b58594b8758550c" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool iros_llm_rviz_panel::LlmPanel::preview_mode_</definition>
+        <argsstring></argsstring>
+        <name>preview_mode_</name>
+        <initializer>{false}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="236" column="12" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="236" bodyend="-1"/>
       </memberdef>
       <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a1dc623f25ba75418e52636eb10965cce" prot="private" static="no" mutable="no">
         <type>bool</type>
@@ -275,7 +726,133 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="121" column="8" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="121" bodyend="-1"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="239" column="8" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="239" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a96516a0a6e9979ab718212032fc66e9b" prot="private" static="no" mutable="no">
+        <type>std::string</type>
+        <definition>std::string iros_llm_rviz_panel::LlmPanel::map_name_</definition>
+        <argsstring></argsstring>
+        <name>map_name_</name>
+        <initializer>{&quot;cave&quot;}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="242" column="32" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="242" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1ad69f2032729a9b5d53932f080e5998a0" prot="private" static="no" mutable="no">
+        <type>std::vector&lt; RobotGroup &gt;</type>
+        <definition>std::vector&lt;RobotGroup&gt; iros_llm_rviz_panel::LlmPanel::groups_</definition>
+        <argsstring></argsstring>
+        <name>groups_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="243" column="20" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="243" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a2eaade300165229ff425290a6e54723a" prot="private" static="no" mutable="no">
+        <type>std::vector&lt; FormationZone &gt;</type>
+        <definition>std::vector&lt;FormationZone&gt; iros_llm_rviz_panel::LlmPanel::formation_zones_</definition>
+        <argsstring></argsstring>
+        <name>formation_zones_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="244" column="17" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="244" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a3dd1c77e1269fde19525aaaf0f93c417" prot="private" static="no" mutable="no">
+        <type>double</type>
+        <definition>double iros_llm_rviz_panel::LlmPanel::bounds_xmin_</definition>
+        <argsstring></argsstring>
+        <name>bounds_xmin_</name>
+        <initializer>{-1e9}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="245" column="32" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="245" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1ab6194acd45838ff8ea709a465773aff4" prot="private" static="no" mutable="no">
+        <type>double</type>
+        <definition>double iros_llm_rviz_panel::LlmPanel::bounds_xmax_</definition>
+        <argsstring></argsstring>
+        <name>bounds_xmax_</name>
+        <initializer>{1e9}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="245" column="45" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="245" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a4099470140876f50a337984d3cbcf0cc" prot="private" static="no" mutable="no">
+        <type>double</type>
+        <definition>double iros_llm_rviz_panel::LlmPanel::bounds_ymin_</definition>
+        <argsstring></argsstring>
+        <name>bounds_ymin_</name>
+        <initializer>{-1e9}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="246" column="32" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="246" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1ab88b73e4b0ab05e2e8897f50fc0fdf83" prot="private" static="no" mutable="no">
+        <type>double</type>
+        <definition>double iros_llm_rviz_panel::LlmPanel::bounds_ymax_</definition>
+        <argsstring></argsstring>
+        <name>bounds_ymax_</name>
+        <initializer>{1e9}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="246" column="45" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="246" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a18a2cb7e130f7651100f5eebc5960e1f" prot="private" static="no" mutable="no">
+        <type>QTimer *</type>
+        <definition>QTimer* iros_llm_rviz_panel::LlmPanel::marker_timer_</definition>
+        <argsstring></argsstring>
+        <name>marker_timer_</name>
+        <initializer>{nullptr}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="249" column="11" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="249" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-attrib">
+      <memberdef kind="variable" id="classiros__llm__rviz__panel_1_1LlmPanel_1a4a90adbf1e0a188208fbb6e001b71108" prot="private" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int iros_llm_rviz_panel::LlmPanel::kMaxEvents</definition>
+        <argsstring></argsstring>
+        <name>kMaxEvents</name>
+        <initializer>= 500</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="252" column="24" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="252" bodyend="-1"/>
       </memberdef>
       </sectiondef>
       <sectiondef kind="public-func">
@@ -295,7 +872,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="57" column="12"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="79" column="12"/>
       </memberdef>
       <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1a80ab2fb1dbac3154e1aeaf1a522f6a14" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type></type>
@@ -308,7 +885,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="58" column="3"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="80" column="3"/>
       </memberdef>
       <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1ad256a19474e8cd0319b58d81650ddcdf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>void</type>
@@ -321,7 +898,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="61" column="8"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="82" column="8"/>
       </memberdef>
       <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1a4f672e57c50bc84a37a3bd5b8c99194b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>void</type>
@@ -338,7 +915,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="62" column="8"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="83" column="8"/>
       </memberdef>
       <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1aa1acf85d34349f54628d608e35c57712" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
         <type>void</type>
@@ -355,14 +932,14 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="63" column="8"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="84" column="8"/>
       </memberdef>
       </sectiondef>
       <sectiondef kind="signal">
-      <memberdef kind="signal" id="classiros__llm__rviz__panel_1_1LlmPanel_1ace4927bb650279d69bba912da5b56156" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+      <memberdef kind="signal" id="classiros__llm__rviz__panel_1_1LlmPanel_1a3b399679d68b433a6290fd9a44c52eb3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>void</type>
         <definition>void iros_llm_rviz_panel::LlmPanel::btStateReceived</definition>
-        <argsstring>(QString mode, QString action_status, QString active_action, QString last_error, bool llm_thinking)</argsstring>
+        <argsstring>(QString mode, QString action_status, QString active_action, QString last_error, QString action_summary, bool llm_thinking)</argsstring>
         <name>btStateReceived</name>
         <param>
           <type>QString</type>
@@ -381,6 +958,10 @@
           <declname>last_error</declname>
         </param>
         <param>
+          <type>QString</type>
+          <declname>action_summary</declname>
+        </param>
+        <param>
           <type>bool</type>
           <declname>llm_thinking</declname>
         </param>
@@ -390,7 +971,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="67" column="8"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="88" column="8"/>
       </memberdef>
       <memberdef kind="signal" id="classiros__llm__rviz__panel_1_1LlmPanel_1a2336ee465004b43e2745da18ecd4efd8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>void</type>
@@ -407,16 +988,20 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="72" column="8"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="94" column="8"/>
       </memberdef>
-      <memberdef kind="signal" id="classiros__llm__rviz__panel_1_1LlmPanel_1a8de8cb1b19a6aab12a39bf19a927bd1f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+      <memberdef kind="signal" id="classiros__llm__rviz__panel_1_1LlmPanel_1ab5bbe4aca0795a1e8cb177dbf77dd494" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>void</type>
         <definition>void iros_llm_rviz_panel::LlmPanel::chatStageReceived</definition>
-        <argsstring>(QString stage)</argsstring>
+        <argsstring>(QString stage, QString detail)</argsstring>
         <name>chatStageReceived</name>
         <param>
           <type>QString</type>
           <declname>stage</declname>
+        </param>
+        <param>
+          <type>QString</type>
+          <declname>detail</declname>
         </param>
         <briefdescription>
         </briefdescription>
@@ -424,13 +1009,63 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="73" column="8"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="95" column="8"/>
       </memberdef>
-      <memberdef kind="signal" id="classiros__llm__rviz__panel_1_1LlmPanel_1ab296bf7ed1b2bb9c292389f3b08ab8d2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+      <memberdef kind="signal" id="classiros__llm__rviz__panel_1_1LlmPanel_1af13597ee8c39f652d036cd68c8c78830" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>void</type>
         <definition>void iros_llm_rviz_panel::LlmPanel::chatFinished</definition>
-        <argsstring>(bool success, QString info)</argsstring>
+        <argsstring>(bool success, QString info, QString final_reply, QString plan_json)</argsstring>
         <name>chatFinished</name>
+        <param>
+          <type>bool</type>
+          <declname>success</declname>
+        </param>
+        <param>
+          <type>QString</type>
+          <declname>info</declname>
+        </param>
+        <param>
+          <type>QString</type>
+          <declname>final_reply</declname>
+        </param>
+        <param>
+          <type>QString</type>
+          <declname>plan_json</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="96" column="8"/>
+      </memberdef>
+      <memberdef kind="signal" id="classiros__llm__rviz__panel_1_1LlmPanel_1a4257afea4a7400750f51b6c48a0296d7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::execStageReceived</definition>
+        <argsstring>(QString stage, QString detail)</argsstring>
+        <name>execStageReceived</name>
+        <param>
+          <type>QString</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>QString</type>
+          <declname>detail</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="98" column="8"/>
+      </memberdef>
+      <memberdef kind="signal" id="classiros__llm__rviz__panel_1_1LlmPanel_1a546df40b4e9efeabcfe067473020684d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::execFinished</definition>
+        <argsstring>(bool success, QString info)</argsstring>
+        <name>execFinished</name>
         <param>
           <type>bool</type>
           <declname>success</declname>
@@ -445,7 +1080,40 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="74" column="8"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="99" column="8"/>
+      </memberdef>
+      <memberdef kind="signal" id="classiros__llm__rviz__panel_1_1LlmPanel_1ace4037a1782ec5aa89e9e506bf2b4f13" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::eventReceived</definition>
+        <argsstring>(qint64 stamp_ms, int channel, QString trigger, QString output, QString reason)</argsstring>
+        <name>eventReceived</name>
+        <param>
+          <type>qint64</type>
+          <declname>stamp_ms</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>channel</declname>
+        </param>
+        <param>
+          <type>QString</type>
+          <declname>trigger</declname>
+        </param>
+        <param>
+          <type>QString</type>
+          <declname>output</declname>
+        </param>
+        <param>
+          <type>QString</type>
+          <declname>reason</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="100" column="8"/>
       </memberdef>
       </sectiondef>
       <sectiondef kind="private-slot">
@@ -460,7 +1128,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="78" column="8"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="105" column="8"/>
       </memberdef>
       <memberdef kind="slot" id="classiros__llm__rviz__panel_1_1LlmPanel_1afd05b8010fcdfe147f5c3971468b4504" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>void</type>
@@ -473,12 +1141,55 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="79" column="8"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="106" column="8"/>
       </memberdef>
-      <memberdef kind="slot" id="classiros__llm__rviz__panel_1_1LlmPanel_1a7223e6950652d711e8086ff82780cf42" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+      <memberdef kind="slot" id="classiros__llm__rviz__panel_1_1LlmPanel_1ae60cd64513a41a4aec9f28aadbb9a716" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::onPreviewToggled</definition>
+        <argsstring>(bool on)</argsstring>
+        <name>onPreviewToggled</name>
+        <param>
+          <type>bool</type>
+          <declname>on</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="107" column="8"/>
+      </memberdef>
+      <memberdef kind="slot" id="classiros__llm__rviz__panel_1_1LlmPanel_1a64041c5e8f04a7939d8cd4f8d05f0f26" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::onExecutePending</definition>
+        <argsstring>()</argsstring>
+        <name>onExecutePending</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="108" column="8"/>
+      </memberdef>
+      <memberdef kind="slot" id="classiros__llm__rviz__panel_1_1LlmPanel_1a4887927e21b774bd3a38eb41f7bec1f7" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::onCancelPending</definition>
+        <argsstring>()</argsstring>
+        <name>onCancelPending</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="109" column="8"/>
+      </memberdef>
+      <memberdef kind="slot" id="classiros__llm__rviz__panel_1_1LlmPanel_1af5583535c87da882279e2112062ad5f2" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>void</type>
         <definition>void iros_llm_rviz_panel::LlmPanel::onUpdateStatus</definition>
-        <argsstring>(QString mode, QString action_status, QString active_action, QString last_error, bool llm_thinking)</argsstring>
+        <argsstring>(QString mode, QString action_status, QString active_action, QString last_error, QString action_summary, bool llm_thinking)</argsstring>
         <name>onUpdateStatus</name>
         <param>
           <type>QString</type>
@@ -497,6 +1208,10 @@
           <declname>last_error</declname>
         </param>
         <param>
+          <type>QString</type>
+          <declname>action_summary</declname>
+        </param>
+        <param>
           <type>bool</type>
           <declname>llm_thinking</declname>
         </param>
@@ -506,7 +1221,7 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="82" column="8"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="112" column="8"/>
       </memberdef>
       <memberdef kind="slot" id="classiros__llm__rviz__panel_1_1LlmPanel_1a474e296a48fa48f38dd7b7a4f7030931" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>void</type>
@@ -523,16 +1238,20 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="87" column="8"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="118" column="8"/>
       </memberdef>
-      <memberdef kind="slot" id="classiros__llm__rviz__panel_1_1LlmPanel_1a5d5d68e40c9a44b61f74fc7f3c3dd9c7" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+      <memberdef kind="slot" id="classiros__llm__rviz__panel_1_1LlmPanel_1a5af5e7acc43b5f6948b7c2708c434528" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>void</type>
         <definition>void iros_llm_rviz_panel::LlmPanel::onChatStage</definition>
-        <argsstring>(QString stage)</argsstring>
+        <argsstring>(QString stage, QString detail)</argsstring>
         <name>onChatStage</name>
         <param>
           <type>QString</type>
           <declname>stage</declname>
+        </param>
+        <param>
+          <type>QString</type>
+          <declname>detail</declname>
         </param>
         <briefdescription>
         </briefdescription>
@@ -540,13 +1259,63 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="88" column="8"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="119" column="8"/>
       </memberdef>
-      <memberdef kind="slot" id="classiros__llm__rviz__panel_1_1LlmPanel_1a19b847398f4eaba4e85a29982053b1e9" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+      <memberdef kind="slot" id="classiros__llm__rviz__panel_1_1LlmPanel_1aa6a55fa7fc44a0d468224523f9af4f5e" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>void</type>
         <definition>void iros_llm_rviz_panel::LlmPanel::onChatFinished</definition>
-        <argsstring>(bool success, QString info)</argsstring>
+        <argsstring>(bool success, QString info, QString final_reply, QString plan_json)</argsstring>
         <name>onChatFinished</name>
+        <param>
+          <type>bool</type>
+          <declname>success</declname>
+        </param>
+        <param>
+          <type>QString</type>
+          <declname>info</declname>
+        </param>
+        <param>
+          <type>QString</type>
+          <declname>final_reply</declname>
+        </param>
+        <param>
+          <type>QString</type>
+          <declname>plan_json</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="120" column="8"/>
+      </memberdef>
+      <memberdef kind="slot" id="classiros__llm__rviz__panel_1_1LlmPanel_1a811b2c95c95a87297514e1c65618bceb" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::onExecStage</definition>
+        <argsstring>(QString stage, QString detail)</argsstring>
+        <name>onExecStage</name>
+        <param>
+          <type>QString</type>
+          <declname>stage</declname>
+        </param>
+        <param>
+          <type>QString</type>
+          <declname>detail</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="122" column="8"/>
+      </memberdef>
+      <memberdef kind="slot" id="classiros__llm__rviz__panel_1_1LlmPanel_1a0e8d83e873f01611b21d3db78b250bfc" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::onExecFinished</definition>
+        <argsstring>(bool success, QString info)</argsstring>
+        <name>onExecFinished</name>
         <param>
           <type>bool</type>
           <declname>success</declname>
@@ -561,7 +1330,53 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="89" column="8"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="123" column="8"/>
+      </memberdef>
+      <memberdef kind="slot" id="classiros__llm__rviz__panel_1_1LlmPanel_1ac5cb0afca400fe585f0de0e521a07fcf" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::onEventReceived</definition>
+        <argsstring>(qint64 stamp_ms, int channel, QString trigger, QString output, QString reason)</argsstring>
+        <name>onEventReceived</name>
+        <param>
+          <type>qint64</type>
+          <declname>stamp_ms</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>channel</declname>
+        </param>
+        <param>
+          <type>QString</type>
+          <declname>trigger</declname>
+        </param>
+        <param>
+          <type>QString</type>
+          <declname>output</declname>
+        </param>
+        <param>
+          <type>QString</type>
+          <declname>reason</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="124" column="8"/>
+      </memberdef>
+      <memberdef kind="slot" id="classiros__llm__rviz__panel_1_1LlmPanel_1a2bd413bd01f0cdda161f101cd8af5443" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::onMarkerTick</definition>
+        <argsstring>()</argsstring>
+        <name>onMarkerTick</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="128" column="8"/>
       </memberdef>
       </sectiondef>
       <sectiondef kind="private-func">
@@ -576,7 +1391,88 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="92" column="8"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="132" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1a4263771a14a520394dfdd0706682a010" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::buildStatusRow</definition>
+        <argsstring>(QHBoxLayout *row)</argsstring>
+        <name>buildStatusRow</name>
+        <param>
+          <type>QHBoxLayout *</type>
+          <declname>row</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="133" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1a6fd7dcf11dad355231ebfba9f6ab336d" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::buildQuickActions</definition>
+        <argsstring>()</argsstring>
+        <name>buildQuickActions</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="134" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1a7c81e50b436e3ab8138b68c7f8173cd0" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::buildChatTab</definition>
+        <argsstring>(QWidget *tab)</argsstring>
+        <name>buildChatTab</name>
+        <param>
+          <type>QWidget *</type>
+          <declname>tab</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="135" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1a65a28d605db55f7fc671c6d91efbdd20" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::buildMapfTab</definition>
+        <argsstring>(QWidget *tab)</argsstring>
+        <name>buildMapfTab</name>
+        <param>
+          <type>QWidget *</type>
+          <declname>tab</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="136" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1acf83a2ba5696e54c7b34095966d789f9" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::buildEventsTab</definition>
+        <argsstring>(QWidget *tab)</argsstring>
+        <name>buildEventsTab</name>
+        <param>
+          <type>QWidget *</type>
+          <declname>tab</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="137" column="8"/>
       </memberdef>
       <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1a02a9390a6a04bf1a24210aaa6ab981ef" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>void</type>
@@ -589,13 +1485,98 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="93" column="8"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="138" column="8"/>
       </memberdef>
-      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1ae675bba7ac51f1e83d3fad52fcf0f9f7" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1acbd0f66e375aabb0674b59d810caa80e" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
         <type>void</type>
-        <definition>void iros_llm_rviz_panel::LlmPanel::publishMarkers</definition>
+        <definition>void iros_llm_rviz_panel::LlmPanel::loadMapYaml</definition>
+        <argsstring>()</argsstring>
+        <name>loadMapYaml</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="152" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1a084b51b759489031c0e1b4c673777cde" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::rebuildQuickActions</definition>
+        <argsstring>()</argsstring>
+        <name>rebuildQuickActions</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="153" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1aebc2d17b46a0c54290907c954a6b4be9" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::sendHomeForGroup</definition>
+        <argsstring>(const RobotGroup &amp;g)</argsstring>
+        <name>sendHomeForGroup</name>
+        <param>
+          <type>const RobotGroup &amp;</type>
+          <declname>g</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="156" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1aa46ea7bc5faddb976278c651cb5372bb" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::sendFormationLineAt</definition>
+        <argsstring>(const FormationZone &amp;z, const RobotGroup &amp;g)</argsstring>
+        <name>sendFormationLineAt</name>
+        <param>
+          <type>const FormationZone &amp;</type>
+          <declname>z</declname>
+        </param>
+        <param>
+          <type>const RobotGroup &amp;</type>
+          <declname>g</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="157" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1a1c18d69adf51d2afa23a63b398609f79" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::sendChatGoal</definition>
+        <argsstring>(const QString &amp;text, bool execute_after_planning)</argsstring>
+        <name>sendChatGoal</name>
+        <param>
+          <type>const QString &amp;</type>
+          <declname>text</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>execute_after_planning</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="160" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1ac1aea61e64c18ac28ffbfbef0b9b296a" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::publishGoalMarkers</definition>
         <argsstring>(const BTState &amp;msg)</argsstring>
-        <name>publishMarkers</name>
+        <name>publishGoalMarkers</name>
         <param>
           <type>const BTState &amp;</type>
           <declname>msg</declname>
@@ -606,7 +1587,76 @@
         </detaileddescription>
         <inbodydescription>
         </inbodydescription>
-        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="94" column="8"/>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="163" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1ae4728888ee94143970424eb8d520df9b" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::publishArrowMarkers</definition>
+        <argsstring>()</argsstring>
+        <name>publishArrowMarkers</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="164" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1ac7270ae58ff9c9861874f443e690393a" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::publishFormationPolygon</definition>
+        <argsstring>()</argsstring>
+        <name>publishFormationPolygon</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="165" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1abb292fb030bc79aa982d84bf40d8d697" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::publishPreviewMarkers</definition>
+        <argsstring>()</argsstring>
+        <name>publishPreviewMarkers</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="166" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1afb8b7ca745ff70b33de6e0b35a2c88a1" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::clearPreviewMarkers</definition>
+        <argsstring>()</argsstring>
+        <name>clearPreviewMarkers</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="167" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__panel_1_1LlmPanel_1adfcde195b04518996b4f8b147a9a8131" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_panel::LlmPanel::renderPlanTree</definition>
+        <argsstring>(const QString &amp;plan_json)</argsstring>
+        <name>renderPlanTree</name>
+        <param>
+          <type>const QString &amp;</type>
+          <declname>plan_json</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="170" column="8"/>
       </memberdef>
       </sectiondef>
     <briefdescription>
@@ -635,44 +1685,111 @@
         </childnode>
       </node>
     </collaborationgraph>
-    <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="47" column="1" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="48" bodyend="122"/>
+    <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="66" column="1" bodyfile="include/iros_llm_rviz_panel/llm_panel.hpp" bodystart="67" bodyend="253"/>
     <listofallmembers>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a6a0c443abc7ced9d64ea8f37f1db58ec" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>action_badge_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ab6194acd45838ff8ea709a465773aff4" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>bounds_xmax_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a3dd1c77e1269fde19525aaaf0f93c417" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>bounds_xmin_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ab88b73e4b0ab05e2e8897f50fc0fdf83" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>bounds_ymax_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a4099470140876f50a337984d3cbcf0cc" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>bounds_ymin_</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1aa339fb6b264242d9b0b28ab377615efc" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>bt_state_sub_</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a20e565398fa94fb5d47301fef0a5c839" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>BTState</name></member>
-      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ace4927bb650279d69bba912da5b56156" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>btStateReceived</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a3b399679d68b433a6290fd9a44c52eb3" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>btStateReceived</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a7c81e50b436e3ab8138b68c7f8173cd0" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>buildChatTab</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1acf83a2ba5696e54c7b34095966d789f9" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>buildEventsTab</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a65a28d605db55f7fc671c6d91efbdd20" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>buildMapfTab</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a6fd7dcf11dad355231ebfba9f6ab336d" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>buildQuickActions</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a4263771a14a520394dfdd0706682a010" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>buildStatusRow</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a563fba37c74081a3a763e26a986ca950" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>buildUi</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a8475842bc23b62ee9154d610fd4e7b0f" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>cached_goals_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ab81b2ad85d3c3f78c954c13c390ba34c" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>cached_leader_ns_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a7237ebd8e19919aab997f824bc2016fb" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>cached_mode_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1aaab8759c4c194e0b75c02051f9ea903a" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>cached_robot_ids_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a53d8f1723fc871428661b808d5d9df5c" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>cached_state_mutex_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a05b8c9d82e9deae885cf6589e1c7f23f" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>cancel_button_</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a921f251e29da2408783c801da8fddad1" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>chat_client_</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a1dc623f25ba75418e52636eb10965cce" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>chat_in_flight_</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a06c3a350bcb6bd2f2201c246411a0253" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>chat_input_</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a6d74eb924d08379fbd1314c6f3103eed" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>chat_view_</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a2336ee465004b43e2745da18ecd4efd8" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>chatChunkReceived</name></member>
-      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ab296bf7ed1b2bb9c292389f3b08ab8d2" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>chatFinished</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1af13597ee8c39f652d036cd68c8c78830" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>chatFinished</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a3971a2426bbf9d27ca86d40edd2c74ce" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>ChatGoalH</name></member>
-      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a8de8cb1b19a6aab12a39bf19a927bd1f" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>chatStageReceived</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ab5bbe4aca0795a1e8cb177dbf77dd494" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>chatStageReceived</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1afb8b7ca745ff70b33de6e0b35a2c88a1" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>clearPreviewMarkers</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ae54f13ab53af8ef1fa87fb08527024ba" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>cmd_client_</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ae3a38a58870176489aab4865daee144e" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>error_label_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ae7cd9e976b1b80febb49b119cc219860" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>event_filter_decision_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a9190fd06e51af5051dccfb55006ab18d" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>event_filter_observer_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ab244faa9c20089f0d660c5017165c1ff" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>event_filter_user_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ace4037a1782ec5aa89e9e506bf2b4f13" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>eventReceived</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a87829dcdc38173b9d2bf56715ff982b6" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>events_sub_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a494dd9c38068f9af7c501e103f0f0032" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>events_table_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ae8dcce32a18da56bfe5be5923f5ef961" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>exec_client_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a546df40b4e9efeabcfe067473020684d" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>execFinished</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1af9b9cf60408b839deb2419681908fdc5" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>ExecGoalH</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a4257afea4a7400750f51b6c48a0296d7" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>execStageReceived</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a1f38bfc2926285a60035927cfbc21850" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>execute_button_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a2eaade300165229ff425290a6e54723a" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>formation_zones_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ad69f2032729a9b5d53932f080e5998a0" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>groups_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a4a90adbf1e0a188208fbb6e001b71108" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>kMaxEvents</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a23bafeb8b5338f56111a61d5b9bceadf" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>LlmChat</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a93e33c9469d19b4f52d65eccb0a5b148" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>LlmCommand</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a7eef344c6aea4d13208a72b7393ba647" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>LlmEvent</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a85b5bc18030d5b9c0f53c5d56ed2bb60" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>LlmExecutePlan</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a48edd2614f7258fafab14996d9cadbdd" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>LlmPanel</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a4f672e57c50bc84a37a3bd5b8c99194b" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>load</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1acbd0f66e375aabb0674b59d810caa80e" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>loadMapYaml</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a96516a0a6e9979ab718212032fc66e9b" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>map_name_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a7fb44d8bcdc0a16c86b2d56d8e04e2d5" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>mapf_active_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a4bf436618560ec41338248e28d2b87b4" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>mapf_active_spark_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a61fda5a79608f9d08b05ef5091299e72" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>mapf_arrived_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1af262009478c0073fc4025f034fca8055" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>mapf_arrived_spark_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1acec6a43b911e5a9ba3941ff513ca22a5" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>mapf_event_tail_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a41f83cc322850e7e2f9c6e31859c72f2" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>mapf_progress_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1abad8cb8de41ebe655795005f86d7f1ba" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>mapf_replans_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a63815c076087f2973d06cc42ed0fb5e3" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>mapf_robot_table_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1adae127a5a06cda2ab7193a1fa2606db5" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>mapf_stalled_</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a0afb213be0e88a3181668d905f24bfb9" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>marker_pub_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a18a2cb7e130f7651100f5eebc5960e1f" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>marker_timer_</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ad10f7fe7cc6c5d375d2a99c7eb0895bf" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>mode_badge_</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1aadaf894b2d261cd37bb89e2ded9c2644" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>node_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a4887927e21b774bd3a38eb41f7bec1f7" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>onCancelPending</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a474e296a48fa48f38dd7b7a4f7030931" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>onChatChunk</name></member>
-      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a19b847398f4eaba4e85a29982053b1e9" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>onChatFinished</name></member>
-      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a5d5d68e40c9a44b61f74fc7f3c3dd9c7" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>onChatStage</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1aa6a55fa7fc44a0d468224523f9af4f5e" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>onChatFinished</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a5af5e7acc43b5f6948b7c2708c434528" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>onChatStage</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ac5cb0afca400fe585f0de0e521a07fcf" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>onEventReceived</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a0e8d83e873f01611b21d3db78b250bfc" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>onExecFinished</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a811b2c95c95a87297514e1c65618bceb" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>onExecStage</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a64041c5e8f04a7939d8cd4f8d05f0f26" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>onExecutePending</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ad256a19474e8cd0319b58d81650ddcdf" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>onInitialize</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a2bd413bd01f0cdda161f101cd8af5443" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>onMarkerTick</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ae60cd64513a41a4aec9f28aadbb9a716" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>onPreviewToggled</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a1dcba9a246bf6c217b5c9e23aa9eabfe" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>onSendChat</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1afd05b8010fcdfe147f5c3971468b4504" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>onStopAll</name></member>
-      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a7223e6950652d711e8086ff82780cf42" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>onUpdateStatus</name></member>
-      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ae675bba7ac51f1e83d3fad52fcf0f9f7" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>publishMarkers</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1af5583535c87da882279e2112062ad5f2" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>onUpdateStatus</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ae221707091b8277e4624ffefe016a7c5" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>pending_plan_json_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ac706989912f1a7e60f16cbb51181c22c" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>plan_tree_view_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1aac4bdd55f148f1140b58594b8758550c" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>preview_mode_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1afa9f3b08a623dc3ab63255267558cb7b" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>preview_mode_checkbox_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ae4728888ee94143970424eb8d520df9b" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>publishArrowMarkers</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ac7270ae58ff9c9861874f443e690393a" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>publishFormationPolygon</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ac1aea61e64c18ac28ffbfbef0b9b296a" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>publishGoalMarkers</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1abb292fb030bc79aa982d84bf40d8d697" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>publishPreviewMarkers</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a7cb010055185495abe92c358b141c99d" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>quick_action_bar_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ad89b2c38ba0a94f1362be12ebfc30d4a" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>quick_action_row_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a084b51b759489031c0e1b4c673777cde" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>rebuildQuickActions</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1adfcde195b04518996b4f8b147a9a8131" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>renderPlanTree</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1aa1acf85d34349f54628d608e35c57712" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>save</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ae7c9050d82bd8836ed1c2b3743830ab6" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>send_button_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a1c18d69adf51d2afa23a63b398609f79" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>sendChatGoal</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1aa46ea7bc5faddb976278c651cb5372bb" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>sendFormationLineAt</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1aebc2d17b46a0c54290907c954a6b4be9" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>sendHomeForGroup</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a02a9390a6a04bf1a24210aaa6ab981ef" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>setupRos</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1abd7017307f8eade030d9af70b0ac6883" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>status_badge_</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a0d84a868891121250b7194c0a2a9cb10" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>stop_button_</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1acd678d35a804b271d10d916dd39d352b" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>tabs_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ac6081ea8706f3489d1da1e7eb6928cbd" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>tf_buffer_</name></member>
+      <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a26d268b38f67fb5c690699ba0d53f591" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>tf_listener_</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a7995077dd0731f95e7898b514fda3858" prot="private" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>thinking_label_</name></member>
       <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a80ab2fb1dbac3154e1aeaf1a522f6a14" prot="public" virt="non-virtual"><scope>iros_llm_rviz_panel::LlmPanel</scope><name>~LlmPanel</name></member>
     </listofallmembers>

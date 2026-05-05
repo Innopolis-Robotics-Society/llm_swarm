@@ -2,11 +2,32 @@
 <doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
   <compounddef id="namespaceiros__llm__rviz__panel" kind="namespace" language="C++">
     <compoundname>iros_llm_rviz_panel</compoundname>
+    <innerclass refid="structiros__llm__rviz__panel_1_1ActionSummary" prot="public">iros_llm_rviz_panel::ActionSummary</innerclass>
     <innerclass refid="classiros__llm__rviz__panel_1_1LlmPanel" prot="public">iros_llm_rviz_panel::LlmPanel</innerclass>
+    <innerclass refid="classiros__llm__rviz__panel_1_1Sparkline" prot="public">iros_llm_rviz_panel::Sparkline</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="action__summary_8hpp_1a6faf31c1ddac1ed3bf4dcd05aee98a0d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structiros__llm__rviz__panel_1_1ActionSummary" kindref="compound">ActionSummary</ref></type>
+        <definition>ActionSummary iros_llm_rviz_panel::parseActionSummary</definition>
+        <argsstring>(std::string_view line)</argsstring>
+        <name>parseActionSummary</name>
+        <param>
+          <type>std::string_view</type>
+          <declname>line</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_panel/action_summary.hpp" line="35" column="15" declfile="include/iros_llm_rviz_panel/action_summary.hpp" declline="35" declcolumn="15"/>
+      </memberdef>
+      </sectiondef>
     <briefdescription>
     </briefdescription>
     <detaileddescription>
     </detaileddescription>
-    <location file="include/iros_llm_rviz_panel/llm_panel.hpp" line="44" column="1"/>
+    <location file="include/iros_llm_rviz_panel/action_summary.hpp" line="21" column="1"/>
   </compounddef>
 </doxygen>

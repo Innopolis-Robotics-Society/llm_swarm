@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>File llm_panel.hpp &mdash; iros_llm_rviz_panel 0.0.1 documentation</title>
+  <title>File llm_panel.hpp &mdash; iros_llm_rviz_panel 0.0.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/collapsible-lists/css/tree_view.css?v=a885cde7" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="../_static/documentation_options.js?v=e3a6060d"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js?v=73120307"></script>
@@ -23,7 +23,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Program Listing for File llm_panel.hpp" href="program_listing_file_include_iros_llm_rviz_panel_llm_panel.hpp.html" />
-    <link rel="prev" title="Directory iros_llm_rviz_panel" href="dir_include_iros_llm_rviz_panel.html" /> 
+    <link rel="prev" title="Program Listing for File action_summary.hpp" href="program_listing_file_include_iros_llm_rviz_panel_action_summary.hpp.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -56,7 +56,15 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="index.html#classes-and-structs">Classes and Structs</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="structiros__llm__rviz__panel_1_1ActionSummary.html">Struct ActionSummary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structiros__llm__rviz__panel_1_1LlmPanel_1_1FormationZone.html">Struct LlmPanel::FormationZone</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structiros__llm__rviz__panel_1_1LlmPanel_1_1RobotGroup.html">Struct LlmPanel::RobotGroup</a></li>
 <li class="toctree-l4"><a class="reference internal" href="classiros__llm__rviz__panel_1_1LlmPanel.html">Class LlmPanel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classiros__llm__rviz__panel_1_1Sparkline.html">Class Sparkline</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#functions">Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="function_action__summary_8hpp_1a6faf31c1ddac1ed3bf4dcd05aee98a0d.html">Function iros_llm_rviz_panel::parseActionSummary</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="index.html#directories">Directories</a><ul>
@@ -65,7 +73,9 @@
 </ul>
 </li>
 <li class="toctree-l3 current"><a class="reference internal" href="index.html#files">Files</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_rviz_panel_action_summary.hpp.html">File action_summary.hpp</a></li>
 <li class="toctree-l4 current"><a class="current reference internal" href="#">File llm_panel.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_rviz_panel_sparkline.hpp.html">File sparkline.hpp</a></li>
 </ul>
 </li>
 </ul>
@@ -143,15 +153,23 @@
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">QString</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">QWidget</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">array</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cstdint</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">geometry_msgs/msg/point.hpp</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces/action/llm_chat.hpp</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces/action/llm_command.hpp</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces/action/llm_execute_plan.hpp</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces/msg/bt_state.hpp</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces/msg/llm_event.hpp</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">memory</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mutex</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">rclcpp/rclcpp.hpp</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">rclcpp_action/rclcpp_action.hpp</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">rviz_common/panel.hpp</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tf2_ros/buffer.h</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tf2_ros/transform_listener.h</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unordered_map</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">vector</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">visualization_msgs/msg/marker_array.hpp</span></code></p></li>
 </ul>
@@ -165,6 +183,8 @@
 <section id="classes">
 <h2>Classes<a class="headerlink" href="#classes" title="Link to this heading"></a></h2>
 <ul class="simple">
+<li><p><a class="reference internal" href="structiros__llm__rviz__panel_1_1LlmPanel_1_1FormationZone.html#exhale-struct-structiros-llm-rviz-panel-1-1llmpanel-1-1formationzone"><span class="std std-ref">Struct LlmPanel::FormationZone</span></a></p></li>
+<li><p><a class="reference internal" href="structiros__llm__rviz__panel_1_1LlmPanel_1_1RobotGroup.html#exhale-struct-structiros-llm-rviz-panel-1-1llmpanel-1-1robotgroup"><span class="std std-ref">Struct LlmPanel::RobotGroup</span></a></p></li>
 <li><p><a class="reference internal" href="classiros__llm__rviz__panel_1_1LlmPanel.html#exhale-class-classiros-llm-rviz-panel-1-1llmpanel"><span class="std std-ref">Class LlmPanel</span></a></p></li>
 </ul>
 </section>
@@ -174,7 +194,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="dir_include_iros_llm_rviz_panel.html" class="btn btn-neutral float-left" title="Directory iros_llm_rviz_panel" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="program_listing_file_include_iros_llm_rviz_panel_action_summary.hpp.html" class="btn btn-neutral float-left" title="Program Listing for File action_summary.hpp" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="program_listing_file_include_iros_llm_rviz_panel_llm_panel.hpp.html" class="btn btn-neutral float-right" title="Program Listing for File llm_panel.hpp" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

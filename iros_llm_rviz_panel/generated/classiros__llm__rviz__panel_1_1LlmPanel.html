@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Class LlmPanel &mdash; iros_llm_rviz_panel 0.0.1 documentation</title>
+  <title>Class LlmPanel &mdash; iros_llm_rviz_panel 0.0.2 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/collapsible-lists/css/tree_view.css?v=a885cde7" />
@@ -14,7 +14,7 @@
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="../_static/documentation_options.js?v=e3a6060d"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js?v=73120307"></script>
@@ -22,8 +22,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Directory include" href="dir_include.html" />
-    <link rel="prev" title="Namespace rviz_common" href="namespace_rviz_common.html" /> 
+    <link rel="next" title="Class Sparkline" href="classiros__llm__rviz__panel_1_1Sparkline.html" />
+    <link rel="prev" title="Struct LlmPanel::RobotGroup" href="structiros__llm__rviz__panel_1_1LlmPanel_1_1RobotGroup.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -56,7 +56,15 @@
 </ul>
 </li>
 <li class="toctree-l3 current"><a class="reference internal" href="index.html#classes-and-structs">Classes and Structs</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="structiros__llm__rviz__panel_1_1ActionSummary.html">Struct ActionSummary</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structiros__llm__rviz__panel_1_1LlmPanel_1_1FormationZone.html">Struct LlmPanel::FormationZone</a></li>
+<li class="toctree-l4"><a class="reference internal" href="structiros__llm__rviz__panel_1_1LlmPanel_1_1RobotGroup.html">Struct LlmPanel::RobotGroup</a></li>
 <li class="toctree-l4 current"><a class="current reference internal" href="#">Class LlmPanel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classiros__llm__rviz__panel_1_1Sparkline.html">Class Sparkline</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="index.html#functions">Functions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="function_action__summary_8hpp_1a6faf31c1ddac1ed3bf4dcd05aee98a0d.html">Function iros_llm_rviz_panel::parseActionSummary</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="index.html#directories">Directories</a><ul>
@@ -65,7 +73,9 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="index.html#files">Files</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_rviz_panel_action_summary.hpp.html">File action_summary.hpp</a></li>
 <li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_rviz_panel_llm_panel.hpp.html">File llm_panel.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_rviz_panel_sparkline.hpp.html">File sparkline.hpp</a></li>
 </ul>
 </li>
 </ul>
@@ -123,6 +133,16 @@
 <ul class="simple">
 <li><p>Defined in <a class="reference internal" href="file_include_iros_llm_rviz_panel_llm_panel.hpp.html#file-include-iros-llm-rviz-panel-llm-panel-hpp"><span class="std std-ref">File llm_panel.hpp</span></a></p></li>
 </ul>
+<section id="nested-relationships">
+<h2>Nested Relationships<a class="headerlink" href="#nested-relationships" title="Link to this heading"></a></h2>
+<section id="nested-types">
+<h3>Nested Types<a class="headerlink" href="#nested-types" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference internal" href="structiros__llm__rviz__panel_1_1LlmPanel_1_1FormationZone.html#exhale-struct-structiros-llm-rviz-panel-1-1llmpanel-1-1formationzone"><span class="std std-ref">Struct LlmPanel::FormationZone</span></a></p></li>
+<li><p><a class="reference internal" href="structiros__llm__rviz__panel_1_1LlmPanel_1_1RobotGroup.html#exhale-struct-structiros-llm-rviz-panel-1-1llmpanel-1-1robotgroup"><span class="std std-ref">Struct LlmPanel::RobotGroup</span></a></p></li>
+</ul>
+</section>
+</section>
 <section id="inheritance-relationships">
 <h2>Inheritance Relationships<a class="headerlink" href="#inheritance-relationships" title="Link to this heading"></a></h2>
 <section id="base-type">
@@ -145,6 +165,11 @@
 <dd></dd></dl>
 
 <dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel8LlmEventE">
+<span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel8LlmEventE"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel8LlmEventE"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1a7eef344c6aea4d13208a72b7393ba647"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LlmEvent</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">iros_llm_swarm_interfaces</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">msg</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">LlmEvent</span></span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel8LlmEventE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel10LlmCommandE">
 <span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel10LlmCommandE"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel10LlmCommandE"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1a93e33c9469d19b4f52d65eccb0a5b148"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LlmCommand</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">iros_llm_swarm_interfaces</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">action</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">LlmCommand</span></span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel10LlmCommandE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
@@ -155,8 +180,18 @@
 <dd></dd></dl>
 
 <dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel14LlmExecutePlanE">
+<span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel14LlmExecutePlanE"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel14LlmExecutePlanE"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1a85b5bc18030d5b9c0f53c5d56ed2bb60"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LlmExecutePlan</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">iros_llm_swarm_interfaces</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">action</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">LlmExecutePlan</span></span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel14LlmExecutePlanE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel9ChatGoalHE">
 <span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel9ChatGoalHE"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel9ChatGoalHE"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1a3971a2426bbf9d27ca86d40edd2c74ce"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ChatGoalH</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">rclcpp_action</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ClientGoalHandle</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel7LlmChatE" title="iros_llm_rviz_panel::LlmPanel::LlmChat"><span class="n"><span class="pre">LlmChat</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel9ChatGoalHE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel9ExecGoalHE">
+<span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel9ExecGoalHE"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel9ExecGoalHE"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1af9b9cf60408b839deb2419681908fdc5"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ExecGoalH</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">rclcpp_action</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ClientGoalHandle</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel14LlmExecutePlanE" title="iros_llm_rviz_panel::LlmPanel::LlmExecutePlan"><span class="n"><span class="pre">LlmExecutePlan</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel9ExecGoalHE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -191,8 +226,8 @@
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-signals">Signals</p>
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel15btStateReceivedE7QString7QString7QString7QStringb">
-<span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel15btStateReceivedE7QString7QString7QString7QStringb"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel15btStateReceivedE7QString7QString7QString7QStringb"></span><span id="iros_llm_rviz_panel::LlmPanel::btStateReceived__QString.QString.QString.QString.b"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1ace4927bb650279d69bba912da5b56156"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">btStateReceived</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mode</span></span>, <span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">action_status</span></span>, <span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">active_action</span></span>, <span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">last_error</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">llm_thinking</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel15btStateReceivedE7QString7QString7QString7QStringb" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel15btStateReceivedE7QString7QString7QString7QString7QStringb">
+<span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel15btStateReceivedE7QString7QString7QString7QString7QStringb"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel15btStateReceivedE7QString7QString7QString7QString7QStringb"></span><span id="iros_llm_rviz_panel::LlmPanel::btStateReceived__QString.QString.QString.QString.QString.b"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1a3b399679d68b433a6290fd9a44c52eb3"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">btStateReceived</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">mode</span></span>, <span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">action_status</span></span>, <span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">active_action</span></span>, <span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">last_error</span></span>, <span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">action_summary</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">llm_thinking</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel15btStateReceivedE7QString7QString7QString7QString7QStringb" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
@@ -201,13 +236,28 @@
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel17chatStageReceivedE7QString">
-<span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel17chatStageReceivedE7QString"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel17chatStageReceivedE7QString"></span><span id="iros_llm_rviz_panel::LlmPanel::chatStageReceived__QString"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1a8de8cb1b19a6aab12a39bf19a927bd1f"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">chatStageReceived</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stage</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel17chatStageReceivedE7QString" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel17chatStageReceivedE7QString7QString">
+<span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel17chatStageReceivedE7QString7QString"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel17chatStageReceivedE7QString7QString"></span><span id="iros_llm_rviz_panel::LlmPanel::chatStageReceived__QString.QString"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1ab5bbe4aca0795a1e8cb177dbf77dd494"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">chatStageReceived</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stage</span></span>, <span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">detail</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel17chatStageReceivedE7QString7QString" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel12chatFinishedEb7QString">
-<span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel12chatFinishedEb7QString"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel12chatFinishedEb7QString"></span><span id="iros_llm_rviz_panel::LlmPanel::chatFinished__b.QString"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1ab296bf7ed1b2bb9c292389f3b08ab8d2"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">chatFinished</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">success</span></span>, <span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">info</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel12chatFinishedEb7QString" title="Link to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel12chatFinishedEb7QString7QString7QString">
+<span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel12chatFinishedEb7QString7QString7QString"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel12chatFinishedEb7QString7QString7QString"></span><span id="iros_llm_rviz_panel::LlmPanel::chatFinished__b.QString.QString.QString"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1af13597ee8c39f652d036cd68c8c78830"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">chatFinished</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">success</span></span>, <span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">info</span></span>, <span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">final_reply</span></span>, <span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">plan_json</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel12chatFinishedEb7QString7QString7QString" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel17execStageReceivedE7QString7QString">
+<span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel17execStageReceivedE7QString7QString"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel17execStageReceivedE7QString7QString"></span><span id="iros_llm_rviz_panel::LlmPanel::execStageReceived__QString.QString"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1a4257afea4a7400750f51b6c48a0296d7"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">execStageReceived</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stage</span></span>, <span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">detail</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel17execStageReceivedE7QString7QString" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel12execFinishedEb7QString">
+<span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel12execFinishedEb7QString"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel12execFinishedEb7QString"></span><span id="iros_llm_rviz_panel::LlmPanel::execFinished__b.QString"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1a546df40b4e9efeabcfe067473020684d"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">execFinished</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">success</span></span>, <span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">info</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel12execFinishedEb7QString" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel13eventReceivedE6qint64i7QString7QString7QString">
+<span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel13eventReceivedE6qint64i7QString7QString7QString"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel13eventReceivedE6qint64i7QString7QString7QString"></span><span id="iros_llm_rviz_panel::LlmPanel::eventReceived__qint64.i.QString.QString.QString"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1ace4037a1782ec5aa89e9e506bf2b4f13"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">eventReceived</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">qint64</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">stamp_ms</span></span>, <span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">channel</span></span>, <span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">trigger</span></span>, <span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">output</span></span>, <span class="n"><span class="pre">QString</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">reason</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel13eventReceivedE6qint64i7QString7QString7QString" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>
@@ -220,8 +270,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="namespace_rviz_common.html" class="btn btn-neutral float-left" title="Namespace rviz_common" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="dir_include.html" class="btn btn-neutral float-right" title="Directory include" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="structiros__llm__rviz__panel_1_1LlmPanel_1_1RobotGroup.html" class="btn btn-neutral float-left" title="Struct LlmPanel::RobotGroup" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="classiros__llm__rviz__panel_1_1Sparkline.html" class="btn btn-neutral float-right" title="Class Sparkline" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

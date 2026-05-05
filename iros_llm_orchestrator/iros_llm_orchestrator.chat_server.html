@@ -54,6 +54,7 @@
 <li class="toctree-l3 current"><a class="reference internal" href="iros_llm_orchestrator.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l4 current"><a class="current reference internal" href="#">iros_llm_orchestrator.chat_server module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.decision_server.html">iros_llm_orchestrator.decision_server module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.execute_server.html">iros_llm_orchestrator.execute_server module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.passive_observer.html">iros_llm_orchestrator.passive_observer module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.user_chat_node.html">iros_llm_orchestrator.user_chat_node module</a></li>
 </ul>
@@ -113,11 +114,10 @@ clients can drive the LLM without owning stdin.</p>
 “reply” string, not the surrounding envelope. The same state machine
 user_chat_node uses for live printing runs here, so the panel doesn’t
 display raw <cite>{“reply”:”…”}</cite> JSON to the operator.</p></li>
-<li><p>Mission completion. PlanExecutor leaves are sent via /llm/command,
-but LlmCommand.Result fires as soon as ModeDispatch <em>accepts</em> the
-goal — the actual mission is still running. We wait for the BT to
-return &#64;mode→idle by watching /bt/state, otherwise the next leaf in
-a sequence would race the previous one.</p></li>
+<li><p>Mission completion. PlanExecutor leaves are sent via BTLeafSender,
+which watches /bt/state mode transitions to know when each leaf has
+actually finished — LlmCommand.Result alone fires as soon as the goal
+is accepted, while the mission is still running.</p></li>
 </ul>
 <dl class="py class">
 <dt class="sig sig-object py" id="iros_llm_orchestrator.chat_server.ChatServer">

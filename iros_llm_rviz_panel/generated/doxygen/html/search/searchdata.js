@@ -1,18 +1,21 @@
 var indexSectionsWithContent =
 {
-  0: "aceglmprs",
-  1: "aceglmprs"
+  0: "acegilmprs",
+  1: "aceglmprs",
+  2: "i"
 };
 
 var indexSectionNames =
 {
   0: "all",
-  1: "classes"
+  1: "classes",
+  2: "namespaces"
 };
 
 var indexSectionLabels =
 {
   0: "All",
-  1: "Classes"
+  1: "Classes",
+  2: "Namespaces"
 };
 

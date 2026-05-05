@@ -14,13 +14,14 @@ Program Listing for File llm_panel.hpp
    //
    // LlmPanel — RViz2 operator panel.
    //
-   // MVP scope:
-   //   - top status bar (mode / active_action / action_status / llm_thinking /
-   //     last_error) driven by /bt/state, with a STOP ALL button that publishes
-   //     LlmCommand{mode=idle} on /llm/command
-   //   - Chat tab: action client to /llm/chat with streaming via feedback
-   //   - MarkerArray publisher on /llm_panel/markers — goal spheres + labels for
-   //     each robot when mode=mapf
+   // Phases (see PANEL_ROADMAP.md):
+   //   MVP    — top status bar, Chat tab with streaming, STOP ALL, goal markers
+   //   2      — MAPF Live tab: counters, progress bar, sparklines, robot table
+   //   3      — LLM Events tab: /llm/events log with channel filters
+   //   4      — Preview & Execute via /llm/execute_plan (operator-confirmed)
+   //   5      — Quick actions strip (per-group home buttons)
+   //   6      — TF-aware arrows (robot pose → goal) and formation polygon
+   //   8      — Settings persistence via Panel::load/save
    //
    // Threading: ROS callbacks fire on the executor thread, GUI updates run on
    // the Qt main thread. The two are bridged exclusively through Qt signals
@@ -28,8 +29,12 @@ Program Listing for File llm_panel.hpp
    
    #pragma once
    
+   #include <array>
+   #include <cstdint>
    #include <memory>
+   #include <mutex>
    #include <string>
+   #include <unordered_map>
    #include <vector>
    
    #include <QString>
@@ -43,76 +48,153 @@ Program Listing for File llm_panel.hpp
    #include <geometry_msgs/msg/point.hpp>
    #include <visualization_msgs/msg/marker_array.hpp>
    
+   #include <tf2_ros/buffer.h>
+   #include <tf2_ros/transform_listener.h>
+   
    #include <iros_llm_swarm_interfaces/msg/bt_state.hpp>
+   #include <iros_llm_swarm_interfaces/msg/llm_event.hpp>
    #include <iros_llm_swarm_interfaces/action/llm_command.hpp>
    #include <iros_llm_swarm_interfaces/action/llm_chat.hpp>
+   #include <iros_llm_swarm_interfaces/action/llm_execute_plan.hpp>
    
+   class QCheckBox;
+   class QHBoxLayout;
    class QLabel;
    class QLineEdit;
+   class QProgressBar;
    class QPushButton;
    class QTabWidget;
+   class QTableWidget;
    class QTextEdit;
+   class QTimer;
+   class QToolButton;
+   class QTreeWidget;
    
    namespace iros_llm_rviz_panel
    {
+   
+   class Sparkline;
    
    class LlmPanel : public rviz_common::Panel
    {
      Q_OBJECT
    
    public:
-     using BTState    = iros_llm_swarm_interfaces::msg::BTState;
-     using LlmCommand = iros_llm_swarm_interfaces::action::LlmCommand;
-     using LlmChat    = iros_llm_swarm_interfaces::action::LlmChat;
-     using ChatGoalH  = rclcpp_action::ClientGoalHandle<LlmChat>;
+     using BTState         = iros_llm_swarm_interfaces::msg::BTState;
+     using LlmEvent        = iros_llm_swarm_interfaces::msg::LlmEvent;
+     using LlmCommand      = iros_llm_swarm_interfaces::action::LlmCommand;
+     using LlmChat         = iros_llm_swarm_interfaces::action::LlmChat;
+     using LlmExecutePlan  = iros_llm_swarm_interfaces::action::LlmExecutePlan;
+     using ChatGoalH       = rclcpp_action::ClientGoalHandle<LlmChat>;
+     using ExecGoalH       = rclcpp_action::ClientGoalHandle<LlmExecutePlan>;
    
      explicit LlmPanel(QWidget * parent = nullptr);
      ~LlmPanel() override;
    
-     // rviz_common::Panel interface
      void onInitialize() override;
      void load(const rviz_common::Config & config) override;
      void save(rviz_common::Config config) const override;
    
    Q_SIGNALS:
-     // Emitted from the ROS executor thread, consumed on the Qt main thread.
+     // ROS-thread → GUI-thread bridges. Always wired with Qt::QueuedConnection.
      void btStateReceived(QString mode,
                           QString action_status,
                           QString active_action,
                           QString last_error,
+                          QString action_summary,
                           bool    llm_thinking);
      void chatChunkReceived(QString chunk);
-     void chatStageReceived(QString stage);
-     void chatFinished(bool success, QString info);
+     void chatStageReceived(QString stage, QString detail);
+     void chatFinished(bool success, QString info,
+                       QString final_reply, QString plan_json);
+     void execStageReceived(QString stage, QString detail);
+     void execFinished(bool success, QString info);
+     void eventReceived(qint64 stamp_ms, int channel,
+                        QString trigger, QString output, QString reason);
    
    private Q_SLOTS:
-     // User-facing actions
+     // User actions
      void onSendChat();
      void onStopAll();
+     void onPreviewToggled(bool on);
+     void onExecutePending();
+     void onCancelPending();
    
-     // GUI-thread handlers for ROS-thread signals
+     // ROS-thread signal handlers
      void onUpdateStatus(QString mode,
                          QString action_status,
                          QString active_action,
                          QString last_error,
+                         QString action_summary,
                          bool    llm_thinking);
      void onChatChunk(QString chunk);
-     void onChatStage(QString stage);
-     void onChatFinished(bool success, QString info);
+     void onChatStage(QString stage, QString detail);
+     void onChatFinished(bool success, QString info,
+                         QString final_reply, QString plan_json);
+     void onExecStage(QString stage, QString detail);
+     void onExecFinished(bool success, QString info);
+     void onEventReceived(qint64 stamp_ms, int channel,
+                          QString trigger, QString output, QString reason);
+   
+     // Periodic refresh — sparklines, TF arrows.
+     void onMarkerTick();
    
    private:
+     // ---- Construction ------------------------------------------------------
      void buildUi();
+     void buildStatusRow(QHBoxLayout * row);
+     void buildQuickActions();
+     void buildChatTab(QWidget * tab);
+     void buildMapfTab(QWidget * tab);
+     void buildEventsTab(QWidget * tab);
      void setupRos();
-     void publishMarkers(const BTState & msg);
+   
+     // ---- Map YAML ----------------------------------------------------------
+     struct RobotGroup {
+       std::string         color;
+       std::vector<int>    ids;
+       std::pair<double, double> home{0.0, 0.0};
+       std::unordered_map<std::string, std::pair<double, double>> spawn;
+     };
+     struct FormationZone {
+       std::string name;
+       std::pair<double, double> coords{0.0, 0.0};
+       double radius{0.0};
+     };
+     void loadMapYaml();
+     void rebuildQuickActions();
+   
+     // ---- Quick actions -----------------------------------------------------
+     void sendHomeForGroup(const RobotGroup & g);
+     void sendFormationLineAt(const FormationZone & z, const RobotGroup & g);
+   
+     // ---- Chat / Exec dispatch ---------------------------------------------
+     void sendChatGoal(const QString & text, bool execute_after_planning);
+   
+     // ---- Markers -----------------------------------------------------------
+     void publishGoalMarkers(const BTState & msg);
+     void publishArrowMarkers();
+     void publishFormationPolygon();
+     void publishPreviewMarkers();
+     void clearPreviewMarkers();
+   
+     // ---- Plan tree ---------------------------------------------------------
+     void renderPlanTree(const QString & plan_json);
    
      // Shared ROS node — borrowed from RViz, never owned.
      rclcpp::Node::SharedPtr node_;
    
      // Subscriptions / publishers / clients
      rclcpp::Subscription<BTState>::SharedPtr                          bt_state_sub_;
+     rclcpp::Subscription<LlmEvent>::SharedPtr                         events_sub_;
      rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr marker_pub_;
      rclcpp_action::Client<LlmChat>::SharedPtr                         chat_client_;
      rclcpp_action::Client<LlmCommand>::SharedPtr                      cmd_client_;
+     rclcpp_action::Client<LlmExecutePlan>::SharedPtr                  exec_client_;
+   
+     // TF
+     std::shared_ptr<tf2_ros::Buffer>            tf_buffer_;
+     std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
    
      // ---- Widgets — top status bar -----------------------------------------
      QLabel      * mode_badge_     {nullptr};
@@ -122,15 +204,64 @@ Program Listing for File llm_panel.hpp
      QLabel      * error_label_    {nullptr};
      QPushButton * stop_button_    {nullptr};
    
+     // ---- Widgets — quick actions strip ------------------------------------
+     QWidget     * quick_action_bar_  {nullptr};
+     QHBoxLayout * quick_action_row_  {nullptr};
+   
      // ---- Widgets — chat tab -----------------------------------------------
-     QTextEdit   * chat_view_      {nullptr};
-     QLineEdit   * chat_input_     {nullptr};
-     QPushButton * send_button_    {nullptr};
+     QTextEdit   * chat_view_              {nullptr};
+     QLineEdit   * chat_input_             {nullptr};
+     QPushButton * send_button_            {nullptr};
+     QCheckBox   * preview_mode_checkbox_  {nullptr};
+     QTreeWidget * plan_tree_view_         {nullptr};
+     QPushButton * execute_button_         {nullptr};
+     QPushButton * cancel_button_          {nullptr};
    
-     QTabWidget  * tabs_           {nullptr};
+     // ---- Widgets — MAPF tab -----------------------------------------------
+     QProgressBar * mapf_progress_   {nullptr};
+     QLabel       * mapf_arrived_    {nullptr};
+     QLabel       * mapf_active_     {nullptr};
+     QLabel       * mapf_stalled_    {nullptr};
+     QLabel       * mapf_replans_    {nullptr};
+     QLabel       * mapf_event_tail_ {nullptr};
+     Sparkline    * mapf_active_spark_  {nullptr};
+     Sparkline    * mapf_arrived_spark_ {nullptr};
+     QTableWidget * mapf_robot_table_   {nullptr};
    
-     // ---- State ------------------------------------------------------------
-     bool chat_in_flight_{false};
+     // ---- Widgets — events tab ---------------------------------------------
+     QTableWidget * events_table_              {nullptr};
+     QCheckBox    * event_filter_decision_     {nullptr};
+     QCheckBox    * event_filter_observer_     {nullptr};
+     QCheckBox    * event_filter_user_         {nullptr};
+   
+     QTabWidget   * tabs_   {nullptr};
+   
+     // ---- Cached BT state for marker timer (read on GUI thread) ------------
+     std::mutex                                cached_state_mutex_;
+     std::string                               cached_mode_;
+     std::vector<uint32_t>                     cached_robot_ids_;
+     std::vector<geometry_msgs::msg::Point>    cached_goals_;
+     std::string                               cached_leader_ns_;
+   
+     // ---- Plan preview state ------------------------------------------------
+     QString  pending_plan_json_;
+     bool     preview_mode_  {false};
+   
+     // ---- Chat in-flight ----------------------------------------------------
+     bool chat_in_flight_ {false};
+   
+     // ---- Map context (for Phase 5/6) --------------------------------------
+     std::string                  map_name_      {"cave"};
+     std::vector<RobotGroup>      groups_;
+     std::vector<FormationZone>   formation_zones_;
+     double                       bounds_xmin_{-1e9}, bounds_xmax_{1e9};
+     double                       bounds_ymin_{-1e9}, bounds_ymax_{1e9};
+   
+     // ---- Periodic refresh --------------------------------------------------
+     QTimer * marker_timer_ {nullptr};
+   
+     // ---- Events buffering --------------------------------------------------
+     static constexpr int kMaxEvents = 500;
    };
    
    }  // namespace iros_llm_rviz_panel

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['llmpanel_7',['LlmPanel',['../classiros__llm__rviz__panel_1_1LlmPanel.html',1,'iros_llm_rviz_panel']]]
+  ['iros_5fllm_5frviz_5ftool_8',['iros_llm_rviz_tool',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_rviz_tool/generated/doxygen/html/structiros__llm__rviz__tool_1_1MapBounds.html',1,'']]]
 ];
