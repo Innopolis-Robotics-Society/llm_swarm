@@ -189,7 +189,6 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">QTableWidget</span><span class="p">;</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">QTextEdit</span><span class="p">;</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">QTimer</span><span class="p">;</span>
-<span class="k">class</span><span class="w"> </span><span class="nc">QToolButton</span><span class="p">;</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">QTreeWidget</span><span class="p">;</span>
 
 <span class="k">namespace</span><span class="w"> </span><span class="nn">iros_llm_rviz_panel</span>
@@ -265,10 +264,10 @@
 <span class="w">  </span><span class="c1">// ---- Construction ------------------------------------------------------</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">buildUi</span><span class="p">();</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">buildStatusRow</span><span class="p">(</span><span class="n">QHBoxLayout</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">row</span><span class="p">);</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">buildQuickActions</span><span class="p">();</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">buildChatTab</span><span class="p">(</span><span class="n">QWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tab</span><span class="p">);</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">buildMapfTab</span><span class="p">(</span><span class="n">QWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tab</span><span class="p">);</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">buildEventsTab</span><span class="p">(</span><span class="n">QWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tab</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">buildBtTab</span><span class="p">(</span><span class="n">QWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tab</span><span class="p">);</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">setupRos</span><span class="p">();</span>
 
 <span class="w">  </span><span class="c1">// ---- Map YAML ----------------------------------------------------------</span>
@@ -284,11 +283,6 @@
 <span class="w">    </span><span class="kt">double</span><span class="w"> </span><span class="n">radius</span><span class="p">{</span><span class="mf">0.0</span><span class="p">};</span>
 <span class="w">  </span><span class="p">};</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">loadMapYaml</span><span class="p">();</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">rebuildQuickActions</span><span class="p">();</span>
-
-<span class="w">  </span><span class="c1">// ---- Quick actions -----------------------------------------------------</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">sendHomeForGroup</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">RobotGroup</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">g</span><span class="p">);</span>
-<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">sendFormationLineAt</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">FormationZone</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">z</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="n">RobotGroup</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">g</span><span class="p">);</span>
 
 <span class="w">  </span><span class="c1">// ---- Chat / Exec dispatch ---------------------------------------------</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">sendChatGoal</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">text</span><span class="p">,</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">execute_after_planning</span><span class="p">);</span>
@@ -326,10 +320,6 @@
 <span class="w">  </span><span class="n">QLabel</span><span class="w">      </span><span class="o">*</span><span class="w"> </span><span class="n">error_label_</span><span class="w">    </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
 <span class="w">  </span><span class="n">QPushButton</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">stop_button_</span><span class="w">    </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
 
-<span class="w">  </span><span class="c1">// ---- Widgets — quick actions strip ------------------------------------</span>
-<span class="w">  </span><span class="n">QWidget</span><span class="w">     </span><span class="o">*</span><span class="w"> </span><span class="n">quick_action_bar_</span><span class="w">  </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
-<span class="w">  </span><span class="n">QHBoxLayout</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">quick_action_row_</span><span class="w">  </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
-
 <span class="w">  </span><span class="c1">// ---- Widgets — chat tab -----------------------------------------------</span>
 <span class="w">  </span><span class="n">QTextEdit</span><span class="w">   </span><span class="o">*</span><span class="w"> </span><span class="n">chat_view_</span><span class="w">              </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
 <span class="w">  </span><span class="n">QLineEdit</span><span class="w">   </span><span class="o">*</span><span class="w"> </span><span class="n">chat_input_</span><span class="w">             </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
@@ -356,14 +346,20 @@
 <span class="w">  </span><span class="n">QCheckBox</span><span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="n">event_filter_observer_</span><span class="w">     </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
 <span class="w">  </span><span class="n">QCheckBox</span><span class="w">    </span><span class="o">*</span><span class="w"> </span><span class="n">event_filter_user_</span><span class="w">         </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
 
+<span class="w">  </span><span class="c1">// ---- Widgets — BT tab -------------------------------------------------</span>
+<span class="w">  </span><span class="n">QTableWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">bt_props_table_</span><span class="w">  </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QTableWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">bt_log_table_</span><span class="w">    </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+
 <span class="w">  </span><span class="n">QTabWidget</span><span class="w">   </span><span class="o">*</span><span class="w"> </span><span class="n">tabs_</span><span class="w">   </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
 
-<span class="w">  </span><span class="c1">// ---- Cached BT state for marker timer (read on GUI thread) ------------</span>
+<span class="w">  </span><span class="c1">// ---- Cached BT state for marker timer + BT tab (read on GUI thread) --</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w">                                </span><span class="n">cached_state_mutex_</span><span class="p">;</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w">                               </span><span class="n">cached_mode_</span><span class="p">;</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="w">                     </span><span class="n">cached_robot_ids_</span><span class="p">;</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">geometry_msgs</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">Point</span><span class="o">&gt;</span><span class="w">    </span><span class="n">cached_goals_</span><span class="p">;</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w">                               </span><span class="n">cached_leader_ns_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w">                               </span><span class="n">cached_formation_id_</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">int64_t</span><span class="w">                                   </span><span class="n">cached_stamp_ms_</span><span class="w">   </span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
 
 <span class="w">  </span><span class="c1">// ---- Plan preview state ------------------------------------------------</span>
 <span class="w">  </span><span class="n">QString</span><span class="w">  </span><span class="n">pending_plan_json_</span><span class="p">;</span>
@@ -371,6 +367,26 @@
 
 <span class="w">  </span><span class="c1">// ---- Chat in-flight ----------------------------------------------------</span>
 <span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">chat_in_flight_</span><span class="w"> </span><span class="p">{</span><span class="nb">false</span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// ---- MAPF tab finalization --------------------------------------------</span>
+<span class="w">  </span><span class="c1">// BT publishes action_summary while mapf is in flight, but stops once</span>
+<span class="w">  </span><span class="c1">// mode flips to idle — counters would otherwise freeze on the last</span>
+<span class="w">  </span><span class="c1">// in-flight snapshot (e.g. arrived=3/active=1 even after all 4 arrived).</span>
+<span class="w">  </span><span class="c1">// Cache the last parsed values so we can snap to completion on the</span>
+<span class="w">  </span><span class="c1">// mapf → idle transition.</span>
+<span class="w">  </span><span class="n">QString</span><span class="w"> </span><span class="n">prev_mode_</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">int</span><span class="w">     </span><span class="n">last_arrived_int_</span><span class="w"> </span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<span class="w">  </span><span class="kt">int</span><span class="w">     </span><span class="n">last_active_int_</span><span class="w">  </span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w">    </span><span class="n">have_mapf_data_</span><span class="w">   </span><span class="p">{</span><span class="nb">false</span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// ---- BT transition log state ------------------------------------------</span>
+<span class="w">  </span><span class="c1">// Compared against the latest BTState to spot mode/status/action/error</span>
+<span class="w">  </span><span class="c1">// changes; suppressed on the very first message via bt_state_seen_.</span>
+<span class="w">  </span><span class="n">QString</span><span class="w"> </span><span class="n">prev_action_status_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">QString</span><span class="w"> </span><span class="n">prev_active_action_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">QString</span><span class="w"> </span><span class="n">prev_last_error_</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w">    </span><span class="n">bt_state_seen_</span><span class="w"> </span><span class="p">{</span><span class="nb">false</span><span class="p">};</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">kBtLogMax</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">200</span><span class="p">;</span>
 
 <span class="w">  </span><span class="c1">// ---- Map context (for Phase 5/6) --------------------------------------</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w">                  </span><span class="n">map_name_</span><span class="w">      </span><span class="p">{</span><span class="s">&quot;cave&quot;</span><span class="p">};</span>

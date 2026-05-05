@@ -67,7 +67,6 @@ Program Listing for File llm_panel.hpp
    class QTableWidget;
    class QTextEdit;
    class QTimer;
-   class QToolButton;
    class QTreeWidget;
    
    namespace iros_llm_rviz_panel
@@ -143,10 +142,10 @@ Program Listing for File llm_panel.hpp
      // ---- Construction ------------------------------------------------------
      void buildUi();
      void buildStatusRow(QHBoxLayout * row);
-     void buildQuickActions();
      void buildChatTab(QWidget * tab);
      void buildMapfTab(QWidget * tab);
      void buildEventsTab(QWidget * tab);
+     void buildBtTab(QWidget * tab);
      void setupRos();
    
      // ---- Map YAML ----------------------------------------------------------
@@ -162,11 +161,6 @@ Program Listing for File llm_panel.hpp
        double radius{0.0};
      };
      void loadMapYaml();
-     void rebuildQuickActions();
-   
-     // ---- Quick actions -----------------------------------------------------
-     void sendHomeForGroup(const RobotGroup & g);
-     void sendFormationLineAt(const FormationZone & z, const RobotGroup & g);
    
      // ---- Chat / Exec dispatch ---------------------------------------------
      void sendChatGoal(const QString & text, bool execute_after_planning);
@@ -204,10 +198,6 @@ Program Listing for File llm_panel.hpp
      QLabel      * error_label_    {nullptr};
      QPushButton * stop_button_    {nullptr};
    
-     // ---- Widgets — quick actions strip ------------------------------------
-     QWidget     * quick_action_bar_  {nullptr};
-     QHBoxLayout * quick_action_row_  {nullptr};
-   
      // ---- Widgets — chat tab -----------------------------------------------
      QTextEdit   * chat_view_              {nullptr};
      QLineEdit   * chat_input_             {nullptr};
@@ -234,14 +224,20 @@ Program Listing for File llm_panel.hpp
      QCheckBox    * event_filter_observer_     {nullptr};
      QCheckBox    * event_filter_user_         {nullptr};
    
+     // ---- Widgets — BT tab -------------------------------------------------
+     QTableWidget * bt_props_table_  {nullptr};
+     QTableWidget * bt_log_table_    {nullptr};
+   
      QTabWidget   * tabs_   {nullptr};
    
-     // ---- Cached BT state for marker timer (read on GUI thread) ------------
+     // ---- Cached BT state for marker timer + BT tab (read on GUI thread) --
      std::mutex                                cached_state_mutex_;
      std::string                               cached_mode_;
      std::vector<uint32_t>                     cached_robot_ids_;
      std::vector<geometry_msgs::msg::Point>    cached_goals_;
      std::string                               cached_leader_ns_;
+     std::string                               cached_formation_id_;
+     int64_t                                   cached_stamp_ms_   {0};
    
      // ---- Plan preview state ------------------------------------------------
      QString  pending_plan_json_;
@@ -249,6 +245,26 @@ Program Listing for File llm_panel.hpp
    
      // ---- Chat in-flight ----------------------------------------------------
      bool chat_in_flight_ {false};
+   
+     // ---- MAPF tab finalization --------------------------------------------
+     // BT publishes action_summary while mapf is in flight, but stops once
+     // mode flips to idle — counters would otherwise freeze on the last
+     // in-flight snapshot (e.g. arrived=3/active=1 even after all 4 arrived).
+     // Cache the last parsed values so we can snap to completion on the
+     // mapf → idle transition.
+     QString prev_mode_;
+     int     last_arrived_int_ {0};
+     int     last_active_int_  {0};
+     bool    have_mapf_data_   {false};
+   
+     // ---- BT transition log state ------------------------------------------
+     // Compared against the latest BTState to spot mode/status/action/error
+     // changes; suppressed on the very first message via bt_state_seen_.
+     QString prev_action_status_;
+     QString prev_active_action_;
+     QString prev_last_error_;
+     bool    bt_state_seen_ {false};
+     static constexpr int kBtLogMax = 200;
    
      // ---- Map context (for Phase 5/6) --------------------------------------
      std::string                  map_name_      {"cave"};
