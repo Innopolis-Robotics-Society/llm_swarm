@@ -18,7 +18,6 @@ from rclpy.action import ActionClient
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
-from std_msgs.msg import String
 
 from iros_llm_swarm_interfaces.action import LlmCommand
 from iros_llm_swarm_interfaces.msg import BTState
@@ -208,13 +207,15 @@ class UserChatNode(Node):
         qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
                          history=HistoryPolicy.KEEP_LAST, depth=10)
         self.create_subscription(BTState, '/bt/state', self._on_bt_state, qos)
-        self.create_subscription(String,  '/fleet/mode', self._on_fleet_mode, 10)
 
         self._last_status        = 'OK'
         # _last_mode is written from ROS callback thread and read from asyncio
-        # loop thread — use a threading.Lock to protect it.
+        # loop thread — use a threading.Lock to protect it. Empty string is a
+        # sentinel meaning "no /bt/state seen yet" so the first tick always
+        # registers as a transition.
         self._mode_lock          = threading.Lock()
-        self._last_mode          = 'idle'
+        self._last_mode          = ''
+        self._mode_ever_busy     = False
         self._history: list[dict] = []
         self._bt_event_analyzing = False
 
@@ -240,6 +241,17 @@ class UserChatNode(Node):
     # ------------------------------------------------------------------
 
     def _on_bt_state(self, msg: BTState):
+        # Track @mode transitions — replaces the legacy /fleet/mode topic.
+        prev_mode = self._get_mode()
+        if msg.mode != prev_mode:
+            self._set_mode(msg.mode)
+            self._slog.debug(f'mode: {prev_mode!r} → {msg.mode!r}')
+            if msg.mode != 'idle':
+                self._mode_ever_busy = True
+            elif prev_mode and prev_mode != 'idle':
+                self._out(f'\n  {OK}  Step finished → idle')
+                self._prompt()
+
         if msg.action_status == self._last_status:
             return
         prev = self._last_status
@@ -263,15 +275,6 @@ class UserChatNode(Node):
             self._out(f'\n  {OK}  Status recovered → OK')
             self._slog.info('BT status recovered to OK')
             self._prompt()
-
-    def _on_fleet_mode(self, msg: String):
-        prev = self._get_mode()
-        if msg.data != prev:
-            self._set_mode(msg.data)
-            self._slog.debug(f'fleet_mode: {prev} → {msg.data}')
-            if prev != 'idle' and msg.data == 'idle':
-                self._out(f'\n  {OK}  Step finished → idle')
-                self._prompt()
 
     async def _handle_bt_event(self, msg: BTState):
         try:
@@ -417,20 +420,27 @@ class UserChatNode(Node):
 
         self._slog.debug('send_leaf: goal accepted and applied to blackboard')
 
-        # Step 2: wait at least 3 BT ticks (300ms) before checking idle.
+        # Reset the busy flag for this leaf so a stale "ever busy" from the
+        # previous step doesn't let us declare instant success on a goal the
+        # BT hasn't picked up yet.
+        self._mode_ever_busy = False
+
+        # Step 2: wait at least 3 BT ticks (~300ms) before checking idle.
         # Formation can complete in 1 tick — we need to let BT actually
-        # process the command before declaring "instantly done".
+        # process the command before declaring "instantly done". Fast-complete
+        # only counts if we genuinely saw the BT enter a non-idle mode and
+        # come back to idle within the grace window; otherwise we keep polling.
         await asyncio.sleep(0.35)
 
-        if self._get_mode() == 'idle':
-            self._slog.info('send_leaf: mode idle after 350ms — fast complete or instant fail')
+        if self._mode_ever_busy and self._get_mode() == 'idle':
+            self._slog.info('send_leaf: mode idle after 350ms — fast complete')
             return True
 
-        # Step 3: wait for fleet_mode to return to idle (mission done)
+        # Step 3: wait for /bt/state.mode to return to idle (mission done)
         deadline = time.monotonic() + self._step_timeout
         while time.monotonic() < deadline:
-            if self._get_mode() == 'idle':
-                self._slog.debug('send_leaf: mission complete (fleet_mode=idle)')
+            if self._mode_ever_busy and self._get_mode() == 'idle':
+                self._slog.debug('send_leaf: mission complete (mode=idle)')
                 return True
             await asyncio.sleep(0.1)
 
@@ -466,16 +476,27 @@ class UserChatNode(Node):
           BEFORE_REPLY  — scanning for :"  after "reply"
           IN_REPLY      — printing characters, watching for unescaped "
           AFTER_REPLY   — buffering silently
+
+        Inside IN_REPLY we honour JSON string escapes so the user sees
+        unescaped output (e.g. `\\"` → `"`, `\\n` → newline) instead of raw
+        backslash sequences.
         """
         BEFORE_REPLY, IN_REPLY, AFTER_REPLY = 0, 1, 2
         state = BEFORE_REPLY
+        # When True the next char in IN_REPLY is the body of a JSON escape.
+        in_escape = False
 
         full  = ''
         # Buffer of chars we've seen while in BEFORE_REPLY, used to detect
         # the "reply": " sequence reliably across chunk boundaries.
         scan  = ''
-        # Marker we look for to enter IN_REPLY state
-        MARKER = '"reply": "'
+        # Marker we look for to enter IN_REPLY state. Also try the no-space
+        # form because some models emit compact JSON.
+        MARKERS = ('"reply": "', '"reply":"')
+
+        ESCAPES = {'n': '\n', 't': '\t', 'r': '\r',
+                   'b': '\b', 'f': '\f',
+                   '"': '"', '\\': '\\', '/': '/'}
 
         print(f'{BOT} ', end='', flush=True)
 
@@ -488,20 +509,30 @@ class UserChatNode(Node):
             for ch in chunk:
                 if state == BEFORE_REPLY:
                     scan += ch
-                    # Keep only the last len(MARKER) chars to avoid blowing up
-                    if len(scan) > len(MARKER):
-                        scan = scan[-len(MARKER):]
-                    if scan.endswith(MARKER):
+                    # Keep only the last len(longest_marker) chars to avoid
+                    # unbounded growth.
+                    cap = max(len(m) for m in MARKERS)
+                    if len(scan) > cap:
+                        scan = scan[-cap:]
+                    if any(scan.endswith(m) for m in MARKERS):
                         state = IN_REPLY
                         scan  = ''
+                        in_escape = False
 
                 elif state == IN_REPLY:
-                    # End of reply value = unescaped closing quote
-                    if ch == '"' and not scan.endswith('\\'):
+                    if in_escape:
+                        decoded = ESCAPES.get(ch, ch)
+                        print(decoded, end='', flush=True)
+                        in_escape = False
+                    elif ch == '\\':
+                        # Buffer the backslash — wait for the next char to
+                        # decide whether to print an escape or a literal.
+                        in_escape = True
+                    elif ch == '"':
+                        # Unescaped closing quote — end of reply value.
                         state = AFTER_REPLY
                     else:
                         print(ch, end='', flush=True)
-                    scan = ch  # track last char for escape detection
 
         return full
 

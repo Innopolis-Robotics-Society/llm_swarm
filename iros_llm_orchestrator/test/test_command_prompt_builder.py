@@ -6,7 +6,7 @@ from iros_llm_orchestrator.common.command_prompt import (
     SYSTEM_PROMPT,
     build_command_prompt,
 )
-from iros_llm_orchestrator.command_scenarios import COMMAND_SCENARIOS
+from iros_llm_orchestrator.common.scenarios import COMMAND_SCENARIOS
 
 
 @dataclass
@@ -39,7 +39,7 @@ def test_current_situation_present():
     )
     history = [FakeBTState(stamp_ms=i) for i in range(5)]
     p = build_command_prompt(COMMAND_SCENARIOS, history, trigger)
-    assert '# Текущая ситуация' in p
+    assert '# Current situation' in p
     assert 'status=ERROR' in p
     assert 'retry budget exhausted' in p
 
@@ -49,6 +49,6 @@ def test_history_tail_limit():
     p = build_command_prompt(COMMAND_SCENARIOS, history, FakeBTState(), tail=5)
     # Only the last 5 snapshots of the current situation should appear.
     # The string 't=0ms' is from the earliest snapshot and must be dropped.
-    current = p.split('# Текущая ситуация', 1)[1]
+    current = p.split('# Current situation', 1)[1]
     assert 't=95ms' in current
     assert 't=0ms' not in current

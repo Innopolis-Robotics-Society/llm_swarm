@@ -1,11 +1,13 @@
-"""Unit tests for prompt_builder.build_few_shot_prompt()."""
+"""Unit tests for decision_prompt.build_decision_prompt()."""
 
-from iros_llm_orchestrator.common.decision_prompt import SYSTEM_PROMPT, build_few_shot_prompt
-from iros_llm_orchestrator.scenarios import SCENARIOS
+from iros_llm_orchestrator.common.decision_prompt import (
+    SYSTEM_PROMPT, build_decision_prompt)
+from iros_llm_orchestrator.common.scenarios import (
+    DECISION_SCENARIOS as SCENARIOS)
 
 
 def test_prompt_contains_system_prompt():
-    prompt = build_few_shot_prompt(
+    prompt = build_decision_prompt(
         scenarios=SCENARIOS,
         level='WARN',
         event='robot_2 stalled',
@@ -15,19 +17,19 @@ def test_prompt_contains_system_prompt():
 
 
 def test_prompt_contains_examples_section():
-    prompt = build_few_shot_prompt(
+    prompt = build_decision_prompt(
         scenarios=SCENARIOS,
         level='INFO',
         event='planner progressing normally',
         log_buffer=['[t=2000ms] INFO: progressing'],
     )
-    assert '# Примеры' in prompt
-    assert '## Вход' in prompt
-    assert '## Решение' in prompt
+    assert '# Examples' in prompt
+    assert '## Input' in prompt
+    assert '## Decision' in prompt
 
 
 def test_prompt_contains_every_scenario_event():
-    prompt = build_few_shot_prompt(
+    prompt = build_decision_prompt(
         scenarios=SCENARIOS,
         level='INFO',
         event='heartbeat',
@@ -38,13 +40,13 @@ def test_prompt_contains_every_scenario_event():
 
 
 def test_prompt_contains_current_situation():
-    prompt = build_few_shot_prompt(
+    prompt = build_decision_prompt(
         scenarios=SCENARIOS,
         level='WARN',
         event='fatal collision detected',
         log_buffer=['[t=3200ms status=failed] WARN: collision'],
     )
-    assert '# Текущая ситуация' in prompt
+    assert '# Current situation' in prompt
     assert 'level: WARN' in prompt
     assert 'event: fatal collision detected' in prompt
     assert '[t=3200ms status=failed] WARN: collision' in prompt
@@ -52,7 +54,7 @@ def test_prompt_contains_current_situation():
 
 def test_prompt_respects_tail_limit():
     logs = [f'log_{i}' for i in range(30)]
-    prompt = build_few_shot_prompt(
+    prompt = build_decision_prompt(
         scenarios=[],
         level='INFO',
         event='tail test',
@@ -66,25 +68,25 @@ def test_prompt_respects_tail_limit():
 
 
 def test_prompt_with_empty_log_buffer():
-    prompt = build_few_shot_prompt(
+    prompt = build_decision_prompt(
         scenarios=SCENARIOS,
         level='WARN',
         event='service-level failure',
         log_buffer=[],
     )
-    assert '# Текущая ситуация' in prompt
+    assert '# Current situation' in prompt
     assert 'event: service-level failure' in prompt
 
 
 def test_prompt_with_empty_scenarios_still_well_formed():
-    prompt = build_few_shot_prompt(
+    prompt = build_decision_prompt(
         scenarios=[],
         level='WARN',
         event='X',
         log_buffer=['a', 'b'],
     )
     assert SYSTEM_PROMPT.strip() in prompt
-    assert '# Текущая ситуация' in prompt
+    assert '# Current situation' in prompt
     assert 'event: X' in prompt
 
 
