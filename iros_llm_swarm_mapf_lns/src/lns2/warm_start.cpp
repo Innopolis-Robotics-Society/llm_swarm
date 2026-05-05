@@ -18,17 +18,6 @@ static std::int32_t chebyshev(const Cell& a, const Cell& b) {
   return std::max(std::abs(a.row - b.row), std::abs(a.col - b.col));
 }
 
-// Footprint-aware static validity: every offset cell is in-bounds & free.
-static bool footprint_fits(const Cell& base, const FootprintModel& fp,
-                            const GridMap& grid) {
-  for (const auto& off : fp.offsets) {
-    const Cell c = base + off;
-    if (!grid.in_bounds(c)) return false;
-    if (grid.is_blocked(c)) return false;
-  }
-  return true;
-}
-
 // Check that the tail of prev_path (from `from` inclusive to the end) is
 // statically valid under the current map + this agent's footprint.
 // We don't validate the head (already in the past).
@@ -164,11 +153,7 @@ static SeedResult make_seed_for_agent(const Agent& a,
                                        const Path& prev_path,
                                        Timestep delta,
                                        const Cell& actual_cell_in,
-                                       bool actual_is_valid,
                                        const WarmStartParams& params) {
-  // No odom — caller handles Missing.
-  (void)actual_is_valid;
-
   // The actual (odom-derived) cell may not be footprint-valid at the
   // current map resolution — e.g. a 0.22 m robot at 0.20 m resolution whose
   // 4-conn footprint clips a wall. Using such a cell as the seed's start
@@ -321,8 +306,7 @@ void build_warm_seed(const std::vector<Agent>& agents,
 
     SeedResult sr = make_seed_for_agent(a, grid, prev_path,
                                          prev.delta_steps,
-                                         actual_cell, /*actual_is_valid=*/true,
-                                         params);
+                                         actual_cell, params);
 
     rep.status[id] = sr.status;
     switch (sr.status) {

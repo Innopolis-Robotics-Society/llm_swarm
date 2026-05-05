@@ -80,9 +80,13 @@ int main()
   WarmStartReport rep;
   build_warm_seed(agents, grid, prev, actual, {}, params.astar.horizon,
                    &seed, &rep);
-  std::printf("warm: shifted=%zu patched=%zu stubbed=%zu coll=%zu\n",
-              rep.agents_shifted_exact, rep.agents_patched,
-              rep.agents_stubbed, rep.seed_collisions);
+  std::printf("warm: on_track=%zu spliced=%zu stubbed_far=%zu new=%zu "
+              "goal_changed=%zu invalid=%zu arrived=%zu missing=%zu coll=%zu\n",
+              rep.agents_on_track, rep.agents_spliced,
+              rep.agents_stubbed_far, rep.agents_new,
+              rep.agents_goal_changed, rep.agents_invalid,
+              rep.agents_arrived, rep.agents_missing,
+              rep.seed_collisions);
 
   bool use_warm = should_warm_start(rep, agents.size());
   std::printf("use_warm=%d\n", use_warm);

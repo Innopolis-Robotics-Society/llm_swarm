@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>iros_llm_orchestrator</name>
+  <version>0.0.1</version>
+  <description>
+    LLM decision action server for the Nav2 BT swarm.
+    Exposes /llm/decision (iros_llm_swarm_interfaces/action/LlmDecision)
+    so BT nodes can ask a Nemotron-class model for a wait / abort / replan
+    verdict on the current MAPF / formation state.
+  </description>
+
+  <maintainer email="you@example.com">you</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <depend>rclpy</depend>
+  <depend>launch</depend>
+  <depend>launch_ros</depend>
+  <depend>iros_llm_swarm_interfaces</depend>
+  <depend>geometry_msgs</depend>
+
+  <exec_depend>python3-aiohttp</exec_depend>
+
+  <test_depend>python3-pytest</test_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

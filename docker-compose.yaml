@@ -1,6 +1,10 @@
 x-common: &common-setup
   network_mode: host
   privileged: true
+  stdin_open: true
+  tty: true
+  image: fabook/iros:v0.0.3
+  working_dir: /home/fabian/ros2_ws
   volumes:
     - ${HOME}/.Xauthority:/home/fabian/.Xauthority:rw
     - .:/home/fabian/ros2_ws/src:rw
@@ -8,32 +12,40 @@ x-common: &common-setup
     - /dev/dri:/dev/dri:rw
     - /run/user/1000/pulse:/run/user/1000/pulse
     - /dev/v4l:/dev/v4l:ro
+  devices:
+    - /dev/video0:/dev/video0
+    - /dev/video1:/dev/video1
+    - /dev/snd:/dev/snd
+  group_add:
+    - "video"
+    - "44"
   environment:
-    - NVIDIA_VISIBLE_DEVICES=all
-    - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video,graphics,display
     - DISPLAY
     - QT_X11_NO_MITSHM=1
     - PULSE_SERVER=unix:/run/user/1000/pulse/native
-    #For DDS optimisation:
+    # DDS
     - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
     - ROS_DOMAIN_ID=42
     - CYCLONEDDS_URI=file:///home/fabian/ros2_ws/src/scripts/cyclonedds_swarm.xml
-  working_dir: /home/fabian/ros2_ws
+  command: ["/bin/bash", "-lc", "exec bash"]
 
 services:
+  # С GPU (CUDA / PyTorch)
   terminal:
     <<: *common-setup
-    image: fabook/iros:v0.0.3
-    stdin_open: true
-    tty: true
-    devices:
-      - /dev/video0:/dev/video0
-      - /dev/video1:/dev/video1
-      - /dev/snd:/dev/snd
-    group_add:
-      - "video"
-      - "44"
-    command: [
-      "/bin/bash","-lc","
-      exec bash"
-      ]
+    container_name: iros_terminal_gpu
+    gpus: all
+    environment:
+      - DISPLAY
+      - QT_X11_NO_MITSHM=1
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+      - ROS_DOMAIN_ID=42
+      - CYCLONEDDS_URI=file:///home/fabian/ros2_ws/src/scripts/cyclonedds_swarm.xml
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video,graphics,display
+
+  # Без GPU (CPU-only, для отладки на машинах без NVIDIA)
+  terminal-cpu:
+    <<: *common-setup
+    container_name: iros_terminal_cpu

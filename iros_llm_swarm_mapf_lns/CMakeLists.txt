@@ -31,6 +31,7 @@ add_library(lns2 STATIC
   src/lns2/destroy_operators.cpp
   src/lns2/lns2_solver.cpp
   src/lns2/warm_start.cpp
+  src/lns2/gridmap_utils.cpp
 )
 
 target_include_directories(lns2 PUBLIC
@@ -48,7 +49,12 @@ target_compile_options(lns2 PRIVATE
 # -------------------------------------------------------------------------
 # mapf_lns2_node (ROS 2 planner node)
 # -------------------------------------------------------------------------
-add_executable(mapf_lns2_node src/mapf_lns2_node.cpp)
+add_executable(mapf_lns2_node
+  src/mapf_lns2_node.cpp
+  src/node_utils.cpp
+  src/plan_publisher.cpp
+  src/robot_lifecycle.cpp
+)
 
 target_link_libraries(mapf_lns2_node lns2)
 

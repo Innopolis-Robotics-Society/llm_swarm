@@ -8,10 +8,13 @@ Panels:
         - /Status1
         - /Map1/Topic1
         - /TF1
+        - /TF1/Frames1
         - /Map2
         - /Polygon1
         - /Path7
         - /MarkerArray1
+        - /Map3
+        - /Map3/Topic1
       Splitter Ratio: 0.5
     Tree Height: 872
   - Class: rviz_common/Selection
@@ -78,129 +81,169 @@ Visualization Manager:
       Enabled: true
       Frame Timeout: 15
       Frames:
-        All Enabled: true
+        All Enabled: false
         map:
           Value: true
         robot_0/base_link:
+          Value: false
+        robot_0/front_marker:
           Value: true
         robot_0/laser:
-          Value: true
+          Value: false
         robot_0/odom:
-          Value: true
+          Value: false
         robot_1/base_link:
+          Value: false
+        robot_1/front_marker:
           Value: true
         robot_1/laser:
-          Value: true
+          Value: false
         robot_1/odom:
-          Value: true
+          Value: false
         robot_10/base_link:
+          Value: false
+        robot_10/front_marker:
           Value: true
         robot_10/laser:
-          Value: true
+          Value: false
         robot_10/odom:
-          Value: true
+          Value: false
         robot_11/base_link:
+          Value: false
+        robot_11/front_marker:
           Value: true
         robot_11/laser:
-          Value: true
+          Value: false
         robot_11/odom:
-          Value: true
+          Value: false
         robot_12/base_link:
+          Value: false
+        robot_12/front_marker:
           Value: true
         robot_12/laser:
-          Value: true
+          Value: false
         robot_12/odom:
-          Value: true
+          Value: false
         robot_13/base_link:
+          Value: false
+        robot_13/front_marker:
           Value: true
         robot_13/laser:
-          Value: true
+          Value: false
         robot_13/odom:
-          Value: true
+          Value: false
         robot_14/base_link:
+          Value: false
+        robot_14/front_marker:
           Value: true
         robot_14/laser:
-          Value: true
+          Value: false
         robot_14/odom:
-          Value: true
+          Value: false
         robot_15/base_link:
+          Value: false
+        robot_15/front_marker:
           Value: true
         robot_15/laser:
-          Value: true
+          Value: false
         robot_15/odom:
-          Value: true
+          Value: false
         robot_16/base_link:
+          Value: false
+        robot_16/front_marker:
           Value: true
         robot_16/laser:
-          Value: true
+          Value: false
         robot_16/odom:
-          Value: true
+          Value: false
         robot_17/base_link:
+          Value: false
+        robot_17/front_marker:
           Value: true
         robot_17/laser:
-          Value: true
+          Value: false
         robot_17/odom:
-          Value: true
+          Value: false
         robot_18/base_link:
+          Value: false
+        robot_18/front_marker:
           Value: true
         robot_18/laser:
-          Value: true
+          Value: false
         robot_18/odom:
-          Value: true
+          Value: false
         robot_19/base_link:
+          Value: false
+        robot_19/front_marker:
           Value: true
         robot_19/laser:
-          Value: true
+          Value: false
         robot_19/odom:
-          Value: true
+          Value: false
         robot_2/base_link:
+          Value: false
+        robot_2/front_marker:
           Value: true
         robot_2/laser:
-          Value: true
+          Value: false
         robot_2/odom:
-          Value: true
+          Value: false
         robot_3/base_link:
+          Value: false
+        robot_3/front_marker:
           Value: true
         robot_3/laser:
-          Value: true
+          Value: false
         robot_3/odom:
-          Value: true
+          Value: false
         robot_4/base_link:
+          Value: false
+        robot_4/front_marker:
           Value: true
         robot_4/laser:
-          Value: true
+          Value: false
         robot_4/odom:
-          Value: true
+          Value: false
         robot_5/base_link:
+          Value: false
+        robot_5/front_marker:
           Value: true
         robot_5/laser:
-          Value: true
+          Value: false
         robot_5/odom:
-          Value: true
+          Value: false
         robot_6/base_link:
+          Value: false
+        robot_6/front_marker:
           Value: true
         robot_6/laser:
-          Value: true
+          Value: false
         robot_6/odom:
-          Value: true
+          Value: false
         robot_7/base_link:
+          Value: false
+        robot_7/front_marker:
           Value: true
         robot_7/laser:
-          Value: true
+          Value: false
         robot_7/odom:
-          Value: true
+          Value: false
         robot_8/base_link:
+          Value: false
+        robot_8/front_marker:
           Value: true
         robot_8/laser:
-          Value: true
+          Value: false
         robot_8/odom:
-          Value: true
+          Value: false
         robot_9/base_link:
+          Value: false
+        robot_9/front_marker:
           Value: true
         robot_9/laser:
-          Value: true
+          Value: false
         robot_9/odom:
-          Value: true
+          Value: false
       Marker Scale: 1
       Name: TF
       Show Arrows: false
@@ -210,82 +253,122 @@ Visualization Manager:
         map:
           robot_0/odom:
             robot_0/base_link:
+              robot_0/front_marker:
+                {}
               robot_0/laser:
                 {}
           robot_1/odom:
             robot_1/base_link:
+              robot_1/front_marker:
+                {}
               robot_1/laser:
                 {}
           robot_10/odom:
             robot_10/base_link:
+              robot_10/front_marker:
+                {}
               robot_10/laser:
                 {}
           robot_11/odom:
             robot_11/base_link:
+              robot_11/front_marker:
+                {}
               robot_11/laser:
                 {}
           robot_12/odom:
             robot_12/base_link:
+              robot_12/front_marker:
+                {}
               robot_12/laser:
                 {}
           robot_13/odom:
             robot_13/base_link:
+              robot_13/front_marker:
+                {}
               robot_13/laser:
                 {}
           robot_14/odom:
             robot_14/base_link:
+              robot_14/front_marker:
+                {}
               robot_14/laser:
                 {}
           robot_15/odom:
             robot_15/base_link:
+              robot_15/front_marker:
+                {}
               robot_15/laser:
                 {}
           robot_16/odom:
             robot_16/base_link:
+              robot_16/front_marker:
+                {}
               robot_16/laser:
                 {}
           robot_17/odom:
             robot_17/base_link:
+              robot_17/front_marker:
+                {}
               robot_17/laser:
                 {}
           robot_18/odom:
             robot_18/base_link:
+              robot_18/front_marker:
+                {}
               robot_18/laser:
                 {}
           robot_19/odom:
             robot_19/base_link:
+              robot_19/front_marker:
+                {}
               robot_19/laser:
                 {}
           robot_2/odom:
             robot_2/base_link:
+              robot_2/front_marker:
+                {}
               robot_2/laser:
                 {}
           robot_3/odom:
             robot_3/base_link:
+              robot_3/front_marker:
+                {}
               robot_3/laser:
                 {}
           robot_4/odom:
             robot_4/base_link:
+              robot_4/front_marker:
+                {}
               robot_4/laser:
                 {}
           robot_5/odom:
             robot_5/base_link:
+              robot_5/front_marker:
+                {}
               robot_5/laser:
                 {}
           robot_6/odom:
             robot_6/base_link:
+              robot_6/front_marker:
+                {}
               robot_6/laser:
                 {}
           robot_7/odom:
             robot_7/base_link:
+              robot_7/front_marker:
+                {}
               robot_7/laser:
                 {}
           robot_8/odom:
             robot_8/base_link:
+              robot_8/front_marker:
+                {}
               robot_8/laser:
                 {}
           robot_9/odom:
             robot_9/base_link:
+              robot_9/front_marker:
+                {}
               robot_9/laser:
                 {}
       Update Interval: 0
@@ -1140,6 +1223,751 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /goal_markers
       Value: true
+    - Alpha: 0.699999988079071
+      Class: rviz_default_plugins/Map
+      Color Scheme: costmap
+      Draw Behind: false
+      Enabled: true
+      Name: Map
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        Filter size: 10
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /mapf_grid
+      Update Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /mapf_grid_updates
+      Use Timestamp: false
+      Value: true
+    - Class: rviz_common/Group
+      Displays:
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_0/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_0/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_0/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_0
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_1/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_1/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_1/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_1
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_2/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_2/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_2/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_2
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_3/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_3/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_3/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_3
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_4/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_4/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_4/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_4
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_5/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_5/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_5/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_5
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_6/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_6/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_6/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_6
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_7/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_7/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_7/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_7
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_8/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_8/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_8/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_8
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_9/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_9/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_9/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_9
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_10/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_10/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_10/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_10
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_11/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_11/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_11/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_11
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_12/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_12/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_12/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_12
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_13/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_13/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_13/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_13
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_14/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_14/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_14/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_14
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_15/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_15/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_15/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_15
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_16/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_16/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_16/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_16
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_17/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_17/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_17/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_17
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_18/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_18/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_18/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_18
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+        - Alpha: 1
+          Class: rviz_default_plugins/RobotModel
+          Collision Enabled: false
+          Description File: ""
+          Description Source: Topic
+          Description Topic:
+            Depth: 5
+            Durability Policy: Transient Local
+            History Policy: Keep Last
+            Reliability Policy: Reliable
+            Value: /robot_19/robot_description
+          Enabled: true
+          Links:
+            All Links Enabled: true
+            Expand Joint Details: false
+            Expand Link Details: false
+            Expand Tree: false
+            Link Tree Style: Links in Alphabetic Order
+            robot_19/base_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+            robot_19/front_marker:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
+              Value: true
+          Mass Properties:
+            Inertia: false
+            Mass: false
+          Name: robot_19
+          TF Prefix: ""
+          Update Interval: 0
+          Value: true
+          Visual Enabled: true
+      Enabled: true
+      Name: Robots
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -1186,25 +2014,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 10.58043098449707
+      Distance: 37.996917724609375
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 11.351179122924805
-        Y: 12.242653846740723
-        Z: 4.43398380279541
+        X: 13.517142295837402
+        Y: 13.990446090698242
+        Z: -2.690953493118286
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.514796257019043
+      Pitch: 1.264796495437622
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.7335591316223145
+      Yaw: 5.348570346832275
     Saved: ~
 Window Geometry:
   Displays:

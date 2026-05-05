@@ -95,7 +95,22 @@ def generate_launch_description():
         ],
     )
 
-        # ----------------------------------------- formation manager (t=12s)
+    # ----------------------------------------- formation manager (t=12s)
+    formation_monitor = Node(
+        package='iros_llm_swarm_formation',
+        executable='formation_monitor_node',
+        name='formation_monitor',
+        output='screen',
+        parameters=[{
+            'monitor_hz':           10.0,
+            'stable_thresh_m':       0.15,
+            'degraded_thresh_m':     0.35,
+            'odom_timeout_s':        1.0,
+            'stuck_window_s':        3.0,
+            'stuck_delta_m':         0.05,
+        }],
+    )
+
     formation_manager = Node(
         package='iros_llm_swarm_formation',
         executable='formation_manager_node',
@@ -132,6 +147,7 @@ def generate_launch_description():
         stage_sim,
         TimerAction(period=1.0,  actions=[LogInfo(msg='Starting Nav2...'), local_nav2]),
         TimerAction(period=10.0, actions=[LogInfo(msg='Starting MAPF stack...'), mapf_planner]),
-        formation_manager,
+        TimerAction(period=12.0, actions=[LogInfo(msg='Starting Formation manager stack...'), formation_manager]),
+        formation_monitor,
         rviz,
     ])

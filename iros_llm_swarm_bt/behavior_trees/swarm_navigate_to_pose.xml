@@ -1,39 +1,46 @@
 <root BTCPP_format="4" main_tree_to_execute="FleetMain">
   <BehaviorTree ID="FleetMain">
 
-    <!-- ReactiveFallback: re-evaluates CheckMode on every tick.
-         Modes written to @mode by operator / LLM agent:
-           idle       - do nothing (any running action gets onHalted -> cancel)
-           mapf       - send fleet to @goals via /swarm/set_goals
-           formation  - configure formation via /formation/set -->
+    <!-- ReactiveSequence ticks every child each tick — required so
+         BTStatePublisher publishes every tick and LlmCommandReceiver
+         always processes pending goals, in addition to the ModeDispatch. -->
 
-    <ReactiveFallback name="ModeDispatch">
+    <ReactiveSequence>
 
-      <CheckMode mode="{@mode}" expected="idle"/>
+      <BTStatePublisher/>
 
-      <Sequence name="MapfBranch">
-        <CheckMode mode="{@mode}" expected="mapf"/>
-        <MapfPlan
-          robot_ids="{@robot_ids}"
-          goals="{@goals}"
-          mapf_ok="{@mapf_ok}"
-          mapf_info="{@mapf_info}"/>
-      </Sequence>
+      <LlmCommandReceiver/>
 
-      <Sequence name="FormationBranch">
-        <CheckMode mode="{@mode}" expected="formation"/>
-        <SetFormation
-          formation_id="{@formation_id}"
-          leader_ns="{@leader_ns}"
-          follower_ns="{@follower_ns}"
-          offsets_x="{@offsets_x}"
-          offsets_y="{@offsets_y}"
-          activate="true"
-          formation_enabled="{@formation_enabled}"
-          active_formation="{@active_formation}"/>
-      </Sequence>
+      <ReactiveFallback name="ModeDispatch">
 
-    </ReactiveFallback>
+        <CheckMode mode="{@mode}" expected="idle"/>
+
+        <Sequence name="MapfBranch">
+          <CheckMode mode="{@mode}" expected="mapf"/>
+          <MapfPlan
+            robot_ids="{@robot_ids}"
+            goals="{@goals}"
+            mapf_ok="{@mapf_ok}"
+            mapf_info="{@mapf_info}"/>
+        </Sequence>
+
+        <Sequence name="FormationBranch">
+          <CheckMode mode="{@mode}" expected="formation"/>
+          <SetFormation
+            formation_id="{@formation_id}"
+            leader_ns="{@leader_ns}"
+            follower_ns="{@follower_ns}"
+            offsets_x="{@offsets_x}"
+            offsets_y="{@offsets_y}"
+            activate="true"
+            formation_enabled="{@formation_enabled}"
+            active_formation="{@active_formation}"
+            formation_warn="{@formation_warn}"/>
+        </Sequence>
+
+      </ReactiveFallback>
+
+    </ReactiveSequence>
 
   </BehaviorTree>
 </root>

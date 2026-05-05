@@ -121,6 +121,21 @@ def generate_launch_description():
         }],
     )
 
+    formation_monitor = Node(
+        package='iros_llm_swarm_formation',
+        executable='formation_monitor_node',
+        name='formation_monitor',
+        output='screen',
+        parameters=[{
+            'monitor_hz':           10.0,
+            'stable_thresh_m':       0.15,
+            'degraded_thresh_m':     0.35,
+            'odom_timeout_s':        1.0,
+            'stuck_window_s':        3.0,
+            'stuck_delta_m':         0.05,
+        }],
+    )
+
     # ---------------------------------------------------------- RViz (t=0s)
     rviz = Node(
         package='rviz2',
@@ -161,5 +176,6 @@ def generate_launch_description():
             LogInfo(msg='Starting motion controllers and formation manager...'),
             motion_controllers,
             formation_manager,
+            formation_monitor,
         ]),
     ])

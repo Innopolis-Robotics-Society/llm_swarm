@@ -35,6 +35,11 @@ struct LNS2Params {
   double      alns_reaction        = 0.1;
   double      alns_w_min           = 0.1;
 
+  // Wall-clock cap for build_initial_solution. When the budget is exhausted
+  // the loop stops early; remaining agents get no initial path and the repair
+  // loop handles them. 0 = no limit.
+  std::size_t initial_time_budget_ms = 0;
+
   // RNG seed (0 => use random_device)
   std::uint64_t seed = 0;
 };

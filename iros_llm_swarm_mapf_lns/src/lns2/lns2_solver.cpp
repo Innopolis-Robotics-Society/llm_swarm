@@ -143,8 +143,17 @@ void LNS2Solver::build_initial_solution(const std::vector<Agent>& agents,
     return dist[a] < dist[b];
   });
 
+  const auto build_t0 = std::chrono::steady_clock::now();
+  const auto build_budget = (params.initial_time_budget_ms > 0)
+      ? std::chrono::milliseconds(params.initial_time_budget_ms)
+      : std::chrono::milliseconds::max();
+
   for (AgentId id : order) {
     if (dist[id] < 0) continue;   // skip unreachable (leaves path empty)
+    if (params.initial_time_budget_ms > 0 &&
+        std::chrono::steady_clock::now() - build_t0 >= build_budget) {
+      break;  // budget exhausted; repair loop handles remaining agents
+    }
     auto res = soft_astar(agents[id], grid, sol.table(), params.astar, h_cache_);
     stats.total_astar_calls += 1;
     stats.total_astar_expansions += res.expansions;
@@ -197,14 +206,18 @@ void LNS2Solver::repair_loop(const std::vector<Agent>& agents,
     iter_in_segment += 1;
     if (iter_in_segment >= params.segment_size) {
       weights_.flush_segment(params.alns_reaction, params.alns_w_min);
+      // Refresh touches_ so destroy operators (CollisionBased / RandomWalk)
+      // don't keep walking stale agent-pair entries left over from prior
+      // remove_path() calls. Doing it once per segment amortizes the cost
+      // (O(|vertex_occ_| + |edge_occ_|)) over `segment_size` iterations.
+      sol.mutable_table().rebuild_touches();
       iter_in_segment = 0;
     }
   }
 
-  // Rebuild touches_ once at the end — cheaper than doing it during the loop.
-  // (Not strictly needed now but reasonable if anyone calls agents_touching
-  //  after solve.)
-  sol.mutable_table().rebuild_touches(sol.paths(), sol.footprints(), sol.holds());
+  // Final rebuild after the loop so any post-solve consumer of
+  // agents_touching() sees a clean snapshot.
+  sol.mutable_table().rebuild_touches();
 }
 
 // ---------------------------------------------------------------------------

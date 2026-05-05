@@ -7,6 +7,9 @@
   <maintainer email="fabian@todo.todo">fabian</maintainer>
   <license>TODO: License declaration</license>
 
+  <exec_depend>iros_llm_orchestrator</exec_depend>
+  <exec_depend>iros_llm_swarm_bt</exec_depend>
+
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
@@ -14,5 +17,6 @@
 
   <export>
     <build_type>ament_python</build_type>
+    <rosdoc2>rosdoc2.yaml</rosdoc2>
   </export>
 </package>

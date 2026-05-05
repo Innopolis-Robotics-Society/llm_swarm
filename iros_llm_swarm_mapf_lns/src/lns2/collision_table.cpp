@@ -256,10 +256,7 @@ std::optional<Collision> CollisionTable::sample_random_collision(
 // Full rebuild of touches_ (lazy cleanup)
 // ---------------------------------------------------------------------------
 
-void CollisionTable::rebuild_touches(
-    const std::vector<Path>& paths,
-    const std::vector<FootprintModel>& footprints,
-    const std::vector<Timestep>& hold_until)
+void CollisionTable::rebuild_touches()
 {
   for (auto& s : touches_) s.clear();
 
@@ -284,18 +281,13 @@ void CollisionTable::rebuild_touches(
       }
     }
   }
-
-  (void)paths; (void)footprints; (void)hold_until;  // unused; kept for API
 }
 
 // ---------------------------------------------------------------------------
 // Debug: recount from scratch and compare.
 // ---------------------------------------------------------------------------
 
-std::size_t CollisionTable::debug_full_recount(
-    const std::vector<Path>& /*paths*/,
-    const std::vector<FootprintModel>& /*footprints*/,
-    const std::vector<Timestep>& /*hold_until*/) const
+std::size_t CollisionTable::debug_full_recount() const
 {
   std::size_t n = 0;
   for (const auto& [key, bucket] : vertex_occ_) {

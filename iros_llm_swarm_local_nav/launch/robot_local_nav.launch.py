@@ -1,5 +1,5 @@
 import math
-
+import yaml
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, TimerAction, GroupAction, OpaqueFunction
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -9,46 +9,6 @@ from launch_ros.substitutions import FindPackageShare
 from launch_ros.descriptions import ParameterFile
 
 from nav2_common.launch import ReplaceString, RewrittenYaml
-
-
-DEFAULT_INITIAL_POSES = [
-    (2.0, 2.0, 0.0), (3.5, 2.0, 0.0), (2.0, 3.5, 0.0), (3.5, 3.5, 0.0),
-    (2.0, 5.0, 0.0), (3.5, 5.0, 0.0), (2.0, 6.5, 0.0), (3.5, 6.5, 0.0),
-    (2.0, 8.0, 0.0), (3.5, 8.0, 0.0),
-    (26.0, 22.0, math.pi), (27.5, 22.0, math.pi), (26.0, 23.5, math.pi), (27.5, 23.5, math.pi),
-    (26.0, 25.0, math.pi), (27.5, 25.0, math.pi), (26.0, 26.5, math.pi), (27.5, 26.5, math.pi),
-    (26.0, 28.0, math.pi), (27.5, 28.0, math.pi),
-]
-
-DEFAULT_INITIAL_POSES = [
-    # Левый нижний угол
-    (2.0, 2.0, 0.0),
-    (3.5, 2.0, 0.0),
-    (2.0, 3.5, 0.0),
-    (3.5, 3.5, 0.0),
-    (2.0, 5.0, 0.0),
-
-    # Правый нижний угол
-    (26.0, 2.0, math.pi),
-    (27.5, 2.0, math.pi),
-    (26.0, 3.5, math.pi),
-    (27.5, 3.5, math.pi),
-    (27.5, 5.0, math.pi),
-
-    # Левый верхний угол
-    (2.0, 28.0, 0.0),
-    (3.5, 28.0, 0.0),
-    (2.0, 26.5, 0.0),
-    (3.5, 26.5, 0.0),
-    (2.0, 25.0, 0.0),
-
-    # Правый верхний угол
-    (26.0, 28.0, math.pi),
-    (27.5, 28.0, math.pi),
-    (26.0, 26.5, math.pi),
-    (27.5, 26.5, math.pi),
-    (27.5, 25.0, math.pi),
-]
 
 def _parse_initial_poses(s: str):
     # format: "x,y,yaw; x,y,yaw; ..."
@@ -72,17 +32,56 @@ def _setup_robots(context, *args, **kwargs):
     num_robots = int(LaunchConfiguration('num_robots').perform(context))
     initial_poses_s = LaunchConfiguration('initial_poses').perform(context)
     nav2_params_file = LaunchConfiguration('nav2_params_file').perform(context)
+    scenario = LaunchConfiguration('scenario').perform(context)
+    scenarios_path = LaunchConfiguration('scenarios_file').perform(context)
+
+    if initial_poses_s == "None":
+        data = {}
+        try:
+            with open(scenarios_path, 'r') as f:
+                data = yaml.safe_load(f) or {}
+        except Exception:
+            data = {}
+
+        scenario_data = (data.get('scenarios') or {}).get(scenario) or {}
+        poses = scenario_data.get('initial_poses') or []
+
+        map_rel = scenario_data.get('map')
+        if map_rel:
+            map_file = PathJoinSubstitution( [FindPackageShare("iros_llm_swarm_simulation_lite"), "stage_sim", map_rel])
+        else:
+            map_file = LaunchConfiguration('map_file')
+
+        initial_poses_s = ';'.join([f'{x},{y},{yaw}' for (x, y, yaw) in poses])
+
 
     poses = _parse_initial_poses(initial_poses_s)
-    if not poses:
-        poses = DEFAULT_INITIAL_POSES[:]
     if len(poses) < num_robots:
         poses = poses + [(0.0, 0.0, 0.0)] * (num_robots - len(poses))
 
     # общий /tf и /tf_static
     tf_remaps = [('/tf', '/tf'), ('/tf_static', '/tf_static')]
 
-    actions = []
+    actions = [
+        # Map server global
+        Node(
+            package='nav2_map_server',
+            executable='map_server',
+            name='map_server',
+            output='log',
+            parameters=[{'yaml_filename': map_file, 'use_sim_time': True}],
+            arguments=['--ros-args', '--log-level', 'WARN'],
+        ),
+        Node(
+            package='nav2_lifecycle_manager',
+            executable='lifecycle_manager',
+            name='lifecycle_manager_map',
+            output='log',
+            parameters=[{'autostart': True, 'use_sim_time': True, 'node_names': ['map_server']}],
+            arguments=['--ros-args', '--log-level', 'WARN'],
+        )
+    ]
+
     for i in range(num_robots):
         ns = f'robot_{i}'
         x, y, yaw = poses[i]
@@ -93,7 +92,6 @@ def _setup_robots(context, *args, **kwargs):
             replacements={'<robot_namespace>': ns},
         )
 
-        # В Humble param_rewrites ОБЯЗАТЕЛЕН (может быть пустым)
         configured = ParameterFile(
             RewrittenYaml(
                 source_file=params_with_ns,
@@ -182,6 +180,18 @@ def _setup_robots(context, *args, **kwargs):
 
 
 def generate_launch_description():
+    scenario_arg = DeclareLaunchArgument(
+        'scenario',
+        default_value='cave',
+        description='Scenario name'
+    )
+
+    scenarios_file_arg = DeclareLaunchArgument(
+        'scenarios_file',
+        default_value=PathJoinSubstitution([FindPackageShare('iros_llm_swarm_simulation_lite'), 'scenario', 'common_scenarios.yaml']),
+        description='YAML with scenarios'
+    )
+
     num_robots_arg = DeclareLaunchArgument(
         'num_robots',
         default_value='20',
@@ -190,14 +200,14 @@ def generate_launch_description():
 
     initial_poses_arg = DeclareLaunchArgument(
         'initial_poses',
-        default_value=';'.join([f'{x},{y},{yaw}' for (x, y, yaw) in DEFAULT_INITIAL_POSES]),
-        description='Semicolon-separated list of x,y,yaw tuples'
+        default_value="None",
+        description='Semicolon-separated list of x,y,yaw tuples',
     )
 
     map_file_arg = DeclareLaunchArgument(
         'map_file',
         default_value=PathJoinSubstitution(
-            [FindPackageShare("iros_llm_swarm_simulation_lite"), "stage_sim", "warehouse.yaml"]
+            [FindPackageShare("iros_llm_swarm_simulation_lite"), "stage_sim", "cave.yaml"]
         ),
         description='Full path to map yaml'
     )
@@ -210,32 +220,14 @@ def generate_launch_description():
         description='Full path to Nav2 params yaml'
     )
 
-    map_file = LaunchConfiguration('map_file')
-
     ld = LaunchDescription([
+        scenario_arg,
+        scenarios_file_arg,
         num_robots_arg,
         initial_poses_arg,
         map_file_arg,
         nav2_params_file_arg,
     ])
-
-    # Map server global
-    ld.add_action(Node(
-        package='nav2_map_server',
-        executable='map_server',
-        name='map_server',
-        output='log',
-        parameters=[{'yaml_filename': map_file, 'use_sim_time': True}],
-        arguments=['--ros-args', '--log-level', 'WARN'],
-    ))
-    ld.add_action(Node(
-        package='nav2_lifecycle_manager',
-        executable='lifecycle_manager',
-        name='lifecycle_manager_map',
-        output='log',
-        parameters=[{'autostart': True, 'use_sim_time': True, 'node_names': ['map_server']}],
-        arguments=['--ros-args', '--log-level', 'WARN'],
-    ))
 
     # роботы создаются через OpaqueFunction чтобы можно было прочитать LaunchConfiguration
     ld.add_action(OpaqueFunction(function=_setup_robots))

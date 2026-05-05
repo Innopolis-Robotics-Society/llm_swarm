@@ -152,15 +152,10 @@ class CollisionTable {
       const std::vector<Timestep>& hold_until) const;
 
   // Rebuild the touches_ sets from scratch (called lazily by Solution).
-  void rebuild_touches(const std::vector<Path>& paths,
-                       const std::vector<FootprintModel>& footprints,
-                       const std::vector<Timestep>& hold_until);
+  void rebuild_touches();
 
   // ---- Debug helper ----------------------------------------------------
-  std::size_t debug_full_recount(
-      const std::vector<Path>& paths,
-      const std::vector<FootprintModel>& footprints,
-      const std::vector<Timestep>& hold_until) const;
+  std::size_t debug_full_recount() const;
 
  private:
   const GridMap* grid_ = nullptr;

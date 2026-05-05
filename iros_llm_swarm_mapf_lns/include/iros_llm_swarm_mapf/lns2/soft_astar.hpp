@@ -48,33 +48,43 @@ struct SoftAStarResult {
 class HeuristicCache {
  public:
   // Returns h[cell] — the true distance from cell to goal on the static
-  // grid (ignoring agents). Cached by (goal, grid).
+  // grid (ignoring agents). Cached by (goal, diag) within a single grid
+  // instance: the cache auto-invalidates if `get()` is called with a
+  // different grid pointer than last time, so a caller mutating the
+  // GridMap's blocked array between solves cannot accidentally reuse a
+  // stale h-table that was built against the old occupancy.
+  //
+  // (The pointer-identity check is conservative — it cannot detect
+  //  in-place edits of the same GridMap object. Solvers expect the grid
+  //  to be immutable for the duration of a solve, so this is sufficient
+  //  in practice; callers who swap blocked cells mid-solve must call
+  //  clear() explicitly.)
   const std::vector<int>& get(const GridMap& grid, const Cell& goal,
                                 bool diagonal);
 
-  void clear() { cache_.clear(); }
+  void clear() {
+    cache_.clear();
+    last_grid_ = nullptr;
+  }
 
  private:
   struct Key {
     std::int32_t row, col;
-    std::size_t  rows, cols;
     bool         diag;
     bool operator==(const Key& o) const {
-      return row == o.row && col == o.col && rows == o.rows
-             && cols == o.cols && diag == o.diag;
+      return row == o.row && col == o.col && diag == o.diag;
     }
   };
   struct KeyHash {
     std::size_t operator()(const Key& k) const noexcept {
       std::size_t h = std::hash<std::int64_t>{}(
           (static_cast<std::int64_t>(k.row) << 32) | (k.col & 0xffffffff));
-      h ^= std::hash<std::size_t>{}(k.rows) + 0x9e3779b97f4a7c15ULL;
-      h ^= std::hash<std::size_t>{}(k.cols) + 0x517cc1b727220a95ULL;
       h ^= (k.diag ? 1 : 0);
       return h;
     }
   };
 
+  const GridMap* last_grid_ = nullptr;
   std::unordered_map<Key, std::vector<int>, KeyHash> cache_;
 };
 

@@ -15,13 +15,24 @@ find_package(rosidl_default_generators REQUIRED)
 # ---- Custom interfaces ------------------------------------------------------
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/FormationConfig.msg"
-  "msg/FormationsState.msg"
+  "msg/FormationsConfig.msg"
+  "msg/FormationStatus.msg"
+  "msg/FormationsStatus.msg"
   "msg/MAPFStep.msg"
   "msg/MAPFPlan.msg"
   "msg/FollowerStatus.msg"
+  "msg/BTState.msg"
   "srv/SetFormation.srv"
-  "srv/DisbandFormation.srv"
+  "srv/RemoveFormation.srv"
+  "srv/ActivateFormation.srv"
+  "srv/DeactivateFormation.srv"
+  "srv/GetFormation.srv"
+  "srv/ListFormations.srv"
+  "srv/LoadFormations.srv"
+  "srv/SaveFormations.srv"
   "action/SetGoals.action"
+  "action/LlmDecision.action"
+  "action/LlmCommand.action"
   DEPENDENCIES std_msgs geometry_msgs
 )
 

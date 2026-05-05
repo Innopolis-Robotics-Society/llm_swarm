@@ -26,7 +26,7 @@ colcon build
 ```
 
 ```bash
-ros2 launch iros_llm_swarm_bringup swarm_warehouse.launch.py
+ros2 launch iros_llm_swarm_bringup swarm_lns.launch.py
 ```
 
 > **GUI/RViz:** for graphical output make sure X11 forwarding or similar display passthrough is configured in `docker-compose.yaml` (e.g. `DISPLAY`, `/tmp/.X11-unix` volume mount, `xhost +local:docker` on the host).
@@ -35,6 +35,7 @@ ros2 launch iros_llm_swarm_bringup swarm_warehouse.launch.py
 
 | Argument       | Default           | Description                                                                                        |
 | -------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
+| `scenario`     | `cave`            | Defines the map and configuration of robots for operation. Acceptable parameters:<br>- `large_cave`: A giant `cave` map, not recommended for running on default settings due to large distances.<br>- `cave`: A medium-sized `cave` map.<br>- `warehouse_2`: A standard `warehouse` map with shelving, robots arranged in two groups in the lower left and upper right corners.<br>- `warehouse_4`: A standard `warehouse` map with shelving, robots arranged in four groups in the four corners. |
 | `num_robots`   | `20`              | Number of robots to controll by system (still spawn as many robots as there are in the world file) |
 | `world_file`   | `warehouse.world` | Stage world file path                                                                              |
 | `rviz_cfg`     | `swarm_20.rviz`   | common RViz config for 20 robots                                                                   |
@@ -44,6 +45,73 @@ ros2 launch iros_llm_swarm_bringup swarm_warehouse.launch.py
 # Example: launch with 5 robots under nav2 controll
 ros2 launch iros_llm_swarm_bringup swarm_warehouse.launch.py num_robots:=5
 ```
+
+### Full Demo (with LLM)
+
+Запускает всю систему — симуляцию + MAPF + Nav2 + BT + LLM orchestrator (mock).
+
+#### Режим 1 — только реактивный LLM (канал 1, по умолчанию)
+
+BT-ноды сами вызывают LLM при WARN/ERROR через `/llm/decision`.
+Проактивный наблюдатель (`passive_observer`) запускается но молчит.
+
+```bash
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py
+```
+
+#### Режим 2 — оба канала (канал 1 + канал 2)
+
+Дополнительно к каналу 1, `passive_observer` сам наблюдает за `/bt/state`
+и вмешивается при WARN/ERROR, отправляя команды через `/llm/command`.
+
+```bash
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py enable_passive_observer:=true
+```
+
+Запустить только orchestrator с обоими каналами:
+
+```bash
+ros2 launch iros_llm_orchestrator orchestrator.launch.py enable_passive_observer:=true
+```
+
+Проверить что канал 2 активен — в логах должно быть:
+```
+[llm_passive_observer] PassiveObserver up: mode=mock, cooldown=10.0s, trigger=...
+```
+При `enabled=false` нода запускается но при получении `/bt/state` сразу возвращается (silent mode).
+
+Подождать ~22 секунды до сообщения `==== Full demo ready ====`.
+
+Затем в другом терминале (после `source install/setup.bash`) подать сценарий:
+
+```bash
+# Простой MAPF на 4 роботов
+ros2 run iros_llm_swarm_bt fleet_cmd --scenario simple
+
+# Стресс-тест: 20 роботов кросс-свап через всю карту (провоцирует WARN)
+ros2 run iros_llm_swarm_bt fleet_cmd --scenario stress
+
+# Невозможная цель: все 4 робота в одну точку у стены
+ros2 run iros_llm_swarm_bt fleet_cmd --scenario unreachable
+
+# Вернуть систему в idle
+ros2 run iros_llm_swarm_bt fleet_cmd --scenario idle
+```
+
+#### Что наблюдать
+
+В терминале с launch:
+- `[mapf_planner]` логирует план, выполнение, replans
+- `[test_bt_runner]` логирует тики BT, переходы статусов
+- `[decision_server]` (канал 1) реагирует на запросы от MapfPlan/SetFormation
+- `[passive_observer]` (канал 2) триггерится по WARN/ERROR в `/bt/state`
+- `[LlmCommandReceiver]` применяет команды от observer в blackboard
+
+В RViz — роботы движутся по картам.
+
+Датасеты для будущего SFT накапливаются в:
+- `~/.ros/llm_decisions/decisions_YYYYMMDD.jsonl` — канал 1
+- `~/.ros/llm_commands/decisions_YYYYMMDD.jsonl` — канал 2
 
 ### Simple tests
 
@@ -307,13 +375,13 @@ PBS failed (2709.9 ms, 1 expansions)
 
 ### `iros_llm_swarm_formation`
 
-Centralized management of robot formations and distributes formation configuration to all robots.
+Centralized management of robot formations and distributes formation configuration to all robots. Formation Manager handles service calls and updates the formations configuration state via the `/formations/config` topic. Formation Monitor tracks the desired and actual position of a formation entries and publishes its status and positioning errors via the `/formations/status` topic.
 
 #### Topics
 
 - `/formations/config`
 
-Type: `iros_llm_swarm_interfaces/msg/FormationsState`
+Type: `iros_llm_swarm_interfaces/msg/FormationsConfig`
 
 QoS: `TRANSIENT_LOCAL`, `RELIABLE`, `depth=1` (latched)
 
@@ -344,68 +412,90 @@ geometry_msgs/Polygon footprint
 bool active  # false = formation dissolved, followers go autonomous
 ```
 
-Example:
+- `/formations/status`
+
+Type: `iros_llm_swarm_interfaces/msg/FormationsStatus`
+
+QoS: `depth=10`
+
+Description: Publishes the complete runtime status of all formations in the system. Includes state (INACTIVE, FORMING, STABLE, DEGRADED, BROKEN), failure wornings and per-follower errors.
+
+Message Structure:
 ```text
-header:
-  stamp:
-    sec: 1710000000
-    nanosec: 0
-  frame_id: ""
+std_msgs/Header header
+FormationStatus[] formations
+```
 
-formations:
-- formation_id: "line"
-  leader_ns: "robot_0"
-  follower_ns: ["robot_1", "robot_2"]
+FormationStatus.msg:
+```text
+# State constants
+uint8 STATE_INACTIVE  = 0   # formation not active
+uint8 STATE_FORMING   = 1   # active, followers converging to offsets
+uint8 STATE_STABLE    = 2   # all followers within cohesion threshold
+uint8 STATE_DEGRADED  = 3   # some followers out of tolerance but recovering
+uint8 STATE_BROKEN    = 4   # formation cannot be maintained (follower lost/stuck)
 
-  offsets:
-  - {x: 1.0, y: 0.0, z: 0.0}
-  - {x: 2.0, y: 0.0, z: 0.0}
+# Failure code constants
+uint8 FAILURE_NONE        = 0
+uint8 FAILURE_FOLLOWER_LOST    = 1   # odom stopped arriving
+uint8 FAILURE_FOLLOWER_STUCK   = 2   # error not decreasing
+uint8 FAILURE_LEADER_LOST      = 3   # leader odom stopped arriving
 
-  footprint:
-    points:
-    - {x: 2.5, y: 0.0, z: 0.0}
-    - {x: 1.8, y: 1.8, z: 0.0}
-    <...>
+# Header 
+std_msgs/Header header
+string          formation_id
+string          leader_ns
+string[]        follower_ns
 
-  active: true
+# Discrete state 
+uint8  state           # one of STATE_* constants above
+uint8  failure_code    # one of FAILURE_* constants, FAILURE_NONE if state != BROKEN
+string failure_reason  # human-readable, empty if no failure
 
-- formation_id: "triangle"
-  leader_ns: "robot_3"
-  follower_ns: ["robot_4", "robot_5"]
+# Per-follower errors
+# Parallel to follower_ns. Position error [m] from assigned offset.
+# -1.0 = data not available for this follower.
+float32[] follower_errors_m
 
-  offsets:
-  - {x: -1.0, y: 1.0, z: 0.0}
-  - {x: -1.0, y: -1.0, z: 0.0}
-
-  footprint:
-    points:
-    <...>
-
-  active: false
+# Aggregate metrics
+float32 max_error_m   # max of follower_errors_m, -1 if unavailable
+float32 mean_error_m  # mean of follower_errors_m, -1 if unavailable
 ```
 
 #### Services
 
-- `/formation/set`
+| Service                 | Type                  | Description                                |
+| ----------------------- | --------------------- | ------------------------------------------ |
+| `/formation/set`        | `SetFormation`        | Create or update a formation               |
+| `/formation/activate`   | `ActivateFormation`   | Activate a formation                       |
+| `/formation/deactivate` | `DeactivateFormation` | Deactivate a formation                     |
+| `/formation/get`        | `GetFormation`        | Get a formation by ID                      |
+| `/formation/list`       | `ListFormations`      | List all formations                        |
+| `/formation/load`       | `LoadFormations`      | Load formations from YAML                  |
+| `/formation/save`       | `SaveFormations`      | Save formations to YAML                    |
+
+##### `/formation/set`
 
 Type: `iros_llm_swarm_interfaces/srv/SetFormation`
 
-Description: Creates or updates a formation. 
+Description: Creates or updates a formation.
 
-Defenition:
+Definition:
+
 ```text
-string formation_id     # unique name; if exists, updates this formation
-string leader_ns        # e.g. "robot_0"
-string[] follower_ns    # e.g. ["robot_1", "robot_2"]
-float64[] offsets_x     # parallel arrays — offset in leader body frame
-float64[] offsets_y     # length must equal follower_ns length
-bool activate           # true = activate immediately after setting
+string formation_id
+string leader_ns
+string[] follower_ns
+float64[] offsets_x
+float64[] offsets_y
+bool activate
 ---
 bool success
 string message
 ```
 
 Example:
+
 ```bash
 ros2 service call /formation/set iros_llm_swarm_interfaces/srv/SetFormation "
 formation_id: 'line'
@@ -417,13 +507,14 @@ activate: true
 "
 ```
 
-- `/formation/disband`
+##### `/formation/activate`
 
-Type: `iros_llm_swarm_interfaces/srv/DisbandFormation`
+Type: `iros_llm_swarm_interfaces/srv/ActivateFormation`
 
-Description: Deactivates a formation without removing it. Followers resume autonomous operation. Still be published in `/formations/config`.
+Description: Activates a formation. Followers start maintaining offsets relative to the leader.
 
-Defenition:
+Definition:
+
 ```text
 string formation_id
 ---
@@ -432,13 +523,125 @@ string message
 ```
 
 Example:
+
 ```bash
-ros2 service call /formation/disband iros_llm_swarm_interfaces/srv/DisbandFormation "formation_id: 'line'"
+ros2 service call /formation/activate iros_llm_swarm_interfaces/srv/ActivateFormation "formation_id: 'line'"
+```
+
+##### `/formation/deactivate`
+
+Type: `iros_llm_swarm_interfaces/srv/DeactivateFormation`
+
+Description: Deactivates a formation. Followers stop maintaining formation and operate independently.
+
+Definition:
+
+```text
+string formation_id
+---
+bool success
+string message
+```
+
+Example:
+
+```bash
+ros2 service call /formation/deactivate iros_llm_swarm_interfaces/srv/DeactivateFormation "formation_id: 'line'"
+```
+
+##### `/formation/get`
+
+Type: `iros_llm_swarm_interfaces/srv/GetFormation`
+
+Description: Returns a single formation by ID, including computed footprint.
+
+Definition:
+
+```text
+string formation_id
+---
+bool success
+string message
+FormationConfig formation
+```
+
+Example:
+
+```bash
+ros2 service call /formation/get iros_llm_swarm_interfaces/srv/GetFormation "formation_id: 'line'"
+```
+
+##### `/formation/list`
+
+Type: `iros_llm_swarm_interfaces/srv/ListFormations`
+
+Description: Returns all registered formations (active and inactive).
+
+Definition:
+
+```text
+---
+FormationConfig[] formations
+```
+
+Example:
+
+```bash
+ros2 service call /formation/list iros_llm_swarm_interfaces/srv/ListFormations "{}"
+```
+
+##### `/formation/load`
+
+Type: `iros_llm_swarm_interfaces/srv/LoadFormations`
+
+Description: Loads formations from a YAML file. Optionally clears existing formations and activates loaded ones.
+
+Definition:
+
+```text
+string file_path
+bool clear_existing
+bool activate
+---
+bool success
+string message
+uint32 loaded_count
+```
+
+Example:
+
+```bash
+ros2 service call /formation/load iros_llm_swarm_interfaces/srv/LoadFormations \
+"{file_path: '/path/to/formations.yaml', clear_existing: true, activate: false}"
+```
+
+##### `/formation/save`
+
+Type: `iros_llm_swarm_interfaces/srv/SaveFormations`
+
+Description: Saves current formations to a YAML file. Optionally saves only active formations.
+
+Definition:
+
+```text
+string file_path
+bool only_active
+---
+bool success
+string message
+uint32 saved_count
+```
+
+Example:
+
+```bash
+ros2 service call /formation/save iros_llm_swarm_interfaces/srv/SaveFormations \
+"{file_path: '/path/to/formations.yaml', only_active: false}"
 ```
 
 ### `iros_llm_swarm_interfaces`
 
-Custom ROS 2 messages, services, and actions: FormationConfig, SetFormation, DisbandFormation, SetGoals.
+Custom ROS 2 messages, services, and actions.
 
 ### `iros_llm_swarm_simulation`
 

@@ -157,7 +157,8 @@ controller_server:
       use_cost_regulated_linear_velocity_scaling: true
       cost_scaling_dist: 0.6
       cost_scaling_gain: 1.0
-      inflation_cost_scaling_factor: 3.0
+      inflation_cost_scaling_factor: 2.0
+      min_distance_to_obstacle: 0.10
 
       # --- Collision avoidance ------------------------------------
       # Проверка коллизий вперёд: симулируем прогноз на N секунд и
@@ -166,7 +167,7 @@ controller_server:
       use_collision_detection: true
       # В Humble параметр называется так. Если colcon ругается, что
       # такого параметра нет, замени на max_allowed_time_to_collision.
-      max_allowed_time_to_collision_up_to_carrot: 0.5
+      max_allowed_time_to_collision_up_to_carrot: 0.7
 
       # --- Rotate to heading -------------------------------------
       # Если робот развернут не в ту сторону от пути, сперва
@@ -219,8 +220,8 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         enabled: true
-        cost_scaling_factor: 3.5
-        inflation_radius: 0.25
+        cost_scaling_factor: 3.0
+        inflation_radius: 0.40
 
 global_costmap:
   global_costmap:

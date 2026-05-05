@@ -1,0 +1,19 @@
+# Goal — запрос BT-нода к LLM-оркестратору.
+string   level        # "WARN" | "INFO"
+string   event        # обычно строка из fb->warning или fb->info
+string[] log_buffer   # последние N строк feedback'а экшена (снимок ring buffer)
+---
+# Result — вердикт LLM.
+#
+# Семантика:
+#   "wait"   — BT-нод продолжает выполнение экшена, ничего не меняет
+#   "abort"  — BT-нод отменяет экшен, возвращает FAILURE, блэкбоард не трогает
+#   "replan" — BT-нод отменяет экшен, FAILURE, пишет @mapf_decision="replan"
+#   ""       — воспринимается как "wait" (нейтральный сигнал)
+string decision
+---
+# Feedback — LLM сообщает о прогрессе размышлений (опционально).
+#   "received" — запрос принят сервером
+#   "thinking" — началась генерация
+#   "done"     — ответ готов
+string stage
