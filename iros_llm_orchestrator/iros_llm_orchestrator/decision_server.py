@@ -95,10 +95,13 @@ class LlmDecisionServer(Node):
             except Exception as exc:
                 self.get_logger().error(f'LLM decision error: {exc}')
 
-        self._logger_ds.log(
-            level=req.level, event=req.event,
-            log_buffer=list(req.log_buffer),
-            decision=decision, reason=reason)
+        self._logger_ds.log({
+            'level': req.level,
+            'event': req.event,
+            'log_buffer': list(req.log_buffer),
+            'decision': decision,
+            'reason': reason,
+        })
 
         ev = LlmEvent()
         ev.stamp_ms = int(self.get_clock().now().nanoseconds / 1e6)
@@ -110,7 +113,6 @@ class LlmDecisionServer(Node):
 
         result = LlmDecision.Result()
         result.decision = decision
-        result.reason   = reason
         goal_handle.succeed()
         return result
 

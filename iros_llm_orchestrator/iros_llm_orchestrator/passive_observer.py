@@ -132,12 +132,13 @@ class PassiveObserver(Node):
                 self._is_thinking = False
             return
 
-        self._logger_ds.log(
-            level=trigger.action_status,
-            event=f'{trigger.active_action}: {trigger.last_error}',
-            log_buffer=[],
-            decision=command.get('mode', 'idle'),
-            reason=command.get('reason', ''))
+        self._logger_ds.log({
+            'level': trigger.action_status,
+            'event': f'{trigger.active_action}: {trigger.last_error}',
+            'log_buffer': [],
+            'decision': command.get('mode', 'idle'),
+            'reason': command.get('reason', ''),
+        })
 
         ev = LlmEvent()
         ev.stamp_ms = int(self.get_clock().now().nanoseconds / 1e6)

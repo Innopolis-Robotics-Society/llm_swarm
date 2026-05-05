@@ -13,6 +13,7 @@
 
 #include <QCheckBox>
 #include <QColor>
+#include <QFont>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
@@ -24,7 +25,6 @@
 #include <QTextCursor>
 #include <QTextEdit>
 #include <QTimer>
-#include <QToolButton>
 #include <QTreeWidget>
 #include <QTreeWidgetItem>
 #include <QVBoxLayout>
@@ -149,9 +149,6 @@ void LlmPanel::buildUi()
   buildStatusRow(status_row);
   root->addLayout(status_row);
 
-  buildQuickActions();
-  root->addWidget(quick_action_bar_);
-
   tabs_ = new QTabWidget(this);
 
   auto * chat_tab = new QWidget();
@@ -165,6 +162,10 @@ void LlmPanel::buildUi()
   auto * events_tab = new QWidget();
   buildEventsTab(events_tab);
   tabs_->addTab(events_tab, "Events");
+
+  auto * bt_tab = new QWidget();
+  buildBtTab(bt_tab);
+  tabs_->addTab(bt_tab, "BT");
 
   root->addWidget(tabs_, /*stretch=*/1);
 
@@ -234,15 +235,6 @@ void LlmPanel::buildStatusRow(QHBoxLayout * row)
   row->addWidget(thinking_label_);
   row->addWidget(error_label_, /*stretch=*/1);
   row->addWidget(stop_button_);
-}
-
-void LlmPanel::buildQuickActions()
-{
-  quick_action_bar_ = new QWidget(this);
-  quick_action_row_ = new QHBoxLayout(quick_action_bar_);
-  quick_action_row_->setContentsMargins(0, 0, 0, 0);
-  quick_action_row_->setSpacing(4);
-  // Buttons populated later in rebuildQuickActions(), once the YAML is loaded.
 }
 
 void LlmPanel::buildChatTab(QWidget * tab)
@@ -415,6 +407,62 @@ void LlmPanel::buildEventsTab(QWidget * tab)
   connect(event_filter_user_,     &QCheckBox::toggled, this, reapply);
 }
 
+void LlmPanel::buildBtTab(QWidget * tab)
+{
+  auto * layout = new QVBoxLayout(tab);
+  layout->setContentsMargins(2, 2, 2, 2);
+  layout->setSpacing(4);
+
+  layout->addWidget(new QLabel("Live /bt/state — refreshed each tick:"));
+
+  static constexpr int kRows = 11;
+  static const char * kFields[kRows] = {
+    "mode", "action_status", "active_action", "last_error",
+    "formation_id", "leader_ns", "robots", "goals",
+    "llm_thinking", "stamp", "action_summary",
+  };
+
+  bt_props_table_ = new QTableWidget(kRows, 2);
+  bt_props_table_->setHorizontalHeaderLabels(QStringList() << "field" << "value");
+  bt_props_table_->verticalHeader()->setVisible(false);
+  bt_props_table_->horizontalHeader()->setSectionResizeMode(
+    0, QHeaderView::ResizeToContents);
+  bt_props_table_->horizontalHeader()->setSectionResizeMode(
+    1, QHeaderView::Stretch);
+  bt_props_table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  bt_props_table_->setSelectionMode(QAbstractItemView::NoSelection);
+  bt_props_table_->setAlternatingRowColors(true);
+  bt_props_table_->setMaximumHeight(280);
+  for (int i = 0; i < kRows; ++i) {
+    auto * fld = new QTableWidgetItem(QString::fromLatin1(kFields[i]));
+    QFont f = fld->font();
+    f.setBold(true);
+    fld->setFont(f);
+    bt_props_table_->setItem(i, 0, fld);
+    bt_props_table_->setItem(i, 1, new QTableWidgetItem(QString::fromUtf8("—")));
+  }
+  layout->addWidget(bt_props_table_);
+
+  layout->addWidget(new QLabel(
+    "Recent transitions (mode / action_status / active_action / last_error):"));
+
+  bt_log_table_ = new QTableWidget(0, 4);
+  bt_log_table_->setHorizontalHeaderLabels(
+    QStringList() << "time" << "field" << "from" << "to");
+  bt_log_table_->verticalHeader()->setVisible(false);
+  bt_log_table_->horizontalHeader()->setSectionResizeMode(
+    0, QHeaderView::ResizeToContents);
+  bt_log_table_->horizontalHeader()->setSectionResizeMode(
+    1, QHeaderView::ResizeToContents);
+  bt_log_table_->horizontalHeader()->setSectionResizeMode(
+    2, QHeaderView::Stretch);
+  bt_log_table_->horizontalHeader()->setSectionResizeMode(
+    3, QHeaderView::Stretch);
+  bt_log_table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  bt_log_table_->setSelectionBehavior(QAbstractItemView::SelectRows);
+  layout->addWidget(bt_log_table_, /*stretch=*/1);
+}
+
 
 // ===========================================================================
 // ROS setup
@@ -424,7 +472,6 @@ void LlmPanel::onInitialize()
 {
   setupRos();
   loadMapYaml();
-  rebuildQuickActions();
   if (marker_timer_) {
     marker_timer_->start(33);   // ~30 Hz
   }
@@ -448,13 +495,16 @@ void LlmPanel::setupRos()
     "/bt/state", bt_qos,
     [this](BTState::ConstSharedPtr msg)
     {
-      // Cache for the marker timer (TF arrows + formation polygon).
+      // Cache for the marker timer (TF arrows + formation polygon) and
+      // the BT-state tab properties grid.
       {
         std::lock_guard<std::mutex> lk(cached_state_mutex_);
-        cached_mode_       = msg->mode;
-        cached_robot_ids_  = msg->robot_ids;
-        cached_goals_      = msg->goals;
-        cached_leader_ns_  = msg->leader_ns;
+        cached_mode_         = msg->mode;
+        cached_robot_ids_    = msg->robot_ids;
+        cached_goals_        = msg->goals;
+        cached_leader_ns_    = msg->leader_ns;
+        cached_formation_id_ = msg->formation_id;
+        cached_stamp_ms_     = msg->stamp_ms;
       }
 
       Q_EMIT btStateReceived(
@@ -576,59 +626,6 @@ void LlmPanel::loadMapYaml()
   }
 }
 
-void LlmPanel::rebuildQuickActions()
-{
-  // Wipe existing buttons.
-  while (QLayoutItem * item = quick_action_row_->takeAt(0)) {
-    if (item->widget()) {
-      item->widget()->deleteLater();
-    }
-    delete item;
-  }
-
-  auto * stop_dup = new QToolButton();
-  stop_dup->setText("🛑 Stop");
-  stop_dup->setStyleSheet(
-    "QToolButton { background-color: #C62828; color: white; "
-    "padding: 4px 8px; border-radius: 4px; font-weight: bold; }");
-  connect(stop_dup, &QToolButton::clicked, this, &LlmPanel::onStopAll);
-  quick_action_row_->addWidget(stop_dup);
-
-  for (const auto & g : groups_) {
-    auto * b = new QToolButton();
-    b->setText(QString::fromStdString("🏠 " + g.color));
-    b->setStyleSheet(
-      "QToolButton { padding: 4px 8px; border-radius: 4px; }");
-    const auto group = g;  // capture by value
-    connect(b, &QToolButton::clicked, this,
-            [this, group]() { sendHomeForGroup(group); });
-    quick_action_row_->addWidget(b);
-  }
-
-  // Formation buttons — line at the largest formation zone for each group.
-  if (!formation_zones_.empty() && !groups_.empty()) {
-    const auto & best_zone = *std::max_element(
-      formation_zones_.begin(), formation_zones_.end(),
-      [](const FormationZone & a, const FormationZone & b) {
-        return a.radius < b.radius;
-      });
-    for (const auto & g : groups_) {
-      auto * b = new QToolButton();
-      b->setText(QString::fromStdString("🔷 " + g.color + " line"));
-      b->setStyleSheet(
-        "QToolButton { padding: 4px 8px; border-radius: 4px; }");
-      const auto group = g;
-      const auto zone  = best_zone;
-      connect(b, &QToolButton::clicked, this,
-              [this, group, zone]() { sendFormationLineAt(zone, group); });
-      quick_action_row_->addWidget(b);
-    }
-  }
-
-  quick_action_row_->addStretch(1);
-}
-
-
 // ===========================================================================
 // Status bar (GUI thread)
 // ===========================================================================
@@ -655,6 +652,8 @@ void LlmPanel::onUpdateStatus(
   // Phase 2 — parse action_summary, drive MAPF tab widgets.
   const auto s = parseActionSummary(action_summary.toStdString());
   if (s.arrived) {
+    last_arrived_int_ = *s.arrived;
+    have_mapf_data_   = true;
     mapf_arrived_->setText(QString::number(*s.arrived));
     if (s.arrived && s.active) {
       const int total = *s.arrived + *s.active;
@@ -664,6 +663,8 @@ void LlmPanel::onUpdateStatus(
     mapf_arrived_spark_->push(static_cast<double>(*s.arrived));
   }
   if (s.active) {
+    last_active_int_ = *s.active;
+    have_mapf_data_  = true;
     mapf_active_->setText(QString::number(*s.active));
     mapf_active_spark_->push(static_cast<double>(*s.active));
   }
@@ -671,14 +672,45 @@ void LlmPanel::onUpdateStatus(
   if (s.replans) mapf_replans_->setText(QString::number(*s.replans));
   mapf_event_tail_->setText(QString::fromStdString(s.event_tail));
 
-  // Robot table — repopulate from cache. Cheap, ≤20 rows.
+  // Snap MAPF counters to completion when the BT returns to idle. The BT
+  // stops publishing fresh action_summary lines after mode flips, so the
+  // live counters would otherwise stay frozen at the last in-flight
+  // snapshot (typically arrived=N-1/active=1).
+  if (mode == "idle" && !prev_mode_.isEmpty() && prev_mode_ != "idle"
+      && have_mapf_data_)
+  {
+    const int total = last_arrived_int_ + last_active_int_;
+    if (total > 0) {
+      mapf_arrived_->setText(QString::number(total));
+      mapf_active_->setText("0");
+      mapf_stalled_->setText("0");
+      mapf_progress_->setMaximum(std::max(1, total));
+      mapf_progress_->setValue(total);
+      mapf_arrived_spark_->push(static_cast<double>(total));
+      mapf_active_spark_->push(0.0);
+      last_arrived_int_ = total;
+      last_active_int_  = 0;
+    }
+    have_mapf_data_ = false;
+  }
+
+  // Snapshot the rest of BTState (formation_id, stamp_ms, leader_ns) under
+  // the cache lock; the marker timer also reads these fields.
   std::vector<uint32_t>                  ids;
   std::vector<geometry_msgs::msg::Point> goals;
+  std::string                            formation_id;
+  std::string                            leader_ns;
+  int64_t                                stamp_ms = 0;
   {
     std::lock_guard<std::mutex> lk(cached_state_mutex_);
-    ids   = cached_robot_ids_;
-    goals = cached_goals_;
+    ids          = cached_robot_ids_;
+    goals        = cached_goals_;
+    formation_id = cached_formation_id_;
+    leader_ns    = cached_leader_ns_;
+    stamp_ms     = cached_stamp_ms_;
   }
+
+  // Robot table — repopulate from cache. Cheap, ≤20 rows.
   mapf_robot_table_->setRowCount(static_cast<int>(ids.size()));
   for (size_t i = 0; i < ids.size(); ++i) {
     const QString g_str = (i < goals.size())
@@ -690,6 +722,73 @@ void LlmPanel::onUpdateStatus(
     mapf_robot_table_->setItem(static_cast<int>(i), 2,
       new QTableWidgetItem(QString("—")));   // Phase 6 fills via TF
   }
+
+  // BT tab — properties grid.
+  if (bt_props_table_) {
+    auto setCell = [this](int row, const QString & v) {
+      auto * item = bt_props_table_->item(row, 1);
+      if (!item) {
+        item = new QTableWidgetItem();
+        bt_props_table_->setItem(row, 1, item);
+      }
+      item->setText(v);
+    };
+    setCell(0,  mode);
+    setCell(1,  action_status);
+    setCell(2,  active_action.isEmpty() ? "none" : active_action);
+    setCell(3,  last_error.isEmpty()    ? QString::fromUtf8("—") : last_error);
+    setCell(4,  formation_id.empty()
+                  ? QString::fromUtf8("—")
+                  : QString::fromStdString(formation_id));
+    setCell(5,  leader_ns.empty()
+                  ? QString::fromUtf8("—")
+                  : QString::fromStdString(leader_ns));
+    setCell(6,  QString::number(ids.size()));
+    setCell(7,  QString::number(goals.size()));
+    setCell(8,  llm_thinking ? "yes" : "no");
+    setCell(9,  stamp_ms > 0 ? fmtTime(static_cast<qint64>(stamp_ms))
+                             : QString::fromUtf8("—"));
+    setCell(10, action_summary);
+  }
+
+  // BT tab — append a row for each transition that fires on this tick.
+  // Skipped on the very first message so we don't log "" → mode/status.
+  if (bt_log_table_ && bt_state_seen_) {
+    const QString stamp_str = stamp_ms > 0
+      ? fmtTime(static_cast<qint64>(stamp_ms)) : QString::fromUtf8("—");
+    auto logTransition = [&](const QString & field,
+                             const QString & from,
+                             const QString & to)
+    {
+      if (from == to) {
+        return;
+      }
+      while (bt_log_table_->rowCount() >= kBtLogMax) {
+        bt_log_table_->removeRow(0);
+      }
+      const int row = bt_log_table_->rowCount();
+      bt_log_table_->insertRow(row);
+      bt_log_table_->setItem(row, 0, new QTableWidgetItem(stamp_str));
+      bt_log_table_->setItem(row, 1, new QTableWidgetItem(field));
+      bt_log_table_->setItem(row, 2,
+        new QTableWidgetItem(from.isEmpty() ? QString::fromUtf8("—") : from));
+      bt_log_table_->setItem(row, 3,
+        new QTableWidgetItem(to.isEmpty()   ? QString::fromUtf8("—") : to));
+      bt_log_table_->scrollToBottom();
+    };
+    logTransition("mode",          prev_mode_,           mode);
+    logTransition("action_status", prev_action_status_,  action_status);
+    logTransition("active_action", prev_active_action_,  active_action);
+    logTransition("last_error",    prev_last_error_,     last_error);
+  }
+
+  // Update transition baselines (read above) at the very end so MAPF snap
+  // and transition log both see the previous tick's values.
+  prev_mode_          = mode;
+  prev_action_status_ = action_status;
+  prev_active_action_ = active_action;
+  prev_last_error_    = last_error;
+  bt_state_seen_      = true;
 }
 
 
@@ -1061,58 +1160,6 @@ void LlmPanel::onStopAll()
 
 
 // ===========================================================================
-// Quick actions — direct /llm/command, no LLM call
-// ===========================================================================
-
-void LlmPanel::sendHomeForGroup(const RobotGroup & g)
-{
-  if (!cmd_client_ || !cmd_client_->action_server_is_ready()) {
-    return;
-  }
-  LlmCommand::Goal goal;
-  goal.mode   = "mapf";
-  goal.reason = QString("operator: %1 home").arg(
-    QString::fromStdString(g.color)).toStdString();
-  for (int id : g.ids) {
-    goal.robot_ids.push_back(static_cast<uint32_t>(id));
-    geometry_msgs::msg::Point p;
-    const auto rname = "robot_" + std::to_string(id);
-    auto it = g.spawn.find(rname);
-    if (it != g.spawn.end()) {
-      p.x = it->second.first;
-      p.y = it->second.second;
-    } else {
-      p.x = g.home.first;
-      p.y = g.home.second;
-    }
-    p.z = 0.0;
-    goal.goals.push_back(p);
-  }
-  cmd_client_->async_send_goal(goal);
-}
-
-void LlmPanel::sendFormationLineAt(const FormationZone & z, const RobotGroup & g)
-{
-  if (!cmd_client_ || !cmd_client_->action_server_is_ready() || g.ids.empty()) {
-    return;
-  }
-  LlmCommand::Goal goal;
-  goal.mode   = "formation";
-  goal.reason = QString("operator: %1 line at %2")
-    .arg(QString::fromStdString(g.color))
-    .arg(QString::fromStdString(z.name)).toStdString();
-  goal.formation_id = "line";
-  goal.leader_ns    = "robot_" + std::to_string(g.ids.front());
-  for (size_t i = 1; i < g.ids.size(); ++i) {
-    goal.follower_ns.push_back("robot_" + std::to_string(g.ids[i]));
-    goal.offsets_x.push_back(-1.5 * static_cast<double>(i));
-    goal.offsets_y.push_back(0.0);
-  }
-  cmd_client_->async_send_goal(goal);
-}
-
-
-// ===========================================================================
 // Markers — goals (MVP), preview, TF arrows, formation polygon
 // ===========================================================================
 
@@ -1416,7 +1463,6 @@ void LlmPanel::load(const rviz_common::Config & config)
   if (config.mapGetString("map_name", &map_name) && !map_name.isEmpty()) {
     map_name_ = map_name.toStdString();
     loadMapYaml();
-    rebuildQuickActions();
   }
 
   bool preview = false;
