@@ -1,0 +1,151 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LlmChat &mdash; iros_llm_swarm_interfaces</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            iros_llm_swarm_interfaces
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">LlmChat</a></li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">iros_llm_swarm_interfaces</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">LlmChat</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/interfaces/action/LlmChat.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <p style="margin: 0 0 1em 0;">
+  <a href="../iros_llm_swarm_docs/index.html">&laquo; IROS LLM Swarm — back to overview</a>
+</p><section id="llmchat">
+<h1>LlmChat<a class="headerlink" href="#llmchat" title="Link to this heading"></a></h1>
+<p>This is a ROS action definition.</p>
+<p><strong>Source</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># LlmChat.action</span>
+<span class="c1">#</span>
+<span class="c1"># Natural-language chat entry point used by the RViz panel and CLI clients.</span>
+<span class="c1"># Wraps the orchestrator&#39;s existing pipeline:</span>
+<span class="c1">#     build_user_prompt → stream → parse_plan → (optionally) PlanExecutor</span>
+<span class="c1">#</span>
+<span class="c1"># Streaming: the assistant reply text is emitted via feedback chunks as</span>
+<span class="c1"># tokens arrive from the LLM. The final parsed plan is delivered in the</span>
+<span class="c1"># result.</span>
+
+<span class="c1"># ---- Goal -----------------------------------------------------------------</span>
+<span class="n">string</span> <span class="n">user_message</span>
+
+<span class="c1"># Whether the orchestrator should execute the parsed plan after generation.</span>
+<span class="c1">#   true  — same behaviour as the legacy stdin user_chat_node: generate,</span>
+<span class="c1">#           then send leaf commands via /llm/command, then return.</span>
+<span class="c1">#   false — stop after parsing; caller (e.g. an RViz &quot;preview &amp; confirm&quot;</span>
+<span class="c1">#           workflow) will decide what to do with plan_json.</span>
+<span class="c1"># Default: true (preserves existing behaviour).</span>
+<span class="nb">bool</span> <span class="n">execute_after_planning</span>      <span class="n">true</span>
+
+<span class="o">---</span>
+<span class="c1"># ---- Result ---------------------------------------------------------------</span>
+<span class="n">string</span> <span class="n">final_reply</span>        <span class="c1"># natural-language reply (LLM &quot;reply&quot; field)</span>
+<span class="n">string</span> <span class="n">plan_json</span>          <span class="c1"># parsed plan as a JSON string (&quot;&quot; if parse failed)</span>
+<span class="nb">bool</span>   <span class="n">plan_executed</span>      <span class="c1"># true iff PlanExecutor ran to completion</span>
+<span class="nb">bool</span>   <span class="n">success</span>            <span class="c1"># overall success</span>
+<span class="n">string</span> <span class="n">info</span>               <span class="c1"># error message on failure, empty otherwise</span>
+
+<span class="o">---</span>
+<span class="c1"># ---- Feedback -------------------------------------------------------------</span>
+<span class="c1"># Stage transitions:</span>
+<span class="c1">#   &quot;thinking&quot;  — LLM call sent, awaiting first token</span>
+<span class="c1">#   &quot;streaming&quot; — `chunk` carries a piece of the reply text</span>
+<span class="c1">#   &quot;parsed&quot;    — plan ready; `detail` holds the JSON for previewing</span>
+<span class="c1">#   &quot;executing&quot; — PlanExecutor running; `detail` describes the current step</span>
+<span class="c1">#   &quot;done&quot;      — terminal (matches Result.success=true)</span>
+<span class="c1">#   &quot;error&quot;     — terminal failure; `detail` carries the message</span>
+<span class="n">string</span> <span class="n">stage</span>
+<span class="n">string</span> <span class="n">chunk</span>
+<span class="n">string</span> <span class="n">detail</span>
+</pre></div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

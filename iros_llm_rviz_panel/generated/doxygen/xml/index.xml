@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygenindex xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="index.xsd" version="1.9.1" xml:lang="en-US">
+  <compound refid="classiros__llm__rviz__panel_1_1LlmPanel" kind="class"><name>iros_llm_rviz_panel::LlmPanel</name>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a20e565398fa94fb5d47301fef0a5c839" kind="typedef"><name>BTState</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a93e33c9469d19b4f52d65eccb0a5b148" kind="typedef"><name>LlmCommand</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a23bafeb8b5338f56111a61d5b9bceadf" kind="typedef"><name>LlmChat</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a3971a2426bbf9d27ca86d40edd2c74ce" kind="typedef"><name>ChatGoalH</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1aadaf894b2d261cd37bb89e2ded9c2644" kind="variable"><name>node_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1aa339fb6b264242d9b0b28ab377615efc" kind="variable"><name>bt_state_sub_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a0afb213be0e88a3181668d905f24bfb9" kind="variable"><name>marker_pub_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a921f251e29da2408783c801da8fddad1" kind="variable"><name>chat_client_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ae54f13ab53af8ef1fa87fb08527024ba" kind="variable"><name>cmd_client_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ad10f7fe7cc6c5d375d2a99c7eb0895bf" kind="variable"><name>mode_badge_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a6a0c443abc7ced9d64ea8f37f1db58ec" kind="variable"><name>action_badge_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1abd7017307f8eade030d9af70b0ac6883" kind="variable"><name>status_badge_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a7995077dd0731f95e7898b514fda3858" kind="variable"><name>thinking_label_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ae3a38a58870176489aab4865daee144e" kind="variable"><name>error_label_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a0d84a868891121250b7194c0a2a9cb10" kind="variable"><name>stop_button_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a6d74eb924d08379fbd1314c6f3103eed" kind="variable"><name>chat_view_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a06c3a350bcb6bd2f2201c246411a0253" kind="variable"><name>chat_input_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ae7c9050d82bd8836ed1c2b3743830ab6" kind="variable"><name>send_button_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1acd678d35a804b271d10d916dd39d352b" kind="variable"><name>tabs_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a1dc623f25ba75418e52636eb10965cce" kind="variable"><name>chat_in_flight_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a48edd2614f7258fafab14996d9cadbdd" kind="function"><name>LlmPanel</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a80ab2fb1dbac3154e1aeaf1a522f6a14" kind="function"><name>~LlmPanel</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ad256a19474e8cd0319b58d81650ddcdf" kind="function"><name>onInitialize</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a4f672e57c50bc84a37a3bd5b8c99194b" kind="function"><name>load</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1aa1acf85d34349f54628d608e35c57712" kind="function"><name>save</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ace4927bb650279d69bba912da5b56156" kind="signal"><name>btStateReceived</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a2336ee465004b43e2745da18ecd4efd8" kind="signal"><name>chatChunkReceived</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a8de8cb1b19a6aab12a39bf19a927bd1f" kind="signal"><name>chatStageReceived</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ab296bf7ed1b2bb9c292389f3b08ab8d2" kind="signal"><name>chatFinished</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a1dcba9a246bf6c217b5c9e23aa9eabfe" kind="slot"><name>onSendChat</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1afd05b8010fcdfe147f5c3971468b4504" kind="slot"><name>onStopAll</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a7223e6950652d711e8086ff82780cf42" kind="slot"><name>onUpdateStatus</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a474e296a48fa48f38dd7b7a4f7030931" kind="slot"><name>onChatChunk</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a5d5d68e40c9a44b61f74fc7f3c3dd9c7" kind="slot"><name>onChatStage</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a19b847398f4eaba4e85a29982053b1e9" kind="slot"><name>onChatFinished</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a563fba37c74081a3a763e26a986ca950" kind="function"><name>buildUi</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a02a9390a6a04bf1a24210aaa6ab981ef" kind="function"><name>setupRos</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ae675bba7ac51f1e83d3fad52fcf0f9f7" kind="function"><name>publishMarkers</name></member>
+  </compound>
+  <compound refid="namespaceiros__llm__rviz__panel" kind="namespace"><name>iros_llm_rviz_panel</name>
+  </compound>
+  <compound refid="namespacerviz__common" kind="namespace"><name>rviz_common</name>
+  </compound>
+  <compound refid="llm__panel_8hpp" kind="file"><name>llm_panel.hpp</name>
+  </compound>
+  <compound refid="dir_d44c64559bbebec7f509842c48db8b23" kind="dir"><name>include</name>
+  </compound>
+  <compound refid="dir_2bb2c532db6c585886b8594203abdf14" kind="dir"><name>include/iros_llm_rviz_panel</name>
+  </compound>
+</doxygenindex>
