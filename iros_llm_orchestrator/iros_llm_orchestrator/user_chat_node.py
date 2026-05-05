@@ -88,7 +88,14 @@ def _postprocess_plan(node: dict, map_cfg: dict) -> dict:
     if t in ('sequence', 'parallel'):
         node['steps'] = [_postprocess_plan(s, map_cfg) for s in node['steps']]
     elif t == 'mapf' and 'goals' in node:
-        node['goals'] = _clamp_goals(_spread_goals(node['goals']), map_cfg)
+        # Clamp the LLM-supplied centres first so spread happens around an
+        # in-bounds point — otherwise the spread radius pushes goals out of
+        # bounds and the post-spread clamp collapses formations onto the
+        # boundary line. Re-clamp afterwards as a safety net for spread
+        # radii larger than the boundary margin.
+        node['goals'] = _clamp_goals(
+            _spread_goals(_clamp_goals(node['goals'], map_cfg)),
+            map_cfg)
     return node
 
 
@@ -101,10 +108,25 @@ def _parse_response(raw: str) -> tuple[str, dict]:
     start = text.find('{')
     if start == -1:
         raise ValueError('no JSON object in LLM output')
+    # Track string state so a `}` inside a JSON string (perfectly legal in
+    # the `reply` field) doesn't close the outer object early.
     depth = 0; end = -1
+    in_string = False; escaped = False
     for i in range(start, len(text)):
-        if text[i] == '{': depth += 1
-        elif text[i] == '}':
+        ch = text[i]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif ch == '\\':
+                escaped = True
+            elif ch == '"':
+                in_string = False
+            continue
+        if ch == '"':
+            in_string = True
+        elif ch == '{':
+            depth += 1
+        elif ch == '}':
             depth -= 1
             if depth == 0:
                 end = i + 1; break
@@ -222,8 +244,18 @@ class UserChatNode(Node):
         self._mode_seq           = 0
         self._history: list[dict] = []
         self._bt_event_analyzing = False
+        # /llm/command server readiness is checked once per session, off the
+        # asyncio loop thread, so wait_for_server() never freezes the UI.
+        self._cmd_server_ready   = False
 
         self._loop = asyncio.new_event_loop()
+        # Plan handling is serialised on the asyncio loop: only one plan is
+        # executed at a time, but a newer command preempts (cancels) the
+        # currently-running plan task. _stdin_loop schedules via
+        # _schedule_handle(); _handle takes the lock so the new task waits
+        # for the cancelled one to unwind cleanly before starting.
+        self._plan_lock          = asyncio.Lock()
+        self._current_plan_task  = None  # concurrent.futures.Future
         threading.Thread(target=self._loop.run_forever, daemon=True).start()
         threading.Thread(target=self._stdin_loop, daemon=True).start()
         self._print_banner()
@@ -273,10 +305,14 @@ class UserChatNode(Node):
             self._slog.warning(
                 f'BT event: [{msg.action_status}] {msg.active_action}: '
                 f'{msg.last_error}')
-            if self._bt_event_analyzing:
-                self._out('       (LLM analysis already in progress)')
-                self._prompt(); return
-            self._bt_event_analyzing = True
+            # Atomic check-and-set so back-to-back WARN/ERROR messages from
+            # the ROS executor thread don't both pass the gate and schedule
+            # two concurrent _handle_bt_event coroutines.
+            with self._mode_lock:
+                if self._bt_event_analyzing:
+                    self._out('       (LLM analysis already in progress)')
+                    self._prompt(); return
+                self._bt_event_analyzing = True
             self._out(f'  {THK} Analyzing...')
             asyncio.run_coroutine_threadsafe(
                 self._handle_bt_event(msg), self._loop)
@@ -310,7 +346,8 @@ class UserChatNode(Node):
             self._history.append({'role': 'assistant', 'content': safe_raw})
             self._trim_history()
         finally:
-            self._bt_event_analyzing = False
+            with self._mode_lock:
+                self._bt_event_analyzing = False
             self._prompt()
 
     # ------------------------------------------------------------------
@@ -330,13 +367,38 @@ class UserChatNode(Node):
                 self._prompt(); continue
             if text.lower() in ('quit', 'exit', 'q'):
                 self._out('Bye.'); rclpy.shutdown(); break
-            asyncio.run_coroutine_threadsafe(self._handle(text), self._loop)
+            self._schedule_handle(text)
+
+    def _schedule_handle(self, text: str):
+        """Schedule a new _handle, preempting any currently-running plan.
+
+        Newer commands always win — typing "stop" while a plan is mid-run
+        cancels the previous task, then the new one acquires _plan_lock and
+        executes. This avoids interleaved /llm/command goals and history
+        mutations from concurrent _handle coroutines.
+        """
+        prev = self._current_plan_task
+        if prev is not None and not prev.done():
+            self._slog.info('cancelling previous plan task — newer command arrived')
+            prev.cancel()
+        self._current_plan_task = asyncio.run_coroutine_threadsafe(
+            self._handle(text), self._loop)
 
     # ------------------------------------------------------------------
     # User command pipeline
     # ------------------------------------------------------------------
 
     async def _handle(self, text: str):
+        async with self._plan_lock:
+            try:
+                await self._handle_body(text)
+            except asyncio.CancelledError:
+                # A newer command preempted us. Don't fight it — let the new
+                # _handle acquire the lock and proceed.
+                self._out(f'\n  {WRN} plan cancelled — running newer command')
+                self._slog.info('plan task cancelled — newer command arrived')
+
+    async def _handle_body(self, text: str):
         safe_text = text.encode('utf-8', errors='replace').decode('utf-8')
         self._slog.info(f'USER: {safe_text}')
 
@@ -390,6 +452,21 @@ class UserChatNode(Node):
     # Leaf execution
     # ------------------------------------------------------------------
 
+    async def _ensure_cmd_server(self) -> bool:
+        """One-shot, off-loop readiness probe for /llm/command.
+
+        wait_for_server is blocking; calling it from the asyncio loop thread
+        freezes the chat UI. We pay the 3s probe at most once per session
+        and cache the result.
+        """
+        if self._cmd_server_ready:
+            return True
+        loop = asyncio.get_running_loop()
+        ok = await loop.run_in_executor(
+            None, lambda: self._cmd_client.wait_for_server(timeout_sec=3.0))
+        self._cmd_server_ready = ok
+        return ok
+
     async def _send_leaf(self, command: dict) -> bool:
         t = command.get('type') or command.get('mode', '')
         self._slog.debug(f'send_leaf: type={t} ids={command.get("robot_ids",[])}')
@@ -398,7 +475,7 @@ class UserChatNode(Node):
             return await self._send_bt_goal(mode='idle',
                                             reason=command.get('reason', ''))
 
-        if not self._cmd_client.wait_for_server(timeout_sec=3.0):
+        if not await self._ensure_cmd_server():
             self._out(f'  {ERR}  /llm/command not available.')
             self._slog.error('send_leaf: /llm/command server not available')
             return False
@@ -483,7 +560,7 @@ class UserChatNode(Node):
         return False
 
     async def _send_bt_goal(self, mode: str, reason: str = '') -> bool:
-        if not self._cmd_client.wait_for_server(timeout_sec=3.0):
+        if not await self._ensure_cmd_server():
             return False
         goal = LlmCommand.Goal()
         goal.mode = mode; goal.reason = reason

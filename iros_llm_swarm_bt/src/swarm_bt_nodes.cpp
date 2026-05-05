@@ -1095,12 +1095,11 @@ rclcpp_action::GoalResponse LlmCommandReceiver::handle_goal(
   const rclcpp_action::GoalUUID & /*uuid*/,
   std::shared_ptr<const LlmCommand::Goal> goal)
 {
-  std::lock_guard<std::mutex> lk(pending_mutex_);
-
-  // One goal at a time — reject if a previous goal hasn't been applied yet.
-  if (pending_goal_) {
-    return rclcpp_action::GoalResponse::REJECT;
-  }
+  // Always accept well-formed goals. If a previous goal is still queued in
+  // pending_goal_ we will supersede it in handle_accepted — the newer goal
+  // is always the more relevant one (e.g. user typing "stop" on top of a
+  // mapf in flight). Rejecting here would surface as a confusing
+  // "BT rejected goal" in the chat.
   if (goal->mode != "idle" && goal->mode != "mapf" && goal->mode != "formation") {
     return rclcpp_action::GoalResponse::REJECT;
   }
@@ -1115,9 +1114,22 @@ rclcpp_action::CancelResponse LlmCommandReceiver::handle_cancel(
 
 void LlmCommandReceiver::handle_accepted(const std::shared_ptr<GoalHandle> goal_handle)
 {
-  std::lock_guard<std::mutex> lk(pending_mutex_);
-  pending_goal_ = goal_handle->get_goal();
-  pending_handle_ = goal_handle;
+  std::shared_ptr<GoalHandle> superseded;
+  {
+    std::lock_guard<std::mutex> lk(pending_mutex_);
+    // If a previous goal hasn't been applied yet, we will succeed it as
+    // "superseded" so its caller doesn't hang inside get_result_async.
+    superseded = pending_handle_;
+    pending_goal_ = goal_handle->get_goal();
+    pending_handle_ = goal_handle;
+  }
+
+  if (superseded) {
+    auto stale = std::make_shared<LlmCommand::Result>();
+    stale->success = true;
+    stale->info = "superseded by newer goal";
+    superseded->succeed(stale);
+  }
 
   auto fb = std::make_shared<LlmCommand::Feedback>();
   fb->stage = "received";
@@ -1168,18 +1180,38 @@ void LlmCommandReceiver::apply_to_blackboard(
   bb->set<std::string>("@mode", goal->mode);
   bb->set<std::string>("@llm_reason", goal->reason);
 
-  if (goal->mode == "mapf" && !goal->robot_ids.empty()) {
-    std::vector<int> ids(goal->robot_ids.begin(), goal->robot_ids.end());
-    bb->set<std::vector<int>>("@robot_ids", ids);
-    bb->set<std::vector<geometry_msgs::msg::Point>>("@goals", goal->goals);
-  }
-
-  if (goal->mode == "formation" && !goal->formation_id.empty()) {
-    bb->set<std::string>("@formation_id", goal->formation_id);
-    bb->set<std::string>("@leader_ns", goal->leader_ns);
-    bb->set<std::vector<std::string>>("@follower_ns", goal->follower_ns);
-    bb->set<std::vector<double>>("@offsets_x", goal->offsets_x);
-    bb->set<std::vector<double>>("@offsets_y", goal->offsets_y);
+  // Clear opposite-mode fields so BTStatePublisher/PassiveObserver/event
+  // prompts never see leftover state from a previous step (e.g. a mapf
+  // step's @robot_ids leaking into a subsequent formation, or vice versa).
+  if (goal->mode == "mapf") {
+    bb->set<std::string>("@formation_id", "");
+    bb->set<std::string>("@leader_ns", "");
+    bb->set<std::vector<std::string>>("@follower_ns", {});
+    bb->set<std::vector<double>>("@offsets_x", {});
+    bb->set<std::vector<double>>("@offsets_y", {});
+    if (!goal->robot_ids.empty()) {
+      std::vector<int> ids(goal->robot_ids.begin(), goal->robot_ids.end());
+      bb->set<std::vector<int>>("@robot_ids", ids);
+      bb->set<std::vector<geometry_msgs::msg::Point>>("@goals", goal->goals);
+    }
+  } else if (goal->mode == "formation") {
+    bb->set<std::vector<int>>("@robot_ids", {});
+    bb->set<std::vector<geometry_msgs::msg::Point>>("@goals", {});
+    if (!goal->formation_id.empty()) {
+      bb->set<std::string>("@formation_id", goal->formation_id);
+      bb->set<std::string>("@leader_ns", goal->leader_ns);
+      bb->set<std::vector<std::string>>("@follower_ns", goal->follower_ns);
+      bb->set<std::vector<double>>("@offsets_x", goal->offsets_x);
+      bb->set<std::vector<double>>("@offsets_y", goal->offsets_y);
+    }
+  } else {  // idle — wipe everything mission-related.
+    bb->set<std::vector<int>>("@robot_ids", {});
+    bb->set<std::vector<geometry_msgs::msg::Point>>("@goals", {});
+    bb->set<std::string>("@formation_id", "");
+    bb->set<std::string>("@leader_ns", "");
+    bb->set<std::vector<std::string>>("@follower_ns", {});
+    bb->set<std::vector<double>>("@offsets_x", {});
+    bb->set<std::vector<double>>("@offsets_y", {});
   }
 }
 

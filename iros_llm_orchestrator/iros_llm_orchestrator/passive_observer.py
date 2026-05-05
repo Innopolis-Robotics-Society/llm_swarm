@@ -64,6 +64,11 @@ class PassiveObserver(Node):
 
         self._last_action_time = 0.0
         self._is_thinking      = False
+        # Both fields above are touched from the ROS callback thread (cooldown
+        # check) AND from the asyncio loop thread (think-and-command flag
+        # reset). Lock the read/modify pair so back-to-back WARNs cannot both
+        # pass the cooldown gate and double-fire /llm/command.
+        self._observer_lock    = threading.Lock()
 
         qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
                          history=HistoryPolicy.KEEP_LAST, depth=20)
@@ -89,13 +94,13 @@ class PassiveObserver(Node):
             return
 
         now = self.get_clock().now().nanoseconds / 1e9
-        if now - self._last_action_time < self._cooldown:
-            return
-        if self._is_thinking:
-            return
-
-        self._is_thinking      = True
-        self._last_action_time = now
+        with self._observer_lock:
+            if now - self._last_action_time < self._cooldown:
+                return
+            if self._is_thinking:
+                return
+            self._is_thinking      = True
+            self._last_action_time = now
 
         self.get_logger().warn(
             f'Triggered by status={msg.action_status} '
@@ -117,11 +122,13 @@ class PassiveObserver(Node):
             command = parse_llm_command(raw)
         except asyncio.TimeoutError:
             self.get_logger().warn('PassiveObserver: LLM timeout')
-            self._is_thinking = False
+            with self._observer_lock:
+                self._is_thinking = False
             return
         except Exception as exc:
             self.get_logger().error(f'PassiveObserver: error: {exc}')
-            self._is_thinking = False
+            with self._observer_lock:
+                self._is_thinking = False
             return
 
         self._logger_ds.log(
@@ -132,7 +139,8 @@ class PassiveObserver(Node):
             reason=command.get('reason', ''))
 
         await self._send_command(command)
-        self._is_thinking = False
+        with self._observer_lock:
+            self._is_thinking = False
 
     async def _send_command(self, command: dict):
         from geometry_msgs.msg import Point

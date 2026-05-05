@@ -125,21 +125,24 @@ def flatten_parallel(node: dict) -> list[dict]:
 
     result: list[dict] = []
 
-    # Merge all mapf leaves into one
+    # Merge all mapf leaves into one. If the same robot id shows up in two
+    # branches (LLM occasionally produces this when an operator phrases the
+    # same group twice), last-write-wins — the planner will reject duplicate
+    # agents and we'd rather submit a coherent goal than fail the leaf.
     if mapf_leaves:
-        merged_ids:   list[int]   = []
-        merged_goals: list[list]  = []
-        reasons: list[str]        = []
+        merged: dict[int, list] = {}
+        reasons: list[str]      = []
         for leaf in mapf_leaves:
-            merged_ids.extend([int(r) for r in leaf.get('robot_ids', [])])
-            merged_goals.extend([[float(g[0]), float(g[1])]
-                                  for g in leaf.get('goals', [])])
+            ids   = [int(r) for r in leaf.get('robot_ids', [])]
+            goals = [[float(g[0]), float(g[1])] for g in leaf.get('goals', [])]
+            for rid, g in zip(ids, goals):
+                merged[rid] = g
             if leaf.get('reason'):
                 reasons.append(leaf['reason'])
         result.append({
             'type':      'mapf',
-            'robot_ids': merged_ids,
-            'goals':     merged_goals,
+            'robot_ids': list(merged.keys()),
+            'goals':     list(merged.values()),
             'reason':    ' + '.join(reasons),
         })
 
