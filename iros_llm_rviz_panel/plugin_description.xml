@@ -1,0 +1,13 @@
+<library path="iros_llm_rviz_panel">
+  <class
+    name="iros_llm_rviz_panel/LlmPanel"
+    type="iros_llm_rviz_panel::LlmPanel"
+    base_class_type="rviz_common::Panel">
+    <description>
+      Operator-facing chat panel for iros_llm_swarm. Streams replies from
+      /llm/chat, displays /bt/state in a status strip, and publishes goal
+      markers on /llm_panel/markers. Includes a STOP ALL button that
+      bypasses the LLM via /llm/command{mode=idle}.
+    </description>
+  </class>
+</library>

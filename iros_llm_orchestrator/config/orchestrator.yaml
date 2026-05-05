@@ -13,7 +13,7 @@ llm_decision_server:
     #   mistral-small3.1   ~13 GB  — smarter, ~2× slower
     #   qwen2.5:7b         ~5 GB   — fastest, acceptable quality
     llm_endpoint: "http://localhost:11434/api/chat"
-    llm_model: "qwen2.5:14b"
+    llm_model: "qwen2.5:7b"
 
     # --- HTTP/OpenAI-compatible backend (vLLM / TGI / llama.cpp-server) ---
     # llm_mode: "http"
@@ -29,7 +29,7 @@ llm_decision_server:
     # Hard cap on simultaneous inference calls (MAPF feedback can fire several times per second).
     max_concurrent: 1
 
-    # Ollama loads the model on the first request (~5-10s for 14B).
+    # Ollama loads the model on the first request (~3-5s for 7B).
     # Give enough headroom so the BT doesn't abort on a cold start.
     timeout_sec: 30.0
 
@@ -44,7 +44,7 @@ llm_passive_observer:
     # Channel 2 — proactive observer subscribed to /bt/state.
     llm_mode: "ollama"
     llm_endpoint: "http://localhost:11434/api/chat"
-    llm_model: "qwen2.5:14b"
+    llm_model: "qwen2.5:7b"
     llm_max_tokens: 1024
     llm_temperature: 0.3
 
@@ -65,3 +65,20 @@ llm_passive_observer:
     # Default: false (channel 2 disabled). Override via launch arg
     # `enable_passive_observer:=true` or `ros2 param set ... enabled true`.
     enabled: false
+
+llm_chat_server:
+  ros__parameters:
+    # Channel 3 over ROS — /llm/chat action, used by the RViz panel.
+    llm_endpoint: "http://localhost:11434/api/chat"
+    llm_model:    "qwen2.5:7b"
+    llm_max_tokens:  768
+    llm_temperature: 0.1
+
+    # LLM call timeout (cold-start of a 7B model on Ollama is ~3–5s).
+    timeout_sec: 30.0
+
+    # Per-leaf BT mission timeout. A single MAPF goal across the map can take
+    # ~1 minute with 20 robots; keep generous headroom for sequences.
+    step_timeout_sec: 120.0
+
+    map_name: "cave"

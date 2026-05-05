@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>iros_llm_rviz_panel</name>
+  <version>0.0.1</version>
+  <description>
+    RViz2 panel for the iros_llm_swarm operator UI: streaming chat to /llm/chat,
+    /bt/state status bar with STOP ALL kill-switch, and a MarkerArray publisher
+    that visualizes current MAPF goals in the 3D scene.
+  </description>
+
+  <maintainer email="you@example.com">you</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rviz_common</depend>
+  <depend>rviz_default_plugins</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
+  <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>visualization_msgs</depend>
+  <depend>iros_llm_swarm_interfaces</depend>
+  <depend>libqt5-widgets</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+    <!-- Re-exposes the plugin to RViz's pluginlib loader. -->
+    <rviz plugin="${prefix}/plugin_description.xml"/>
+  </export>
+</package>

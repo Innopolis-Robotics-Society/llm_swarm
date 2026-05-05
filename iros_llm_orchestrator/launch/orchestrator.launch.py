@@ -44,4 +44,12 @@ def generate_launch_description():
             ],
             output='screen',
         ),
+
+        Node(
+            package='iros_llm_orchestrator',
+            executable='chat_server',
+            name='llm_chat_server',
+            parameters=[config],
+            output='screen',
+        ),
     ])

@@ -245,6 +245,10 @@ RUN bash -lc '\
   colcon build --symlink-install \
 ' && chown -R $USERNAME:$USERNAME /home/$USERNAME/extras_ws
 
+# AI python libs
+RUN python3 -m pip install --no-cache-dir --upgrade pip \
+ && python3 -m pip install --no-cache-dir \ 
+    aiohttp
 
 # Add source in .bashrc
 RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /home/$USERNAME/.bashrc

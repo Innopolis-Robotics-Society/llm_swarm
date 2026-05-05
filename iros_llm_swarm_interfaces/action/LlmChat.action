@@ -1,0 +1,41 @@
+# LlmChat.action
+#
+# Natural-language chat entry point used by the RViz panel and CLI clients.
+# Wraps the orchestrator's existing pipeline:
+#     build_user_prompt → stream → parse_plan → (optionally) PlanExecutor
+#
+# Streaming: the assistant reply text is emitted via feedback chunks as
+# tokens arrive from the LLM. The final parsed plan is delivered in the
+# result.
+
+# ---- Goal -----------------------------------------------------------------
+string user_message
+
+# Whether the orchestrator should execute the parsed plan after generation.
+#   true  — same behaviour as the legacy stdin user_chat_node: generate,
+#           then send leaf commands via /llm/command, then return.
+#   false — stop after parsing; caller (e.g. an RViz "preview & confirm"
+#           workflow) will decide what to do with plan_json.
+# Default: true (preserves existing behaviour).
+bool execute_after_planning      true
+
+---
+# ---- Result ---------------------------------------------------------------
+string final_reply        # natural-language reply (LLM "reply" field)
+string plan_json          # parsed plan as a JSON string ("" if parse failed)
+bool   plan_executed      # true iff PlanExecutor ran to completion
+bool   success            # overall success
+string info               # error message on failure, empty otherwise
+
+---
+# ---- Feedback -------------------------------------------------------------
+# Stage transitions:
+#   "thinking"  — LLM call sent, awaiting first token
+#   "streaming" — `chunk` carries a piece of the reply text
+#   "parsed"    — plan ready; `detail` holds the JSON for previewing
+#   "executing" — PlanExecutor running; `detail` describes the current step
+#   "done"      — terminal (matches Result.success=true)
+#   "error"     — terminal failure; `detail` carries the message
+string stage
+string chunk
+string detail
