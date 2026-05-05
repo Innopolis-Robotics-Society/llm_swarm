@@ -20,7 +20,7 @@ from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 
 from iros_llm_swarm_interfaces.action import LlmCommand
-from iros_llm_swarm_interfaces.msg import BTState
+from iros_llm_swarm_interfaces.msg import BTState, LlmEvent
 
 from iros_llm_orchestrator.common.llm_factory import get_llm_client
 from iros_llm_orchestrator.common.parsers import parse_llm_command
@@ -74,6 +74,7 @@ class PassiveObserver(Node):
                          history=HistoryPolicy.KEEP_LAST, depth=20)
         self.create_subscription(BTState, '/bt/state', self._on_state, qos)
         self._cmd_client = ActionClient(self, LlmCommand, '/llm/command')
+        self._event_pub  = self.create_publisher(LlmEvent, '/llm/events', 10)
 
         self._loop = asyncio.new_event_loop()
         threading.Thread(target=self._loop.run_forever, daemon=True).start()
@@ -137,6 +138,14 @@ class PassiveObserver(Node):
             log_buffer=[],
             decision=command.get('mode', 'idle'),
             reason=command.get('reason', ''))
+
+        ev = LlmEvent()
+        ev.stamp_ms = int(self.get_clock().now().nanoseconds / 1e6)
+        ev.channel  = LlmEvent.CHANNEL_OBSERVER
+        ev.trigger  = f'{trigger.active_action}: {trigger.last_error}'
+        ev.output   = command.get('mode', 'idle')
+        ev.reason   = command.get('reason', '')
+        self._event_pub.publish(ev)
 
         await self._send_command(command)
         with self._observer_lock:

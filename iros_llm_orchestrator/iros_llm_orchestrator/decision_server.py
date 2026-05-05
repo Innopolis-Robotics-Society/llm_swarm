@@ -13,6 +13,7 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 
 from iros_llm_swarm_interfaces.action import LlmDecision
+from iros_llm_swarm_interfaces.msg import LlmEvent
 
 from iros_llm_orchestrator.common.llm_factory import get_llm_client
 from iros_llm_orchestrator.common.parsers import parse_llm_decision
@@ -52,6 +53,7 @@ class LlmDecisionServer(Node):
         self._tail          = int(self.get_parameter('log_tail').value)
         self._semaphore     = asyncio.Semaphore(int(self.get_parameter('max_concurrent').value))
         self._logger_ds     = DecisionLogger(self.get_parameter('dataset_path').value)
+        self._event_pub     = self.create_publisher(LlmEvent, '/llm/events', 10)
 
         self._loop = asyncio.new_event_loop()
         import threading
@@ -97,6 +99,14 @@ class LlmDecisionServer(Node):
             level=req.level, event=req.event,
             log_buffer=list(req.log_buffer),
             decision=decision, reason=reason)
+
+        ev = LlmEvent()
+        ev.stamp_ms = int(self.get_clock().now().nanoseconds / 1e6)
+        ev.channel  = LlmEvent.CHANNEL_DECISION
+        ev.trigger  = f'[{req.level}] {req.event}'
+        ev.output   = decision
+        ev.reason   = reason
+        self._event_pub.publish(ev)
 
         result = LlmDecision.Result()
         result.decision = decision

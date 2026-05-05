@@ -82,3 +82,9 @@ llm_chat_server:
     step_timeout_sec: 120.0
 
     map_name: "cave"
+
+llm_execute_server:
+  ros__parameters:
+    # Operator-confirmed plan replay — /llm/execute_plan action. No LLM call.
+    step_timeout_sec: 120.0
+    map_name: "cave"

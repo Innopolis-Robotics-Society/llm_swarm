@@ -1,0 +1,37 @@
+// Copyright 2026 — iros_llm_swarm contributors. Apache-2.0.
+//
+// Pure-C++ parser for BTState.action_summary lines. No Qt, no ROS — kept
+// dependency-free so we can unit-test it.
+//
+// Input examples:
+//   [t=1200ms status=executing arrived=5 active=15 stall=0 replans=0]
+//   [t=2400ms status=executing arrived=8 active=12 stall=0 replans=0] INFO: ...
+//   [t=3600ms status=executing arrived=8 active=12 stall=1 replans=0] WARN: ...
+//
+// Tolerance: any field may be missing → std::nullopt. Reordered fields,
+// extra whitespace, malformed numbers, or an empty input never throw.
+
+#pragma once
+
+#include <cstdint>
+#include <optional>
+#include <string>
+#include <string_view>
+
+namespace iros_llm_rviz_panel
+{
+
+struct ActionSummary
+{
+  std::optional<int64_t>     elapsed_ms;
+  std::optional<std::string> status;       // "executing" / "validating" / ...
+  std::optional<int>         arrived;
+  std::optional<int>         active;
+  std::optional<int>         stall;
+  std::optional<int>         replans;
+  std::string                event_tail;   // raw tail after `]`, or empty
+};
+
+ActionSummary parseActionSummary(std::string_view line);
+
+}  // namespace iros_llm_rviz_panel

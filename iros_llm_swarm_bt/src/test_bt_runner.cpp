@@ -35,7 +35,7 @@
 #include "ament_index_cpp/get_package_share_directory.hpp"
 #include "behaviortree_cpp_v3/bt_factory.h"
 #include "behaviortree_cpp_v3/blackboard.h"
-#include "behaviortree_cpp_v3/loggers/bt_cout_logger.h"
+#include "behaviortree_cpp_v3/loggers/abstract_logger.h"
 #include "geometry_msgs/msg/point.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/bool.hpp"
@@ -60,6 +60,29 @@ static Point make_point(double x, double y)
 {
   Point p; p.x = x; p.y = y; p.z = 0.0; return p;
 }
+
+class RclcppDebugLogger : public BT::StatusChangeLogger
+{
+public:
+  RclcppDebugLogger(const BT::Tree & tree, rclcpp::Logger logger)
+  : BT::StatusChangeLogger(tree.rootNode()), logger_(logger) {}
+
+  void callback(
+    BT::Duration /*timestamp*/, const BT::TreeNode & node,
+    BT::NodeStatus prev_status, BT::NodeStatus status) override
+  {
+    RCLCPP_DEBUG(
+      logger_, "%-25s %s -> %s",
+      node.name().c_str(),
+      BT::toStr(prev_status, false).c_str(),
+      BT::toStr(status, false).c_str());
+  }
+
+  void flush() override {}
+
+private:
+  rclcpp::Logger logger_;
+};
 
 // ---------------------------------------------------------------------------
 // Scenario thread
@@ -315,7 +338,7 @@ int main(int argc, char ** argv)
     "/behavior_trees/swarm_navigate_to_pose.xml";
 
   auto tree = factory.createTreeFromFile(xml_file, blackboard);
-  BT::StdCoutLogger logger(tree);
+  RclcppDebugLogger logger(tree, node->get_logger());
 
   // Publishers
   auto pub_mode = node->create_publisher<std_msgs::msg::String>(

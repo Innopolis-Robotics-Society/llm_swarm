@@ -52,4 +52,12 @@ def generate_launch_description():
             parameters=[config],
             output='screen',
         ),
+
+        Node(
+            package='iros_llm_orchestrator',
+            executable='execute_server',
+            name='llm_execute_server',
+            parameters=[config],
+            output='screen',
+        ),
     ])

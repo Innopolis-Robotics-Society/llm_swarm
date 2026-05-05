@@ -2,26 +2,46 @@
 
 #include "iros_llm_rviz_panel/llm_panel.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <ctime>
+#include <functional>
+#include <iomanip>
+#include <sstream>
 #include <string>
 
+#include <QCheckBox>
 #include <QColor>
 #include <QHBoxLayout>
+#include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
+#include <QProgressBar>
 #include <QPushButton>
 #include <QTabWidget>
+#include <QTableWidget>
 #include <QTextCursor>
 #include <QTextEdit>
+#include <QTimer>
+#include <QToolButton>
+#include <QTreeWidget>
+#include <QTreeWidgetItem>
 #include <QVBoxLayout>
+
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
 #include <pluginlib/class_list_macros.hpp>
 #include <rviz_common/display_context.hpp>
 #include <rviz_common/ros_integration/ros_node_abstraction_iface.hpp>
 
+#include <yaml-cpp/yaml.h>
+
 #include <visualization_msgs/msg/marker.hpp>
 #include <std_msgs/msg/color_rgba.hpp>
+
+#include "iros_llm_rviz_panel/action_summary.hpp"
+#include "iros_llm_rviz_panel/sparkline.hpp"
 
 using namespace std::chrono_literals;
 
@@ -42,20 +62,55 @@ QString badgeStyle(const QString & bg, const QString & fg = "white")
 
 QString modeColor(const QString & mode)
 {
-  if (mode == "mapf")      return "#1976D2";  // blue
-  if (mode == "formation") return "#7B1FA2";  // purple
-  return "#616161";                           // grey for idle / unknown
+  if (mode == "mapf")      return "#1976D2";
+  if (mode == "formation") return "#7B1FA2";
+  return "#616161";
 }
 
 QString statusColor(const QString & status)
 {
-  if (status == "OK")    return "#388E3C";  // green
-  if (status == "WARN")  return "#F57C00";  // orange
-  if (status == "ERROR") return "#C62828";  // red
+  if (status == "OK")    return "#388E3C";
+  if (status == "WARN")  return "#F57C00";
+  if (status == "ERROR") return "#C62828";
   return "#616161";
 }
 
-// Deterministic per-robot color. 20 robots → 20 hues spread around the wheel.
+QString channelColor(int channel)
+{
+  switch (channel) {
+    case 1: return "#1976D2";   // DECISION — blue
+    case 2: return "#F57C00";   // OBSERVER — orange
+    case 3: return "#388E3C";   // USER — green
+    default: return "#616161";
+  }
+}
+
+QString channelName(int channel)
+{
+  switch (channel) {
+    case 1: return "DECISION";
+    case 2: return "OBSERVER";
+    case 3: return "USER";
+    default: return "?";
+  }
+}
+
+QString fmtCoord(double x, double y)
+{
+  return QString("(%1, %2)").arg(x, 0, 'f', 2).arg(y, 0, 'f', 2);
+}
+
+QString fmtTime(qint64 stamp_ms)
+{
+  const std::time_t t = static_cast<std::time_t>(stamp_ms / 1000);
+  std::tm tmv;
+  localtime_r(&t, &tmv);
+  std::ostringstream oss;
+  oss << std::put_time(&tmv, "%H:%M:%S");
+  return QString::fromStdString(oss.str()) +
+         QString(".%1").arg(stamp_ms % 1000, 3, 10, QChar('0'));
+}
+
 std_msgs::msg::ColorRGBA robotColor(uint32_t id)
 {
   std_msgs::msg::ColorRGBA c;
@@ -89,10 +144,68 @@ void LlmPanel::buildUi()
   root->setContentsMargins(6, 6, 6, 6);
   root->setSpacing(6);
 
-  // ---- Top status bar -----------------------------------------------------
   auto * status_row = new QHBoxLayout();
   status_row->setSpacing(6);
+  buildStatusRow(status_row);
+  root->addLayout(status_row);
 
+  buildQuickActions();
+  root->addWidget(quick_action_bar_);
+
+  tabs_ = new QTabWidget(this);
+
+  auto * chat_tab = new QWidget();
+  buildChatTab(chat_tab);
+  tabs_->addTab(chat_tab, "Chat");
+
+  auto * mapf_tab = new QWidget();
+  buildMapfTab(mapf_tab);
+  tabs_->addTab(mapf_tab, "MAPF");
+
+  auto * events_tab = new QWidget();
+  buildEventsTab(events_tab);
+  tabs_->addTab(events_tab, "Events");
+
+  root->addWidget(tabs_, /*stretch=*/1);
+
+  // ---- Wiring -------------------------------------------------------------
+  connect(send_button_, &QPushButton::clicked,
+          this, &LlmPanel::onSendChat);
+  connect(chat_input_,  &QLineEdit::returnPressed,
+          this, &LlmPanel::onSendChat);
+  connect(stop_button_, &QPushButton::clicked,
+          this, &LlmPanel::onStopAll);
+  connect(preview_mode_checkbox_, &QCheckBox::toggled,
+          this, &LlmPanel::onPreviewToggled);
+  connect(execute_button_, &QPushButton::clicked,
+          this, &LlmPanel::onExecutePending);
+  connect(cancel_button_,  &QPushButton::clicked,
+          this, &LlmPanel::onCancelPending);
+
+  // Cross-thread signals
+  connect(this, &LlmPanel::btStateReceived,
+          this, &LlmPanel::onUpdateStatus, Qt::QueuedConnection);
+  connect(this, &LlmPanel::chatChunkReceived,
+          this, &LlmPanel::onChatChunk,    Qt::QueuedConnection);
+  connect(this, &LlmPanel::chatStageReceived,
+          this, &LlmPanel::onChatStage,    Qt::QueuedConnection);
+  connect(this, &LlmPanel::chatFinished,
+          this, &LlmPanel::onChatFinished, Qt::QueuedConnection);
+  connect(this, &LlmPanel::execStageReceived,
+          this, &LlmPanel::onExecStage,    Qt::QueuedConnection);
+  connect(this, &LlmPanel::execFinished,
+          this, &LlmPanel::onExecFinished, Qt::QueuedConnection);
+  connect(this, &LlmPanel::eventReceived,
+          this, &LlmPanel::onEventReceived, Qt::QueuedConnection);
+
+  // 30 Hz refresh — sparkline updates if dirty, plus TF arrow republish.
+  marker_timer_ = new QTimer(this);
+  connect(marker_timer_, &QTimer::timeout,
+          this, &LlmPanel::onMarkerTick);
+}
+
+void LlmPanel::buildStatusRow(QHBoxLayout * row)
+{
   mode_badge_     = new QLabel("idle");
   action_badge_   = new QLabel("none");
   status_badge_   = new QLabel("OK");
@@ -115,22 +228,27 @@ void LlmPanel::buildUi()
     "font-weight: bold; padding: 6px 14px; border-radius: 4px; }"
     "QPushButton:pressed { background-color: #8E0000; }");
 
-  status_row->addWidget(mode_badge_);
-  status_row->addWidget(action_badge_);
-  status_row->addWidget(status_badge_);
-  status_row->addWidget(thinking_label_);
-  status_row->addWidget(error_label_, /*stretch=*/1);
-  status_row->addWidget(stop_button_);
+  row->addWidget(mode_badge_);
+  row->addWidget(action_badge_);
+  row->addWidget(status_badge_);
+  row->addWidget(thinking_label_);
+  row->addWidget(error_label_, /*stretch=*/1);
+  row->addWidget(stop_button_);
+}
 
-  root->addLayout(status_row);
+void LlmPanel::buildQuickActions()
+{
+  quick_action_bar_ = new QWidget(this);
+  quick_action_row_ = new QHBoxLayout(quick_action_bar_);
+  quick_action_row_->setContentsMargins(0, 0, 0, 0);
+  quick_action_row_->setSpacing(4);
+  // Buttons populated later in rebuildQuickActions(), once the YAML is loaded.
+}
 
-  // ---- Tab widget ---------------------------------------------------------
-  tabs_ = new QTabWidget(this);
-
-  // -- Chat tab --
-  auto * chat_tab    = new QWidget();
-  auto * chat_layout = new QVBoxLayout(chat_tab);
-  chat_layout->setContentsMargins(0, 0, 0, 0);
+void LlmPanel::buildChatTab(QWidget * tab)
+{
+  auto * layout = new QVBoxLayout(tab);
+  layout->setContentsMargins(0, 0, 0, 0);
 
   chat_view_ = new QTextEdit();
   chat_view_->setReadOnly(true);
@@ -141,65 +259,181 @@ void LlmPanel::buildUi()
   chat_input_->setPlaceholderText(
     "Type a command... (e.g. \"cyan to hub\", \"stop\")");
   send_button_ = new QPushButton("Send");
-  input_row->addWidget(chat_input_);
+  preview_mode_checkbox_ = new QCheckBox("Preview");
+  preview_mode_checkbox_->setToolTip(
+    "When on: panel previews the parsed plan and waits for Execute.");
+  input_row->addWidget(chat_input_, /*stretch=*/1);
+  input_row->addWidget(preview_mode_checkbox_);
   input_row->addWidget(send_button_);
 
-  chat_layout->addWidget(chat_view_);
-  chat_layout->addLayout(input_row);
+  plan_tree_view_ = new QTreeWidget();
+  plan_tree_view_->setHeaderLabels(QStringList() << "node" << "info");
+  plan_tree_view_->setRootIsDecorated(true);
+  plan_tree_view_->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+  plan_tree_view_->header()->setSectionResizeMode(1, QHeaderView::Stretch);
+  plan_tree_view_->setMaximumHeight(160);
+  plan_tree_view_->setVisible(false);
 
-  tabs_->addTab(chat_tab, "Chat");
+  auto * confirm_row = new QHBoxLayout();
+  execute_button_ = new QPushButton("Execute");
+  execute_button_->setStyleSheet(
+    "QPushButton { background-color: #388E3C; color: white; font-weight: bold; "
+    "padding: 4px 12px; border-radius: 4px; }"
+    "QPushButton:disabled { background-color: #757575; }");
+  cancel_button_  = new QPushButton("Cancel");
+  execute_button_->setEnabled(false);
+  cancel_button_->setEnabled(false);
+  confirm_row->addStretch(1);
+  confirm_row->addWidget(cancel_button_);
+  confirm_row->addWidget(execute_button_);
 
-  // Placeholder tabs for v2 — keep the layout stable so users know more is
-  // coming and so we don't have to re-do tab indices later.
-  auto * mapf_tab = new QWidget();
-  auto * mapf_layout = new QVBoxLayout(mapf_tab);
-  mapf_layout->addWidget(new QLabel("MAPF Live — coming in v2."));
-  mapf_layout->addStretch();
-  tabs_->addTab(mapf_tab, "MAPF");
+  layout->addWidget(chat_view_, /*stretch=*/1);
+  layout->addWidget(plan_tree_view_);
+  layout->addLayout(confirm_row);
+  layout->addLayout(input_row);
+}
 
-  auto * events_tab = new QWidget();
-  auto * events_layout = new QVBoxLayout(events_tab);
-  events_layout->addWidget(new QLabel("LLM Events — coming in v2."));
-  events_layout->addStretch();
-  tabs_->addTab(events_tab, "Events");
+void LlmPanel::buildMapfTab(QWidget * tab)
+{
+  auto * layout = new QVBoxLayout(tab);
+  layout->setContentsMargins(2, 2, 2, 2);
+  layout->setSpacing(6);
 
-  root->addWidget(tabs_, /*stretch=*/1);
+  mapf_progress_ = new QProgressBar();
+  mapf_progress_->setRange(0, 20);
+  mapf_progress_->setFormat("arrived %v / %m");
+  layout->addWidget(mapf_progress_);
 
-  // ---- Wiring -------------------------------------------------------------
-  connect(send_button_, &QPushButton::clicked,
-          this, &LlmPanel::onSendChat);
-  connect(chat_input_,  &QLineEdit::returnPressed,
-          this, &LlmPanel::onSendChat);
-  connect(stop_button_, &QPushButton::clicked,
-          this, &LlmPanel::onStopAll);
+  auto * counters = new QHBoxLayout();
+  auto makeCounter = [](const QString & title, QLabel ** out) -> QWidget *
+  {
+    auto * w = new QWidget();
+    auto * l = new QVBoxLayout(w);
+    l->setContentsMargins(2, 2, 2, 2);
+    l->setSpacing(0);
+    auto * t = new QLabel(title);
+    t->setStyleSheet("QLabel { color: #888; font-size: 10px; }");
+    *out = new QLabel("—");
+    (*out)->setStyleSheet("QLabel { font-size: 18px; font-weight: bold; }");
+    l->addWidget(t);
+    l->addWidget(*out);
+    return w;
+  };
+  counters->addWidget(makeCounter("arrived", &mapf_arrived_));
+  counters->addWidget(makeCounter("active",  &mapf_active_));
+  counters->addWidget(makeCounter("stalled", &mapf_stalled_));
+  counters->addWidget(makeCounter("replans", &mapf_replans_));
+  counters->addStretch(1);
+  layout->addLayout(counters);
 
-  // Cross-thread signals — every ROS-thread → GUI-thread bridge goes here.
-  connect(this, &LlmPanel::btStateReceived,
-          this, &LlmPanel::onUpdateStatus, Qt::QueuedConnection);
-  connect(this, &LlmPanel::chatChunkReceived,
-          this, &LlmPanel::onChatChunk,    Qt::QueuedConnection);
-  connect(this, &LlmPanel::chatStageReceived,
-          this, &LlmPanel::onChatStage,    Qt::QueuedConnection);
-  connect(this, &LlmPanel::chatFinished,
-          this, &LlmPanel::onChatFinished, Qt::QueuedConnection);
+  auto * sparks = new QHBoxLayout();
+  mapf_active_spark_  = new Sparkline();
+  mapf_arrived_spark_ = new Sparkline();
+  mapf_arrived_spark_->setColor(QColor(0x38, 0x8E, 0x3C));
+  auto * sa = new QLabel("active:");
+  auto * sb = new QLabel("arrived:");
+  sparks->addWidget(sa);
+  sparks->addWidget(mapf_active_spark_, /*stretch=*/1);
+  sparks->addWidget(sb);
+  sparks->addWidget(mapf_arrived_spark_, /*stretch=*/1);
+  layout->addLayout(sparks);
+
+  mapf_event_tail_ = new QLabel("");
+  mapf_event_tail_->setStyleSheet("QLabel { color: #888; font-style: italic; }");
+  mapf_event_tail_->setWordWrap(true);
+  layout->addWidget(mapf_event_tail_);
+
+  mapf_robot_table_ = new QTableWidget(0, 3);
+  mapf_robot_table_->setHorizontalHeaderLabels(
+    QStringList() << "id" << "goal" << "dist (m)");
+  mapf_robot_table_->verticalHeader()->setVisible(false);
+  mapf_robot_table_->horizontalHeader()->setSectionResizeMode(
+    0, QHeaderView::ResizeToContents);
+  mapf_robot_table_->horizontalHeader()->setSectionResizeMode(
+    1, QHeaderView::Stretch);
+  mapf_robot_table_->horizontalHeader()->setSectionResizeMode(
+    2, QHeaderView::ResizeToContents);
+  mapf_robot_table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  layout->addWidget(mapf_robot_table_, /*stretch=*/1);
+}
+
+void LlmPanel::buildEventsTab(QWidget * tab)
+{
+  auto * layout = new QVBoxLayout(tab);
+  layout->setContentsMargins(2, 2, 2, 2);
+  layout->setSpacing(4);
+
+  auto * filter_row = new QHBoxLayout();
+  filter_row->addWidget(new QLabel("Filter:"));
+  event_filter_decision_ = new QCheckBox("DECISION");
+  event_filter_observer_ = new QCheckBox("OBSERVER");
+  event_filter_user_     = new QCheckBox("USER");
+  event_filter_decision_->setChecked(true);
+  event_filter_observer_->setChecked(true);
+  event_filter_user_->setChecked(true);
+  filter_row->addWidget(event_filter_decision_);
+  filter_row->addWidget(event_filter_observer_);
+  filter_row->addWidget(event_filter_user_);
+  filter_row->addStretch(1);
+  layout->addLayout(filter_row);
+
+  events_table_ = new QTableWidget(0, 5);
+  events_table_->setHorizontalHeaderLabels(
+    QStringList() << "time" << "channel" << "trigger" << "output" << "reason");
+  events_table_->verticalHeader()->setVisible(false);
+  events_table_->horizontalHeader()->setSectionResizeMode(
+    0, QHeaderView::ResizeToContents);
+  events_table_->horizontalHeader()->setSectionResizeMode(
+    1, QHeaderView::ResizeToContents);
+  events_table_->horizontalHeader()->setSectionResizeMode(
+    2, QHeaderView::Stretch);
+  events_table_->horizontalHeader()->setSectionResizeMode(
+    3, QHeaderView::Stretch);
+  events_table_->horizontalHeader()->setSectionResizeMode(
+    4, QHeaderView::Stretch);
+  events_table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  events_table_->setSelectionBehavior(QAbstractItemView::SelectRows);
+  events_table_->setWordWrap(false);
+  layout->addWidget(events_table_, /*stretch=*/1);
+
+  // Re-apply filters on toggle.
+  auto reapply = [this]()
+  {
+    for (int row = 0; row < events_table_->rowCount(); ++row) {
+      auto * item = events_table_->item(row, 1);
+      if (!item) continue;
+      const QString name = item->text();
+      const bool visible =
+        (name == "DECISION" && event_filter_decision_->isChecked()) ||
+        (name == "OBSERVER" && event_filter_observer_->isChecked()) ||
+        (name == "USER"     && event_filter_user_->isChecked());
+      events_table_->setRowHidden(row, !visible);
+    }
+  };
+  connect(event_filter_decision_, &QCheckBox::toggled, this, reapply);
+  connect(event_filter_observer_, &QCheckBox::toggled, this, reapply);
+  connect(event_filter_user_,     &QCheckBox::toggled, this, reapply);
 }
 
 
 // ===========================================================================
-// ROS setup (called after RViz finished initializing the display context)
+// ROS setup
 // ===========================================================================
 
 void LlmPanel::onInitialize()
 {
   setupRos();
+  loadMapYaml();
+  rebuildQuickActions();
+  if (marker_timer_) {
+    marker_timer_->start(33);   // ~30 Hz
+  }
 }
 
 void LlmPanel::setupRos()
 {
   auto abstraction = getDisplayContext()->getRosNodeAbstraction().lock();
   if (!abstraction) {
-    // RViz couldn't give us a node — we can't do anything. The panel will
-    // still render, just inert; surface the problem in the chat view.
     chat_view_->append(
       "<span style='color:#C62828'>"
       "[fatal] could not acquire RViz ROS node"
@@ -208,34 +442,190 @@ void LlmPanel::setupRos()
   }
   node_ = abstraction->get_raw_node();
 
-  // BTState publisher uses BEST_EFFORT (see BTStatePublisher::BTStatePublisher
-  // in iros_llm_swarm_bt). Our subscription QoS must match.
-  rclcpp::QoS qos(10);
-  qos.best_effort();
+  rclcpp::QoS bt_qos(10);
+  bt_qos.best_effort();
   bt_state_sub_ = node_->create_subscription<BTState>(
-    "/bt/state", qos,
+    "/bt/state", bt_qos,
     [this](BTState::ConstSharedPtr msg)
     {
+      // Cache for the marker timer (TF arrows + formation polygon).
+      {
+        std::lock_guard<std::mutex> lk(cached_state_mutex_);
+        cached_mode_       = msg->mode;
+        cached_robot_ids_  = msg->robot_ids;
+        cached_goals_      = msg->goals;
+        cached_leader_ns_  = msg->leader_ns;
+      }
+
       Q_EMIT btStateReceived(
         QString::fromStdString(msg->mode),
         QString::fromStdString(msg->action_status),
         QString::fromStdString(msg->active_action),
         QString::fromStdString(msg->last_error),
+        QString::fromStdString(msg->action_summary),
         msg->llm_thinking);
 
-      publishMarkers(*msg);
+      publishGoalMarkers(*msg);
+    });
+
+  events_sub_ = node_->create_subscription<LlmEvent>(
+    "/llm/events", rclcpp::QoS(50).reliable(),
+    [this](LlmEvent::ConstSharedPtr ev)
+    {
+      Q_EMIT eventReceived(
+        static_cast<qint64>(ev->stamp_ms),
+        static_cast<int>(ev->channel),
+        QString::fromStdString(ev->trigger),
+        QString::fromStdString(ev->output),
+        QString::fromStdString(ev->reason));
     });
 
   chat_client_ = rclcpp_action::create_client<LlmChat>(node_, "/llm/chat");
   cmd_client_  = rclcpp_action::create_client<LlmCommand>(node_, "/llm/command");
+  exec_client_ = rclcpp_action::create_client<LlmExecutePlan>(
+    node_, "/llm/execute_plan");
 
   marker_pub_ = node_->create_publisher<visualization_msgs::msg::MarkerArray>(
     "/llm_panel/markers", rclcpp::QoS(10));
 
+  tf_buffer_   = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
+  tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+
   RCLCPP_INFO(node_->get_logger(),
-    "LlmPanel ready. Subscribing /bt/state, "
-    "publishing /llm_panel/markers, "
-    "talking to /llm/chat and /llm/command.");
+    "LlmPanel ready. /bt/state, /llm/events, /llm_panel/markers, "
+    "/llm/chat, /llm/command, /llm/execute_plan.");
+}
+
+
+// ===========================================================================
+// Map YAML — for Quick Actions and bounds checks
+// ===========================================================================
+
+void LlmPanel::loadMapYaml()
+{
+  groups_.clear();
+  formation_zones_.clear();
+
+  std::string yaml_path;
+  try {
+    yaml_path = ament_index_cpp::get_package_share_directory(
+      "iros_llm_orchestrator") + "/prompts/maps/" + map_name_ + ".yaml";
+  } catch (const std::exception &) {
+    return;
+  }
+
+  try {
+    YAML::Node root = YAML::LoadFile(yaml_path);
+
+    if (root["bounds"]) {
+      const auto b = root["bounds"];
+      if (b["x_min"]) bounds_xmin_ = b["x_min"].as<double>();
+      if (b["x_max"]) bounds_xmax_ = b["x_max"].as<double>();
+      if (b["y_min"]) bounds_ymin_ = b["y_min"].as<double>();
+      if (b["y_max"]) bounds_ymax_ = b["y_max"].as<double>();
+    }
+
+    if (root["robot_groups"]) {
+      for (const auto & kv : root["robot_groups"]) {
+        RobotGroup g;
+        g.color = kv.first.as<std::string>();
+        if (kv.second["color"]) {
+          g.color = kv.second["color"].as<std::string>();
+        }
+        if (kv.second["ids"]) {
+          for (const auto & id : kv.second["ids"]) {
+            g.ids.push_back(id.as<int>());
+          }
+        }
+        if (kv.second["home"] && kv.second["home"].size() >= 2) {
+          g.home = {kv.second["home"][0].as<double>(),
+                    kv.second["home"][1].as<double>()};
+        }
+        if (kv.second["spawn"]) {
+          for (const auto & sp : kv.second["spawn"]) {
+            const auto rname = sp.first.as<std::string>();
+            if (sp.second.size() >= 2) {
+              g.spawn[rname] = {sp.second[0].as<double>(),
+                                sp.second[1].as<double>()};
+            }
+          }
+        }
+        if (!g.ids.empty()) {
+          groups_.push_back(std::move(g));
+        }
+      }
+    }
+
+    if (root["formation_zones"]) {
+      for (const auto & z : root["formation_zones"]) {
+        FormationZone fz;
+        fz.name = z["name"].as<std::string>("");
+        if (z["coords"] && z["coords"].size() >= 2) {
+          fz.coords = {z["coords"][0].as<double>(),
+                       z["coords"][1].as<double>()};
+        }
+        fz.radius = z["radius"].as<double>(0.0);
+        formation_zones_.push_back(std::move(fz));
+      }
+    }
+  } catch (const std::exception & exc) {
+    if (node_) {
+      RCLCPP_WARN(node_->get_logger(),
+        "Failed to parse %s: %s", yaml_path.c_str(), exc.what());
+    }
+  }
+}
+
+void LlmPanel::rebuildQuickActions()
+{
+  // Wipe existing buttons.
+  while (QLayoutItem * item = quick_action_row_->takeAt(0)) {
+    if (item->widget()) {
+      item->widget()->deleteLater();
+    }
+    delete item;
+  }
+
+  auto * stop_dup = new QToolButton();
+  stop_dup->setText("🛑 Stop");
+  stop_dup->setStyleSheet(
+    "QToolButton { background-color: #C62828; color: white; "
+    "padding: 4px 8px; border-radius: 4px; font-weight: bold; }");
+  connect(stop_dup, &QToolButton::clicked, this, &LlmPanel::onStopAll);
+  quick_action_row_->addWidget(stop_dup);
+
+  for (const auto & g : groups_) {
+    auto * b = new QToolButton();
+    b->setText(QString::fromStdString("🏠 " + g.color));
+    b->setStyleSheet(
+      "QToolButton { padding: 4px 8px; border-radius: 4px; }");
+    const auto group = g;  // capture by value
+    connect(b, &QToolButton::clicked, this,
+            [this, group]() { sendHomeForGroup(group); });
+    quick_action_row_->addWidget(b);
+  }
+
+  // Formation buttons — line at the largest formation zone for each group.
+  if (!formation_zones_.empty() && !groups_.empty()) {
+    const auto & best_zone = *std::max_element(
+      formation_zones_.begin(), formation_zones_.end(),
+      [](const FormationZone & a, const FormationZone & b) {
+        return a.radius < b.radius;
+      });
+    for (const auto & g : groups_) {
+      auto * b = new QToolButton();
+      b->setText(QString::fromStdString("🔷 " + g.color + " line"));
+      b->setStyleSheet(
+        "QToolButton { padding: 4px 8px; border-radius: 4px; }");
+      const auto group = g;
+      const auto zone  = best_zone;
+      connect(b, &QToolButton::clicked, this,
+              [this, group, zone]() { sendFormationLineAt(zone, group); });
+      quick_action_row_->addWidget(b);
+    }
+  }
+
+  quick_action_row_->addStretch(1);
 }
 
 
@@ -248,6 +638,7 @@ void LlmPanel::onUpdateStatus(
   QString action_status,
   QString active_action,
   QString last_error,
+  QString action_summary,
   bool    llm_thinking)
 {
   mode_badge_->setText(mode);
@@ -260,11 +651,50 @@ void LlmPanel::onUpdateStatus(
 
   thinking_label_->setText(llm_thinking ? QString::fromUtf8("🧠") : QString());
   error_label_->setText(last_error);
+
+  // Phase 2 — parse action_summary, drive MAPF tab widgets.
+  const auto s = parseActionSummary(action_summary.toStdString());
+  if (s.arrived) {
+    mapf_arrived_->setText(QString::number(*s.arrived));
+    if (s.arrived && s.active) {
+      const int total = *s.arrived + *s.active;
+      mapf_progress_->setMaximum(std::max(1, total));
+      mapf_progress_->setValue(*s.arrived);
+    }
+    mapf_arrived_spark_->push(static_cast<double>(*s.arrived));
+  }
+  if (s.active) {
+    mapf_active_->setText(QString::number(*s.active));
+    mapf_active_spark_->push(static_cast<double>(*s.active));
+  }
+  if (s.stall)   mapf_stalled_->setText(QString::number(*s.stall));
+  if (s.replans) mapf_replans_->setText(QString::number(*s.replans));
+  mapf_event_tail_->setText(QString::fromStdString(s.event_tail));
+
+  // Robot table — repopulate from cache. Cheap, ≤20 rows.
+  std::vector<uint32_t>                  ids;
+  std::vector<geometry_msgs::msg::Point> goals;
+  {
+    std::lock_guard<std::mutex> lk(cached_state_mutex_);
+    ids   = cached_robot_ids_;
+    goals = cached_goals_;
+  }
+  mapf_robot_table_->setRowCount(static_cast<int>(ids.size()));
+  for (size_t i = 0; i < ids.size(); ++i) {
+    const QString g_str = (i < goals.size())
+      ? fmtCoord(goals[i].x, goals[i].y) : QString("—");
+    mapf_robot_table_->setItem(static_cast<int>(i), 0,
+      new QTableWidgetItem(QString::number(ids[i])));
+    mapf_robot_table_->setItem(static_cast<int>(i), 1,
+      new QTableWidgetItem(g_str));
+    mapf_robot_table_->setItem(static_cast<int>(i), 2,
+      new QTableWidgetItem(QString("—")));   // Phase 6 fills via TF
+  }
 }
 
 
 // ===========================================================================
-// Chat (GUI thread = sending + display, ROS thread = action callbacks)
+// Chat (GUI thread sends, ROS thread for action callbacks)
 // ===========================================================================
 
 void LlmPanel::onSendChat()
@@ -291,14 +721,26 @@ void LlmPanel::onSendChat()
     return;
   }
 
+  pending_plan_json_.clear();
+  plan_tree_view_->clear();
+  plan_tree_view_->setVisible(false);
+  execute_button_->setEnabled(false);
+  cancel_button_->setEnabled(false);
+  clearPreviewMarkers();
+
+  sendChatGoal(text, /*execute_after_planning=*/!preview_mode_);
+}
+
+void LlmPanel::sendChatGoal(const QString & text, bool execute_after_planning)
+{
   chat_view_->append(QString("<b>You:</b> %1").arg(text.toHtmlEscaped()));
   chat_input_->clear();
   chat_view_->append(QString::fromUtf8("<b>🤖:</b> "));
   chat_in_flight_ = true;
 
   LlmChat::Goal goal;
-  goal.user_message             = text.toStdString();
-  goal.execute_after_planning   = true;  // MVP: panel is fire-and-forget
+  goal.user_message           = text.toStdString();
+  goal.execute_after_planning = execute_after_planning;
 
   rclcpp_action::Client<LlmChat>::SendGoalOptions opts;
 
@@ -306,7 +748,9 @@ void LlmPanel::onSendChat()
     [this](ChatGoalH::SharedPtr,
            const std::shared_ptr<const LlmChat::Feedback> fb)
     {
-      Q_EMIT chatStageReceived(QString::fromStdString(fb->stage));
+      Q_EMIT chatStageReceived(
+        QString::fromStdString(fb->stage),
+        QString::fromStdString(fb->detail));
       if (!fb->chunk.empty()) {
         Q_EMIT chatChunkReceived(QString::fromStdString(fb->chunk));
       }
@@ -321,7 +765,13 @@ void LlmPanel::onSendChat()
       const QString info = wrapped.result
         ? QString::fromStdString(wrapped.result->info)
         : QString("transport error");
-      Q_EMIT chatFinished(ok, info);
+      const QString final_reply = wrapped.result
+        ? QString::fromStdString(wrapped.result->final_reply)
+        : QString();
+      const QString plan_json = wrapped.result
+        ? QString::fromStdString(wrapped.result->plan_json)
+        : QString();
+      Q_EMIT chatFinished(ok, info, final_reply, plan_json);
     };
 
   chat_client_->async_send_goal(goal, opts);
@@ -329,8 +779,6 @@ void LlmPanel::onSendChat()
 
 void LlmPanel::onChatChunk(QString chunk)
 {
-  // Insert plain text at the end so streaming feels live. We use a cursor
-  // (not append) because append would create a new paragraph for every chunk.
   auto cursor = chat_view_->textCursor();
   cursor.movePosition(QTextCursor::End);
   cursor.insertText(chunk);
@@ -338,27 +786,255 @@ void LlmPanel::onChatChunk(QString chunk)
   chat_view_->ensureCursorVisible();
 }
 
-void LlmPanel::onChatStage(QString stage)
+void LlmPanel::onChatStage(QString stage, QString detail)
 {
   if (stage == "executing") {
     chat_view_->append(
       "<i style='color:#1976D2'>[executing plan...]</i>");
+  } else if (stage == "parsed") {
+    pending_plan_json_ = detail;
+    if (preview_mode_) {
+      renderPlanTree(pending_plan_json_);
+      plan_tree_view_->setVisible(true);
+      execute_button_->setEnabled(true);
+      cancel_button_->setEnabled(true);
+      publishPreviewMarkers();
+    }
   } else if (stage == "error") {
-    // Detailed error info comes via the result; just mark the boundary.
     chat_view_->append("<i style='color:#C62828'>[error]</i>");
   }
 }
 
-void LlmPanel::onChatFinished(bool success, QString info)
+void LlmPanel::onChatFinished(bool success, QString info,
+                              QString /*final_reply*/, QString plan_json)
 {
   chat_in_flight_ = false;
   if (success) {
-    chat_view_->append(QString::fromUtf8("<span style='color:#388E3C'>✓ done</span>"));
+    chat_view_->append(
+      QString::fromUtf8("<span style='color:#388E3C'>✓ done</span>"));
   } else {
     chat_view_->append(
       QString("<span style='color:#C62828'>[%1]</span>")
         .arg(info.isEmpty() ? "failed" : info.toHtmlEscaped()));
   }
+  if (!plan_json.isEmpty() && pending_plan_json_.isEmpty()) {
+    pending_plan_json_ = plan_json;
+  }
+}
+
+
+// ===========================================================================
+// Preview & Execute (Phase 4)
+// ===========================================================================
+
+void LlmPanel::onPreviewToggled(bool on)
+{
+  preview_mode_ = on;
+  if (!on) {
+    plan_tree_view_->setVisible(false);
+    execute_button_->setEnabled(false);
+    cancel_button_->setEnabled(false);
+    clearPreviewMarkers();
+    pending_plan_json_.clear();
+  }
+}
+
+void LlmPanel::onExecutePending()
+{
+  if (pending_plan_json_.isEmpty()) {
+    return;
+  }
+  if (!exec_client_ || !exec_client_->action_server_is_ready()) {
+    chat_view_->append(
+      "<span style='color:#C62828'>"
+      "[/llm/execute_plan not available]"
+      "</span>");
+    return;
+  }
+
+  LlmExecutePlan::Goal goal;
+  goal.plan_json = pending_plan_json_.toStdString();
+
+  rclcpp_action::Client<LlmExecutePlan>::SendGoalOptions opts;
+  opts.feedback_callback =
+    [this](ExecGoalH::SharedPtr,
+           const std::shared_ptr<const LlmExecutePlan::Feedback> fb)
+    {
+      Q_EMIT execStageReceived(
+        QString::fromStdString(fb->stage),
+        QString::fromStdString(fb->detail));
+    };
+  opts.result_callback =
+    [this](const ExecGoalH::WrappedResult & wrapped)
+    {
+      const bool transport_ok =
+        (wrapped.code == rclcpp_action::ResultCode::SUCCEEDED);
+      const bool ok = transport_ok && wrapped.result && wrapped.result->success;
+      const QString info = wrapped.result
+        ? QString::fromStdString(wrapped.result->info)
+        : QString("transport error");
+      Q_EMIT execFinished(ok, info);
+    };
+
+  chat_view_->append(
+    "<i style='color:#1976D2'>[executing previewed plan...]</i>");
+  execute_button_->setEnabled(false);
+  cancel_button_->setEnabled(false);
+  exec_client_->async_send_goal(goal, opts);
+}
+
+void LlmPanel::onCancelPending()
+{
+  pending_plan_json_.clear();
+  plan_tree_view_->clear();
+  plan_tree_view_->setVisible(false);
+  execute_button_->setEnabled(false);
+  cancel_button_->setEnabled(false);
+  clearPreviewMarkers();
+  chat_view_->append("<i style='color:#888'>[preview cancelled]</i>");
+}
+
+void LlmPanel::onExecStage(QString stage, QString detail)
+{
+  if (stage == "error") {
+    chat_view_->append(QString("<span style='color:#C62828'>[exec %1]</span>")
+      .arg(detail.toHtmlEscaped()));
+  }
+}
+
+void LlmPanel::onExecFinished(bool success, QString info)
+{
+  if (success) {
+    chat_view_->append(
+      QString::fromUtf8("<span style='color:#388E3C'>✓ plan executed</span>"));
+  } else {
+    chat_view_->append(
+      QString("<span style='color:#C62828'>[exec %1]</span>")
+        .arg(info.isEmpty() ? "failed" : info.toHtmlEscaped()));
+  }
+  pending_plan_json_.clear();
+  plan_tree_view_->clear();
+  plan_tree_view_->setVisible(false);
+  clearPreviewMarkers();
+}
+
+
+// ===========================================================================
+// Plan tree rendering — mirrors _describe_plan in user_chat_node
+// ===========================================================================
+
+namespace
+{
+
+void addPlanNode(QTreeWidgetItem * parent, const YAML::Node & n)
+{
+  if (!n.IsMap() || !n["type"]) {
+    return;
+  }
+  const auto t = n["type"].as<std::string>("");
+  QString info;
+  QTreeWidgetItem * item = new QTreeWidgetItem(parent);
+
+  if (t == "sequence" || t == "parallel") {
+    const auto steps = n["steps"];
+    item->setText(0, QString::fromStdString(t));
+    item->setText(1, QString("%1 steps").arg(steps ? steps.size() : 0));
+    if (steps) {
+      for (const auto & child : steps) {
+        addPlanNode(item, child);
+      }
+    }
+  } else if (t == "mapf") {
+    const auto ids = n["robot_ids"];
+    const auto goals = n["goals"];
+    const auto reason = n["reason"].as<std::string>("");
+    item->setText(0, "mapf");
+    item->setText(1, QString("%1 robots — %2")
+      .arg(ids ? ids.size() : 0)
+      .arg(QString::fromStdString(reason)));
+    if (ids && goals) {
+      for (size_t i = 0; i < ids.size() && i < goals.size(); ++i) {
+        auto * leaf = new QTreeWidgetItem(item);
+        leaf->setText(0, QString("robot_%1").arg(ids[i].as<int>()));
+        if (goals[i].size() >= 2) {
+          leaf->setText(1, fmtCoord(
+            goals[i][0].as<double>(),
+            goals[i][1].as<double>()));
+        }
+      }
+    }
+  } else if (t == "formation") {
+    item->setText(0, "formation");
+    item->setText(1, QString("id=%1 leader=%2")
+      .arg(QString::fromStdString(n["formation_id"].as<std::string>("")))
+      .arg(QString::fromStdString(n["leader_ns"].as<std::string>(""))));
+  } else if (t == "idle") {
+    item->setText(0, "idle");
+    item->setText(1, "stop all");
+  } else {
+    item->setText(0, QString::fromStdString(t));
+  }
+  item->setExpanded(true);
+}
+
+}  // namespace
+
+void LlmPanel::renderPlanTree(const QString & plan_json)
+{
+  plan_tree_view_->clear();
+  if (plan_json.isEmpty()) {
+    return;
+  }
+  try {
+    YAML::Node root = YAML::Load(plan_json.toStdString());
+    if (root["plan"]) {
+      root = root["plan"];
+    }
+    QTreeWidgetItem * top = new QTreeWidgetItem(plan_tree_view_);
+    top->setText(0, "plan");
+    top->setText(1, "");
+    addPlanNode(top, root);
+    top->setExpanded(true);
+  } catch (const std::exception & exc) {
+    if (node_) {
+      RCLCPP_WARN(node_->get_logger(),
+        "Plan JSON parse failed: %s", exc.what());
+    }
+  }
+}
+
+
+// ===========================================================================
+// Events tab (Phase 3)
+// ===========================================================================
+
+void LlmPanel::onEventReceived(qint64 stamp_ms, int channel,
+                               QString trigger, QString output, QString reason)
+{
+  // Cap the buffer.
+  while (events_table_->rowCount() >= kMaxEvents) {
+    events_table_->removeRow(0);
+  }
+
+  const int row = events_table_->rowCount();
+  events_table_->insertRow(row);
+
+  events_table_->setItem(row, 0, new QTableWidgetItem(fmtTime(stamp_ms)));
+  auto * ch_item = new QTableWidgetItem(channelName(channel));
+  ch_item->setForeground(QColor(channelColor(channel)));
+  ch_item->setData(Qt::UserRole, channel);
+  events_table_->setItem(row, 1, ch_item);
+  events_table_->setItem(row, 2, new QTableWidgetItem(trigger));
+  events_table_->setItem(row, 3, new QTableWidgetItem(output));
+  events_table_->setItem(row, 4, new QTableWidgetItem(reason));
+
+  // Apply current filter to the new row.
+  const bool visible =
+    (channel == 1 && event_filter_decision_->isChecked()) ||
+    (channel == 2 && event_filter_observer_->isChecked()) ||
+    (channel == 3 && event_filter_user_->isChecked());
+  events_table_->setRowHidden(row, !visible);
+  events_table_->scrollToBottom();
 }
 
 
@@ -385,14 +1061,63 @@ void LlmPanel::onStopAll()
 
 
 // ===========================================================================
-// Markers — visualize the current MAPF goals in the 3D scene
+// Quick actions — direct /llm/command, no LLM call
 // ===========================================================================
 
-void LlmPanel::publishMarkers(const BTState & msg)
+void LlmPanel::sendHomeForGroup(const RobotGroup & g)
 {
-  // Strategy: publish only when there is something to draw, with a finite
-  // lifetime so markers auto-expire when we go silent (e.g. mode != mapf).
-  // BTState arrives at ~10 Hz; lifetime 500 ms gives a comfortable overlap.
+  if (!cmd_client_ || !cmd_client_->action_server_is_ready()) {
+    return;
+  }
+  LlmCommand::Goal goal;
+  goal.mode   = "mapf";
+  goal.reason = QString("operator: %1 home").arg(
+    QString::fromStdString(g.color)).toStdString();
+  for (int id : g.ids) {
+    goal.robot_ids.push_back(static_cast<uint32_t>(id));
+    geometry_msgs::msg::Point p;
+    const auto rname = "robot_" + std::to_string(id);
+    auto it = g.spawn.find(rname);
+    if (it != g.spawn.end()) {
+      p.x = it->second.first;
+      p.y = it->second.second;
+    } else {
+      p.x = g.home.first;
+      p.y = g.home.second;
+    }
+    p.z = 0.0;
+    goal.goals.push_back(p);
+  }
+  cmd_client_->async_send_goal(goal);
+}
+
+void LlmPanel::sendFormationLineAt(const FormationZone & z, const RobotGroup & g)
+{
+  if (!cmd_client_ || !cmd_client_->action_server_is_ready() || g.ids.empty()) {
+    return;
+  }
+  LlmCommand::Goal goal;
+  goal.mode   = "formation";
+  goal.reason = QString("operator: %1 line at %2")
+    .arg(QString::fromStdString(g.color))
+    .arg(QString::fromStdString(z.name)).toStdString();
+  goal.formation_id = "line";
+  goal.leader_ns    = "robot_" + std::to_string(g.ids.front());
+  for (size_t i = 1; i < g.ids.size(); ++i) {
+    goal.follower_ns.push_back("robot_" + std::to_string(g.ids[i]));
+    goal.offsets_x.push_back(-1.5 * static_cast<double>(i));
+    goal.offsets_y.push_back(0.0);
+  }
+  cmd_client_->async_send_goal(goal);
+}
+
+
+// ===========================================================================
+// Markers — goals (MVP), preview, TF arrows, formation polygon
+// ===========================================================================
+
+void LlmPanel::publishGoalMarkers(const BTState & msg)
+{
   if (msg.mode != "mapf" || msg.robot_ids.empty() ||
       msg.robot_ids.size() != msg.goals.size())
   {
@@ -446,19 +1171,274 @@ void LlmPanel::publishMarkers(const BTState & msg)
   marker_pub_->publish(ma);
 }
 
+void LlmPanel::publishArrowMarkers()
+{
+  if (!tf_buffer_ || !marker_pub_) {
+    return;
+  }
+
+  std::string                            mode;
+  std::vector<uint32_t>                  ids;
+  std::vector<geometry_msgs::msg::Point> goals;
+  {
+    std::lock_guard<std::mutex> lk(cached_state_mutex_);
+    mode  = cached_mode_;
+    ids   = cached_robot_ids_;
+    goals = cached_goals_;
+  }
+  if (mode != "mapf" || ids.empty() || ids.size() != goals.size()) {
+    return;
+  }
+
+  visualization_msgs::msg::MarkerArray ma;
+  ma.markers.reserve(ids.size());
+
+  const auto stamp    = node_->now();
+  const auto lifetime = rclcpp::Duration::from_seconds(0.6);
+
+  // Update the per-robot dist column too while we're here.
+  for (size_t i = 0; i < ids.size(); ++i) {
+    const auto frame = "robot_" + std::to_string(ids[i]) + "/base_link";
+    geometry_msgs::msg::TransformStamped tf;
+    try {
+      tf = tf_buffer_->lookupTransform(
+        "map", frame, tf2::TimePointZero, tf2::durationFromSec(0.0));
+    } catch (const tf2::TransformException &) {
+      continue;
+    }
+
+    visualization_msgs::msg::Marker arrow;
+    arrow.header.frame_id = "map";
+    arrow.header.stamp    = stamp;
+    arrow.ns              = "llm_panel/arrows";
+    arrow.id              = static_cast<int>(ids[i]);
+    arrow.type            = visualization_msgs::msg::Marker::ARROW;
+    arrow.action          = visualization_msgs::msg::Marker::ADD;
+    arrow.scale.x = 0.05;   // shaft diameter
+    arrow.scale.y = 0.10;   // head diameter
+    arrow.scale.z = 0.15;   // head length
+    auto col = robotColor(ids[i]);
+    col.a    = 1.0f;
+    arrow.color = col;
+    arrow.lifetime = lifetime;
+
+    geometry_msgs::msg::Point start;
+    start.x = tf.transform.translation.x;
+    start.y = tf.transform.translation.y;
+    start.z = 0.1;
+    arrow.points.push_back(start);
+    geometry_msgs::msg::Point end = goals[i];
+    end.z = 0.1;
+    arrow.points.push_back(end);
+    ma.markers.push_back(arrow);
+
+    // Distance — write into the table on the GUI thread (we already are).
+    const double dx = goals[i].x - start.x;
+    const double dy = goals[i].y - start.y;
+    const double dist = std::sqrt(dx * dx + dy * dy);
+    if (mapf_robot_table_->rowCount() > static_cast<int>(i)) {
+      auto * dist_item = mapf_robot_table_->item(static_cast<int>(i), 2);
+      if (!dist_item) {
+        dist_item = new QTableWidgetItem();
+        mapf_robot_table_->setItem(static_cast<int>(i), 2, dist_item);
+      }
+      dist_item->setText(QString::number(dist, 'f', 2));
+    }
+  }
+
+  if (!ma.markers.empty()) {
+    marker_pub_->publish(ma);
+  }
+}
+
+void LlmPanel::publishFormationPolygon()
+{
+  if (!tf_buffer_ || !marker_pub_) {
+    return;
+  }
+  std::string mode;
+  std::string leader_ns;
+  {
+    std::lock_guard<std::mutex> lk(cached_state_mutex_);
+    mode      = cached_mode_;
+    leader_ns = cached_leader_ns_;
+  }
+  if (mode != "formation" || leader_ns.empty()) {
+    return;
+  }
+
+  // BTState doesn't carry follower_ns directly here; for MVP visualisation we
+  // walk the cached robot_ids — the BT publishes them for active formations.
+  std::vector<uint32_t> ids;
+  {
+    std::lock_guard<std::mutex> lk(cached_state_mutex_);
+    ids = cached_robot_ids_;
+  }
+  if (ids.size() < 2) {
+    return;
+  }
+
+  visualization_msgs::msg::Marker line;
+  line.header.frame_id = "map";
+  line.header.stamp    = node_->now();
+  line.ns              = "llm_panel/formation";
+  line.id              = 0;
+  line.type            = visualization_msgs::msg::Marker::LINE_STRIP;
+  line.action          = visualization_msgs::msg::Marker::ADD;
+  line.scale.x         = 0.05;
+  line.color.r = 0.48f; line.color.g = 0.12f; line.color.b = 0.64f;
+  line.color.a = 1.0f;
+  line.lifetime        = rclcpp::Duration::from_seconds(0.6);
+
+  for (uint32_t id : ids) {
+    const auto frame = "robot_" + std::to_string(id) + "/base_link";
+    try {
+      const auto tf = tf_buffer_->lookupTransform(
+        "map", frame, tf2::TimePointZero, tf2::durationFromSec(0.0));
+      geometry_msgs::msg::Point p;
+      p.x = tf.transform.translation.x;
+      p.y = tf.transform.translation.y;
+      p.z = 0.1;
+      line.points.push_back(p);
+    } catch (const tf2::TransformException &) {
+      // Skip missing TFs; partial polygon is better than nothing.
+    }
+  }
+
+  if (line.points.size() < 2) {
+    return;
+  }
+  // Close the loop.
+  line.points.push_back(line.points.front());
+
+  visualization_msgs::msg::MarkerArray ma;
+  ma.markers.push_back(line);
+  marker_pub_->publish(ma);
+}
+
+void LlmPanel::publishPreviewMarkers()
+{
+  if (pending_plan_json_.isEmpty() || !marker_pub_) {
+    return;
+  }
+
+  visualization_msgs::msg::MarkerArray ma;
+  const auto stamp    = node_->now();
+  const auto lifetime = rclcpp::Duration::from_seconds(0.0);   // 0 = forever
+
+  int marker_id = 0;
+  std::function<void(const YAML::Node &)> walk = [&](const YAML::Node & n)
+  {
+    if (!n.IsMap() || !n["type"]) return;
+    const auto t = n["type"].as<std::string>("");
+    if (t == "sequence" || t == "parallel") {
+      if (n["steps"]) {
+        for (const auto & c : n["steps"]) walk(c);
+      }
+    } else if (t == "mapf" && n["goals"]) {
+      const auto ids = n["robot_ids"];
+      for (size_t i = 0; i < n["goals"].size(); ++i) {
+        const auto & g = n["goals"][i];
+        if (g.size() < 2) continue;
+
+        visualization_msgs::msg::Marker s;
+        s.header.frame_id = "map";
+        s.header.stamp    = stamp;
+        s.ns              = "llm_panel/preview";
+        s.id              = marker_id++;
+        s.type            = visualization_msgs::msg::Marker::SPHERE;
+        s.action          = visualization_msgs::msg::Marker::ADD;
+        s.pose.position.x = g[0].as<double>();
+        s.pose.position.y = g[1].as<double>();
+        s.pose.position.z = 0.25;
+        s.pose.orientation.w = 1.0;
+        s.scale.x = 0.45; s.scale.y = 0.45; s.scale.z = 0.45;
+        const uint32_t rid =
+          (ids && i < ids.size()) ? ids[i].as<uint32_t>(0) : 0;
+        s.color    = robotColor(rid);
+        s.color.a  = 0.4f;     // semi-transparent — clearly a preview
+        s.lifetime = lifetime;
+        ma.markers.push_back(s);
+      }
+    }
+  };
+
+  try {
+    YAML::Node root = YAML::Load(pending_plan_json_.toStdString());
+    if (root["plan"]) root = root["plan"];
+    walk(root);
+  } catch (...) {
+    return;
+  }
+
+  if (!ma.markers.empty()) {
+    marker_pub_->publish(ma);
+  }
+}
+
+void LlmPanel::clearPreviewMarkers()
+{
+  if (!marker_pub_) return;
+  visualization_msgs::msg::MarkerArray ma;
+  visualization_msgs::msg::Marker del;
+  del.header.frame_id = "map";
+  del.header.stamp    = node_ ? node_->now() : rclcpp::Time(0);
+  del.ns              = "llm_panel/preview";
+  del.action          = visualization_msgs::msg::Marker::DELETEALL;
+  ma.markers.push_back(del);
+  marker_pub_->publish(ma);
+}
+
+void LlmPanel::onMarkerTick()
+{
+  if (mapf_active_spark_  && mapf_active_spark_->dirty()) {
+    mapf_active_spark_->update();
+    mapf_active_spark_->clearDirty();
+  }
+  if (mapf_arrived_spark_ && mapf_arrived_spark_->dirty()) {
+    mapf_arrived_spark_->update();
+    mapf_arrived_spark_->clearDirty();
+  }
+  publishArrowMarkers();
+  publishFormationPolygon();
+}
+
 
 // ===========================================================================
-// Persistence — nothing to save in MVP, but we honour the contract.
+// Persistence (Phase 8)
 // ===========================================================================
 
 void LlmPanel::load(const rviz_common::Config & config)
 {
   rviz_common::Panel::load(config);
+
+  QString map_name;
+  if (config.mapGetString("map_name", &map_name) && !map_name.isEmpty()) {
+    map_name_ = map_name.toStdString();
+    loadMapYaml();
+    rebuildQuickActions();
+  }
+
+  bool preview = false;
+  if (config.mapGetBool("preview_mode", &preview)) {
+    preview_mode_checkbox_->setChecked(preview);
+    preview_mode_ = preview;
+  }
+
+  int tab_idx = 0;
+  if (config.mapGetInt("tab_index", &tab_idx)) {
+    if (tab_idx >= 0 && tab_idx < tabs_->count()) {
+      tabs_->setCurrentIndex(tab_idx);
+    }
+  }
 }
 
 void LlmPanel::save(rviz_common::Config config) const
 {
   rviz_common::Panel::save(config);
+  config.mapSetValue("map_name",     QString::fromStdString(map_name_));
+  config.mapSetValue("preview_mode", preview_mode_);
+  config.mapSetValue("tab_index",    tabs_ ? tabs_->currentIndex() : 0);
 }
 
 }  // namespace iros_llm_rviz_panel

@@ -1,0 +1,11 @@
+<library path="iros_llm_rviz_tool">
+  <class
+    name="iros_llm_rviz_tool/SendLlmGoalTool"
+    type="iros_llm_rviz_tool::SendLlmGoalTool"
+    base_class_type="rviz_common::Tool">
+    <description>
+      Click-to-send LLM goal. Pick a point on the map, choose a robot
+      group, dispatch LlmCommand{mode=mapf} on /llm/command.
+    </description>
+  </class>
+</library>

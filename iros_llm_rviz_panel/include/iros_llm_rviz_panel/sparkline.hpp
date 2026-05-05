@@ -1,0 +1,51 @@
+// Copyright 2026 — iros_llm_swarm contributors. Apache-2.0.
+//
+// Tiny sparkline widget — ring-buffered samples drawn as a polyline.
+// 60 samples, ~6 s of /bt/state at 10 Hz. Redraw is driven externally
+// (a 30 Hz QTimer in the panel) so we don't pull QtCharts.
+
+#pragma once
+
+#include <array>
+#include <cstddef>
+
+#include <QColor>
+#include <QSize>
+#include <QWidget>
+
+class QPaintEvent;
+
+namespace iros_llm_rviz_panel
+{
+
+class Sparkline : public QWidget
+{
+  Q_OBJECT
+
+public:
+  static constexpr std::size_t kCapacity = 60;
+
+  explicit Sparkline(QWidget * parent = nullptr);
+
+  void push(double value);
+  void clear();
+  void setColor(const QColor & c);
+
+  bool dirty() const { return dirty_; }
+  void clearDirty() { dirty_ = false; }
+
+  QSize sizeHint() const override { return QSize(140, 28); }
+  QSize minimumSizeHint() const override { return QSize(60, 18); }
+
+protected:
+  void paintEvent(QPaintEvent * ev) override;
+
+private:
+  std::array<double, kCapacity> values_{};
+  std::size_t head_  {0};
+  std::size_t count_ {0};
+  QColor      color_ {0x19, 0x76, 0xD2};
+  bool        dirty_ {false};
+};
+
+}  // namespace iros_llm_rviz_panel

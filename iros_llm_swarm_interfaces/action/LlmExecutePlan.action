@@ -1,0 +1,32 @@
+# LlmExecutePlan.action
+#
+# Operator-confirmed plan execution. The RViz panel uses this when the user
+# previewed the parsed plan (LlmChat with execute_after_planning=false) and
+# pressed "Execute". The server re-parses the plan_json, post-processes it
+# the same way chat_server does, then runs PlanExecutor leaf-by-leaf.
+#
+# Determinism: the operator approves the *exact* plan that runs — no second
+# LLM call, no temperature drift.
+
+# ---- Goal -----------------------------------------------------------------
+# Plan tree as serialized JSON, same shape PlanExecutor.parse_plan accepts:
+#   {"type":"sequence","steps":[...]}
+#   {"type":"parallel","steps":[...]}
+#   {"type":"mapf","robot_ids":[...],"goals":[[x,y],...]}
+#   {"type":"formation",...}
+#   {"type":"idle",...}
+string plan_json
+
+---
+# ---- Result ---------------------------------------------------------------
+bool   success
+string info               # error message on failure, empty otherwise
+
+---
+# ---- Feedback -------------------------------------------------------------
+# Stage transitions:
+#   "executing" — leaf in flight; `detail` describes the current step
+#   "done"      — terminal (matches Result.success=true)
+#   "error"     — terminal failure; `detail` carries the message
+string stage
+string detail

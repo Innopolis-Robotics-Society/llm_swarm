@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>iros_llm_rviz_panel</name>
-  <version>0.0.2</version>
+  <name>iros_llm_rviz_tool</name>
+  <version>0.0.1</version>
   <description>
-    RViz2 panel for the iros_llm_swarm operator UI: streaming chat to /llm/chat,
-    /bt/state status bar with STOP ALL kill-switch, MAPF live stats, /llm/events
-    log, plan preview and confirm, quick-action group buttons, TF-aware arrows,
-    and persistent layout settings.
+    RViz2 Tool plugin: click-to-send LLM goals. Operator picks a robot
+    group from a popup, the click point becomes the MAPF goal, and a
+    LlmCommand{mode=mapf} is dispatched on /llm/command — no LLM in the
+    loop. Uses map YAML from iros_llm_orchestrator for group/bounds info.
   </description>
 
   <maintainer email="you@example.com">you</maintainer>
@@ -20,10 +20,6 @@
   <depend>rclcpp</depend>
   <depend>rclcpp_action</depend>
   <depend>geometry_msgs</depend>
-  <depend>std_msgs</depend>
-  <depend>visualization_msgs</depend>
-  <depend>tf2_ros</depend>
-  <depend>tf2_geometry_msgs</depend>
   <depend>iros_llm_swarm_interfaces</depend>
   <depend>ament_index_cpp</depend>
   <depend>yaml-cpp</depend>
@@ -31,7 +27,6 @@
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
-  <test_depend>ament_cmake_gtest</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

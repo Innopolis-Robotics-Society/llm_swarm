@@ -34,6 +34,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/LlmDecision.action"
   "action/LlmCommand.action"
   "action/LlmChat.action"
+  "action/LlmExecutePlan.action"
   "msg/LlmEvent.msg"
   DEPENDENCIES std_msgs geometry_msgs
 )
