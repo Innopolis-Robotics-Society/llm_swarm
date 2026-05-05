@@ -190,10 +190,6 @@ BT::NodeStatus MapfPlan::onRunning()
         return BT::NodeStatus::FAILURE;
       } else if (dec == "replan") {
         RCLCPP_INFO(node->get_logger(), "MapfPlan: LLM decision=replan");
-        // Drop back to idle — PassiveObserver (channel 2) will see
-        // action_status=ERROR and issue a fresh /llm/command with new goals.
-        // Without this the tree stays in mapf-mode and immediately restarts
-        // MapfPlan with the same stale goals, which is never what we want.
         config().blackboard->set<std::string>("@mapf_decision", "replan");
         config().blackboard->set<std::string>("@mode", "idle");
         config().blackboard->set<std::string>("@action_status", "ERROR");
@@ -202,8 +198,12 @@ BT::NodeStatus MapfPlan::onRunning()
         cancel_mapf();
         return BT::NodeStatus::FAILURE;
       }
-      // "wait" or "" — fall through, continue RUNNING
+      // "wait" — LLM reviewed the event and decided to continue.
+      // Reset action_status to OK so PassiveObserver (channel 2) doesn't
+      // re-trigger on the same stale WARN on the next BTState publish.
       RCLCPP_INFO(node->get_logger(), "MapfPlan: LLM decision=wait, continuing");
+      config().blackboard->set<std::string>("@action_status", "OK");
+      config().blackboard->set<std::string>("@last_error", "");
       config().blackboard->set<bool>("@llm_thinking", false);
     }
   }

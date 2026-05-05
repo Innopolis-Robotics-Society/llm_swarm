@@ -1,6 +1,6 @@
 """Unit tests for prompt_builder.build_few_shot_prompt()."""
 
-from iros_llm_orchestrator.prompt_builder import SYSTEM_PROMPT, build_few_shot_prompt
+from iros_llm_orchestrator.common.decision_prompt import SYSTEM_PROMPT, build_few_shot_prompt
 from iros_llm_orchestrator.scenarios import SCENARIOS
 
 

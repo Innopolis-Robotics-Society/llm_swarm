@@ -1,6 +1,6 @@
 """Unit tests for decision_parser.parse_llm_decision()."""
 
-from iros_llm_orchestrator.decision_parser import parse_llm_decision
+from iros_llm_orchestrator.common.parsers import parse_llm_decision
 
 
 def test_plain_json_wait():

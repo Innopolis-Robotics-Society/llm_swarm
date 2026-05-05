@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from iros_llm_orchestrator.command_prompt_builder import (
+from iros_llm_orchestrator.common.command_prompt import (
     SYSTEM_PROMPT,
     build_command_prompt,
 )

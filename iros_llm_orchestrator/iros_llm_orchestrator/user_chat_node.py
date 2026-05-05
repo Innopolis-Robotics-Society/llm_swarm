@@ -1,11 +1,16 @@
-"""User chat interface — channel 3."""
+"""Channel 3 — natural-language operator chat interface."""
 
 import asyncio
 import json
+import logging
 import math
+import os
 import re
 import sys
 import threading
+import time
+from datetime import datetime, timezone
+from pathlib import Path
 
 import rclpy
 from geometry_msgs.msg import Point
@@ -18,90 +23,74 @@ from std_msgs.msg import String
 from iros_llm_swarm_interfaces.action import LlmCommand
 from iros_llm_swarm_interfaces.msg import BTState
 
-from iros_llm_orchestrator.command_parser import parse_llm_command
-from iros_llm_orchestrator.user_prompt_builder import build_user_prompt, build_bt_event_prompt
+from iros_llm_orchestrator.common.plan_executor import PlanExecutor, parse_plan
+from iros_llm_orchestrator.common.user_prompt import (
+    build_user_prompt, build_bt_event_prompt, load_map_config)
+from iros_llm_orchestrator.local.ollama_client import OllamaClient
 
-MAX_HISTORY_TURNS = 8
-CLUSTER_SPACING   = 1.5
-MIN_GOAL_DIST     = 1.0
-# Stage warehouse bounds
-MAP_X_MIN, MAP_X_MAX = 0.0, 30.0
-MAP_Y_MIN, MAP_Y_MAX = 0.0, 30.0
+MAX_HISTORY   = 8
+CLUSTER_SPACE = 1.5
+MIN_GOAL_DIST = 1.0
 
-BOT = '🤖'; THK = '🧠'; WRN = '⚠ '; OK = '✓'; ERR = '✗'; ARR = '→'
+BOT='🤖'; THK='🧠'; WRN='⚠ '; OK='✓'; ERR='✗'; ARR='→'
 
 
 # ---------------------------------------------------------------------------
-# Goal spreading — circular arrangement
+# Goal utilities
 # ---------------------------------------------------------------------------
 
-def _spread_goals(goals: list, spacing: float = CLUSTER_SPACING) -> list:
-    """Group near-coincident goals and arrange each group in a circle (or grid for large groups)."""
-    if len(goals) <= 1:
-        return goals
-
+def _spread_goals(goals: list, spacing: float = CLUSTER_SPACE) -> list:
     n = len(goals)
+    if n <= 1:
+        return goals
     visited = [False] * n
     groups: list[list[int]] = []
-
     for i in range(n):
         if visited[i]:
             continue
-        group = [i]
-        visited[i] = True
-        for j in range(i + 1, n):
+        grp = [i]; visited[i] = True
+        for j in range(i+1, n):
             if not visited[j]:
-                dx = goals[j][0] - goals[i][0]
-                dy = goals[j][1] - goals[i][1]
-                if math.sqrt(dx * dx + dy * dy) < MIN_GOAL_DIST:
-                    group.append(j)
-                    visited[j] = True
-        groups.append(group)
-
+                dx = goals[j][0]-goals[i][0]; dy = goals[j][1]-goals[i][1]
+                if math.sqrt(dx*dx+dy*dy) < MIN_GOAL_DIST:
+                    grp.append(j); visited[j] = True
+        groups.append(grp)
     result = [list(g) for g in goals]
-
-    for group in groups:
-        k = len(group)
+    for grp in groups:
+        k = len(grp)
         if k == 1:
             continue
-
-        cx = sum(goals[i][0] for i in group) / k
-        cy = sum(goals[i][1] for i in group) / k
-
+        cx = sum(goals[i][0] for i in grp)/k
+        cy = sum(goals[i][1] for i in grp)/k
         if k <= 8:
-            # Circular arrangement
-            # radius so that adjacent robots are ~spacing apart
-            radius = spacing / (2 * math.sin(math.pi / k)) if k > 2 else spacing / 2
-            for idx_in_group, robot_idx in enumerate(group):
-                angle = 2 * math.pi * idx_in_group / k
-                result[robot_idx] = [
-                    round(cx + radius * math.cos(angle), 2),
-                    round(cy + radius * math.sin(angle), 2),
-                ]
+            r = spacing/(2*math.sin(math.pi/k)) if k > 2 else spacing/2
+            for idx, rid in enumerate(grp):
+                a = 2*math.pi*idx/k
+                result[rid] = [round(cx+r*math.cos(a),2), round(cy+r*math.sin(a),2)]
         else:
-            # Grid for large groups
             cols = max(1, round(math.sqrt(k)))
-            for idx_in_group, robot_idx in enumerate(group):
-                col = idx_in_group % cols
-                row = idx_in_group // cols
-                result[robot_idx] = [
-                    round(cx + (col - (cols - 1) / 2.0) * spacing, 2),
-                    round(cy + row * spacing, 2),
-                ]
-
+            for idx, rid in enumerate(grp):
+                col=idx%cols; row=idx//cols
+                result[rid] = [round(cx+(col-(cols-1)/2)*spacing,2),
+                                round(cy+row*spacing,2)]
     return result
 
 
-def _clamp_goals(goals: list) -> list:
-    """Clamp goals to map bounds with a small margin."""
-    margin = 0.5
-    return [
-        [
-            round(max(MAP_X_MIN + margin, min(MAP_X_MAX - margin, g[0])), 2),
-            round(max(MAP_Y_MIN + margin, min(MAP_Y_MAX - margin, g[1])), 2),
-        ]
-        for g in goals
-    ]
+def _clamp_goals(goals: list, cfg: dict) -> list:
+    b = cfg.get('bounds', {})
+    mx, Mx = b.get('x_min', -1e9)+0.5, b.get('x_max', 1e9)-0.5
+    my, My = b.get('y_min', -1e9)+0.5, b.get('y_max', 1e9)-0.5
+    return [[round(max(mx,min(Mx,g[0])),2), round(max(my,min(My,g[1])),2)]
+            for g in goals]
+
+
+def _postprocess_plan(node: dict, map_cfg: dict) -> dict:
+    t = node['type']
+    if t in ('sequence', 'parallel'):
+        node['steps'] = [_postprocess_plan(s, map_cfg) for s in node['steps']]
+    elif t == 'mapf' and 'goals' in node:
+        node['goals'] = _clamp_goals(_spread_goals(node['goals']), map_cfg)
+    return node
 
 
 # ---------------------------------------------------------------------------
@@ -110,20 +99,68 @@ def _clamp_goals(goals: list) -> list:
 
 def _parse_response(raw: str) -> tuple[str, dict]:
     text = raw.strip()
-    fenced = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
-    if fenced:
-        text = fenced.group(1)
     start = text.find('{')
-    end   = text.rfind('}')
-    if start == -1 or end == -1:
+    if start == -1:
         raise ValueError('no JSON object in LLM output')
+    depth = 0; end = -1
+    for i in range(start, len(text)):
+        if text[i] == '{': depth += 1
+        elif text[i] == '}':
+            depth -= 1
+            if depth == 0:
+                end = i + 1; break
+    if end == -1:
+        raise ValueError('JSON object not closed')
     try:
-        obj = json.loads(text[start:end + 1])
+        obj = json.loads(text[start:end])
     except json.JSONDecodeError as exc:
         raise ValueError(f'invalid JSON: {exc}') from exc
-    if 'reply' in obj and 'command' in obj:
-        return str(obj['reply']), parse_llm_command(json.dumps(obj['command'], ensure_ascii=False))
-    return '', parse_llm_command(text[start:end + 1])
+    reply = obj.get('reply', text[:start].strip()) or text[:start].strip()
+    plan  = parse_plan(obj)
+    return reply, plan
+
+
+# ---------------------------------------------------------------------------
+# Session logger
+# ---------------------------------------------------------------------------
+
+def _resolve_log_dir(raw: str) -> str:
+    """Resolve the log_dir parameter to an absolute path.
+
+    Special value "package":
+        Resolves to log/ inside the iros_llm_orchestrator source package,
+        i.e. the directory that contains this very file (user_chat_node.py)
+        lives at  .../iros_llm_orchestrator/iros_llm_orchestrator/user_chat_node.py
+        so log/ is at  .../iros_llm_orchestrator/log/
+
+    Any other value:
+        Treated as a filesystem path with tilde expansion.
+    """
+    if raw.strip() == 'package':
+        # __file__ = .../iros_llm_orchestrator/iros_llm_orchestrator/user_chat_node.py
+        # parent   = .../iros_llm_orchestrator/iros_llm_orchestrator/
+        # parent^2 = .../iros_llm_orchestrator/   ← package root
+        pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        return os.path.join(pkg_root, 'log')
+    return os.path.expanduser(raw)
+
+
+def _make_session_logger(log_dir: str) -> logging.Logger:
+    """Create a file logger for this chat session."""
+    Path(log_dir).mkdir(parents=True, exist_ok=True)
+    ts    = datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')
+    path  = os.path.join(log_dir, f'chat_{ts}.log')
+    logger = logging.getLogger(f'user_chat_{ts}')
+    logger.setLevel(logging.DEBUG)
+    fh = logging.FileHandler(path, encoding='utf-8', errors='replace')
+    fh.setLevel(logging.DEBUG)
+    fh.setFormatter(logging.Formatter(
+        '%(asctime)s  %(levelname)-7s  %(message)s',
+        datefmt='%H:%M:%S'))
+    logger.addHandler(fh)
+    logger.propagate = False
+    logger.info(f'Session started. Log: {path}')
+    return logger
 
 
 # ---------------------------------------------------------------------------
@@ -136,86 +173,136 @@ class UserChatNode(Node):
 
         self.declare_parameter('llm_endpoint',    'http://localhost:11434/api/chat')
         self.declare_parameter('llm_model',       'qwen2.5:14b')
-        self.declare_parameter('llm_max_tokens',  512)
+        self.declare_parameter('llm_max_tokens',  768)
         self.declare_parameter('llm_temperature', 0.1)
         self.declare_parameter('timeout_sec',     30.0)
+        self.declare_parameter('map_name',        'cave')
+        self.declare_parameter('log_enabled',     True)
+        self.declare_parameter('log_dir',         '~/.ros/user_chat_logs')
+        self.declare_parameter('step_timeout_sec', 120.0)
 
-        self._endpoint    = self.get_parameter('llm_endpoint').value
-        self._model       = self.get_parameter('llm_model').value
-        self._max_tokens  = int(self.get_parameter('llm_max_tokens').value)
-        self._temperature = float(self.get_parameter('llm_temperature').value)
-        self._timeout     = float(self.get_parameter('timeout_sec').value)
+        self._timeout      = float(self.get_parameter('timeout_sec').value)
+        self._step_timeout = float(self.get_parameter('step_timeout_sec').value)
+        self._map_name     = self.get_parameter('map_name').value
+        log_enabled = bool(self.get_parameter('log_enabled').value)
+        log_dir     = _resolve_log_dir(self.get_parameter('log_dir').value)
+
+        self._slog = _make_session_logger(log_dir) if log_enabled else logging.getLogger('null')
+        self._slog.info(f'map={self._map_name}  '
+                        f'model={self.get_parameter("llm_model").value}  '
+                        f'log_enabled={log_enabled}')
+
+        self._ollama = OllamaClient(
+            endpoint=self.get_parameter('llm_endpoint').value,
+            model=self.get_parameter('llm_model').value,
+            max_tokens=int(self.get_parameter('llm_max_tokens').value),
+            temperature=float(self.get_parameter('llm_temperature').value),
+        )
+        try:
+            self._map_cfg = load_map_config(self._map_name)
+        except Exception as e:
+            self.get_logger().warn(f'Map config load failed: {e}')
+            self._map_cfg = {}
 
         self._cmd_client = ActionClient(self, LlmCommand, '/llm/command')
         qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
                          history=HistoryPolicy.KEEP_LAST, depth=10)
         self.create_subscription(BTState, '/bt/state', self._on_bt_state, qos)
-        self.create_subscription(String, '/fleet/mode', self._on_fleet_mode, 10)
+        self.create_subscription(String,  '/fleet/mode', self._on_fleet_mode, 10)
 
-        self._last_bt_status  = 'OK'
-        self._last_fleet_mode = 'idle'
+        self._last_status        = 'OK'
+        # _last_mode is written from ROS callback thread and read from asyncio
+        # loop thread — use a threading.Lock to protect it.
+        self._mode_lock          = threading.Lock()
+        self._last_mode          = 'idle'
         self._history: list[dict] = []
+        self._bt_event_analyzing = False
 
         self._loop = asyncio.new_event_loop()
         threading.Thread(target=self._loop.run_forever, daemon=True).start()
         threading.Thread(target=self._stdin_loop, daemon=True).start()
         self._print_banner()
 
-    # -----------------------------------------------------------------------
-    # BT feedback — show to user AND consult LLM
-    # -----------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # Thread-safe mode accessors
+    # ------------------------------------------------------------------
+
+    def _get_mode(self) -> str:
+        with self._mode_lock:
+            return self._last_mode
+
+    def _set_mode(self, mode: str):
+        with self._mode_lock:
+            self._last_mode = mode
+
+    # ------------------------------------------------------------------
+    # BT feedback
+    # ------------------------------------------------------------------
 
     def _on_bt_state(self, msg: BTState):
-        if msg.action_status != self._last_bt_status:
-            prev = self._last_bt_status
-            self._last_bt_status = msg.action_status
-            if msg.action_status in ('WARN', 'ERROR'):
-                self._out(f'\n  {WRN} BT [{msg.mode}/{msg.active_action}]: {msg.last_error}')
-                # Consult LLM about the event — runs in background, non-blocking
-                asyncio.run_coroutine_threadsafe(
-                    self._handle_bt_event(msg), self._loop
-                )
+        if msg.action_status == self._last_status:
+            return
+        prev = self._last_status
+        self._last_status = msg.action_status
+
+        if msg.action_status in ('WARN', 'ERROR'):
+            self._out(f'\n  {WRN} [{msg.active_action}] {msg.action_status}: '
+                      f'{msg.last_error}')
+            self._slog.warning(
+                f'BT event: [{msg.action_status}] {msg.active_action}: '
+                f'{msg.last_error}')
+            if self._bt_event_analyzing:
+                self._out('       (LLM analysis already in progress)')
+                self._prompt(); return
+            self._bt_event_analyzing = True
+            self._out(f'  {THK} Analyzing...')
+            asyncio.run_coroutine_threadsafe(
+                self._handle_bt_event(msg), self._loop)
+
+        elif prev in ('WARN', 'ERROR') and msg.action_status == 'OK':
+            self._out(f'\n  {OK}  Status recovered → OK')
+            self._slog.info('BT status recovered to OK')
+            self._prompt()
 
     def _on_fleet_mode(self, msg: String):
-        mode = msg.data
-        if mode != self._last_fleet_mode:
-            prev, self._last_fleet_mode = self._last_fleet_mode, mode
-            if prev != 'idle' and mode == 'idle':
-                self._out(f'\n  {OK}  Mission finished → idle')
+        prev = self._get_mode()
+        if msg.data != prev:
+            self._set_mode(msg.data)
+            self._slog.debug(f'fleet_mode: {prev} → {msg.data}')
+            if prev != 'idle' and msg.data == 'idle':
+                self._out(f'\n  {OK}  Step finished → idle')
                 self._prompt()
 
-    # -----------------------------------------------------------------------
-    # BT event → LLM analysis (shown inline, added to history)
-    # -----------------------------------------------------------------------
-
     async def _handle_bt_event(self, msg: BTState):
-        """Ask LLM to analyse a BT warning and suggest action to the user."""
-        messages = build_bt_event_prompt(msg, history=self._history)
-
-        self._out(f'  {THK} Analyzing...')
         try:
-            raw = await asyncio.wait_for(
-                self._stream_ollama(messages, prefix='  💬 '),
-                timeout=self._timeout,
-            )
-        except Exception as exc:
-            self._out(f'  {ERR}  LLM analysis failed: {exc}')
+            messages = build_bt_event_prompt(msg, history=self._history)
+            self._out(f'  {BOT} ')
+            try:
+                raw = await asyncio.wait_for(
+                    self._stream_text(messages), timeout=self._timeout)
+            except asyncio.TimeoutError:
+                self._out(f'\n  {ERR}  LLM analysis timeout')
+                self._slog.error('BT event LLM analysis timeout')
+                return
+            except Exception as exc:
+                self._out(f'\n  {ERR}  {exc}')
+                self._slog.error(f'BT event LLM error: {exc}')
+                return
+            self._out('')
+            safe_raw = raw.encode('utf-8', errors='replace').decode('utf-8')
+            self._slog.info(f'BT event LLM response: {safe_raw[:200]}')
+            event_text = (f'[BT {msg.action_status}] '
+                          f'{msg.active_action}: {msg.last_error}')
+            self._history.append({'role': 'user',      'content': event_text})
+            self._history.append({'role': 'assistant', 'content': safe_raw})
+            self._trim_history()
+        finally:
+            self._bt_event_analyzing = False
             self._prompt()
-            return
 
-        # Add event + analysis to history so user can respond ("отменить", "подождём", etc.)
-        event_text = f'[BT {msg.action_status}] {msg.active_action}: {msg.last_error}'
-        self._history.append({'role': 'user',      'content': event_text})
-        self._history.append({'role': 'assistant', 'content': raw})
-        if len(self._history) > MAX_HISTORY_TURNS * 2:
-            self._history = self._history[-MAX_HISTORY_TURNS * 2:]
-
-        self._out('')
-        self._prompt()
-
-    # -----------------------------------------------------------------------
-    # Stdin loop — non-blocking
-    # -----------------------------------------------------------------------
+    # ------------------------------------------------------------------
+    # Stdin
+    # ------------------------------------------------------------------
 
     def _stdin_loop(self):
         while True:
@@ -228,108 +315,83 @@ class UserChatNode(Node):
             text = line.strip()
             if not text:
                 self._prompt(); continue
-            if text.lower() in ('quit', 'exit', 'выход', 'q'):
-                self._out('Bye.')
-                rclpy.shutdown(); break
+            if text.lower() in ('quit', 'exit', 'q'):
+                self._out('Bye.'); rclpy.shutdown(); break
             asyncio.run_coroutine_threadsafe(self._handle(text), self._loop)
 
-    # -----------------------------------------------------------------------
+    # ------------------------------------------------------------------
     # User command pipeline
-    # -----------------------------------------------------------------------
+    # ------------------------------------------------------------------
 
     async def _handle(self, text: str):
-        self._out(f'\n  {THK} Thinking...\n  {BOT} ')
-        messages = build_user_prompt(text, history=self._history)
+        safe_text = text.encode('utf-8', errors='replace').decode('utf-8')
+        self._slog.info(f'USER: {safe_text}')
+
+        self._out(f'\n  {THK} ')
+        messages = build_user_prompt(text, history=self._history,
+                                     map_name=self._map_name)
+
         try:
-            raw = await asyncio.wait_for(
-                self._stream_ollama(messages, prefix=''),
-                timeout=self._timeout,
-            )
+            full_raw = await asyncio.wait_for(
+                self._stream_command(messages), timeout=self._timeout)
         except asyncio.TimeoutError:
             self._out(f'\n  {ERR}  Timeout. Is Ollama running?  →  ollama serve')
+            self._slog.error('LLM timeout')
             self._prompt(); return
         except Exception as exc:
             self._out(f'\n  {ERR}  LLM error: {exc}')
+            self._slog.error(f'LLM error: {exc}')
             self._prompt(); return
 
-        self._out('')
+        print()  # newline after streamed reply
+        self._slog.debug(f'LLM raw ({len(full_raw)} chars):\n{full_raw}')
+
         try:
-            reply, command = _parse_response(raw)
+            reply, plan = _parse_response(full_raw)
         except ValueError as exc:
-            self._out(f'  {ERR}  Could not parse response: {exc}')
-            self._out(f'       Raw: {raw[:300]}')
+            self._out(f'  {ERR}  Parse error: {exc}')
+            self._out(f'       Raw: {full_raw[:400]}')
+            self._slog.error(f'Parse error: {exc}\nRaw: {full_raw}')
             self._prompt(); return
 
-        if command.get('mode') == 'mapf' and 'goals' in command:
-            command['goals'] = _clamp_goals(_spread_goals(command['goals']))
+        self._slog.info(f'Plan: {json.dumps(plan, ensure_ascii=False)}')
+        plan = _postprocess_plan(plan, self._map_cfg)
+        self._describe_plan(plan)
 
-        self._describe_command(command)
+        self._history.append({'role': 'user', 'content': text})
+        self._history.append({'role': 'assistant', 'content': full_raw})
+        self._trim_history()
 
-        self._history.append({'role': 'user',      'content': text})
-        self._history.append({'role': 'assistant', 'content': raw})
-        if len(self._history) > MAX_HISTORY_TURNS * 2:
-            self._history = self._history[-MAX_HISTORY_TURNS * 2:]
+        executor = PlanExecutor(
+            send_fn=self._send_leaf,
+            log_fn=lambda m: (print(f'  {m}', flush=True),
+                              self._slog.debug(f'executor: {m}'))[0],
+        )
+        ok = await executor.run(plan)
+        result_msg = 'Plan complete.' if ok else 'Plan failed or was interrupted.'
+        self._out(f'\n  {OK if ok else ERR}  {result_msg}')
+        self._slog.info(f'Plan result: {result_msg}')
+        self._prompt()
 
-        await self._send_to_bt(command)
+    # ------------------------------------------------------------------
+    # Leaf execution
+    # ------------------------------------------------------------------
 
-    # -----------------------------------------------------------------------
-    # Ollama streaming
-    # -----------------------------------------------------------------------
+    async def _send_leaf(self, command: dict) -> bool:
+        t = command.get('type') or command.get('mode', '')
+        self._slog.debug(f'send_leaf: type={t} ids={command.get("robot_ids",[])}')
 
-    async def _stream_ollama(self, messages: list[dict], prefix: str = '') -> str:
-        """Stream Ollama response, printing chunks in real time. Returns full text."""
-        import aiohttp
+        if t == 'idle':
+            return await self._send_bt_goal(mode='idle',
+                                            reason=command.get('reason', ''))
 
-        payload = {
-            'model':    self._model,
-            'messages': messages,
-            'stream':   True,
-            'options':  {
-                'temperature': self._temperature,
-                'num_predict': self._max_tokens,
-            },
-        }
-
-        full_text = ''
-        async with aiohttp.ClientSession() as session:
-            async with session.post(self._endpoint, json=payload) as resp:
-                if resp.status != 200:
-                    body = await resp.text()
-                    raise RuntimeError(f'Ollama HTTP {resp.status}: {body[:300]}')
-
-                if prefix:
-                    print(prefix, end='', flush=True)
-
-                async for raw_line in resp.content:
-                    line = raw_line.strip()
-                    if not line:
-                        continue
-                    try:
-                        data = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-
-                    chunk = data.get('message', {}).get('content', '')
-                    if chunk:
-                        print(chunk, end='', flush=True)
-                        full_text += chunk
-
-                    if data.get('done', False):
-                        break
-
-        return full_text
-
-    # -----------------------------------------------------------------------
-    # Send to BT
-    # -----------------------------------------------------------------------
-
-    async def _send_to_bt(self, command: dict):
         if not self._cmd_client.wait_for_server(timeout_sec=3.0):
-            self._out(f'  {ERR}  /llm/command not available. Is test_bt_runner running?')
-            self._prompt(); return
+            self._out(f'  {ERR}  /llm/command not available.')
+            self._slog.error('send_leaf: /llm/command server not available')
+            return False
 
         goal = LlmCommand.Goal()
-        goal.mode         = command['mode']
+        goal.mode         = t
         goal.reason       = command.get('reason', '')
         goal.robot_ids    = [int(r) for r in command.get('robot_ids', [])]
         goal.goals        = [Point(x=float(g[0]), y=float(g[1]), z=0.0)
@@ -340,41 +402,146 @@ class UserChatNode(Node):
         goal.offsets_x    = [float(o) for o in command.get('offsets_x', [])]
         goal.offsets_y    = [float(o) for o in command.get('offsets_y', [])]
 
+        # Step 1: send goal and wait for BT to accept it
         handle = await self._cmd_client.send_goal_async(goal)
         if not handle.accepted:
-            self._out(f'  {ERR}  BT rejected — try "стоп" first to cancel current mission.')
-            self._prompt(); return
+            self._out(f'  {ERR}  BT rejected goal (say "stop" to cancel current mission).')
+            self._slog.warning('send_leaf: goal rejected by BT')
+            return False
 
         result = await handle.get_result_async()
-        if result.result.success:
-            self._out(f'  {OK}  Executing.')
-        else:
+        if not result.result.success:
             self._out(f'  {ERR}  BT error: {result.result.info}')
-        self._prompt()
+            self._slog.error(f'send_leaf: BT error: {result.result.info}')
+            return False
 
-    # -----------------------------------------------------------------------
+        self._slog.debug('send_leaf: goal accepted and applied to blackboard')
+
+        # Step 2: wait at least 3 BT ticks (300ms) before checking idle.
+        # Formation can complete in 1 tick — we need to let BT actually
+        # process the command before declaring "instantly done".
+        await asyncio.sleep(0.35)
+
+        if self._get_mode() == 'idle':
+            self._slog.info('send_leaf: mode idle after 350ms — fast complete or instant fail')
+            return True
+
+        # Step 3: wait for fleet_mode to return to idle (mission done)
+        deadline = time.monotonic() + self._step_timeout
+        while time.monotonic() < deadline:
+            if self._get_mode() == 'idle':
+                self._slog.debug('send_leaf: mission complete (fleet_mode=idle)')
+                return True
+            await asyncio.sleep(0.1)
+
+        self._out(f'  {ERR}  Timed out waiting for mission to finish '
+                  f'({self._step_timeout:.0f}s).')
+        self._slog.error(f'send_leaf: step timeout after {self._step_timeout}s')
+        return False
+
+    async def _send_bt_goal(self, mode: str, reason: str = '') -> bool:
+        if not self._cmd_client.wait_for_server(timeout_sec=3.0):
+            return False
+        goal = LlmCommand.Goal()
+        goal.mode = mode; goal.reason = reason
+        handle = await self._cmd_client.send_goal_async(goal)
+        if not handle.accepted:
+            return False
+        result = await handle.get_result_async()
+        return result.result.success
+
+    # ------------------------------------------------------------------
+    # Streaming
+    # ------------------------------------------------------------------
+
+    async def _stream_command(self, messages: list[dict]) -> str:
+        """Stream LLM response, printing the reply text in real time.
+
+        The model outputs: {"reply": "some text", "plan": {...}}
+        We detect when we're inside the "reply" value and print those
+        characters live. Once we hit the end of the reply value (closing
+        quote before "plan"), we go silent and buffer the rest.
+
+        State machine:
+          BEFORE_REPLY  — scanning for :"  after "reply"
+          IN_REPLY      — printing characters, watching for unescaped "
+          AFTER_REPLY   — buffering silently
+        """
+        BEFORE_REPLY, IN_REPLY, AFTER_REPLY = 0, 1, 2
+        state = BEFORE_REPLY
+
+        full  = ''
+        # Buffer of chars we've seen while in BEFORE_REPLY, used to detect
+        # the "reply": " sequence reliably across chunk boundaries.
+        scan  = ''
+        # Marker we look for to enter IN_REPLY state
+        MARKER = '"reply": "'
+
+        print(f'{BOT} ', end='', flush=True)
+
+        async for chunk in self._ollama.stream(messages):
+            full += chunk
+
+            if state == AFTER_REPLY:
+                continue  # just accumulate, don't print
+
+            for ch in chunk:
+                if state == BEFORE_REPLY:
+                    scan += ch
+                    # Keep only the last len(MARKER) chars to avoid blowing up
+                    if len(scan) > len(MARKER):
+                        scan = scan[-len(MARKER):]
+                    if scan.endswith(MARKER):
+                        state = IN_REPLY
+                        scan  = ''
+
+                elif state == IN_REPLY:
+                    # End of reply value = unescaped closing quote
+                    if ch == '"' and not scan.endswith('\\'):
+                        state = AFTER_REPLY
+                    else:
+                        print(ch, end='', flush=True)
+                    scan = ch  # track last char for escape detection
+
+        return full
+
+    async def _stream_all(self, messages: list[dict]) -> str:
+        """Buffer full response without any output."""
+        full = ''
+        async for chunk in self._ollama.stream(messages):
+            full += chunk
+        return full
+
+    async def _stream_text(self, messages: list[dict]) -> str:
+        full = ''
+        async for chunk in self._ollama.stream(messages):
+            print(chunk, end='', flush=True)
+            full += chunk
+        return full
+
+    # ------------------------------------------------------------------
     # Display
-    # -----------------------------------------------------------------------
+    # ------------------------------------------------------------------
 
-    def _describe_command(self, command: dict):
-        mode = command['mode']
-        print()
-        if mode == 'idle':
-            print(f'  {ARR} STOP')
-        elif mode == 'mapf':
-            ids, goals = command['robot_ids'], command['goals']
-            print(f'  {ARR} MAPF: {len(ids)} robot(s)')
+    def _describe_plan(self, node: dict, depth: int = 0):
+        ind = '  ' * (depth + 1)
+        t = node['type']
+        if t == 'sequence':
+            print(f'{ind}sequence ({len(node["steps"])} steps):')
+            for s in node['steps']: self._describe_plan(s, depth+1)
+        elif t == 'parallel':
+            print(f'{ind}parallel → will be merged/flattened:')
+            for s in node['steps']: self._describe_plan(s, depth+1)
+        elif t == 'mapf':
+            ids, goals = node['robot_ids'], node['goals']
+            print(f'{ind}{ARR} MAPF ({len(ids)}r) — {node.get("reason","")}')
             for rid, g in zip(ids, goals):
-                print(f'       robot_{rid:<3}  {ARR}  ({g[0]:.2f}, {g[1]:.2f})')
-        elif mode == 'formation':
-            print(f'  {ARR} FORMATION: {command["formation_id"]}  leader: {command["leader_ns"]}')
-            for f, ox, oy in zip(command.get('follower_ns', []),
-                                  command.get('offsets_x', []),
-                                  command.get('offsets_y', [])):
-                print(f'       {f:<18} offset ({ox:+.1f}, {oy:+.1f})')
-        reason = command.get('reason', '')
-        if reason:
-            print(f'     reason: {reason}')
+                print(f'{ind}   robot_{rid:<3}  {ARR}  ({g[0]:.2f}, {g[1]:.2f})')
+        elif t == 'formation':
+            print(f'{ind}{ARR} FORMATION {node.get("formation_id","")} '
+                  f'leader={node.get("leader_ns","")} — {node.get("reason","")}')
+        elif t == 'idle':
+            print(f'{ind}{ARR} STOP ALL')
 
     def _out(self, msg: str):
         print(msg, flush=True)
@@ -382,17 +549,29 @@ class UserChatNode(Node):
     def _prompt(self):
         print('\n> ', end='', flush=True)
 
+    def _trim_history(self):
+        if len(self._history) > MAX_HISTORY * 2:
+            self._history = self._history[-MAX_HISTORY * 2:]
+
     def _print_banner(self):
-        print(f'\n  {BOT}  Swarm chat  |  model: {self._model}\n')
-        print('  Примеры:')
-        print('    роботы 1 2 3 в правый угол, остальные на месте')
-        print('    все роботы в центр')
-        print('    стоп')
-        print('\n  "quit" для выхода.\n')
+        desc = self._map_cfg.get('description', self._map_name)
+        if isinstance(desc, str):
+            desc = desc.strip().split('\n')[0][:60]
+        log_enabled = bool(self.get_parameter('log_enabled').value)
+        log_dir_resolved = _resolve_log_dir(self.get_parameter('log_dir').value)
+        log_info = (f'logs → {log_dir_resolved}'
+                    if log_enabled else 'logging disabled')
+        print(f'\n  {BOT}  Swarm chat  |  model: {self._ollama.model}  |  map: {self._map_name}')
+        print(f'       {desc}')
+        print(f'       {log_info}')
+        print('\n  Examples:')
+        print('    yellow to east, green to west')
+        print('    cyan to magenta home, magenta to cyan home')
+        print('    cyan go to hub, then form a line')
+        print('    stop')
+        print('\n  "quit" to exit.\n')
         self._prompt()
 
-
-# ---------------------------------------------------------------------------
 
 def main(args=None):
     rclpy.init(args=args)

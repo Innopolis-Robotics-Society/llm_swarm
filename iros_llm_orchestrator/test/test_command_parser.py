@@ -2,7 +2,7 @@
 
 import pytest
 
-from iros_llm_orchestrator.command_parser import parse_llm_command
+from iros_llm_orchestrator.common.parsers import parse_llm_command
 
 
 def test_idle_minimal():
