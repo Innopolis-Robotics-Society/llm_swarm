@@ -43,9 +43,11 @@ class BTLeafSender:
         self._cmd_client       = ActionClient(node, LlmCommand, '/llm/command')
         self._cmd_server_ready = False
 
-        self._mode_lock = threading.Lock()
-        self._last_mode = ''
-        self._mode_seq  = 0
+        self._mode_lock          = threading.Lock()
+        self._last_mode          = ''
+        self._mode_seq           = 0
+        self._last_action_status = 'OK'
+        self._last_bt_error      = ''
 
         qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
                          history=HistoryPolicy.KEEP_LAST, depth=10)
@@ -61,10 +63,14 @@ class BTLeafSender:
             if msg.mode != self._last_mode:
                 self._last_mode = msg.mode
                 self._mode_seq += 1
+            # Mirror action_status so phase 1 can detect failed missions
+            self._last_action_status = msg.action_status
+            self._last_bt_error      = msg.last_error
 
-    def _get_mode_state(self) -> tuple[str, int]:
+    def _get_mode_state(self) -> tuple[str, int, str, str]:
         with self._mode_lock:
-            return self._last_mode, self._mode_seq
+            return (self._last_mode, self._mode_seq,
+                    self._last_action_status, self._last_bt_error)
 
     # ------------------------------------------------------------------
     # Send one leaf
@@ -115,21 +121,32 @@ class BTLeafSender:
         if t == 'idle':
             return True
 
-        # Phase 1
+        # Phase 1 — wait for BT to acknowledge the command (mode transition).
+        # We do NOT fast-complete if mode went to idle too quickly while
+        # action_status is ERROR/WARN — that indicates a failed mission
+        # (e.g. PBS partial plan), not a genuine instant completion.
         phase1_deadline = time.monotonic() + 1.5
-        transitioned = False
+        transitioned    = False
         while time.monotonic() < phase1_deadline:
-            mode_now, seq_now = self._get_mode_state()
+            mode_now, seq_now, status_now, err_now = self._get_mode_state()
             if seq_now > seq_at_send:
                 if mode_now == 'idle':
+                    if status_now in ('ERROR',):
+                        # Mission failed (partial plan, no path, etc.)
+                        self._node.get_logger().error(
+                            f'leaf {t!r}: BT returned idle with ERROR: {err_now}')
+                        return False
+                    # Genuine fast completion (e.g. instant formation setup)
                     return True
                 transitioned = True
                 break
             await asyncio.sleep(0.05)
         if not transitioned:
+            # No mode transition at all — BT ignored the command (duplicate
+            # goal or ModeDispatch no-op). Treat as success rather than block.
             return True
 
-        # Phase 2
+        # Phase 2 — wait for mission to finish (mode returns to idle)
         deadline = time.monotonic() + self._step_timeout
         while time.monotonic() < deadline:
             if self._get_mode_state()[0] == 'idle':

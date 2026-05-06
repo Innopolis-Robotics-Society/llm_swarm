@@ -5,6 +5,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "behaviortree_cpp_v3/action_node.h"
@@ -14,6 +15,8 @@
 #include "iros_llm_swarm_interfaces/action/llm_decision.hpp"
 #include "iros_llm_swarm_interfaces/action/set_goals.hpp"
 #include "iros_llm_swarm_interfaces/msg/bt_state.hpp"
+#include "iros_llm_swarm_interfaces/msg/formations_status.hpp"
+#include "iros_llm_swarm_interfaces/msg/formation_status.hpp"
 #include "iros_llm_swarm_interfaces/srv/deactivate_formation.hpp"
 #include "iros_llm_swarm_interfaces/srv/set_formation.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -218,11 +221,16 @@ public:
 // ---------------------------------------------------------------------------
 // BTStatePublisher — each tick snapshots blackboard and publishes /bt/state.
 // Always returns SUCCESS so it does not break surrounding ReactiveSequence.
+// Also subscribes to /formations/status and escalates action_status when
+// the active formation degrades or breaks — mirrors how MapfPlan feedback
+// feeds into @action_status during MAPF execution.
 // ---------------------------------------------------------------------------
 class BTStatePublisher : public BT::SyncActionNode
 {
 public:
-  using BTStateMsg = iros_llm_swarm_interfaces::msg::BTState;
+  using BTStateMsg          = iros_llm_swarm_interfaces::msg::BTState;
+  using FormationsStatusMsg = iros_llm_swarm_interfaces::msg::FormationsStatus;
+  using FormationStatusMsg  = iros_llm_swarm_interfaces::msg::FormationStatus;
 
   BTStatePublisher(const std::string & name, const BT::NodeConfiguration & config);
   static BT::PortsList providedPorts();
@@ -232,6 +240,14 @@ private:
   rclcpp::Publisher<BTStateMsg>::SharedPtr publisher_;
   rclcpp::Clock::SharedPtr clock_;
 
+  // Formation monitor cache — written from the ROS executor thread via the
+  // /formations/status subscription, read inside tick() (BT thread).
+  // Protected by formation_cache_mutex_.
+  rclcpp::Subscription<FormationsStatusMsg>::SharedPtr formation_status_sub_;
+  mutable std::mutex formation_cache_mutex_;
+  std::unordered_map<std::string, FormationStatusMsg> formation_cache_;
+
+  void on_formation_status(const FormationsStatusMsg::SharedPtr msg);
   std::string get_str(const std::string & key, const std::string & def = "");
 };
 

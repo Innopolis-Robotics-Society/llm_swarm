@@ -28,5 +28,19 @@ string leader_ns                    # formation context
 # when channel 1 is already consulting the LLM for the same event.
 bool llm_thinking
 
+# Formation monitor status — filled from /formations/status every tick
+# whenever formation_id is non-empty. Mirrors FormationStatus constants:
+#   STATE_INACTIVE=0  STATE_FORMING=1  STATE_STABLE=2
+#   STATE_DEGRADED=3  STATE_BROKEN=4
+# DEGRADED escalates action_status → WARN.
+# BROKEN  escalates action_status → ERROR.
+# This allows PassiveObserver and the user chat to react to formation
+# health changes even after SetFormation has already returned SUCCESS.
+uint8   formation_state           # FormationStatus.STATE_*
+uint8   formation_failure_code    # FormationStatus.FAILURE_*
+string  formation_failure_reason  # human-readable, empty if no failure
+float32 formation_max_error_m     # max follower position error [m], -1 = n/a
+float32 formation_mean_error_m    # mean follower position error [m], -1 = n/a
+
 # Timestamp (ms since epoch).
 int64 stamp_ms
