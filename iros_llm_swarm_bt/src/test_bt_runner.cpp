@@ -37,6 +37,8 @@
 #include "behaviortree_cpp_v3/blackboard.h"
 #include "behaviortree_cpp_v3/loggers/abstract_logger.h"
 #include "geometry_msgs/msg/point.hpp"
+#include "iros_llm_swarm_bt/swarm_bt_nodes.hpp"
+#include "iros_llm_swarm_interfaces/msg/bt_state.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "std_msgs/msg/bool.hpp"
 #include "std_msgs/msg/string.hpp"
@@ -348,6 +350,14 @@ int main(int argc, char ** argv)
   auto pub_form_en = node->create_publisher<std_msgs::msg::Bool>(
     "/fleet/formation_enabled", 10);
 
+  // Mirror /bt/state from outside the tree so we can flush a final snapshot
+  // (HALTED / FAILURE) after BTStatePublisher last ticked but before we
+  // overwrite @mode = idle and halt the tree.
+  auto pub_bt_state = node->create_publisher<
+    iros_llm_swarm_interfaces::msg::BTState>(
+      "/bt/state", iros_llm_swarm_bt::bt_state_qos());
+  auto bt_clock = node->get_clock();
+
   // /fleet/cmd subscriber (idle-runner mode only)
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr sub_cmd;
   if (!run_scenario_mode) {
@@ -414,9 +424,15 @@ int main(int argc, char ** argv)
       pub_mode->publish(m);
     }
 
-    // Transition -> idle: halt any running action immediately
+    // Transition -> idle: halt any running action immediately. Flush a
+    // final /bt/state right after halt — onHalted has set @action_status
+    // to HALTED but BTStatePublisher will not tick again with the old
+    // @mode, so without this push the operator never sees the marker.
     if (current_mode == "idle" && last_mode != "idle") {
       tree.haltTree();
+      blackboard->set<std::string>("@mode", last_mode);
+      iros_llm_swarm_bt::publish_bt_state(blackboard, pub_bt_state, bt_clock);
+      blackboard->set<std::string>("@mode", "idle");
       RCLCPP_INFO(node->get_logger(), "BT: mode -> idle, tree halted");
     }
     last_mode = current_mode;
@@ -449,6 +465,27 @@ int main(int argc, char ** argv)
       RCLCPP_INFO(node->get_logger(), "BT: %s -> %s",
         current_mode.c_str(), BT::toStr(status).c_str());
 
+      // Surface terminal state in /bt/state before we wipe @mode. Leaf
+      // nodes (MapfPlan, SetFormation) already wrote @action_status /
+      // @last_error on their way out — but BTStatePublisher's tick that
+      // ran at the start of this same tickRoot() captured the *previous*
+      // values. Push one more snapshot now so the panel sees ERROR/HALTED
+      // paired with the failing mode.
+      if (!ok) {
+        std::string cur_status;
+        try { cur_status = blackboard->get<std::string>("@action_status"); } catch (...) {}
+        if (cur_status == "OK" || cur_status.empty()) {
+          blackboard->set<std::string>("@action_status", "ERROR");
+        }
+        std::string cur_err;
+        try { cur_err = blackboard->get<std::string>("@last_error"); } catch (...) {}
+        if (cur_err.empty()) {
+          blackboard->set<std::string>("@last_error",
+            "BT FAILURE in mode=" + current_mode);
+        }
+      }
+      iros_llm_swarm_bt::publish_bt_state(blackboard, pub_bt_state, bt_clock);
+
       // Always return to idle after any terminal state.
       // Without this, mode stays "mapf"/"formation" after SUCCESS and the
       // next tick immediately restarts the same mission with the same goals.
@@ -458,7 +495,6 @@ int main(int argc, char ** argv)
         // Signal failure to scenario thread, then go idle so tree stops ticking
         blackboard->set<bool>("@mapf_failed", true);
         blackboard->set<bool>("@formation_failed", true);
-        blackboard->set<std::string>("@mode", "idle");
         RCLCPP_WARN(node->get_logger(), "BT: FAILURE in mode=%s -> idle", current_mode.c_str());
       }
 

@@ -31,7 +31,7 @@ mapf_lns2:
     plateau_limit:           1500      # iters with no improvement -> stop; was 500
     segment_size:             50       # ALNS weight update period (iters)
     alns_reaction:             0.1
-    diagonal_moves:        false       # 4-conn; MAPF-safer
+    diagonal_moves:        true
 
     # Wall-clock cap for build_initial_solution during execute_goal.
     # Prevents pathological 35-second builds when robots are densely packed.

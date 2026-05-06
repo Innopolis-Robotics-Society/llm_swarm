@@ -18,6 +18,7 @@
 #pragma once
 
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <mutex>
@@ -253,6 +254,15 @@ private:
   QString prev_last_error_;
   bool    bt_state_seen_ {false};
   static constexpr int kBtLogMax = 200;
+
+  // ---- Sticky terminal status -------------------------------------------
+  // Holds the last non-OK action_status / non-empty last_error visible in
+  // the top status bar for kStickyMs after the BT moves on, so a 100ms
+  // FAILURE / HALTED window doesn't flash past the operator.
+  std::chrono::steady_clock::time_point sticky_until_{};
+  QString sticky_action_status_;
+  QString sticky_last_error_;
+  static constexpr int kStickyMs = 5000;
 
   // ---- Map context (for Phase 5/6) --------------------------------------
   std::string                  map_name_      {"cave"};

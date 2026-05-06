@@ -69,9 +69,10 @@ QString modeColor(const QString & mode)
 
 QString statusColor(const QString & status)
 {
-  if (status == "OK")    return "#388E3C";
-  if (status == "WARN")  return "#F57C00";
-  if (status == "ERROR") return "#C62828";
+  if (status == "OK")     return "#388E3C";
+  if (status == "WARN")   return "#F57C00";
+  if (status == "ERROR")  return "#C62828";
+  if (status == "HALTED") return "#6A1B9A";
   return "#616161";
 }
 
@@ -489,8 +490,11 @@ void LlmPanel::setupRos()
   }
   node_ = abstraction->get_raw_node();
 
-  rclcpp::QoS bt_qos(10);
-  bt_qos.best_effort();
+  // /bt/state is published RELIABLE with depth 20 by the BT runner so
+  // short-lived terminal states (HALTED / ERROR) survive the ~100ms
+  // window between FAILURE and the next idle snapshot. Match here.
+  rclcpp::QoS bt_qos(20);
+  bt_qos.reliable();
   bt_state_sub_ = node_->create_subscription<BTState>(
     "/bt/state", bt_qos,
     [this](BTState::ConstSharedPtr msg)
@@ -643,11 +647,30 @@ void LlmPanel::onUpdateStatus(
 
   action_badge_->setText(active_action.isEmpty() ? "none" : active_action);
 
-  status_badge_->setText(action_status);
-  status_badge_->setStyleSheet(badgeStyle(statusColor(action_status)));
+  // Sticky terminal state — keep ERROR/HALTED + last_error visible for
+  // kStickyMs after the BT cleared, so brief failures (rejected goal,
+  // halt) don't flash past in 100 ms.
+  const bool is_failure_status =
+    !action_status.isEmpty() && action_status != "OK";
+  const auto now_tp = std::chrono::steady_clock::now();
+  if (is_failure_status || !last_error.isEmpty()) {
+    sticky_action_status_ = is_failure_status ? action_status : QString();
+    sticky_last_error_    = last_error;
+    sticky_until_ = now_tp + std::chrono::milliseconds(kStickyMs);
+  }
+
+  QString display_status = action_status;
+  QString display_error  = last_error;
+  if (now_tp < sticky_until_) {
+    if (!sticky_action_status_.isEmpty()) display_status = sticky_action_status_;
+    if (!sticky_last_error_.isEmpty())    display_error  = sticky_last_error_;
+  }
+
+  status_badge_->setText(display_status);
+  status_badge_->setStyleSheet(badgeStyle(statusColor(display_status)));
 
   thinking_label_->setText(llm_thinking ? QString::fromUtf8("🧠") : QString());
-  error_label_->setText(last_error);
+  error_label_->setText(display_error);
 
   // Phase 2 — parse action_summary, drive MAPF tab widgets.
   const auto s = parseActionSummary(action_summary.toStdString());
