@@ -31,9 +31,12 @@ from iros_llm_swarm_interfaces.msg import LlmEvent
 
 from iros_llm_orchestrator.common.leaf_sender import BTLeafSender
 from iros_llm_orchestrator.common.plan_executor import PlanExecutor
-from iros_llm_orchestrator.common.user_prompt import build_user_prompt, load_map_config
+from iros_llm_orchestrator.common.user_prompt import (
+    build_user_prompt, build_bt_event_prompt, load_map_config)
 from iros_llm_orchestrator.local.ollama_client import OllamaClient
 from iros_llm_orchestrator.user_chat_node import _parse_response, _postprocess_plan
+
+MAX_HISTORY = 8   # conversation turns kept per session
 
 
 class ChatServer(Node):
@@ -71,6 +74,22 @@ class ChatServer(Node):
         # /llm/events publisher — channel 3 emits one event per turn.
         self._event_pub = self.create_publisher(LlmEvent, '/llm/events', 10)
 
+        # Conversation history — shared across all chat turns (serialized by
+        # _chat_lock). Allows the model to resolve references like "same robots"
+        # and react to BT events that were injected between user messages.
+        self._history: list[dict] = []
+
+        # Subscribe to /bt/state to detect formation WARN/ERROR events and
+        # inject LLM analysis into the conversation history — same as
+        # user_chat_node._handle_bt_event so both paths stay in sync.
+        from iros_llm_swarm_interfaces.msg import BTState
+        from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
+        bt_qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
+                            history=HistoryPolicy.KEEP_LAST, depth=10)
+        self._last_bt_status     = 'OK'
+        self._bt_event_analyzing = False
+        self.create_subscription(BTState, '/bt/state', self._on_bt_state, bt_qos)
+
         # Asyncio loop on a dedicated thread; action callbacks block on it.
         self._loop = asyncio.new_event_loop()
         threading.Thread(target=self._loop.run_forever, daemon=True).start()
@@ -105,7 +124,7 @@ class ChatServer(Node):
         result = LlmChat.Result()
 
         # ---- 1. Stream reply ----
-        messages = build_user_prompt(req.user_message, history=[],
+        messages = build_user_prompt(req.user_message, history=list(self._history),
                                      map_name=self._map_name)
         self._publish_fb(goal_handle, stage='thinking')
 
@@ -128,6 +147,11 @@ class ChatServer(Node):
         plan_json = json.dumps(plan, ensure_ascii=False)
         result.final_reply = reply
         result.plan_json   = plan_json
+
+        # Save turn to shared history
+        self._history.append({'role': 'user',      'content': req.user_message})
+        self._history.append({'role': 'assistant', 'content': full_raw})
+        self._trim_history()
 
         self._publish_fb(goal_handle, stage='parsed', detail=plan_json)
         self._publish_event(channel=LlmEvent.CHANNEL_USER,
@@ -206,6 +230,74 @@ class ChatServer(Node):
                 self._publish_fb(goal_handle, stage='streaming', chunk=emit_buf)
 
         return full
+
+    # ------------------------------------------------------------------
+    # BT event handling — mirrors user_chat_node._handle_bt_event
+    # ------------------------------------------------------------------
+
+    def _on_bt_state(self, msg):
+        if msg.action_status == self._last_bt_status:
+            return
+        prev = self._last_bt_status
+        self._last_bt_status = msg.action_status
+
+        if msg.action_status in ('WARN', 'ERROR'):
+            if self._bt_event_analyzing:
+                return
+            self._bt_event_analyzing = True
+            asyncio.run_coroutine_threadsafe(
+                self._handle_bt_event(msg), self._loop)
+        elif prev in ('WARN', 'ERROR') and msg.action_status == 'OK':
+            # Status recovered — add a note to history so model knows
+            self._history.append({
+                'role': 'user',
+                'content': f'[BT status recovered → OK]',
+            })
+            self._trim_history()
+
+    async def _collect_stream(self, messages: list[dict]) -> str:
+        """Collect full streamed response into a string."""
+        full = ''
+        async for chunk in self._ollama.stream(messages):
+            full += chunk
+        return full
+
+    async def _handle_bt_event(self, msg):
+        try:
+            messages = build_bt_event_prompt(msg, history=list(self._history))
+            raw = ''
+            try:
+                raw = await asyncio.wait_for(
+                    self._collect_stream(messages),
+                    timeout=self._timeout)
+            except asyncio.TimeoutError:
+                self.get_logger().error('BT event LLM timeout')
+                return
+            except Exception as exc:
+                self.get_logger().error(f'BT event LLM error: {exc}')
+                return
+
+            # Publish analysis as an LlmEvent so the RViz panel can display it
+            event_text = (f'[BT {msg.action_status}] '
+                          f'{msg.active_action}: {msg.last_error}')
+            self._publish_event(
+                channel=2,   # channel 2 = proactive
+                trigger=event_text,
+                output=raw,
+                reason=f'formation_state={msg.formation_state}'
+                       f' failure={msg.formation_failure_code}',
+            )
+
+            # Add to shared history so next user message has full context
+            self._history.append({'role': 'user',      'content': event_text})
+            self._history.append({'role': 'assistant', 'content': raw})
+            self._trim_history()
+        finally:
+            self._bt_event_analyzing = False
+
+    def _trim_history(self):
+        if len(self._history) > MAX_HISTORY * 2:
+            self._history = self._history[-MAX_HISTORY * 2:]
 
     # ------------------------------------------------------------------
     # Feedback / events / failure

@@ -31,7 +31,7 @@ MAX_HISTORY   = 8
 CLUSTER_SPACE = 1.5
 MIN_GOAL_DIST = 1.0
 
-BOT='🤖'; THK='🧠'; WRN='⚠ '; OK='✓'; ERR='✗'; ARR='→'
+BOT='BOT'; THK='🧠'; WRN='⚠ '; OK='✓'; ERR='✗'; ARR='→'
 
 
 # ---------------------------------------------------------------------------
@@ -84,18 +84,37 @@ def _clamp_goals(goals: list, cfg: dict) -> list:
 
 
 def _postprocess_plan(node: dict, map_cfg: dict) -> dict:
+    """Recursively post-process plan nodes.
+
+    - mapf: clamp + spread goals so robots don't pile on one point.
+    - formation: warn if requested outside known formation zones.
+    - sequence/parallel: recurse into steps.
+    """
     t = node['type']
     if t in ('sequence', 'parallel'):
         node['steps'] = [_postprocess_plan(s, map_cfg) for s in node['steps']]
     elif t == 'mapf' and 'goals' in node:
-        # Clamp the LLM-supplied centres first so spread happens around an
-        # in-bounds point — otherwise the spread radius pushes goals out of
-        # bounds and the post-spread clamp collapses formations onto the
-        # boundary line. Re-clamp afterwards as a safety net for spread
-        # radii larger than the boundary margin.
+        # Clamp first so spread happens around an in-bounds centre,
+        # then clamp again as safety net for large spread radii.
         node['goals'] = _clamp_goals(
             _spread_goals(_clamp_goals(node['goals'], map_cfg)),
             map_cfg)
+    elif t == 'formation':
+        # Warn if the formation is requested somewhere with insufficient
+        # clearance. The actual enforcement is in formation_manager_node.
+        fzones = map_cfg.get('formation_zones', [])
+        if fzones:
+            # Check if the formation_id matches a known safe zone name
+            # (operator-named formations bypass this check — they may be
+            # at a custom location chosen by the LLM).
+            safe_ids = {z.get('name', '') for z in fzones}
+            fid = node.get('formation_id', '')
+            if fid and fid not in safe_ids:
+                min_radius = min((z.get('radius', 0) for z in fzones), default=0)
+                node.setdefault('_hint',
+                    f'Formation "{fid}" is not in a pre-approved zone '
+                    f'(min clearance ~{min_radius:.1f} m). '
+                    f'Approved zones: {sorted(safe_ids)}')
     return node
 
 
@@ -714,7 +733,43 @@ class UserChatNode(Node):
         self._prompt()
 
 
+def _inject_default_config(args: list | None) -> list:
+    """Prepend --params-file <orchestrator.yaml> if not already in args.
+
+    Looks for the config in order:
+      1. Already in args — do nothing.
+      2. ament share directory (installed package).
+      3. Next to this file's package root (running from source).
+    """
+    args = list(args or [])
+    if '--params-file' in args:
+        return args
+
+    candidates: list[str] = []
+
+    # 1. Installed share
+    try:
+        from ament_index_python.packages import get_package_share_directory
+        share = get_package_share_directory('iros_llm_orchestrator')
+        candidates.append(os.path.join(share, 'config', 'orchestrator.yaml'))
+    except Exception:
+        pass
+
+    # 2. Source tree relative to this file
+    pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    candidates.append(os.path.join(pkg_root, 'config', 'orchestrator.yaml'))
+
+    for path in candidates:
+        if os.path.isfile(path):
+            args = ['--ros-args', '--params-file', path] + args
+            print(f'  [config] {path}', flush=True)
+            return args
+
+    return args
+
+
 def main(args=None):
+    args = _inject_default_config(args)
     rclpy.init(args=args)
     node = UserChatNode()
     executor = MultiThreadedExecutor(num_threads=4)

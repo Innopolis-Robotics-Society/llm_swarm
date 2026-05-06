@@ -13,14 +13,14 @@ llm_decision_server:
     #   mistral-small3.1   ~13 GB  — smarter, ~2× slower
     #   qwen2.5:7b         ~5 GB   — fastest, acceptable quality
     llm_endpoint: "http://localhost:11434/api/chat"
-    llm_model: "qwen2.5:7b"
+    llm_model: "mistral-small3.1"
 
     # --- HTTP/OpenAI-compatible backend (vLLM / TGI / llama.cpp-server) ---
     # llm_mode: "http"
     # llm_endpoint: "http://localhost:8000/v1/completions"
     # llm_model: "nvidia/Nemotron-3-Nano-30B-A3B"
 
-    llm_max_tokens: 512
+    llm_max_tokens: 2000
     llm_temperature: 0.2
 
     # JSONL dataset grows here — one file per UTC day.
@@ -44,7 +44,7 @@ llm_passive_observer:
     # Channel 2 — proactive observer subscribed to /bt/state.
     llm_mode: "ollama"
     llm_endpoint: "http://localhost:11434/api/chat"
-    llm_model: "qwen2.5:7b"
+    llm_model: "mistral-small3.1"
     llm_max_tokens: 1024
     llm_temperature: 0.3
 
