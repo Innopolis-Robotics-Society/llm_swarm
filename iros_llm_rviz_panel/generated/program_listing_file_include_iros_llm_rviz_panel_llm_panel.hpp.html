@@ -152,6 +152,7 @@
 <span class="cp">#pragma once</span>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;array&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;chrono&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;cstdint&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;memory&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;mutex&gt;</span>
@@ -387,6 +388,15 @@
 <span class="w">  </span><span class="n">QString</span><span class="w"> </span><span class="n">prev_last_error_</span><span class="p">;</span>
 <span class="w">  </span><span class="kt">bool</span><span class="w">    </span><span class="n">bt_state_seen_</span><span class="w"> </span><span class="p">{</span><span class="nb">false</span><span class="p">};</span>
 <span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">kBtLogMax</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">200</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// ---- Sticky terminal status -------------------------------------------</span>
+<span class="w">  </span><span class="c1">// Holds the last non-OK action_status / non-empty last_error visible in</span>
+<span class="w">  </span><span class="c1">// the top status bar for kStickyMs after the BT moves on, so a 100ms</span>
+<span class="w">  </span><span class="c1">// FAILURE / HALTED window doesn&#39;t flash past the operator.</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">chrono</span><span class="o">::</span><span class="n">steady_clock</span><span class="o">::</span><span class="n">time_point</span><span class="w"> </span><span class="n">sticky_until_</span><span class="p">{};</span>
+<span class="w">  </span><span class="n">QString</span><span class="w"> </span><span class="n">sticky_action_status_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">QString</span><span class="w"> </span><span class="n">sticky_last_error_</span><span class="p">;</span>
+<span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">kStickyMs</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">5000</span><span class="p">;</span>
 
 <span class="w">  </span><span class="c1">// ---- Map context (for Phase 5/6) --------------------------------------</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w">                  </span><span class="n">map_name_</span><span class="w">      </span><span class="p">{</span><span class="s">&quot;cave&quot;</span><span class="p">};</span>
