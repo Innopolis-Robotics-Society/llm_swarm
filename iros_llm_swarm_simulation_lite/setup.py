@@ -14,6 +14,7 @@ setup(
         ('share/' + package_name + '/stage_sim', glob('world/*.world')),
         ('share/' + package_name + '/stage_sim', glob('map/*')),
         ('share/' + package_name + '/scenario', glob('scenario/*')),
+        ('share/' + package_name + '/map_descriptions', glob('map_descriptions/*.yaml')),
         ('share/' + package_name + '/stage_sim', glob('robot_description/*.inc')),
         ('share/' + package_name + '/robot_description', glob('robot_description/*.urdf.xacro')),
 

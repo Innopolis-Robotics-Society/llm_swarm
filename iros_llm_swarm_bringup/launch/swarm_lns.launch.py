@@ -24,9 +24,9 @@ def generate_launch_description():
     # ------------------------------------------------------------------ args
     scenario_arg = DeclareLaunchArgument(
         'scenario',
-        default_value='cave',
+        default_value='amongus',
         description='Scenario name',
-        choices=['cave', 'large_cave', 'warehouse_2', 'warehouse_4']
+        choices=['cave', 'large_cave', 'warehouse_2', 'warehouse_4', 'amongus']
     )
 
     scenarios_file_arg = DeclareLaunchArgument(

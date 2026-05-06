@@ -37,17 +37,22 @@ def _prompts_dir() -> str:
         os.path.join(os.path.dirname(__file__), '..', '..', '..', 'prompts'))
 
 
+def _map_descriptions_dir() -> str:
+    if _AMENT_OK:
+        try:
+            return os.path.join(
+                get_package_share_directory('iros_llm_swarm_simulation_lite'),
+                'map_descriptions')
+        except Exception:
+            pass
+    return os.path.normpath(os.path.join(
+        os.path.dirname(__file__), '..', '..', '..',
+        'iros_llm_swarm_simulation_lite', 'map_descriptions'))
+
+
 def _load_text(rel: str) -> str:
     with open(os.path.join(_prompts_dir(), rel), 'r', encoding='utf-8') as f:
         return f.read()
-
-
-def _load_yaml(rel: str) -> dict:
-    if not _YAML_OK:
-        raise RuntimeError(
-            'PyYAML required: pip install pyyaml --break-system-packages')
-    with open(os.path.join(_prompts_dir(), rel), 'r', encoding='utf-8') as f:
-        return _yaml.safe_load(f)
 
 
 # ---------------------------------------------------------------------------
@@ -56,7 +61,12 @@ def _load_yaml(rel: str) -> dict:
 
 @lru_cache(maxsize=4)
 def load_map_config(map_name: str) -> dict:
-    return _load_yaml(f'maps/{map_name}.yaml')
+    if not _YAML_OK:
+        raise RuntimeError(
+            'PyYAML required: pip install pyyaml --break-system-packages')
+    path = os.path.join(_map_descriptions_dir(), f'{map_name}.yaml')
+    with open(path, 'r', encoding='utf-8') as f:
+        return _yaml.safe_load(f)
 
 
 def build_map_context(map_name: str) -> str:

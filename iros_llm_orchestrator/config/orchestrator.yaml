@@ -81,10 +81,11 @@ llm_chat_server:
     # ~1 minute with 20 robots; keep generous headroom for sequences.
     step_timeout_sec: 120.0
 
-    map_name: "cave"
+    # `map_name` is set at launch time from the active scenario's
+    # `map_description` field — see orchestrator.launch.py.
 
 llm_execute_server:
   ros__parameters:
     # Operator-confirmed plan replay — /llm/execute_plan action. No LLM call.
     step_timeout_sec: 120.0
-    map_name: "cave"
+    # `map_name` is set at launch time, see llm_chat_server above.
