@@ -105,6 +105,20 @@
 <span class="c1"># when channel 1 is already consulting the LLM for the same event.</span>
 <span class="nb">bool</span> <span class="n">llm_thinking</span>
 
+<span class="c1"># Formation monitor status — filled from /formations/status every tick</span>
+<span class="c1"># whenever formation_id is non-empty. Mirrors FormationStatus constants:</span>
+<span class="c1">#   STATE_INACTIVE=0  STATE_FORMING=1  STATE_STABLE=2</span>
+<span class="c1">#   STATE_DEGRADED=3  STATE_BROKEN=4</span>
+<span class="c1"># DEGRADED escalates action_status → WARN.</span>
+<span class="c1"># BROKEN  escalates action_status → ERROR.</span>
+<span class="c1"># This allows PassiveObserver and the user chat to react to formation</span>
+<span class="c1"># health changes even after SetFormation has already returned SUCCESS.</span>
+<span class="n">uint8</span>   <span class="n">formation_state</span>           <span class="c1"># FormationStatus.STATE_*</span>
+<span class="n">uint8</span>   <span class="n">formation_failure_code</span>    <span class="c1"># FormationStatus.FAILURE_*</span>
+<span class="n">string</span>  <span class="n">formation_failure_reason</span>  <span class="c1"># human-readable, empty if no failure</span>
+<span class="n">float32</span> <span class="n">formation_max_error_m</span>     <span class="c1"># max follower position error [m], -1 = n/a</span>
+<span class="n">float32</span> <span class="n">formation_mean_error_m</span>    <span class="c1"># mean follower position error [m], -1 = n/a</span>
+
 <span class="c1"># Timestamp (ms since epoch).</span>
 <span class="n">int64</span> <span class="n">stamp_ms</span>
 </pre></div>
