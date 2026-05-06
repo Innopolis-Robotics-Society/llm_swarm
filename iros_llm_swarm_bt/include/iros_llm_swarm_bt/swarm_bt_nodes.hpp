@@ -216,6 +216,27 @@ public:
 };
 
 // ---------------------------------------------------------------------------
+// /bt/state QoS — kept reliable so terminal one-shot states (HALTED / ERROR)
+// don't get dropped during 100ms mode flips. Other subscribers can still
+// declare BEST_EFFORT — that's compatible with a RELIABLE publisher.
+// ---------------------------------------------------------------------------
+inline rclcpp::QoS bt_state_qos()
+{
+  return rclcpp::QoS(20).reliable();
+}
+
+// ---------------------------------------------------------------------------
+// publish_bt_state — snapshot the blackboard into a BTState message and
+// publish it on the supplied publisher. Used both by BTStatePublisher (every
+// tick) and by test_bt_runner directly (to flush a terminal snapshot before
+// haltTree wipes the blackboard).
+// ---------------------------------------------------------------------------
+void publish_bt_state(
+  const BT::Blackboard::Ptr & blackboard,
+  rclcpp::Publisher<iros_llm_swarm_interfaces::msg::BTState>::SharedPtr publisher,
+  const rclcpp::Clock::SharedPtr & clock);
+
+// ---------------------------------------------------------------------------
 // BTStatePublisher — each tick snapshots blackboard and publishes /bt/state.
 // Always returns SUCCESS so it does not break surrounding ReactiveSequence.
 // ---------------------------------------------------------------------------
@@ -231,8 +252,6 @@ public:
 private:
   rclcpp::Publisher<BTStateMsg>::SharedPtr publisher_;
   rclcpp::Clock::SharedPtr clock_;
-
-  std::string get_str(const std::string & key, const std::string & def = "");
 };
 
 // ---------------------------------------------------------------------------

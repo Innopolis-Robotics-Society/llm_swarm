@@ -306,7 +306,16 @@ void MapfPlan::onHalted()
     llm_goal_handle_.reset();
   }
   llm_pending_ = false;
-  config().blackboard->set<bool>("@llm_thinking", false);
+  auto bb = config().blackboard;
+  bb->set<bool>("@llm_thinking", false);
+  // Surface the halt in /bt/state so the operator sees a clear terminal
+  // marker instead of a frozen "MapfPlan / OK" snapshot.
+  bb->set<std::string>("@action_status", "HALTED");
+  std::string prev_err;
+  try { prev_err = bb->get<std::string>("@last_error"); } catch (...) {}
+  if (prev_err.empty()) {
+    bb->set<std::string>("@last_error", "MapfPlan halted");
+  }
   {
     std::lock_guard<std::mutex> lk(decision_mutex_);
     pending_decision_ = "";
@@ -1002,46 +1011,37 @@ BT::NodeStatus CheckMode::tick()
 // BTStatePublisher
 // ===========================================================================
 
-BTStatePublisher::BTStatePublisher(
-  const std::string & name,
-  const BT::NodeConfiguration & config)
-: BT::SyncActionNode(name, config)
-{
-  auto node = config.blackboard->get<rclcpp::Node::SharedPtr>("node");
-  rclcpp::QoS qos(10);
-  qos.best_effort();
-  publisher_ = node->create_publisher<BTStateMsg>("/bt/state", qos);
-  clock_ = node->get_clock();
-}
-
-BT::PortsList BTStatePublisher::providedPorts()
-{
-  return {};
-}
-
-std::string BTStatePublisher::get_str(
+namespace {
+std::string bb_get_str(
+  const BT::Blackboard::Ptr & bb,
   const std::string & key,
   const std::string & def)
 {
   try {
-    return config().blackboard->get<std::string>(key);
+    return bb->get<std::string>(key);
   } catch (...) {
     return def;
   }
 }
+}  // namespace
 
-BT::NodeStatus BTStatePublisher::tick()
+void publish_bt_state(
+  const BT::Blackboard::Ptr & bb,
+  rclcpp::Publisher<iros_llm_swarm_interfaces::msg::BTState>::SharedPtr publisher,
+  const rclcpp::Clock::SharedPtr & clock)
 {
-  auto bb = config().blackboard;
-  BTStateMsg msg;
+  if (!publisher || !bb) {
+    return;
+  }
+  iros_llm_swarm_interfaces::msg::BTState msg;
 
-  msg.mode           = get_str("@mode", "idle");
-  msg.action_status  = get_str("@action_status", "OK");
-  msg.active_action  = get_str("@active_action", "none");
-  msg.action_summary = get_str("@action_summary", "");
-  msg.last_error     = get_str("@last_error", "");
-  msg.formation_id   = get_str("@formation_id", "");
-  msg.leader_ns      = get_str("@leader_ns", "");
+  msg.mode           = bb_get_str(bb, "@mode", "idle");
+  msg.action_status  = bb_get_str(bb, "@action_status", "OK");
+  msg.active_action  = bb_get_str(bb, "@active_action", "none");
+  msg.action_summary = bb_get_str(bb, "@action_summary", "");
+  msg.last_error     = bb_get_str(bb, "@last_error", "");
+  msg.formation_id   = bb_get_str(bb, "@formation_id", "");
+  msg.leader_ns      = bb_get_str(bb, "@leader_ns", "");
 
   try {
     auto ids = bb->get<std::vector<int>>("@robot_ids");
@@ -1054,7 +1054,9 @@ BT::NodeStatus BTStatePublisher::tick()
     msg.goals = bb->get<std::vector<geometry_msgs::msg::Point>>("@goals");
   } catch (...) {}
 
-  msg.stamp_ms = static_cast<int64_t>(clock_->now().nanoseconds() / 1000000);
+  msg.stamp_ms = clock
+    ? static_cast<int64_t>(clock->now().nanoseconds() / 1000000)
+    : 0;
 
   try {
     msg.llm_thinking = bb->get<bool>("@llm_thinking");
@@ -1062,7 +1064,27 @@ BT::NodeStatus BTStatePublisher::tick()
     msg.llm_thinking = false;
   }
 
-  publisher_->publish(msg);
+  publisher->publish(msg);
+}
+
+BTStatePublisher::BTStatePublisher(
+  const std::string & name,
+  const BT::NodeConfiguration & config)
+: BT::SyncActionNode(name, config)
+{
+  auto node = config.blackboard->get<rclcpp::Node::SharedPtr>("node");
+  publisher_ = node->create_publisher<BTStateMsg>("/bt/state", bt_state_qos());
+  clock_ = node->get_clock();
+}
+
+BT::PortsList BTStatePublisher::providedPorts()
+{
+  return {};
+}
+
+BT::NodeStatus BTStatePublisher::tick()
+{
+  publish_bt_state(config().blackboard, publisher_, clock_);
   return BT::NodeStatus::SUCCESS;
 }
 

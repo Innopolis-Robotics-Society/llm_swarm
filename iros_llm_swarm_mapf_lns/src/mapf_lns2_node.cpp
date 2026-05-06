@@ -804,6 +804,7 @@ class MapfLns2Node : public rclcpp::Node {
 
     result->success = true;
     if (result->message.empty()) result->message = "OK";
+    last_plan_metrics_ = *result;
     RCLCPP_INFO(get_logger(),
                 "LNS2 initial plan: %zu agents, %.1fms, iters=%zu, "
                 "init_coll=%zu -> 0",
@@ -1173,14 +1174,17 @@ class MapfLns2Node : public rclcpp::Node {
     }
 
     if (plan_required > 0 && arrived_and_planable == plan_required) {
-      auto result = std::make_shared<SetGoalsAction::Result>();
+      auto result = std::make_shared<SetGoalsAction::Result>(last_plan_metrics_);
       result->success = true;
+      result->error_code = SetGoalsAction::Result::NONE;
       if (life_.unplanable.empty()) {
         result->message = "All agents arrived";
       } else {
         result->message = "All planable agents arrived (" +
             std::to_string(life_.unplanable.size()) + " unplanable skipped)";
       }
+      result->total_replans = total_replans_;
+      result->total_execution_sec = (now() - mission_start_time_).seconds();
       RCLCPP_INFO(get_logger(), "%s", result->message.c_str());
       auto gh = active_goal_handle_;
       active_goal_handle_.reset();
@@ -1290,10 +1294,14 @@ class MapfLns2Node : public rclcpp::Node {
       // Defer the "replanning" feedback publish until after we drop the
       // mutex so that DDS / network blips on the feedback writer can never
       // hold up trigger_replan.
+      // Routine auto-replan: surface as info (rate-limited at the BT side)
+      // rather than warning, so the LLM is not asked to decide on a normal
+      // recovery the planner is already handling.
       pending_feedbacks.push_back({"replanning",
                                    arrived_count, in_progress_count, stalled.size(),
-                                   life_.unplanable.size(), "",
-                                   "replan triggered by stalls"});
+                                   life_.unplanable.size(),
+                                   "replan triggered by stalls (" + parts + ")",
+                                   ""});
 
       lk.unlock();
       drain_feedbacks(fb_gh, pending_feedbacks);
@@ -1939,6 +1947,12 @@ class MapfLns2Node : public rclcpp::Node {
 
   uint32_t total_replans_ = 0;
   rclcpp::Time mission_start_time_{0, 0, RCL_ROS_TIME};
+
+  // Snapshot of metric fields (num_agents_planned, planning_time_ms,
+  // path_lengths, A*/iters stats) from the most recent successful initial
+  // plan. Reused when the mission completes successfully so the action
+  // Result carries planning metrics, not just success/message.
+  SetGoalsAction::Result last_plan_metrics_;
 
   // Active plan
   std::vector<lns2::Path> prev_grid_paths_;
