@@ -58,7 +58,7 @@ struct GridMap {
     out.rows = rows;
     out.cols = cols;
     out.blocked.assign(rows * cols, 0);
-    out.wall_cost.assign(rows * cols, 0);
+    out.wall_cost = wall_cost;  // carry zone costs; wall gradient merges via max below
 
     const float hard_r_sq = hard_r * hard_r;
     const float soft_r_sq = soft_r * soft_r;

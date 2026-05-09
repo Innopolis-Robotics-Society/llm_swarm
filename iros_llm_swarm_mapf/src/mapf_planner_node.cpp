@@ -255,6 +255,37 @@ class MapfPlannerNode : public rclcpp::Node {
       }
     }
 
+    // Inflate zone costs outward using inflation_radius_, same as wall gradient.
+    // Take a snapshot so we spread from original zone cells only, not cascaded values.
+    if (inflation_radius_ > 0.0) {
+      const int inflate_cells =
+          static_cast<int>(std::ceil(inflation_radius_ / actual_res));  // actual_res is set for this message; map_resolution_ not yet updated
+      const float inflate_r_f = static_cast<float>(inflate_cells);
+      const std::vector<int> zone_snap = grid_.wall_cost;
+
+      for (int r = 0; r < static_cast<int>(grid_.rows); ++r) {
+        for (int c = 0; c < static_cast<int>(grid_.cols); ++c) {
+          const size_t si = static_cast<size_t>(r) * grid_.cols + static_cast<size_t>(c);
+          if (zone_snap[si] == 0 || grid_.blocked[si]) continue;
+          const float src = static_cast<float>(zone_snap[si]);
+          for (int dr = -inflate_cells; dr <= inflate_cells; ++dr) {
+            for (int dc = -inflate_cells; dc <= inflate_cells; ++dc) {
+              const float dist = std::sqrt(static_cast<float>(dr * dr + dc * dc));
+              if (dist > inflate_r_f) continue;
+              const int nr = r + dr, nc = c + dc;
+              if (nr < 0 || nr >= static_cast<int>(grid_.rows)) continue;
+              if (nc < 0 || nc >= static_cast<int>(grid_.cols)) continue;
+              const size_t di = static_cast<size_t>(nr) * grid_.cols + static_cast<size_t>(nc);
+              if (grid_.blocked[di]) continue;
+              const float ratio = 1.0f - dist / inflate_r_f;
+              const int spread = static_cast<int>(src * apply_curve(ratio, cost_curve_));
+              grid_.wall_cost[di] = std::max(grid_.wall_cost[di], spread);
+            }
+          }
+        }
+      }
+    }
+
     map_origin_x_   = msg->info.origin.position.x;
     map_origin_y_   = msg->info.origin.position.y;
     map_resolution_ = actual_res;
