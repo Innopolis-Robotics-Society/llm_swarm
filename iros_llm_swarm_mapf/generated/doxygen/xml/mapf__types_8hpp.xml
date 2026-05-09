@@ -432,7 +432,7 @@
 <codeline lineno="58"><highlight class="normal"><sp/><sp/><sp/><sp/>out.rows<sp/>=<sp/>rows;</highlight></codeline>
 <codeline lineno="59"><highlight class="normal"><sp/><sp/><sp/><sp/>out.cols<sp/>=<sp/>cols;</highlight></codeline>
 <codeline lineno="60"><highlight class="normal"><sp/><sp/><sp/><sp/>out.blocked.assign(rows<sp/>*<sp/>cols,<sp/>0);</highlight></codeline>
-<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/>out.wall_cost.assign(rows<sp/>*<sp/>cols,<sp/>0);</highlight></codeline>
+<codeline lineno="61"><highlight class="normal"><sp/><sp/><sp/><sp/>out.wall_cost<sp/>=<sp/>wall_cost;<sp/><sp/></highlight><highlight class="comment">//<sp/>carry<sp/>zone<sp/>costs;<sp/>wall<sp/>gradient<sp/>merges<sp/>via<sp/>max<sp/>below</highlight><highlight class="normal"></highlight></codeline>
 <codeline lineno="62"><highlight class="normal"></highlight></codeline>
 <codeline lineno="63"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>hard_r_sq<sp/>=<sp/>hard_r<sp/>*<sp/>hard_r;</highlight></codeline>
 <codeline lineno="64"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>soft_r_sq<sp/>=<sp/>soft_r<sp/>*<sp/>soft_r;</highlight></codeline>
