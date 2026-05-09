@@ -427,6 +427,39 @@ class MapfPlannerNode : public rclcpp::Node {
       plan_world_goals.back().y = gwy;
     }
 
+    // Add all robots NOT in the request as stationary agents (goal = current pos)
+    // so PBS treats them as physical obstacles in the plan.
+    {
+      std::unordered_set<uint32_t> requested_set(req->robot_ids.begin(),
+                                                  req->robot_ids.end());
+      size_t background_count = 0;
+      for (int i = 0; i < num_robots_; ++i) {
+        const uint32_t rid = static_cast<uint32_t>(i);
+        if (requested_set.count(rid) || !snap_have_odom[rid]) continue;
+        Agent a;
+        a.id = rid;
+        const auto& [sx, sy] = snap_pos[rid];
+        a.start = world_to_cell(sx, sy, snap_ox, snap_oy, snap_res,
+                                 snap_grid.rows, snap_grid.cols);
+        a.goal  = a.start;
+        if (!validate_agent(a, rid, snap_footprint, snap_grid, snap_res,
+                             snap_ox, snap_oy, inflated_cache, skipped_ids))
+          continue;
+        agents.push_back(a);
+        plan_robot_ids.push_back(rid);
+        double gwx, gwy;
+        cell_to_world(a.goal, snap_ox, snap_oy, snap_res, gwx, gwy);
+        plan_world_goals.push_back(geometry_msgs::msg::Point());
+        plan_world_goals.back().x = gwx;
+        plan_world_goals.back().y = gwy;
+        ++background_count;
+      }
+      if (background_count > 0)
+        RCLCPP_INFO(get_logger(),
+            "Added %zu stationary background robots as PBS obstacles",
+            background_count);
+    }
+
     if (agents.empty()) {
       result->success    = false;
       result->message    = "No valid agents after filtering (check odom and map)";
