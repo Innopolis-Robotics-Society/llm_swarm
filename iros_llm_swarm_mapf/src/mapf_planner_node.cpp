@@ -241,12 +241,16 @@ class MapfPlannerNode : public rclcpp::Node {
     grid_.rows = static_cast<size_t>(dst_h);
     grid_.cols = static_cast<size_t>(dst_w);
     grid_.blocked.assign(grid_.rows * grid_.cols, 0);
+    grid_.wall_cost.assign(grid_.rows * grid_.cols, 0);
 
     for (int sr = 0; sr < src_h; ++sr) {
       for (int sc = 0; sc < src_w; ++sc) {
         const int8_t v = msg->data[static_cast<size_t>(sr * src_w + sc)];
-        if (v > 50 || v < 0) {
-          grid_.blocked[static_cast<size_t>((sr / ratio) * dst_w + (sc / ratio))] = 1;
+        const size_t di = static_cast<size_t>((sr / ratio) * dst_w + (sc / ratio));
+        if (v >= 100 || v < 0) {
+          grid_.blocked[di] = 1;
+        } else if (v > 0) {
+          grid_.wall_cost[di] = std::max(grid_.wall_cost[di], static_cast<int>(v));
         }
       }
     }
