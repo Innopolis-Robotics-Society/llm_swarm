@@ -100,6 +100,7 @@ class MapfPlannerNode : public rclcpp::Node {
     declare_parameter("max_astar_expansions", 200000);
     declare_parameter("cost_curve",           std::string("quadratic"));
     declare_parameter("proximity_penalty",    15);
+    declare_parameter("max_zone_cost",        50);
     declare_parameter("max_speed",             0.5);
     declare_parameter("urgency",              1.0);
 
@@ -136,6 +137,7 @@ class MapfPlannerNode : public rclcpp::Node {
       }
     }
     proximity_penalty_ = get_parameter("proximity_penalty").as_int();
+    max_zone_cost_     = get_parameter("max_zone_cost").as_int();
     max_speed_         = get_parameter("max_speed").as_double();
     urgency_           = get_parameter("urgency").as_double();
 
@@ -250,13 +252,16 @@ class MapfPlannerNode : public rclcpp::Node {
         if (v >= 100 || v < 0) {
           grid_.blocked[di] = 1;
         } else if (v > 0) {
-          grid_.wall_cost[di] = std::max(grid_.wall_cost[di], static_cast<int>(v));
+          // Scale OccupancyGrid 1-99 → 1-max_zone_cost_ linearly
+          const int scaled = std::max(1, static_cast<int>(std::round(v * max_zone_cost_ / 99.0)));
+          grid_.wall_cost[di] = std::max(grid_.wall_cost[di], scaled);
         }
       }
     }
 
-    // Inflate zone costs outward using inflation_radius_, same as wall gradient.
-    // Take a snapshot so we spread from original zone cells only, not cascaded values.
+    // Inflate zone costs outward: gradient runs from the cell's own cost down to 0
+    // at inflation_radius_. Does not use proximity_penalty_ — zone cells are not walls.
+    // Snapshot prevents cascading (each cell spreads from its original value only).
     if (inflation_radius_ > 0.0) {
       const int inflate_cells =
           static_cast<int>(std::ceil(inflation_radius_ / actual_res));  // actual_res is set for this message; map_resolution_ not yet updated
@@ -1076,6 +1081,7 @@ class MapfPlannerNode : public rclcpp::Node {
   size_t      max_astar_expansions_ = 200000;
   CostCurve   cost_curve_           = CostCurve::Quadratic;
   int         proximity_penalty_    = 50;
+  int         max_zone_cost_        = 50;
   double      max_speed_            = 0.5;
   double      urgency_              = 1.0;
 
