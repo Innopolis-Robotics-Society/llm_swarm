@@ -10,11 +10,23 @@ find_package(ament_cmake REQUIRED)
 find_package(nav2_costmap_2d REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(pluginlib REQUIRED)
+find_package(nav2_map_server REQUIRED)
+find_package(nav2_util REQUIRED)
+find_package(yaml_cpp_vendor REQUIRED)
 
 add_library(resetting_obstacle_layer SHARED src/resetting_obstacle_layer.cpp)
 ament_target_dependencies(resetting_obstacle_layer nav2_costmap_2d rclcpp pluginlib)
 pluginlib_export_plugin_description_file(nav2_costmap_2d resetting_obstacle_layer.xml)
 install(TARGETS resetting_obstacle_layer DESTINATION lib)
+
+add_executable(zone_map_server src/zone_map_server.cpp)
+ament_target_dependencies(zone_map_server
+  nav2_map_server
+  nav2_util
+  rclcpp
+  yaml_cpp_vendor
+)
+install(TARGETS zone_map_server DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

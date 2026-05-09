@@ -65,8 +65,8 @@ def _setup_robots(context, *args, **kwargs):
     actions = [
         # Map server global
         Node(
-            package='nav2_map_server',
-            executable='map_server',
+            package='iros_llm_swarm_costmap_plugins',
+            executable='zone_map_server',
             name='map_server',
             output='log',
             parameters=[{'yaml_filename': map_file, 'use_sim_time': True}],
