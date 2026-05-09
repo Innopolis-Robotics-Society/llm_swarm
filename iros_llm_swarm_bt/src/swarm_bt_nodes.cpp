@@ -1030,33 +1030,9 @@ BT::NodeStatus CheckMode::tick()
 // BTStatePublisher
 // ===========================================================================
 
-BTStatePublisher::BTStatePublisher(
-  const std::string & name,
-  const BT::NodeConfiguration & config)
-: BT::SyncActionNode(name, config)
-{
-  auto node = config.blackboard->get<rclcpp::Node::SharedPtr>("node");
-  rclcpp::QoS qos(10);
-  qos.best_effort();
-  publisher_ = node->create_publisher<BTStateMsg>("/bt/state", qos);
-  clock_ = node->get_clock();
-
-  // Subscribe to formation monitor at 10 Hz.
-  // Reliable QoS matches the publisher in formation_monitor_node.
-  formation_status_sub_ = node->create_subscription<FormationsStatusMsg>(
-    "/formations/status",
-    rclcpp::QoS(10).reliable(),
-    [this](const FormationsStatusMsg::SharedPtr msg) {
-      on_formation_status(msg);
-    });
-}
-
-BT::PortsList BTStatePublisher::providedPorts()
-{
-  return {};
-}
-
-std::string BTStatePublisher::get_str(
+namespace {
+std::string bb_get_str(
+  const BT::Blackboard::Ptr & bb,
   const std::string & key,
   const std::string & def)
 {
@@ -1068,17 +1044,11 @@ std::string BTStatePublisher::get_str(
 }
 }  // namespace
 
-void BTStatePublisher::on_formation_status(const FormationsStatusMsg::SharedPtr msg)
-{
-  // Called from ROS executor thread — only updates the cache under a mutex.
-  // tick() (BT thread) reads from this cache; all blackboard writes happen there.
-  std::lock_guard<std::mutex> lk(formation_cache_mutex_);
-  for (const auto & fs : msg->formations) {
-    formation_cache_[fs.formation_id] = fs;
-  }
-}
-
-BT::NodeStatus BTStatePublisher::tick()
+void publish_bt_state(
+  const BT::Blackboard::Ptr & bb,
+  rclcpp::Publisher<iros_llm_swarm_interfaces::msg::BTState>::SharedPtr publisher,
+  const rclcpp::Clock::SharedPtr & clock,
+  const iros_llm_swarm_interfaces::msg::FormationStatus * fs)
 {
   if (!publisher || !bb) {
     return;
@@ -1093,15 +1063,6 @@ BT::NodeStatus BTStatePublisher::tick()
   msg.formation_id   = bb_get_str(bb, "@formation_id", "");
   msg.leader_ns      = bb_get_str(bb, "@leader_ns", "");
 
-  // When mode is not "formation" there is no active formation to monitor.
-  // Clear the cache so stale DEGRADED/BROKEN entries from a previous
-  // formation mission don't bleed into the next MAPF or idle tick and
-  // generate spurious WARN/ERROR escalations.
-  if (msg.mode != "formation") {
-    std::lock_guard<std::mutex> lk(formation_cache_mutex_);
-    formation_cache_.clear();
-  }
-
   try {
     auto ids = bb->get<std::vector<int>>("@robot_ids");
     msg.robot_ids.reserve(ids.size());
@@ -1113,79 +1074,23 @@ BT::NodeStatus BTStatePublisher::tick()
     msg.goals = bb->get<std::vector<geometry_msgs::msg::Point>>("@goals");
   } catch (...) {}
 
-  // ---- Formation monitor ------------------------------------------------
-  // Mirror the active formation's health into BTState so PassiveObserver
-  // and the user chat can react to degradation exactly like they react to
-  // MAPF feedback WARN events.
-  //
-  // We read the cache (written by on_formation_status on the executor thread)
-  // and write escalated action_status back onto the blackboard — both are
-  // safe here because we ARE on the BT thread.
-  msg.formation_state          = 0;    // INACTIVE default
-  msg.formation_failure_code   = 0;    // NONE
-  msg.formation_failure_reason = "";
-  msg.formation_max_error_m    = -1.0f;
-  msg.formation_mean_error_m   = -1.0f;
-
-  if (!msg.formation_id.empty()) {
-    FormationStatusMsg cached_fs;
-    bool have_fs = false;
-    {
-      std::lock_guard<std::mutex> lk(formation_cache_mutex_);
-      auto it = formation_cache_.find(msg.formation_id);
-      if (it != formation_cache_.end()) {
-        cached_fs = it->second;
-        have_fs   = true;
-      }
-    }
-
-    if (have_fs) {
-      msg.formation_state          = cached_fs.state;
-      msg.formation_failure_code   = cached_fs.failure_code;
-      msg.formation_failure_reason = cached_fs.failure_reason;
-      msg.formation_max_error_m    = cached_fs.max_error_m;
-      msg.formation_mean_error_m   = cached_fs.mean_error_m;
-
-      // BROKEN → escalate to ERROR (channel 1 will abort or replan)
-      if (cached_fs.state == FormationStatusMsg::STATE_BROKEN &&
-          msg.action_status != "ERROR")
-      {
-        const std::string err = cached_fs.failure_reason.empty()
-          ? "formation broken" : cached_fs.failure_reason;
-        msg.action_status  = "ERROR";
-        msg.last_error     = err;
-        bb->set<std::string>("@action_status", "ERROR");
-        bb->set<std::string>("@last_error",    err);
-        bb->set<std::string>("@action_summary",
-          "formation " + msg.formation_id + " broken: " + err);
-      }
-      // DEGRADED → escalate to WARN (channel 1 may wait or replan)
-      else if (cached_fs.state == FormationStatusMsg::STATE_DEGRADED &&
-               msg.action_status == "OK")
-      {
-        const std::string warn =
-          "formation degraded, max_error=" +
-          std::to_string(cached_fs.max_error_m) + "m";
-        msg.action_status  = "WARN";
-        msg.last_error     = warn;
-        bb->set<std::string>("@action_status", "WARN");
-        bb->set<std::string>("@last_error",    warn);
-        bb->set<std::string>("@action_summary", warn);
-      }
-      // STABLE — reset WARN back to OK if formation recovered
-      else if (cached_fs.state == FormationStatusMsg::STATE_STABLE &&
-               msg.action_status == "WARN")
-      {
-        msg.action_status = "OK";
-        msg.last_error    = "";
-        bb->set<std::string>("@action_status", "OK");
-        bb->set<std::string>("@last_error",    "");
-      }
-    }
+  if (fs) {
+    msg.formation_state          = fs->state;
+    msg.formation_failure_code   = fs->failure_code;
+    msg.formation_failure_reason = fs->failure_reason;
+    msg.formation_max_error_m    = fs->max_error_m;
+    msg.formation_mean_error_m   = fs->mean_error_m;
+  } else {
+    msg.formation_state          = 0;     // INACTIVE
+    msg.formation_failure_code   = 0;     // NONE
+    msg.formation_failure_reason = "";
+    msg.formation_max_error_m    = -1.0f;
+    msg.formation_mean_error_m   = -1.0f;
   }
-  // -----------------------------------------------------------------------
 
-  msg.stamp_ms = static_cast<int64_t>(clock_->now().nanoseconds() / 1000000);
+  msg.stamp_ms = clock
+    ? static_cast<int64_t>(clock->now().nanoseconds() / 1000000)
+    : 0;
 
   try {
     msg.llm_thinking = bb->get<bool>("@llm_thinking");
@@ -1204,6 +1109,15 @@ BTStatePublisher::BTStatePublisher(
   auto node = config.blackboard->get<rclcpp::Node::SharedPtr>("node");
   publisher_ = node->create_publisher<BTStateMsg>("/bt/state", bt_state_qos());
   clock_ = node->get_clock();
+
+  // Subscribe to formation monitor. Reliable QoS matches the publisher in
+  // formation_monitor_node.
+  formation_status_sub_ = node->create_subscription<FormationsStatusMsg>(
+    "/formations/status",
+    rclcpp::QoS(10).reliable(),
+    [this](const FormationsStatusMsg::SharedPtr msg) {
+      on_formation_status(msg);
+    });
 }
 
 BT::PortsList BTStatePublisher::providedPorts()
@@ -1211,9 +1125,80 @@ BT::PortsList BTStatePublisher::providedPorts()
   return {};
 }
 
+void BTStatePublisher::on_formation_status(const FormationsStatusMsg::SharedPtr msg)
+{
+  // Called from ROS executor thread — only updates the cache under a mutex.
+  // tick() (BT thread) reads from this cache; all blackboard writes happen there.
+  std::lock_guard<std::mutex> lk(formation_cache_mutex_);
+  for (const auto & fs : msg->formations) {
+    formation_cache_[fs.formation_id] = fs;
+  }
+}
+
 BT::NodeStatus BTStatePublisher::tick()
 {
-  publish_bt_state(config().blackboard, publisher_, clock_);
+  auto bb = config().blackboard;
+
+  // When mode != "formation" there is no active formation to monitor — clear
+  // the cache so stale DEGRADED/BROKEN entries from a previous mission don't
+  // leak into the next mode and trigger spurious WARN/ERROR escalations.
+  std::string mode;
+  try { mode = bb->get<std::string>("@mode"); } catch (...) {}
+  if (mode != "formation") {
+    std::lock_guard<std::mutex> lk(formation_cache_mutex_);
+    formation_cache_.clear();
+  }
+
+  std::string formation_id;
+  try { formation_id = bb->get<std::string>("@formation_id"); } catch (...) {}
+
+  FormationStatusMsg cached_fs;
+  bool have_fs = false;
+  if (!formation_id.empty()) {
+    std::lock_guard<std::mutex> lk(formation_cache_mutex_);
+    auto it = formation_cache_.find(formation_id);
+    if (it != formation_cache_.end()) {
+      cached_fs = it->second;
+      have_fs = true;
+    }
+  }
+
+  // Mirror formation health into @action_status / @last_error so PassiveObserver
+  // and user_chat see the same WARN/ERROR transitions they get from MAPF feedback.
+  if (have_fs) {
+    std::string action_status;
+    try { action_status = bb->get<std::string>("@action_status"); } catch (...) {}
+
+    if (cached_fs.state == FormationStatusMsg::STATE_BROKEN &&
+        action_status != "ERROR")
+    {
+      const std::string err = cached_fs.failure_reason.empty()
+        ? "formation broken" : cached_fs.failure_reason;
+      bb->set<std::string>("@action_status", "ERROR");
+      bb->set<std::string>("@last_error",    err);
+      bb->set<std::string>("@action_summary",
+        "formation " + formation_id + " broken: " + err);
+    }
+    else if (cached_fs.state == FormationStatusMsg::STATE_DEGRADED &&
+             action_status == "OK")
+    {
+      const std::string warn =
+        "formation degraded, max_error=" +
+        std::to_string(cached_fs.max_error_m) + "m";
+      bb->set<std::string>("@action_status", "WARN");
+      bb->set<std::string>("@last_error",    warn);
+      bb->set<std::string>("@action_summary", warn);
+    }
+    // Only clear WARN — never overwrite a genuine ERROR with OK.
+    else if (cached_fs.state == FormationStatusMsg::STATE_STABLE &&
+             action_status == "WARN")
+    {
+      bb->set<std::string>("@action_status", "OK");
+      bb->set<std::string>("@last_error",    "");
+    }
+  }
+
+  publish_bt_state(bb, publisher_, clock_, have_fs ? &cached_fs : nullptr);
   return BT::NodeStatus::SUCCESS;
 }
 

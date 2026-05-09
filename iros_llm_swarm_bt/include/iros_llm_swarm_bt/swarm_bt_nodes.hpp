@@ -237,7 +237,8 @@ inline rclcpp::QoS bt_state_qos()
 void publish_bt_state(
   const BT::Blackboard::Ptr & blackboard,
   rclcpp::Publisher<iros_llm_swarm_interfaces::msg::BTState>::SharedPtr publisher,
-  const rclcpp::Clock::SharedPtr & clock);
+  const rclcpp::Clock::SharedPtr & clock,
+  const iros_llm_swarm_interfaces::msg::FormationStatus * fs = nullptr);
 
 // ---------------------------------------------------------------------------
 // BTStatePublisher — each tick snapshots blackboard and publishes /bt/state.
@@ -269,7 +270,6 @@ private:
   std::unordered_map<std::string, FormationStatusMsg> formation_cache_;
 
   void on_formation_status(const FormationsStatusMsg::SharedPtr msg);
-  std::string get_str(const std::string & key, const std::string & def = "");
 };
 
 // ---------------------------------------------------------------------------

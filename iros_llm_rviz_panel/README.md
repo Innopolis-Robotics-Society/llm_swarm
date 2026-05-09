@@ -42,7 +42,7 @@ source install/setup.bash
 rviz2
 ```
 
-In RViz: **Panels → Add New Panel → iros_llm_rviz_panel/LlmPanel**.
+In RViz: **Panels → Add New Panel → iros_llm_rviz_panel/LLM-Panel**.
 
 To see goal markers in the 3D scene:
 **Add Display → MarkerArray → Topic = /llm_panel/markers**.
