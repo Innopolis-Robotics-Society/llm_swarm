@@ -1,4 +1,4 @@
-// iros_llm_swarm_mapf/lns2/solution.hpp
+// iros_llm_swarm_mapf_lns/lns2/solution.hpp
 //
 // Thin wrapper over std::vector<Path> + CollisionTable. All mutations go
 // through set_path / clear_path, which keeps the table consistent.
@@ -15,8 +15,8 @@
 #include <utility>
 #include <vector>
 
-#include "iros_llm_swarm_mapf/lns2/collision_table.hpp"
-#include "iros_llm_swarm_mapf/lns2/types.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/collision_table.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/types.hpp"
 
 namespace lns2 {
 

@@ -1,10 +1,10 @@
-// iros_llm_swarm_mapf/lns2/gridmap_utils.hpp
+// iros_llm_swarm_mapf_lns/lns2/gridmap_utils.hpp
 //
 // Footprint-aware utilities over a static GridMap. Pure functions, no state.
 
 #pragma once
 
-#include "iros_llm_swarm_mapf/lns2/types.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/types.hpp"
 
 namespace lns2 {
 

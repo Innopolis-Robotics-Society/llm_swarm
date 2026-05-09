@@ -1,4 +1,4 @@
-// iros_llm_swarm_mapf/robot_lifecycle.hpp
+// iros_llm_swarm_mapf_lns/robot_lifecycle.hpp
 //
 // Bundles the per-robot mission-scoped state previously spread across nine
 // separate arrays/sets in MapfLns2Node:

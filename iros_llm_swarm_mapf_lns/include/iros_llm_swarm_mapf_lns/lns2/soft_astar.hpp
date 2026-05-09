@@ -1,4 +1,4 @@
-// iros_llm_swarm_mapf/lns2/soft_astar.hpp
+// iros_llm_swarm_mapf_lns/lns2/soft_astar.hpp
 //
 // Space-time A* with SOFT collision costs.
 //
@@ -23,8 +23,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "iros_llm_swarm_mapf/lns2/collision_table.hpp"
-#include "iros_llm_swarm_mapf/lns2/types.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/collision_table.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/types.hpp"
 
 namespace lns2 {
 

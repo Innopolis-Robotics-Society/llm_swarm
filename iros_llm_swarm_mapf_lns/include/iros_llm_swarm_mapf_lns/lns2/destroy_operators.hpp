@@ -1,4 +1,4 @@
-// iros_llm_swarm_mapf/lns2/destroy_operators.hpp
+// iros_llm_swarm_mapf_lns/lns2/destroy_operators.hpp
 
 #pragma once
 
@@ -8,8 +8,8 @@
 #include <random>
 #include <vector>
 
-#include "iros_llm_swarm_mapf/lns2/solution.hpp"
-#include "iros_llm_swarm_mapf/lns2/types.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/solution.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/types.hpp"
 
 namespace lns2 {
 

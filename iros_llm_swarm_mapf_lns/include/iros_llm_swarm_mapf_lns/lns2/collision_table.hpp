@@ -1,4 +1,4 @@
-// iros_llm_swarm_mapf/lns2/collision_table.hpp
+// iros_llm_swarm_mapf_lns/lns2/collision_table.hpp
 //
 // Footprint-aware vertex + edge occupancy tracker with incremental updates
 // and O(1) count lookups for the soft A*.
@@ -24,7 +24,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "iros_llm_swarm_mapf/lns2/types.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/types.hpp"
 
 namespace lns2 {
 

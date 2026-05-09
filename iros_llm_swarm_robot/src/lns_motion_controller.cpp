@@ -65,6 +65,9 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
+#include "rcl_interfaces/msg/floating_point_range.hpp"
+#include "rcl_interfaces/msg/integer_range.hpp"
+#include "rcl_interfaces/msg/parameter_descriptor.hpp"
 
 #include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
@@ -88,6 +91,47 @@ using FormationsConfig = iros_llm_swarm_interfaces::msg::FormationsConfig;
 using MAPFPlanMsg     = iros_llm_swarm_interfaces::msg::MAPFPlan;
 using MAPFStepMsg     = iros_llm_swarm_interfaces::msg::MAPFStep;
 using FollowerStatus  = iros_llm_swarm_interfaces::msg::FollowerStatus;
+
+namespace {
+
+rcl_interfaces::msg::ParameterDescriptor make_int_desc(
+    const std::string& description, int64_t min_v, int64_t max_v)
+{
+  rcl_interfaces::msg::ParameterDescriptor d;
+  d.description = description;
+  d.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
+  rcl_interfaces::msg::IntegerRange r;
+  r.from_value = min_v;
+  r.to_value   = max_v;
+  r.step       = 1;
+  d.integer_range.push_back(r);
+  return d;
+}
+
+rcl_interfaces::msg::ParameterDescriptor make_double_desc(
+    const std::string& description, double min_v, double max_v)
+{
+  rcl_interfaces::msg::ParameterDescriptor d;
+  d.description = description;
+  d.type = rcl_interfaces::msg::ParameterType::PARAMETER_DOUBLE;
+  rcl_interfaces::msg::FloatingPointRange r;
+  r.from_value = min_v;
+  r.to_value   = max_v;
+  r.step       = 0.0;
+  d.floating_point_range.push_back(r);
+  return d;
+}
+
+rcl_interfaces::msg::ParameterDescriptor make_string_desc(
+    const std::string& description)
+{
+  rcl_interfaces::msg::ParameterDescriptor d;
+  d.description = description;
+  d.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
+  return d;
+}
+
+}  // namespace
 
 
 // Utilities
@@ -123,14 +167,29 @@ class PathFollowerNode : public rclcpp::Node
 public:
   PathFollowerNode() : Node("lns_motion_controller")
   {
-    declare_parameter("robot_id",       0);
-    declare_parameter("path_frame",     std::string("map"));
-    declare_parameter("status_pub_hz",  2.0);
-    declare_parameter("kp",             1.2);
-    declare_parameter("kd",             0.3);
-    declare_parameter("max_v",          0.5);
-    declare_parameter("max_omega",      1.0);
-    declare_parameter("control_hz",    20.0);
+    declare_parameter("robot_id",       0,
+        make_int_desc("Logical id of the robot this follower drives.",
+                      0, 1024));
+    declare_parameter("path_frame",     std::string("map"),
+        make_string_desc("TF frame the planned path poses are expressed in."));
+    declare_parameter("status_pub_hz",  2.0,
+        make_double_desc("Frequency at which FollowerStatus is published "
+                         "(Hz).", 0.1, 100.0));
+    declare_parameter("kp",             1.2,
+        make_double_desc("Formation PD: proportional gain on position error.",
+                         0.0, 100.0));
+    declare_parameter("kd",             0.3,
+        make_double_desc("Formation PD: derivative gain on position error.",
+                         0.0, 100.0));
+    declare_parameter("max_v",          0.5,
+        make_double_desc("Maximum commanded linear velocity (m/s).",
+                         0.0, 5.0));
+    declare_parameter("max_omega",      1.0,
+        make_double_desc("Maximum commanded angular velocity (rad/s).",
+                         0.0, 10.0));
+    declare_parameter("control_hz",    20.0,
+        make_double_desc("Formation PD control loop frequency (Hz).",
+                         1.0, 200.0));
 
     const int robot_id = get_parameter("robot_id").as_int();
     ns_      = "robot_" + std::to_string(robot_id);
@@ -148,7 +207,7 @@ public:
 
     // Own odometry (always active)
     own_odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
-      "/" + ns_ + "/odom", 10,
+      "/" + ns_ + "/odom", rclcpp::SensorDataQoS(),
       [this](const nav_msgs::msg::Odometry::SharedPtr msg) { on_own_odom(msg); });
 
     // Formation config (always active, single shared latched topic)
@@ -229,7 +288,7 @@ private:
       have_leader_ = false;
       prev_ex_ = prev_ey_ = 0.0;
       leader_odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
-        "/" + leader_ns_ + "/odom", 10,
+        "/" + leader_ns_ + "/odom", rclcpp::SensorDataQoS(),
         [this](const nav_msgs::msg::Odometry::SharedPtr msg) { on_leader_odom(msg); });
     }
 
