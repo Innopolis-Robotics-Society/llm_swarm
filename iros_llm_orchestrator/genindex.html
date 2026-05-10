@@ -44,6 +44,7 @@
 <li class="toctree-l2"><a class="reference internal" href="iros_llm_orchestrator.html">iros_llm_orchestrator package</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="iros_llm_orchestrator.html#subpackages">Subpackages</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.common.html">iros_llm_orchestrator.common package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.html">iros_llm_orchestrator.context package</a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.local.html">iros_llm_orchestrator.local package</a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.web.html">iros_llm_orchestrator.web package</a></li>
 </ul>
@@ -108,8 +109,10 @@
  | <a href="#G"><strong>G</strong></a>
  | <a href="#H"><strong>H</strong></a>
  | <a href="#I"><strong>I</strong></a>
+ | <a href="#K"><strong>K</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
+ | <a href="#N"><strong>N</strong></a>
  | <a href="#O"><strong>O</strong></a>
  | <a href="#P"><strong>P</strong></a>
  | <a href="#R"><strong>R</strong></a>
@@ -121,6 +124,8 @@
 <h2 id="B">B</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.bound_context">bound_context() (in module iros_llm_orchestrator.context.provider)</a>
+</li>
       <li><a href="iros_llm_orchestrator.common.leaf_sender.html#iros_llm_orchestrator.common.leaf_sender.BTLeafSender">BTLeafSender (class in iros_llm_orchestrator.common.leaf_sender)</a>
 </li>
       <li><a href="iros_llm_orchestrator.common.user_prompt.html#iros_llm_orchestrator.common.user_prompt.build_bt_event_prompt">build_bt_event_prompt() (in module iros_llm_orchestrator.common.user_prompt)</a>
@@ -143,7 +148,23 @@
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig">ChatContextConfig (class in iros_llm_orchestrator.context)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.ChatContextConfig">(class in iros_llm_orchestrator.context.provider)</a>
+</li>
+      </ul></li>
+      <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextProvider">ChatContextProvider (class in iros_llm_orchestrator.context)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.ChatContextProvider">(class in iros_llm_orchestrator.context.provider)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="iros_llm_orchestrator.chat_server.html#iros_llm_orchestrator.chat_server.ChatServer">ChatServer (class in iros_llm_orchestrator.chat_server)</a>
+</li>
+      <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.compact_json">compact_json() (in module iros_llm_orchestrator.context.provider)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -152,6 +173,10 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="iros_llm_orchestrator.common.logger.html#iros_llm_orchestrator.common.logger.DecisionLogger">DecisionLogger (class in iros_llm_orchestrator.common.logger)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="iros_llm_orchestrator.context.ros_readonly_provider.html#iros_llm_orchestrator.context.ros_readonly_provider.derive_robot_summary">derive_robot_summary() (in module iros_llm_orchestrator.context.ros_readonly_provider)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -170,6 +195,12 @@
       <li><a href="iros_llm_orchestrator.common.plan_executor.html#iros_llm_orchestrator.common.plan_executor.flatten_parallel">flatten_parallel() (in module iros_llm_orchestrator.common.plan_executor)</a>
 </li>
   </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="iros_llm_orchestrator.context.ros_readonly_provider.html#iros_llm_orchestrator.context.ros_readonly_provider.formation_failure_name">formation_failure_name() (in module iros_llm_orchestrator.context.ros_readonly_provider)</a>
+</li>
+      <li><a href="iros_llm_orchestrator.context.ros_readonly_provider.html#iros_llm_orchestrator.context.ros_readonly_provider.formation_state_name">formation_state_name() (in module iros_llm_orchestrator.context.ros_readonly_provider)</a>
+</li>
+  </ul></td>
 </tr></table>
 
 <h2 id="G">G</h2>
@@ -185,6 +216,20 @@
         <li><a href="iros_llm_orchestrator.local.transformers_client.html#iros_llm_orchestrator.local.transformers_client.TransformersClient.generate">(iros_llm_orchestrator.local.transformers_client.TransformersClient method)</a>
 </li>
         <li><a href="iros_llm_orchestrator.web.http_client.html#iros_llm_orchestrator.web.http_client.HttpClient.generate">(iros_llm_orchestrator.web.http_client.HttpClient method)</a>
+</li>
+      </ul></li>
+      <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextProvider.get_context">get_context() (iros_llm_orchestrator.context.ChatContextProvider method)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.mcp_readonly_provider.html#iros_llm_orchestrator.context.mcp_readonly_provider.McpReadonlyContextProvider.get_context">(iros_llm_orchestrator.context.mcp_readonly_provider.McpReadonlyContextProvider method)</a>
+</li>
+        <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.NoneContextProvider.get_context">(iros_llm_orchestrator.context.NoneContextProvider method)</a>
+</li>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.ChatContextProvider.get_context">(iros_llm_orchestrator.context.provider.ChatContextProvider method)</a>
+</li>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.NoneContextProvider.get_context">(iros_llm_orchestrator.context.provider.NoneContextProvider method)</a>
+</li>
+        <li><a href="iros_llm_orchestrator.context.ros_readonly_provider.html#iros_llm_orchestrator.context.ros_readonly_provider.RosReadonlyContextProvider.get_context">(iros_llm_orchestrator.context.ros_readonly_provider.RosReadonlyContextProvider method)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -205,6 +250,30 @@
 <h2 id="I">I</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.include_bt_state">include_bt_state (iros_llm_orchestrator.context.ChatContextConfig attribute)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.ChatContextConfig.include_bt_state">(iros_llm_orchestrator.context.provider.ChatContextConfig attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.include_formations">include_formations (iros_llm_orchestrator.context.ChatContextConfig attribute)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.ChatContextConfig.include_formations">(iros_llm_orchestrator.context.provider.ChatContextConfig attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.include_map_summary">include_map_summary (iros_llm_orchestrator.context.ChatContextConfig attribute)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.ChatContextConfig.include_map_summary">(iros_llm_orchestrator.context.provider.ChatContextConfig attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.include_recent_events">include_recent_events (iros_llm_orchestrator.context.ChatContextConfig attribute)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.ChatContextConfig.include_recent_events">(iros_llm_orchestrator.context.provider.ChatContextConfig attribute)</a>
+</li>
+      </ul></li>
       <li>
     iros_llm_orchestrator
 
@@ -282,8 +351,6 @@
         <li><a href="iros_llm_orchestrator.common.plan_executor.html#module-iros_llm_orchestrator.common.plan_executor">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     iros_llm_orchestrator.common.scenarios
 
@@ -291,11 +358,48 @@
         <li><a href="iros_llm_orchestrator.common.scenarios.html#module-iros_llm_orchestrator.common.scenarios">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     iros_llm_orchestrator.common.user_prompt
 
       <ul>
         <li><a href="iros_llm_orchestrator.common.user_prompt.html#module-iros_llm_orchestrator.common.user_prompt">module</a>
+</li>
+      </ul></li>
+      <li>
+    iros_llm_orchestrator.context
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.html#module-iros_llm_orchestrator.context">module</a>
+</li>
+      </ul></li>
+      <li>
+    iros_llm_orchestrator.context.mcp_readonly_provider
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.mcp_readonly_provider.html#module-iros_llm_orchestrator.context.mcp_readonly_provider">module</a>
+</li>
+      </ul></li>
+      <li>
+    iros_llm_orchestrator.context.no_execute
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.no_execute.html#module-iros_llm_orchestrator.context.no_execute">module</a>
+</li>
+      </ul></li>
+      <li>
+    iros_llm_orchestrator.context.provider
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.provider.html#module-iros_llm_orchestrator.context.provider">module</a>
+</li>
+      </ul></li>
+      <li>
+    iros_llm_orchestrator.context.ros_readonly_provider
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.ros_readonly_provider.html#module-iros_llm_orchestrator.context.ros_readonly_provider">module</a>
 </li>
       </ul></li>
       <li>
@@ -364,6 +468,14 @@
   </ul></td>
 </tr></table>
 
+<h2 id="K">K</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.known_robot_ids">known_robot_ids() (in module iros_llm_orchestrator.context.provider)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="L">L</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -395,6 +507,64 @@
         <li><a href="iros_llm_orchestrator.user_chat_node.html#iros_llm_orchestrator.user_chat_node.main">(in module iros_llm_orchestrator.user_chat_node)</a>
 </li>
       </ul></li>
+      <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.make_context_provider">make_context_provider() (in module iros_llm_orchestrator.context)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.make_context_provider">(in module iros_llm_orchestrator.context.provider)</a>
+</li>
+      </ul></li>
+      <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.map_config">map_config (iros_llm_orchestrator.context.ChatContextConfig attribute)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.ChatContextConfig.map_config">(iros_llm_orchestrator.context.provider.ChatContextConfig attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.map_name">map_name (iros_llm_orchestrator.context.ChatContextConfig attribute)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.ChatContextConfig.map_name">(iros_llm_orchestrator.context.provider.ChatContextConfig attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.map_summary">map_summary() (in module iros_llm_orchestrator.context.provider)</a>
+</li>
+      <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.max_chars">max_chars (iros_llm_orchestrator.context.ChatContextConfig attribute)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.ChatContextConfig.max_chars">(iros_llm_orchestrator.context.provider.ChatContextConfig attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.mcp_args">mcp_args (iros_llm_orchestrator.context.ChatContextConfig attribute)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.ChatContextConfig.mcp_args">(iros_llm_orchestrator.context.provider.ChatContextConfig attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.mcp_command">mcp_command (iros_llm_orchestrator.context.ChatContextConfig attribute)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.ChatContextConfig.mcp_command">(iros_llm_orchestrator.context.provider.ChatContextConfig attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.mcp_enabled">mcp_enabled (iros_llm_orchestrator.context.ChatContextConfig attribute)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.ChatContextConfig.mcp_enabled">(iros_llm_orchestrator.context.provider.ChatContextConfig attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.mcp_tool_allowlist">mcp_tool_allowlist (iros_llm_orchestrator.context.ChatContextConfig attribute)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.ChatContextConfig.mcp_tool_allowlist">(iros_llm_orchestrator.context.provider.ChatContextConfig attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.mcp_transport">mcp_transport (iros_llm_orchestrator.context.ChatContextConfig attribute)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.ChatContextConfig.mcp_transport">(iros_llm_orchestrator.context.provider.ChatContextConfig attribute)</a>
+</li>
+      </ul></li>
+      <li><a href="iros_llm_orchestrator.context.mcp_readonly_provider.html#iros_llm_orchestrator.context.mcp_readonly_provider.McpReadonlyContextProvider">McpReadonlyContextProvider (class in iros_llm_orchestrator.context.mcp_readonly_provider)</a>
+</li>
       <li><a href="iros_llm_orchestrator.common.mock_client.html#iros_llm_orchestrator.common.mock_client.MockLLMClient">MockLLMClient (class in iros_llm_orchestrator.common.mock_client)</a>
 </li>
       <li>
@@ -427,6 +597,16 @@
 </li>
         <li><a href="iros_llm_orchestrator.common.user_prompt.html#module-iros_llm_orchestrator.common.user_prompt">iros_llm_orchestrator.common.user_prompt</a>
 </li>
+        <li><a href="iros_llm_orchestrator.context.html#module-iros_llm_orchestrator.context">iros_llm_orchestrator.context</a>
+</li>
+        <li><a href="iros_llm_orchestrator.context.mcp_readonly_provider.html#module-iros_llm_orchestrator.context.mcp_readonly_provider">iros_llm_orchestrator.context.mcp_readonly_provider</a>
+</li>
+        <li><a href="iros_llm_orchestrator.context.no_execute.html#module-iros_llm_orchestrator.context.no_execute">iros_llm_orchestrator.context.no_execute</a>
+</li>
+        <li><a href="iros_llm_orchestrator.context.provider.html#module-iros_llm_orchestrator.context.provider">iros_llm_orchestrator.context.provider</a>
+</li>
+        <li><a href="iros_llm_orchestrator.context.ros_readonly_provider.html#module-iros_llm_orchestrator.context.ros_readonly_provider">iros_llm_orchestrator.context.ros_readonly_provider</a>
+</li>
         <li><a href="iros_llm_orchestrator.decision_server.html#module-iros_llm_orchestrator.decision_server">iros_llm_orchestrator.decision_server</a>
 </li>
         <li><a href="iros_llm_orchestrator.execute_server.html#module-iros_llm_orchestrator.execute_server">iros_llm_orchestrator.execute_server</a>
@@ -449,6 +629,26 @@
   </ul></td>
 </tr></table>
 
+<h2 id="N">N</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.NoneContextProvider">NoneContextProvider (class in iros_llm_orchestrator.context)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.NoneContextProvider">(class in iros_llm_orchestrator.context.provider)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="iros_llm_orchestrator.context.ros_readonly_provider.html#iros_llm_orchestrator.context.ros_readonly_provider.normalize_bt_state">normalize_bt_state() (in module iros_llm_orchestrator.context.ros_readonly_provider)</a>
+</li>
+      <li><a href="iros_llm_orchestrator.context.ros_readonly_provider.html#iros_llm_orchestrator.context.ros_readonly_provider.normalize_formations_status">normalize_formations_status() (in module iros_llm_orchestrator.context.ros_readonly_provider)</a>
+</li>
+      <li><a href="iros_llm_orchestrator.context.ros_readonly_provider.html#iros_llm_orchestrator.context.ros_readonly_provider.normalize_llm_event">normalize_llm_event() (in module iros_llm_orchestrator.context.ros_readonly_provider)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="O">O</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
@@ -464,19 +664,29 @@
 </li>
       <li><a href="iros_llm_orchestrator.common.parsers.html#iros_llm_orchestrator.common.parsers.parse_llm_decision">parse_llm_decision() (in module iros_llm_orchestrator.common.parsers)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="iros_llm_orchestrator.common.plan_executor.html#iros_llm_orchestrator.common.plan_executor.parse_plan">parse_plan() (in module iros_llm_orchestrator.common.plan_executor)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="iros_llm_orchestrator.passive_observer.html#iros_llm_orchestrator.passive_observer.PassiveObserver">PassiveObserver (class in iros_llm_orchestrator.passive_observer)</a>
 </li>
       <li><a href="iros_llm_orchestrator.common.plan_executor.html#iros_llm_orchestrator.common.plan_executor.PlanExecutor">PlanExecutor (class in iros_llm_orchestrator.common.plan_executor)</a>
 </li>
+      <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.provider">provider (iros_llm_orchestrator.context.ChatContextConfig attribute)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.ChatContextConfig.provider">(iros_llm_orchestrator.context.provider.ChatContextConfig attribute)</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="iros_llm_orchestrator.context.ros_readonly_provider.html#iros_llm_orchestrator.context.ros_readonly_provider.RosReadonlyContextProvider">RosReadonlyContextProvider (class in iros_llm_orchestrator.context.ros_readonly_provider)</a>
+</li>
+  </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="iros_llm_orchestrator.common.plan_executor.html#iros_llm_orchestrator.common.plan_executor.PlanExecutor.run">run() (iros_llm_orchestrator.common.plan_executor.PlanExecutor method)</a>
 </li>
@@ -486,22 +696,42 @@
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.safe_mcp_allowlist">safe_mcp_allowlist() (in module iros_llm_orchestrator.context.provider)</a>
+</li>
+      <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.safe_str">safe_str() (in module iros_llm_orchestrator.context.provider)</a>
+</li>
       <li><a href="iros_llm_orchestrator.common.leaf_sender.html#iros_llm_orchestrator.common.leaf_sender.BTLeafSender.send">send() (iros_llm_orchestrator.common.leaf_sender.BTLeafSender method)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="iros_llm_orchestrator.local.ollama_client.html#iros_llm_orchestrator.local.ollama_client.OllamaClient.stream">stream() (iros_llm_orchestrator.local.ollama_client.OllamaClient method)</a>
+      <li><a href="iros_llm_orchestrator.context.no_execute.html#iros_llm_orchestrator.context.no_execute.should_skip_reply_only_execution">should_skip_reply_only_execution() (in module iros_llm_orchestrator.context.no_execute)</a>
 </li>
+      <li><a href="iros_llm_orchestrator.common.llm_factory.html#iros_llm_orchestrator.common.llm_factory.LLMClientBase.stream">stream() (iros_llm_orchestrator.common.llm_factory.LLMClientBase method)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.local.ollama_client.html#iros_llm_orchestrator.local.ollama_client.OllamaClient.stream">(iros_llm_orchestrator.local.ollama_client.OllamaClient method)</a>
+</li>
+        <li><a href="iros_llm_orchestrator.web.http_client.html#iros_llm_orchestrator.web.http_client.HttpClient.stream">(iros_llm_orchestrator.web.http_client.HttpClient method)</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="iros_llm_orchestrator.local.transformers_client.html#iros_llm_orchestrator.local.transformers_client.TransformersClient">TransformersClient (class in iros_llm_orchestrator.local.transformers_client)</a>
+      <li><a href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.timeout_sec">timeout_sec (iros_llm_orchestrator.context.ChatContextConfig attribute)</a>
+
+      <ul>
+        <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.ChatContextConfig.timeout_sec">(iros_llm_orchestrator.context.provider.ChatContextConfig attribute)</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.to_jsonable">to_jsonable() (in module iros_llm_orchestrator.context.provider)</a>
+</li>
+      <li><a href="iros_llm_orchestrator.local.transformers_client.html#iros_llm_orchestrator.local.transformers_client.TransformersClient">TransformersClient (class in iros_llm_orchestrator.local.transformers_client)</a>
+</li>
       <li><a href="iros_llm_orchestrator.passive_observer.html#iros_llm_orchestrator.passive_observer.PassiveObserver.TRIGGER_STATUSES">TRIGGER_STATUSES (iros_llm_orchestrator.passive_observer.PassiveObserver attribute)</a>
 </li>
   </ul></td>
@@ -511,6 +741,10 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="iros_llm_orchestrator.user_chat_node.html#iros_llm_orchestrator.user_chat_node.UserChatNode">UserChatNode (class in iros_llm_orchestrator.user_chat_node)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.utc_now">utc_now() (in module iros_llm_orchestrator.context.provider)</a>
 </li>
   </ul></td>
 </tr></table>

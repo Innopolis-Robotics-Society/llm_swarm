@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>iros_llm_orchestrator.user_chat_node module &mdash; iros_llm_orchestrator 0.0.1 documentation</title>
+  <title>iros_llm_orchestrator.context.no_execute module &mdash; iros_llm_orchestrator 0.0.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
@@ -19,8 +19,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Standard Documents" href="standards.html" />
-    <link rel="prev" title="iros_llm_orchestrator.passive_observer module" href="iros_llm_orchestrator.passive_observer.html" /> 
+    <link rel="next" title="iros_llm_orchestrator.context.provider module" href="iros_llm_orchestrator.context.provider.html" />
+    <link rel="prev" title="iros_llm_orchestrator.context.mcp_readonly_provider module" href="iros_llm_orchestrator.context.mcp_readonly_provider.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -45,19 +45,19 @@
               <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">Python API</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="iros_llm_orchestrator.html">iros_llm_orchestrator package</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="iros_llm_orchestrator.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3 current"><a class="reference internal" href="iros_llm_orchestrator.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.common.html">iros_llm_orchestrator.common package</a></li>
-<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.html">iros_llm_orchestrator.context package</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="iros_llm_orchestrator.context.html">iros_llm_orchestrator.context package</a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.local.html">iros_llm_orchestrator.local package</a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.web.html">iros_llm_orchestrator.web package</a></li>
 </ul>
 </li>
-<li class="toctree-l3 current"><a class="reference internal" href="iros_llm_orchestrator.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="iros_llm_orchestrator.html#submodules">Submodules</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.chat_server.html">iros_llm_orchestrator.chat_server module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.decision_server.html">iros_llm_orchestrator.decision_server module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.execute_server.html">iros_llm_orchestrator.execute_server module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.passive_observer.html">iros_llm_orchestrator.passive_observer module</a></li>
-<li class="toctree-l4 current"><a class="current reference internal" href="#">iros_llm_orchestrator.user_chat_node module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.user_chat_node.html">iros_llm_orchestrator.user_chat_node module</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="iros_llm_orchestrator.html#module-iros_llm_orchestrator">Module contents</a><ul>
@@ -93,9 +93,10 @@
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="modules.html">iros_llm_orchestrator</a></li>
           <li class="breadcrumb-item"><a href="iros_llm_orchestrator.html">iros_llm_orchestrator package</a></li>
-      <li class="breadcrumb-item active">iros_llm_orchestrator.user_chat_node module</li>
+          <li class="breadcrumb-item"><a href="iros_llm_orchestrator.context.html">iros_llm_orchestrator.context package</a></li>
+      <li class="breadcrumb-item active">iros_llm_orchestrator.context.no_execute module</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="_sources/iros_llm_orchestrator.user_chat_node.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/iros_llm_orchestrator.context.no_execute.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -103,18 +104,14 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-iros_llm_orchestrator.user_chat_node">
-<span id="iros-llm-orchestrator-user-chat-node-module"></span><h1>iros_llm_orchestrator.user_chat_node module<a class="headerlink" href="#module-iros_llm_orchestrator.user_chat_node" title="Link to this heading"></a></h1>
-<p>Channel 3 — natural-language operator chat interface.</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="iros_llm_orchestrator.user_chat_node.UserChatNode">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">iros_llm_orchestrator.user_chat_node.</span></span><span class="sig-name descname"><span class="pre">UserChatNode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#iros_llm_orchestrator.user_chat_node.UserChatNode" title="Link to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Node</span></code></p>
-</dd></dl>
-
+  <section id="module-iros_llm_orchestrator.context.no_execute">
+<span id="iros-llm-orchestrator-context-no-execute-module"></span><h1>iros_llm_orchestrator.context.no_execute module<a class="headerlink" href="#module-iros_llm_orchestrator.context.no_execute" title="Link to this heading"></a></h1>
+<p>Internal guard for reply-only chat turns.</p>
+<p>This does not change the public plan schema. It only prevents factual
+state questions from accidentally executing an LLM-produced idle plan.</p>
 <dl class="py function">
-<dt class="sig sig-object py" id="iros_llm_orchestrator.user_chat_node.main">
-<span class="sig-prename descclassname"><span class="pre">iros_llm_orchestrator.user_chat_node.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#iros_llm_orchestrator.user_chat_node.main" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="iros_llm_orchestrator.context.no_execute.should_skip_reply_only_execution">
+<span class="sig-prename descclassname"><span class="pre">iros_llm_orchestrator.context.no_execute.</span></span><span class="sig-name descname"><span class="pre">should_skip_reply_only_execution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">user_text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plan</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#iros_llm_orchestrator.context.no_execute.should_skip_reply_only_execution" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 </section>
@@ -123,8 +120,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="iros_llm_orchestrator.passive_observer.html" class="btn btn-neutral float-left" title="iros_llm_orchestrator.passive_observer module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="standards.html" class="btn btn-neutral float-right" title="Standard Documents" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="iros_llm_orchestrator.context.mcp_readonly_provider.html" class="btn btn-neutral float-left" title="iros_llm_orchestrator.context.mcp_readonly_provider module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="iros_llm_orchestrator.context.provider.html" class="btn btn-neutral float-right" title="iros_llm_orchestrator.context.provider module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
