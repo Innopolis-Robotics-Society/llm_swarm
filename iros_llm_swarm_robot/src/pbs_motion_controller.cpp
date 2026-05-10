@@ -116,7 +116,7 @@ public:
 
     // Own odometry (always active)
     own_odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
-      "/" + ns_ + "/odom", 10,
+      "/" + ns_ + "/odom", rclcpp::SensorDataQoS(),
       [this](const nav_msgs::msg::Odometry::SharedPtr msg) { on_own_odom(msg); });
 
     // Formation config (always active, single shared topic)
@@ -186,7 +186,7 @@ private:
       prev_ey_ = 0.0;
 
       leader_odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
-        "/" + leader_ns_ + "/odom", 10,
+        "/" + leader_ns_ + "/odom", rclcpp::SensorDataQoS(),
         [this](const nav_msgs::msg::Odometry::SharedPtr msg) { on_leader_odom(msg); });
     }
 

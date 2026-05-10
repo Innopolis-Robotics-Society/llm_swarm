@@ -4,7 +4,7 @@ import yaml
 
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
+from rclpy.qos import QoSProfile, DurabilityPolicy, HistoryPolicy, ReliabilityPolicy
 
 from geometry_msgs.msg import Point, Polygon, Point32
 from std_msgs.msg import Header
@@ -173,7 +173,8 @@ class FormationManagerNode(Node):
         self._odom_subs[ns] = self.create_subscription(
             Odometry, f"/{ns}/odom",
             lambda msg, _ns=ns: self._on_odom(msg, _ns),
-            10,
+            QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
+                       history=HistoryPolicy.KEEP_LAST, depth=10),
         )
         self.get_logger().debug(f"  subscribed to /{ns}/odom")
 
