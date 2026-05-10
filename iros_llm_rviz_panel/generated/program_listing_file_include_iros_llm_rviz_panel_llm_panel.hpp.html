@@ -167,6 +167,7 @@
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;rclcpp/rclcpp.hpp&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;rclcpp_action/rclcpp_action.hpp&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;rclcpp/parameter_client.hpp&gt;</span>
 
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;geometry_msgs/msg/point.hpp&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;visualization_msgs/msg/marker_array.hpp&gt;</span>
@@ -233,6 +234,7 @@
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">execFinished</span><span class="p">(</span><span class="kt">bool</span><span class="w"> </span><span class="n">success</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">info</span><span class="p">);</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">eventReceived</span><span class="p">(</span><span class="n">qint64</span><span class="w"> </span><span class="n">stamp_ms</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">channel</span><span class="p">,</span>
 <span class="w">                     </span><span class="n">QString</span><span class="w"> </span><span class="n">trigger</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">output</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">reason</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">systemInfoChanged</span><span class="p">();</span>
 
 <span class="k">private</span><span class="w"> </span><span class="n">Q_SLOTS</span><span class="o">:</span>
 <span class="w">  </span><span class="c1">// User actions</span>
@@ -261,6 +263,10 @@
 <span class="w">  </span><span class="c1">// Periodic refresh — sparklines, TF arrows.</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onMarkerTick</span><span class="p">();</span>
 
+<span class="w">  </span><span class="c1">// Periodic system-info poll (graph + remote params).</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onInfoRefresh</span><span class="p">();</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onSystemInfoChanged</span><span class="p">();</span>
+
 <span class="k">private</span><span class="o">:</span>
 <span class="w">  </span><span class="c1">// ---- Construction ------------------------------------------------------</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">buildUi</span><span class="p">();</span>
@@ -269,7 +275,16 @@
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">buildMapfTab</span><span class="p">(</span><span class="n">QWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tab</span><span class="p">);</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">buildEventsTab</span><span class="p">(</span><span class="n">QWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tab</span><span class="p">);</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">buildBtTab</span><span class="p">(</span><span class="n">QWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tab</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">buildInfoTab</span><span class="p">(</span><span class="n">QWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tab</span><span class="p">);</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">setupRos</span><span class="p">();</span>
+
+<span class="w">  </span><span class="c1">// System info collection (called from GUI thread via info_timer_).</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">refreshSystemInfo</span><span class="p">();</span>
+<span class="w">  </span><span class="c1">// Async-fetch remote parameters; results merge into info_kv_ and a</span>
+<span class="w">  </span><span class="c1">// systemInfoChanged() signal is emitted (queued onto the GUI thread).</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">requestRemoteParam</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">node_name</span><span class="p">,</span>
+<span class="w">                          </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">param_names</span><span class="p">,</span>
+<span class="w">                          </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">key_prefix</span><span class="p">);</span>
 
 <span class="w">  </span><span class="c1">// ---- Map YAML ----------------------------------------------------------</span>
 <span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">RobotGroup</span><span class="w"> </span><span class="p">{</span>
@@ -351,6 +366,10 @@
 <span class="w">  </span><span class="n">QTableWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">bt_props_table_</span><span class="w">  </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
 <span class="w">  </span><span class="n">QTableWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">bt_log_table_</span><span class="w">    </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
 
+<span class="w">  </span><span class="c1">// ---- Widgets — Info tab -----------------------------------------------</span>
+<span class="w">  </span><span class="n">QTableWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">info_table_</span><span class="w">      </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QLabel</span><span class="w">       </span><span class="o">*</span><span class="w"> </span><span class="n">info_updated_lbl_</span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+
 <span class="w">  </span><span class="n">QTabWidget</span><span class="w">   </span><span class="o">*</span><span class="w"> </span><span class="n">tabs_</span><span class="w">   </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
 
 <span class="w">  </span><span class="c1">// ---- Cached BT state for marker timer + BT tab (read on GUI thread) --</span>
@@ -407,6 +426,15 @@
 
 <span class="w">  </span><span class="c1">// ---- Periodic refresh --------------------------------------------------</span>
 <span class="w">  </span><span class="n">QTimer</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">marker_timer_</span><span class="w"> </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QTimer</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">info_timer_</span><span class="w">   </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// ---- System info cache (populated from ROS thread via async params,</span>
+<span class="w">  </span><span class="c1">//      read on GUI thread when rendering the Info tab) -----------------</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w">                                       </span><span class="n">info_mutex_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">info_kv_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">unordered_map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">rclcpp</span><span class="o">::</span><span class="n">AsyncParametersClient</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">param_clients_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="kt">int64_t</span><span class="w">                                     </span><span class="n">info_last_refresh_ms_</span><span class="p">{</span><span class="mi">0</span><span class="p">};</span>
 
 <span class="w">  </span><span class="c1">// ---- Events buffering --------------------------------------------------</span>
 <span class="w">  </span><span class="k">static</span><span class="w"> </span><span class="k">constexpr</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">kMaxEvents</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">500</span><span class="p">;</span>
