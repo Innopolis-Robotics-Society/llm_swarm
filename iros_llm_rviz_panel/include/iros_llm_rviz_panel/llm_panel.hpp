@@ -33,6 +33,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
+#include <rclcpp/parameter_client.hpp>
 
 #include <geometry_msgs/msg/point.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
@@ -99,6 +100,7 @@ Q_SIGNALS:
   void execFinished(bool success, QString info);
   void eventReceived(qint64 stamp_ms, int channel,
                      QString trigger, QString output, QString reason);
+  void systemInfoChanged();
 
 private Q_SLOTS:
   // User actions
@@ -127,6 +129,10 @@ private Q_SLOTS:
   // Periodic refresh — sparklines, TF arrows.
   void onMarkerTick();
 
+  // Periodic system-info poll (graph + remote params).
+  void onInfoRefresh();
+  void onSystemInfoChanged();
+
 private:
   // ---- Construction ------------------------------------------------------
   void buildUi();
@@ -135,7 +141,16 @@ private:
   void buildMapfTab(QWidget * tab);
   void buildEventsTab(QWidget * tab);
   void buildBtTab(QWidget * tab);
+  void buildInfoTab(QWidget * tab);
   void setupRos();
+
+  // System info collection (called from GUI thread via info_timer_).
+  void refreshSystemInfo();
+  // Async-fetch remote parameters; results merge into info_kv_ and a
+  // systemInfoChanged() signal is emitted (queued onto the GUI thread).
+  void requestRemoteParam(const std::string & node_name,
+                          const std::vector<std::string> & param_names,
+                          const std::string & key_prefix);
 
   // ---- Map YAML ----------------------------------------------------------
   struct RobotGroup {
@@ -217,6 +232,10 @@ private:
   QTableWidget * bt_props_table_  {nullptr};
   QTableWidget * bt_log_table_    {nullptr};
 
+  // ---- Widgets — Info tab -----------------------------------------------
+  QTableWidget * info_table_      {nullptr};
+  QLabel       * info_updated_lbl_{nullptr};
+
   QTabWidget   * tabs_   {nullptr};
 
   // ---- Cached BT state for marker timer + BT tab (read on GUI thread) --
@@ -273,6 +292,15 @@ private:
 
   // ---- Periodic refresh --------------------------------------------------
   QTimer * marker_timer_ {nullptr};
+  QTimer * info_timer_   {nullptr};
+
+  // ---- System info cache (populated from ROS thread via async params,
+  //      read on GUI thread when rendering the Info tab) -----------------
+  std::mutex                                       info_mutex_;
+  std::vector<std::pair<std::string, std::string>> info_kv_;
+  std::unordered_map<std::string,
+    std::shared_ptr<rclcpp::AsyncParametersClient>> param_clients_;
+  std::int64_t                                     info_last_refresh_ms_{0};
 
   // ---- Events buffering --------------------------------------------------
   static constexpr int kMaxEvents = 500;

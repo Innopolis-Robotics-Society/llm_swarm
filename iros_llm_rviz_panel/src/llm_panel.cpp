@@ -5,11 +5,13 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdlib>
 #include <ctime>
 #include <functional>
 #include <iomanip>
 #include <sstream>
 #include <string>
+#include <unordered_set>
 
 #include <QCheckBox>
 #include <QColor>
@@ -39,6 +41,8 @@
 
 #include <visualization_msgs/msg/marker.hpp>
 #include <std_msgs/msg/color_rgba.hpp>
+
+#include <rmw/rmw.h>
 
 #include "iros_llm_rviz_panel/action_summary.hpp"
 #include "iros_llm_rviz_panel/sparkline.hpp"
@@ -168,6 +172,10 @@ void LlmPanel::buildUi()
   buildBtTab(bt_tab);
   tabs_->addTab(bt_tab, "BT");
 
+  auto * info_tab = new QWidget();
+  buildInfoTab(info_tab);
+  tabs_->addTab(info_tab, "Info");
+
   root->addWidget(tabs_, /*stretch=*/1);
 
   // ---- Wiring -------------------------------------------------------------
@@ -199,11 +207,18 @@ void LlmPanel::buildUi()
           this, &LlmPanel::onExecFinished, Qt::QueuedConnection);
   connect(this, &LlmPanel::eventReceived,
           this, &LlmPanel::onEventReceived, Qt::QueuedConnection);
+  connect(this, &LlmPanel::systemInfoChanged,
+          this, &LlmPanel::onSystemInfoChanged, Qt::QueuedConnection);
 
   // 30 Hz refresh — sparkline updates if dirty, plus TF arrow republish.
   marker_timer_ = new QTimer(this);
   connect(marker_timer_, &QTimer::timeout,
           this, &LlmPanel::onMarkerTick);
+
+  // Info tab refresh — graph + remote params, ~0.5 Hz.
+  info_timer_ = new QTimer(this);
+  connect(info_timer_, &QTimer::timeout,
+          this, &LlmPanel::onInfoRefresh);
 }
 
 void LlmPanel::buildStatusRow(QHBoxLayout * row)
@@ -464,6 +479,31 @@ void LlmPanel::buildBtTab(QWidget * tab)
   layout->addWidget(bt_log_table_, /*stretch=*/1);
 }
 
+void LlmPanel::buildInfoTab(QWidget * tab)
+{
+  auto * layout = new QVBoxLayout(tab);
+  layout->setContentsMargins(2, 2, 2, 2);
+  layout->setSpacing(4);
+
+  layout->addWidget(new QLabel(
+    "System info — discovered from ROS graph and remote parameters:"));
+
+  info_table_ = new QTableWidget(0, 2);
+  info_table_->setHorizontalHeaderLabels(QStringList() << "key" << "value");
+  info_table_->verticalHeader()->setVisible(false);
+  info_table_->horizontalHeader()->setSectionResizeMode(
+    0, QHeaderView::ResizeToContents);
+  info_table_->horizontalHeader()->setSectionResizeMode(
+    1, QHeaderView::Stretch);
+  info_table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  info_table_->setAlternatingRowColors(true);
+  layout->addWidget(info_table_, /*stretch=*/1);
+
+  info_updated_lbl_ = new QLabel("waiting for first refresh...");
+  info_updated_lbl_->setStyleSheet("QLabel { color: #888; font-style: italic; }");
+  layout->addWidget(info_updated_lbl_);
+}
+
 
 // ===========================================================================
 // ROS setup
@@ -475,6 +515,10 @@ void LlmPanel::onInitialize()
   loadMapYaml();
   if (marker_timer_) {
     marker_timer_->start(33);   // ~30 Hz
+  }
+  if (info_timer_) {
+    info_timer_->start(2000);   // ~0.5 Hz — cheap graph poll + async params
+    onInfoRefresh();            // first paint without waiting 2 s
   }
 }
 
@@ -1471,6 +1515,258 @@ void LlmPanel::onMarkerTick()
   }
   publishArrowMarkers();
   publishFormationPolygon();
+}
+
+
+// ===========================================================================
+// Info tab — graph + remote parameter discovery
+// ===========================================================================
+
+namespace
+{
+
+// `get_node_names()` returns fully qualified names like "/llm_chat_server".
+std::string stripSlash(const std::string & n)
+{
+  return (!n.empty() && n.front() == '/') ? n.substr(1) : n;
+}
+
+// Best-effort detection of LLM backend kind from an endpoint URL.
+QString endpointKind(const std::string & ep)
+{
+  if (ep.empty())                                return "mock";
+  if (ep.find("11434")     != std::string::npos) return "ollama";
+  if (ep.find("anthropic") != std::string::npos) return "anthropic";
+  if (ep.find("openai")    != std::string::npos) return "openai";
+  if (ep.find("v1/chat")   != std::string::npos) return "openai-compatible";
+  return QString::fromStdString(ep);
+}
+
+}  // namespace
+
+void LlmPanel::onInfoRefresh()
+{
+  // Cheap, GUI-thread refresh. Synchronous calls below are
+  // graph-introspection only; remote params are dispatched async.
+  if (!node_) return;
+  refreshSystemInfo();
+}
+
+void LlmPanel::refreshSystemInfo()
+{
+  // ---- Pass 1 — synchronous graph introspection -------------------------
+  std::vector<std::string> all_names;
+  try {
+    all_names = node_->get_node_names();
+  } catch (const std::exception & exc) {
+    RCLCPP_DEBUG(node_->get_logger(),
+      "get_node_names failed: %s", exc.what());
+    return;
+  }
+
+  std::unordered_set<std::string> nodes;
+  nodes.reserve(all_names.size());
+  for (const auto & n : all_names) nodes.insert(stripSlash(n));
+
+  auto has = [&](const std::string & needle) -> bool {
+    return nodes.count(needle) > 0;
+  };
+
+  const bool pbs_up      = has("mapf_planner");
+  const bool lns_up      = has("mapf_lns2");
+  const bool form_mgr    = has("formation_manager");
+  const bool form_mon    = has("formation_monitor");
+  const bool obs_up      = has("llm_passive_observer");
+  const bool dec_up      = has("llm_decision_server");
+  const bool chat_up     = has("llm_chat_server");
+  const bool exec_up     = has("llm_execute_server");
+  const bool bt_up       = has("test_bt_runner");
+  const bool stage_up    = has("stage_ros2");
+  const bool map_srv_up  = has("map_server") || has("zone_map_server");
+
+  std::string planner_label;
+  if (pbs_up && lns_up)  planner_label = "PBS + LNS2 (BOTH UP — misconfig)";
+  else if (pbs_up)       planner_label = "PBS (mapf_planner)";
+  else if (lns_up)       planner_label = "LNS2 (mapf_lns2)";
+  else                   planner_label = "(none)";
+
+  // Robot count: prefer last-seen BT state over yaml.
+  std::string robots_str;
+  {
+    std::lock_guard<std::mutex> lk(cached_state_mutex_);
+    if (!cached_robot_ids_.empty()) {
+      robots_str = std::to_string(cached_robot_ids_.size()) + " in BT";
+    }
+  }
+  if (robots_str.empty()) {
+    int yaml_robots = 0;
+    for (const auto & g : groups_) yaml_robots += static_cast<int>(g.ids.size());
+    robots_str = (yaml_robots > 0)
+        ? (std::to_string(yaml_robots) + " from map yaml")
+        : std::string("(unknown)");
+  }
+
+  // RMW + domain id from the running context / env.
+  const char * rmw_id = rmw_get_implementation_identifier();
+  const char * domain = std::getenv("ROS_DOMAIN_ID");
+  const char * cyc    = std::getenv("CYCLONEDDS_URI");
+
+  // Compose the static portion of info_kv_. Dynamic parts (LLM model,
+  // endpoint, llm_mode) are filled in by remote-parameter callbacks below
+  // and merged into this same map; we preserve any previous values.
+  {
+    std::lock_guard<std::mutex> lk(info_mutex_);
+
+    auto upsert = [&](const std::string & k, const std::string & v) {
+      for (auto & kv : info_kv_) {
+        if (kv.first == k) { kv.second = v; return; }
+      }
+      info_kv_.emplace_back(k, v);
+    };
+
+    upsert("Scenario / Map",      map_name_);
+    upsert("Map bounds",
+           "x [" + std::to_string(static_cast<int>(bounds_xmin_)) + ", "
+                 + std::to_string(static_cast<int>(bounds_xmax_)) + "]  "
+           "y [" + std::to_string(static_cast<int>(bounds_ymin_)) + ", "
+                 + std::to_string(static_cast<int>(bounds_ymax_)) + "]");
+    upsert("Planner",             planner_label);
+    upsert("Robots",              robots_str);
+    upsert("Stage simulator",     stage_up   ? "UP"  : "DOWN");
+    upsert("Map server",          map_srv_up ? "UP"  : "DOWN");
+    upsert("BT runner",           bt_up      ? "UP"  : "DOWN");
+    upsert("Formation manager",   form_mgr   ? "UP"  : "DOWN");
+    upsert("Formation monitor",   form_mon   ? "UP"  : "DOWN");
+    upsert("LLM chat server",     chat_up    ? "UP"  : "DOWN");
+    upsert("LLM decision server", dec_up     ? "UP"  : "DOWN");
+    upsert("LLM execute server",  exec_up    ? "UP"  : "DOWN");
+    upsert("Passive observer",    obs_up     ? "ON (channel 2)" : "OFF");
+    upsert("RMW",                 rmw_id ? rmw_id : "(unknown)");
+    upsert("ROS_DOMAIN_ID",       domain ? domain : "0 (default)");
+    upsert("CYCLONEDDS_URI",      cyc    ? cyc    : "(unset)");
+
+    info_last_refresh_ms_ =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+  }
+  Q_EMIT systemInfoChanged();
+
+  // ---- Pass 2 — async remote parameter fetches --------------------------
+  if (chat_up) {
+    requestRemoteParam("llm_chat_server",
+      {"llm_model", "llm_endpoint", "map_name", "llm_temperature"},
+      "Chat");
+  }
+  if (dec_up) {
+    requestRemoteParam("llm_decision_server",
+      {"llm_mode", "llm_model", "llm_endpoint"},
+      "Decision");
+  }
+  if (obs_up) {
+    requestRemoteParam("llm_passive_observer",
+      {"llm_mode", "llm_model", "llm_endpoint", "enabled", "cooldown_sec"},
+      "Observer");
+  }
+  if (pbs_up) {
+    requestRemoteParam("mapf_planner",
+      {"num_robots", "pbs_resolution", "max_speed", "inflation_radius"},
+      "PBS");
+  }
+  if (lns_up) {
+    requestRemoteParam("mapf_lns2",
+      {"num_robots", "max_speed"},
+      "LNS2");
+  }
+}
+
+void LlmPanel::requestRemoteParam(
+  const std::string & node_name,
+  const std::vector<std::string> & param_names,
+  const std::string & key_prefix)
+{
+  if (!node_) return;
+
+  auto it = param_clients_.find(node_name);
+  if (it == param_clients_.end()) {
+    auto client = std::make_shared<rclcpp::AsyncParametersClient>(
+      node_, node_name);
+    it = param_clients_.emplace(node_name, client).first;
+  }
+  auto & client = it->second;
+
+  // Skip this round if the parameter service isn't there yet — avoids
+  // queueing futures that will never resolve on the executor.
+  if (!client->service_is_ready()) return;
+
+  client->get_parameters(
+    param_names,
+    [this, key_prefix](
+      std::shared_future<std::vector<rclcpp::Parameter>> fut)
+    {
+      std::vector<rclcpp::Parameter> params;
+      try {
+        params = fut.get();
+      } catch (const std::exception &) {
+        return;
+      }
+
+      bool changed = false;
+      {
+        std::lock_guard<std::mutex> lk(info_mutex_);
+        for (const auto & p : params) {
+          if (p.get_type() == rclcpp::ParameterType::PARAMETER_NOT_SET) continue;
+
+          std::string val;
+          if (p.get_name() == "llm_endpoint") {
+            val = endpointKind(p.as_string()).toStdString();
+          } else {
+            val = p.value_to_string();
+          }
+          const std::string key = key_prefix + " · " + p.get_name();
+
+          bool found = false;
+          for (auto & kv : info_kv_) {
+            if (kv.first == key) {
+              if (kv.second != val) { kv.second = val; changed = true; }
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            info_kv_.emplace_back(key, val);
+            changed = true;
+          }
+        }
+      }
+      if (changed) Q_EMIT systemInfoChanged();
+    });
+}
+
+void LlmPanel::onSystemInfoChanged()
+{
+  if (!info_table_) return;
+
+  std::vector<std::pair<std::string, std::string>> snapshot;
+  std::int64_t stamp_ms = 0;
+  {
+    std::lock_guard<std::mutex> lk(info_mutex_);
+    snapshot = info_kv_;
+    stamp_ms = info_last_refresh_ms_;
+  }
+
+  info_table_->setRowCount(static_cast<int>(snapshot.size()));
+  for (int i = 0; i < static_cast<int>(snapshot.size()); ++i) {
+    auto * k = new QTableWidgetItem(QString::fromStdString(snapshot[i].first));
+    QFont f = k->font();
+    f.setBold(true);
+    k->setFont(f);
+    info_table_->setItem(i, 0, k);
+    info_table_->setItem(i, 1,
+      new QTableWidgetItem(QString::fromStdString(snapshot[i].second)));
+  }
+  if (info_updated_lbl_ && stamp_ms > 0) {
+    info_updated_lbl_->setText("last refresh: " + fmtTime(stamp_ms));
+  }
 }
 
 
