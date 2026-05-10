@@ -1,12 +1,14 @@
 #pragma once
 
+#include <atomic>
+#include <limits>
 #include <memory>
-#include <string>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rviz_common/tool.hpp>
-#include <rviz_common/properties/string_property.hpp>
+#include <rviz_common/viewport_mouse_event.hpp>
 
+#include "iros_llm_swarm_interfaces/srv/list_obstacles.hpp"
 #include "iros_llm_swarm_interfaces/srv/open_door.hpp"
 #include "iros_llm_swarm_interfaces/srv/close_door.hpp"
 
@@ -18,8 +20,9 @@ class DoorTool : public rviz_common::Tool
   Q_OBJECT
 
 public:
-  using OpenDoor  = iros_llm_swarm_interfaces::srv::OpenDoor;
-  using CloseDoor = iros_llm_swarm_interfaces::srv::CloseDoor;
+  using ListObstacles = iros_llm_swarm_interfaces::srv::ListObstacles;
+  using OpenDoor      = iros_llm_swarm_interfaces::srv::OpenDoor;
+  using CloseDoor     = iros_llm_swarm_interfaces::srv::CloseDoor;
 
   DoorTool();
   ~DoorTool() override = default;
@@ -30,12 +33,15 @@ public:
   int  processMouseEvent(rviz_common::ViewportMouseEvent & event) override;
 
 private:
+  bool getGroundPosition(rviz_common::ViewportMouseEvent & event, double & wx, double & wy);
+
   rclcpp::Node::SharedPtr node_;
 
-  rclcpp::Client<OpenDoor>::SharedPtr  open_client_;
-  rclcpp::Client<CloseDoor>::SharedPtr close_client_;
+  rclcpp::Client<ListObstacles>::SharedPtr list_client_;
+  rclcpp::Client<OpenDoor>::SharedPtr      open_client_;
+  rclcpp::Client<CloseDoor>::SharedPtr     close_client_;
 
-  rviz_common::properties::StringProperty * door_id_prop_ = nullptr;
+  std::atomic<bool> pending_{false};
 };
 
 }  // namespace iros_llm_rviz_tool

@@ -186,39 +186,37 @@ private:
   void publish_markers_locked()
   {
     MarkerArr arr;
-    int uid = 0;
 
+    // Clear all previously published markers before republishing
+    Marker del_all;
+    del_all.header.frame_id = base_map_.header.frame_id.empty() ? "map" : base_map_.header.frame_id;
+    del_all.header.stamp    = now();
+    del_all.action          = Marker::DELETEALL;
+    arr.markers.push_back(del_all);
+
+    int uid = 0;
     for (const auto & [id, c] : circles_)
       arr.markers.push_back(make_marker(uid++, "circles",
           c.position.x, c.position.y,
-          c.radius * 2, c.radius * 2, 0.5,
-          Marker::CYLINDER, 1.0f, 0.5f, 0.0f, 1.0f));
+          c.radius * 2, c.radius * 2, 0.1,
+          Marker::CYLINDER, 1.0f, 0.5f, 0.0f, 0.8f));
 
     for (const auto & [id, r] : rectangles_)
       arr.markers.push_back(make_marker(uid++, "rectangles",
           r.position.x, r.position.y,
-          r.width, r.height, 0.5,
-          Marker::CUBE, 1.0f, 0.5f, 0.0f, 1.0f));
+          r.width, r.height, 0.1,
+          Marker::CUBE, 1.0f, 0.5f, 0.0f, 0.8f));
 
     for (const auto & [id, d] : doors_) {
       float dr = d.is_open ? 0.0f : 1.0f;
       float dg = d.is_open ? 1.0f : 0.0f;
-      float da = d.is_open ? 0.4f : 1.0f;
+      float da = d.is_open ? 0.3f : 0.8f;
       arr.markers.push_back(make_marker(uid++, "doors",
           d.position.x, d.position.y,
-          d.width, d.height, 0.5,
+          d.width, d.height, 0.05,
           Marker::CUBE, dr, dg, 0.0f, da));
     }
 
-    if (uid < last_marker_count_) {
-      for (int i = uid; i < last_marker_count_; ++i) {
-        Marker del;
-        del.action = Marker::DELETE;
-        del.id     = i;
-        arr.markers.push_back(del);
-      }
-    }
-    last_marker_count_ = uid;
     marker_pub_->publish(arr);
   }
 
@@ -383,8 +381,7 @@ private:
 
   std::mutex mutex_;
   OccGrid    base_map_;
-  bool       has_map_          = false;
-  int        last_marker_count_ = 0;
+  bool       has_map_ = false;
 
   std::unordered_map<std::string, Circle> circles_;
   std::unordered_map<std::string, Rect>   rectangles_;

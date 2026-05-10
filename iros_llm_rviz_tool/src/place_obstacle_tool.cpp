@@ -39,6 +39,7 @@ void PlaceObstacleTool::onInitialize()
   circle_client_ = node_->create_client<AddCircle>("/obstacles/add_circle");
   rect_client_   = node_->create_client<AddRectangle>("/obstacles/add_rectangle");
   door_client_   = node_->create_client<AddDoor>("/obstacles/add_door");
+  list_client_   = node_->create_client<ListObstacles>("/obstacles/list");
   remove_client_ = node_->create_client<RemoveObstacle>("/obstacles/remove");
 
   shape_prop_ = new rviz_common::properties::EnumProperty(
@@ -90,7 +91,6 @@ int PlaceObstacleTool::processMouseEvent(rviz_common::ViewportMouseEvent & event
   if (event.leftUp()) {
     const std::string shape = shape_prop_->getStdString();
     const std::string id    = "obs_" + std::to_string(obs_counter_++);
-    placed_.emplace_back(id, wx, wy);
 
     if (shape == "circle") {
       auto req        = std::make_shared<AddCircle::Request>();
@@ -121,19 +121,31 @@ int PlaceObstacleTool::processMouseEvent(rviz_common::ViewportMouseEvent & event
     }
 
   } else if (event.rightUp()) {
-    if (placed_.empty()) return Render;
-    size_t nearest  = 0;
-    double min_dist = std::numeric_limits<double>::max();
-    for (size_t i = 0; i < placed_.size(); ++i) {
-      const double d = std::hypot(std::get<1>(placed_[i]) - wx, std::get<2>(placed_[i]) - wy);
-      if (d < min_dist) { min_dist = d; nearest = i; }
-    }
-    const std::string rm_id = std::get<0>(placed_[nearest]);
-    placed_.erase(placed_.begin() + static_cast<ptrdiff_t>(nearest));
-    auto req = std::make_shared<RemoveObstacle::Request>();
-    req->id  = rm_id;
-    remove_client_->async_send_request(req);
-    RCLCPP_INFO(node_->get_logger(), "PlaceObstacleTool: removed '%s'", rm_id.c_str());
+    if (pending_remove_.exchange(true)) return Render;
+
+    auto req = std::make_shared<ListObstacles::Request>();
+    list_client_->async_send_request(req,
+      [this, wx, wy](rclcpp::Client<ListObstacles>::SharedFuture future) {
+        pending_remove_ = false;
+        auto resp = future.get();
+
+        std::string nearest_id;
+        double min_dist = std::numeric_limits<double>::max();
+
+        auto check = [&](const std::string & id, double x, double y) {
+          const double d = std::hypot(x - wx, y - wy);
+          if (d < min_dist) { min_dist = d; nearest_id = id; }
+        };
+        for (const auto & c : resp->circles)    check(c.id, c.position.x, c.position.y);
+        for (const auto & r : resp->rectangles) check(r.id, r.position.x, r.position.y);
+        for (const auto & d : resp->doors)      check(d.id, d.position.x, d.position.y);
+
+        if (nearest_id.empty()) return;
+        auto rm_req = std::make_shared<RemoveObstacle::Request>();
+        rm_req->id  = nearest_id;
+        remove_client_->async_send_request(rm_req);
+        RCLCPP_INFO(node_->get_logger(), "PlaceObstacleTool: removed '%s'", nearest_id.c_str());
+      });
   }
 
   return Render;

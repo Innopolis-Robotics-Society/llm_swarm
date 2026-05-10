@@ -1,9 +1,9 @@
 #pragma once
 
+#include <atomic>
+#include <limits>
 #include <memory>
 #include <string>
-#include <tuple>
-#include <vector>
 
 #include <rclcpp/rclcpp.hpp>
 #include <rviz_common/tool.hpp>
@@ -14,6 +14,7 @@
 #include "iros_llm_swarm_interfaces/srv/add_circle.hpp"
 #include "iros_llm_swarm_interfaces/srv/add_rectangle.hpp"
 #include "iros_llm_swarm_interfaces/srv/add_door.hpp"
+#include "iros_llm_swarm_interfaces/srv/list_obstacles.hpp"
 #include "iros_llm_swarm_interfaces/srv/remove_obstacle.hpp"
 
 namespace iros_llm_rviz_tool
@@ -27,6 +28,7 @@ public:
   using AddCircle      = iros_llm_swarm_interfaces::srv::AddCircle;
   using AddRectangle   = iros_llm_swarm_interfaces::srv::AddRectangle;
   using AddDoor        = iros_llm_swarm_interfaces::srv::AddDoor;
+  using ListObstacles  = iros_llm_swarm_interfaces::srv::ListObstacles;
   using RemoveObstacle = iros_llm_swarm_interfaces::srv::RemoveObstacle;
 
   PlaceObstacleTool();
@@ -45,6 +47,7 @@ private:
   rclcpp::Client<AddCircle>::SharedPtr      circle_client_;
   rclcpp::Client<AddRectangle>::SharedPtr   rect_client_;
   rclcpp::Client<AddDoor>::SharedPtr        door_client_;
+  rclcpp::Client<ListObstacles>::SharedPtr  list_client_;
   rclcpp::Client<RemoveObstacle>::SharedPtr remove_client_;
 
   rviz_common::properties::EnumProperty  * shape_prop_   = nullptr;
@@ -53,8 +56,7 @@ private:
   rviz_common::properties::FloatProperty * height_prop_  = nullptr;
   rviz_common::properties::BoolProperty  * is_open_prop_ = nullptr;
 
-  // (id, x, y) of placed obstacles — used for right-click removal
-  std::vector<std::tuple<std::string, double, double>> placed_;
+  std::atomic<bool> pending_remove_{false};
   int obs_counter_ = 0;
 };
 
