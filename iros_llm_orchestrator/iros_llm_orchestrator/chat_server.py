@@ -30,10 +30,10 @@ from iros_llm_swarm_interfaces.action import LlmChat
 from iros_llm_swarm_interfaces.msg import LlmEvent
 
 from iros_llm_orchestrator.common.leaf_sender import BTLeafSender
+from iros_llm_orchestrator.common.llm_factory import get_llm_client
 from iros_llm_orchestrator.common.plan_executor import PlanExecutor
 from iros_llm_orchestrator.common.user_prompt import (
     build_user_prompt, build_bt_event_prompt, load_map_config)
-from iros_llm_orchestrator.local.ollama_client import OllamaClient
 from iros_llm_orchestrator.user_chat_node import _parse_response, _postprocess_plan
 
 MAX_HISTORY = 8   # conversation turns kept per session
@@ -43,10 +43,15 @@ class ChatServer(Node):
     def __init__(self):
         super().__init__('llm_chat_server')
 
+        self.declare_parameter('llm_mode',         'ollama')
         self.declare_parameter('llm_endpoint',     'http://localhost:11434/api/chat')
         self.declare_parameter('llm_model',        'qwen2.5:14b')
         self.declare_parameter('llm_max_tokens',   768)
         self.declare_parameter('llm_temperature',  0.1)
+        self.declare_parameter('llm_api_key',      '')
+        self.declare_parameter('llm_api_key_env',  'LLM_API_KEY')
+        self.declare_parameter('llm_force_chat',   True)
+        self.declare_parameter('llm_enable_stop',  False)
         self.declare_parameter('timeout_sec',      30.0)
         self.declare_parameter('step_timeout_sec', 120.0)
         self.declare_parameter('map_name',         'cave')
@@ -54,11 +59,18 @@ class ChatServer(Node):
         self._timeout  = float(self.get_parameter('timeout_sec').value)
         self._map_name = self.get_parameter('map_name').value
 
-        self._ollama = OllamaClient(
+        mode = self.get_parameter('llm_mode').value
+        self._llm = get_llm_client(
+            mode=mode,
             endpoint=self.get_parameter('llm_endpoint').value,
             model=self.get_parameter('llm_model').value,
             max_tokens=int(self.get_parameter('llm_max_tokens').value),
             temperature=float(self.get_parameter('llm_temperature').value),
+            api_key=self.get_parameter('llm_api_key').value,
+            api_key_env=self.get_parameter('llm_api_key_env').value,
+            timeout=self._timeout,
+            force_chat=bool(self.get_parameter('llm_force_chat').value),
+            enable_stop=bool(self.get_parameter('llm_enable_stop').value),
         )
         try:
             self._map_cfg = load_map_config(self._map_name)
@@ -104,7 +116,7 @@ class ChatServer(Node):
             goal_callback=lambda _: GoalResponse.ACCEPT,
             cancel_callback=lambda _: CancelResponse.ACCEPT,
         )
-        self.get_logger().info('LlmChatServer ready on /llm/chat')
+        self.get_logger().info(f'LlmChatServer ready on /llm/chat (mode={mode})')
 
     # ------------------------------------------------------------------
     # Action execute
@@ -200,7 +212,7 @@ class ChatServer(Node):
         cap = max(len(m) for m in MARKERS)
 
         full = ''
-        async for chunk in self._ollama.stream(messages):
+        async for chunk in self._llm.stream(messages):
             full += chunk
             if state == AFTER:
                 continue
@@ -258,7 +270,7 @@ class ChatServer(Node):
     async def _collect_stream(self, messages: list[dict]) -> str:
         """Collect full streamed response into a string."""
         full = ''
-        async for chunk in self._ollama.stream(messages):
+        async for chunk in self._llm.stream(messages):
             full += chunk
         return full
 

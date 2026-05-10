@@ -38,6 +38,7 @@ def setup(context, *args, **kwargs):
 
     map_name = _resolve_map_name(context)
     map_param = {'map_name': map_name}
+    llm_env = {'LLM_API_KEY': os.environ.get('LLM_API_KEY', '')}
 
     return [
         Node(
@@ -46,6 +47,7 @@ def setup(context, *args, **kwargs):
             name='llm_decision_server',
             parameters=[config, map_param],
             output='screen',
+            additional_env=llm_env,
         ),
         Node(
             package='iros_llm_orchestrator',
@@ -57,6 +59,7 @@ def setup(context, *args, **kwargs):
                 map_param,
             ],
             output='screen',
+            additional_env=llm_env,
         ),
         Node(
             package='iros_llm_orchestrator',
@@ -64,6 +67,7 @@ def setup(context, *args, **kwargs):
             name='llm_chat_server',
             parameters=[config, map_param],
             output='screen',
+            additional_env=llm_env,
         ),
         Node(
             package='iros_llm_orchestrator',

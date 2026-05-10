@@ -2,26 +2,32 @@ llm_decision_server:
   ros__parameters:
     # Backend: "mock" (heuristic, no GPU) | "ollama" (local Ollama) |
     #          "http" (OpenAI-compatible) | "local" (transformers).
-    llm_mode: "ollama"
+    llm_mode: "http"
 
-    # --- Ollama (local inference, recommended for RTX 5060 Ti 16 GB) ---
-    # Install:  curl -fsSL https://ollama.com/install.sh | sh
-    # Pull:     ollama pull qwen2.5:14b
-    #
-    # Model VRAM guide (pick the heaviest that fits):
-    #   qwen2.5:14b        ~9 GB   — best quality/speed for 16 GB cards  ← default
-    #   mistral-small3.1   ~13 GB  — smarter, ~2× slower
-    #   qwen2.5:7b         ~5 GB   — fastest, acceptable quality
-    llm_endpoint: "http://localhost:11434/api/chat"
-    llm_model: "mistral-small3.1"
+    # OpenAI-compatible HTTP backend.
+    # Keep llm_api_key empty; the client reads the env var named by
+    # llm_api_key_env. Never put real keys in this file.
+    llm_endpoint: "https://api.groq.com/openai/v1/chat/completions"
+    llm_model: "llama-3.3-70b-versatile"
+    llm_api_key: ""
+    llm_api_key_env: "LLM_API_KEY"
+    llm_force_chat: true
+    llm_enable_stop: false
+    llm_max_tokens: 512
+    llm_temperature: 0.1
 
-    # --- HTTP/OpenAI-compatible backend (vLLM / TGI / llama.cpp-server) ---
-    # llm_mode: "http"
-    # llm_endpoint: "http://localhost:8000/v1/completions"
-    # llm_model: "nvidia/Nemotron-3-Nano-30B-A3B"
-
-    llm_max_tokens: 2000
-    llm_temperature: 0.2
+    # Local alternatives:
+    #   Ollama:
+    #     llm_mode: "ollama"
+    #     llm_endpoint: "http://localhost:11434/api/chat"
+    #     llm_model: "mistral-small3.1"
+    #   OpenRouter:
+    #     llm_endpoint: "https://openrouter.ai/api/v1/chat/completions"
+    #     llm_model: "meta-llama/llama-3.3-70b-instruct"
+    #   Local vLLM:
+    #     llm_endpoint: "http://localhost:8000/v1/chat/completions"
+    #     llm_model: "nvidia/Nemotron-3-Nano-30B-A3B"
+    #     llm_api_key: ""
 
     # JSONL dataset grows here — one file per UTC day.
     dataset_path: "~/.ros/llm_decisions"
@@ -29,11 +35,8 @@ llm_decision_server:
     # Hard cap on simultaneous inference calls (MAPF feedback can fire several times per second).
     max_concurrent: 1
 
-    # Ollama loads the model on the first request (~3-5s for 7B).
-    # Give enough headroom so the BT doesn't abort on a cold start.
-    timeout_sec: 30.0
-
     # Safe default on ANY error (timeout, parse failure, transport): keep BT running.
+    timeout_sec: 45.0
     default_on_error: "wait"
 
     # How many last log_buffer lines to include in the prompt — more = noisier.
@@ -42,11 +45,15 @@ llm_decision_server:
 llm_passive_observer:
   ros__parameters:
     # Channel 2 — proactive observer subscribed to /bt/state.
-    llm_mode: "ollama"
-    llm_endpoint: "http://localhost:11434/api/chat"
-    llm_model: "mistral-small3.1"
+    llm_mode: "http"
+    llm_endpoint: "https://api.groq.com/openai/v1/chat/completions"
+    llm_model: "llama-3.3-70b-versatile"
+    llm_api_key: ""
+    llm_api_key_env: "LLM_API_KEY"
+    llm_force_chat: true
+    llm_enable_stop: false
     llm_max_tokens: 1024
-    llm_temperature: 0.3
+    llm_temperature: 0.1
 
     # Ring buffer of recent BTState snapshots fed into the prompt.
     history_size: 20
@@ -56,7 +63,7 @@ llm_passive_observer:
     cooldown_sec: 10.0
 
     # Hard timeout for a single LLM call.
-    timeout_sec: 30.0
+    timeout_sec: 45.0
 
     # JSONL dataset for channel 2 (kept separate from decisions).
     dataset_path: "~/.ros/llm_commands"
@@ -69,13 +76,18 @@ llm_passive_observer:
 llm_chat_server:
   ros__parameters:
     # Channel 3 over ROS — /llm/chat action, used by the RViz panel.
-    llm_endpoint: "http://localhost:11434/api/chat"
-    llm_model:    "qwen2.5:7b"
-    llm_max_tokens:  768
+    llm_mode: "http"
+    llm_endpoint: "https://api.groq.com/openai/v1/chat/completions"
+    llm_model: "llama-3.3-70b-versatile"
+    llm_api_key: ""
+    llm_api_key_env: "LLM_API_KEY"
+    llm_force_chat: true
+    llm_enable_stop: false
+    llm_max_tokens: 2000
     llm_temperature: 0.1
 
-    # LLM call timeout (cold-start of a 7B model on Ollama is ~3–5s).
-    timeout_sec: 30.0
+    # LLM call timeout.
+    timeout_sec: 60.0
 
     # Per-leaf BT mission timeout. A single MAPF goal across the map can take
     # ~1 minute with 20 robots; keep generous headroom for sequences.
