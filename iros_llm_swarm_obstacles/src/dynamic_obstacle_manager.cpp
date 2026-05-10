@@ -198,13 +198,13 @@ private:
     for (const auto & [id, c] : circles_)
       arr.markers.push_back(make_marker(uid++, "circles",
           c.position.x, c.position.y,
-          c.radius * 2, c.radius * 2, 0.1,
+          c.radius * 2, c.radius * 2, 0.2,
           Marker::CYLINDER, 1.0f, 0.5f, 0.0f, 0.8f));
 
     for (const auto & [id, r] : rectangles_)
       arr.markers.push_back(make_marker(uid++, "rectangles",
           r.position.x, r.position.y,
-          r.width, r.height, 0.1,
+          r.width, r.height, 0.2,
           Marker::CUBE, 1.0f, 0.5f, 0.0f, 0.8f));
 
     for (const auto & [id, d] : doors_) {
@@ -213,7 +213,7 @@ private:
       float da = d.is_open ? 0.3f : 0.8f;
       arr.markers.push_back(make_marker(uid++, "doors",
           d.position.x, d.position.y,
-          d.width, d.height, 0.05,
+          d.width, d.height, 0.2,
           Marker::CUBE, dr, dg, 0.0f, da));
     }
 
