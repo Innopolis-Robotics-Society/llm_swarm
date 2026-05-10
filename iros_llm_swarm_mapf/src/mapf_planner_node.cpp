@@ -100,7 +100,7 @@ class MapfPlannerNode : public rclcpp::Node {
     declare_parameter("max_astar_expansions", 200000);
     declare_parameter("cost_curve",           std::string("quadratic"));
     declare_parameter("proximity_penalty",    15);
-    declare_parameter("max_zone_cost",        50);
+    declare_parameter("max_zone_cost",        10);
     declare_parameter("max_speed",             0.5);
     declare_parameter("urgency",              1.0);
 
@@ -1114,7 +1114,7 @@ class MapfPlannerNode : public rclcpp::Node {
   size_t      max_astar_expansions_ = 200000;
   CostCurve   cost_curve_           = CostCurve::Quadratic;
   int         proximity_penalty_    = 50;
-  int         max_zone_cost_        = 50;
+  int         max_zone_cost_        = 10;
   double      max_speed_            = 0.5;
   double      urgency_              = 1.0;
 

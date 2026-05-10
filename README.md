@@ -180,6 +180,8 @@ Top-level launch orchestrator. `swarm_warehouse.launch.py` brings up the full st
 
 2D simulation layer based on Stage (`stage_ros2`). Contains the warehouse world file, map files (`.pgm` / `.yaml`), and robot model description (`warehouse_robot.inc`). Stage runs with a unified TF tree (`one_tf_tree: true`) and namespace-enforced prefixes.
 
+Each map YAML can optionally reference a **zone map** via the `zone_map` field (e.g. `zone_map: warehouse_zones.pgm`). Zone maps are grayscale PGMs where darker pixels indicate higher traversal cost: pixel value 0 = maximum cost (`max_zone_cost`), 255 = free. The PBS planner reads zone costs from the published `/map` (OccupancyGrid values 1–99) and inflates them outward to guide routing without hard-blocking cells.
+
 ### `iros_llm_swarm_local_nav`
 
 Per-robot Nav2 navigation stack. For each robot spawns:
@@ -195,7 +197,10 @@ Robots are launched with staggered timers (0.3 s interval) to avoid startup race
 
 ### `iros_llm_swarm_costmap_plugins`
 
-Custom Nav2 costmap layer plugin. Provides `ResettingObstacleLayer` — a drop-in replacement for `nav2_costmap_2d::ObstacleLayer` that resets its internal grid every cycle before marking. Fixes ghost obstacle trails caused by cells between LiDAR rays never being cleared via raytracing.
+Custom Nav2 costmap components:
+
+- **`ResettingObstacleLayer`** — drop-in replacement for `nav2_costmap_2d::ObstacleLayer` that resets its internal grid every cycle before marking. Fixes ghost obstacle trails caused by cells between LiDAR rays never being cleared via raytracing.
+- **`zone_map_server`** — drop-in replacement for `nav2_map_server`'s `map_server` executable. Reads the standard map YAML, then overlays a grayscale zone PGM (referenced by the `zone_map` field in the YAML) onto the OccupancyGrid before publishing. Darker pixels in the zone PGM become non-zero OccupancyGrid values (1–99), which the PBS planner interprets as traversal costs. Walls (value 100) are never overwritten.
 
 ### `iros_llm_swarm_mapf`
 
@@ -222,6 +227,8 @@ cost = urgency * max_speed * time_step_sec   (time: opportunity cost of not movi
      + wall_penalty_sum * resolution          (wall gradient, normalized)
      + agent_proximity_penalty                (from reservation table)
 ```
+
+`wall_penalty_sum` accumulates over all cells traced by the move (Bresenham line) and includes both wall-proximity gradient **and zone costs**. Zone costs are skipped for wait moves (staying in place incurs no zone penalty).
 
 The `urgency` coefficient (default 1.0) controls time-vs-distance tradeoff. At 1.0, one timestep of waiting costs as much as the distance the robot could have covered at max speed. Values below 1.0 are not recommended.
 
@@ -366,6 +373,7 @@ PBS failed (2709.9 ms, 1 expansions)
 | `max_astar_expansions` | 100000 (launch) | Per-A\* expansion limit (root planning uncapped)                           |
 | `time_step_sec`        | 0.1             | Seconds per PBS grid step                                                  |
 | `max_speed`            | 0.5             | Max robot speed (m/s), determines movement connectivity with time_step_sec |
+| `max_zone_cost`        | 10              | OccupancyGrid value 99 maps to this wall_cost; zone costs scale linearly in [1, max_zone_cost] |
 | `urgency`              | 1.0             | Time cost coefficient: 1 = balanced, >1 = rush. Below 1.0 not recommended  |
 | `replan_check_hz`      | 2.0             | Schedule deviation check rate (Hz)                                         |
 | `replan_threshold_m`   | 1.0             | Deviation distance to trigger replan (m)                                   |
@@ -670,6 +678,7 @@ DDS and performance tuning scripts are in `src/scripts/`:
 - [x] MAPF with PBS planner, gradient inflation, and action API
 - [x] N-connected Euclidean A\* with capsule-based conflict detection
 - [x] Schedule-based replanning with static cooldown
+- [x] Zone maps — grayscale PGM overlays that bias PBS routing without hard-blocking cells (corridor lane costs, soft one-way guidance)
 - [x] Formation control (leader-follower with PD controllers)
 - [x] Long-lived MAPF action (plan-execute-arrive lifecycle with feedback)
 - [ ] BT integration
