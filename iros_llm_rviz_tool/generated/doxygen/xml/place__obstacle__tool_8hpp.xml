@@ -1,0 +1,168 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="place__obstacle__tool_8hpp" kind="file" language="C++">
+    <compoundname>place_obstacle_tool.hpp</compoundname>
+    <includes local="no">atomic</includes>
+    <includes local="no">limits</includes>
+    <includes local="no">memory</includes>
+    <includes local="no">string</includes>
+    <includes local="no">rclcpp/rclcpp.hpp</includes>
+    <includes local="no">rviz_common/tool.hpp</includes>
+    <includes local="no">rviz_common/properties/enum_property.hpp</includes>
+    <includes local="no">rviz_common/properties/float_property.hpp</includes>
+    <includes local="no">rviz_common/properties/bool_property.hpp</includes>
+    <includes local="yes">iros_llm_swarm_interfaces/srv/add_circle.hpp</includes>
+    <includes local="yes">iros_llm_swarm_interfaces/srv/add_rectangle.hpp</includes>
+    <includes local="yes">iros_llm_swarm_interfaces/srv/add_door.hpp</includes>
+    <includes local="yes">iros_llm_swarm_interfaces/srv/list_obstacles.hpp</includes>
+    <includes local="yes">iros_llm_swarm_interfaces/srv/remove_obstacle.hpp</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>atomic</label>
+      </node>
+      <node id="7">
+        <label>rviz_common/tool.hpp</label>
+      </node>
+      <node id="1">
+        <label>include/iros_llm_rviz_tool/place_obstacle_tool.hpp</label>
+        <link refid="place__obstacle__tool_8hpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>limits</label>
+      </node>
+      <node id="10">
+        <label>rviz_common/properties/bool_property.hpp</label>
+      </node>
+      <node id="14">
+        <label>iros_llm_swarm_interfaces/srv/list_obstacles.hpp</label>
+      </node>
+      <node id="5">
+        <label>string</label>
+      </node>
+      <node id="6">
+        <label>rclcpp/rclcpp.hpp</label>
+      </node>
+      <node id="15">
+        <label>iros_llm_swarm_interfaces/srv/remove_obstacle.hpp</label>
+      </node>
+      <node id="12">
+        <label>iros_llm_swarm_interfaces/srv/add_rectangle.hpp</label>
+      </node>
+      <node id="13">
+        <label>iros_llm_swarm_interfaces/srv/add_door.hpp</label>
+      </node>
+      <node id="8">
+        <label>rviz_common/properties/enum_property.hpp</label>
+      </node>
+      <node id="9">
+        <label>rviz_common/properties/float_property.hpp</label>
+      </node>
+      <node id="11">
+        <label>iros_llm_swarm_interfaces/srv/add_circle.hpp</label>
+      </node>
+      <node id="4">
+        <label>memory</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool" prot="public">iros_llm_rviz_tool::PlaceObstacleTool</innerclass>
+    <innernamespace refid="namespaceiros__llm__rviz__tool">iros_llm_rviz_tool</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;atomic&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;limits&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;memory&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;string&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;rclcpp/rclcpp.hpp&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;rviz_common/tool.hpp&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;rviz_common/properties/enum_property.hpp&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;rviz_common/properties/float_property.hpp&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;rviz_common/properties/bool_property.hpp&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;iros_llm_swarm_interfaces/srv/add_circle.hpp&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;iros_llm_swarm_interfaces/srv/add_rectangle.hpp&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;iros_llm_swarm_interfaces/srv/add_door.hpp&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;iros_llm_swarm_interfaces/srv/list_obstacles.hpp&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;iros_llm_swarm_interfaces/srv/remove_obstacle.hpp&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="20"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">iros_llm_rviz_tool</highlight></codeline>
+<codeline lineno="21"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool" kindref="compound">PlaceObstacleTool</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>rviz_common::Tool</highlight></codeline>
+<codeline lineno="24"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/>Q_OBJECT</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/>AddCircle<sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>iros_llm_swarm_interfaces::srv::AddCircle;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/>AddRectangle<sp/><sp/><sp/>=<sp/>iros_llm_swarm_interfaces::srv::AddRectangle;</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/>AddDoor<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>iros_llm_swarm_interfaces::srv::AddDoor;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/>ListObstacles<sp/><sp/>=<sp/>iros_llm_swarm_interfaces::srv::ListObstacles;</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/>RemoveObstacle<sp/>=<sp/>iros_llm_swarm_interfaces::srv::RemoveObstacle;</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"></highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/><ref refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool" kindref="compound">PlaceObstacleTool</ref>();</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/>~<ref refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool" kindref="compound">PlaceObstacleTool</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal"><sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>onInitialize()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>activate()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>deactivate()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><sp/>processMouseEvent(rviz_common::ViewportMouseEvent<sp/>&amp;<sp/>event)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"></highlight></codeline>
+<codeline lineno="42"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>getGroundPosition(rviz_common::ViewportMouseEvent<sp/>&amp;<sp/>event,<sp/></highlight><highlight class="keywordtype">double</highlight><highlight class="normal"><sp/>&amp;<sp/>wx,<sp/></highlight><highlight class="keywordtype">double</highlight><highlight class="normal"><sp/>&amp;<sp/>wy);</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"></highlight></codeline>
+<codeline lineno="45"><highlight class="normal"><sp/><sp/>rclcpp::Node::SharedPtr<sp/>node_;</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"><sp/><sp/>rclcpp::Client&lt;AddCircle&gt;::SharedPtr<sp/><sp/><sp/><sp/><sp/><sp/>circle_client_;</highlight></codeline>
+<codeline lineno="48"><highlight class="normal"><sp/><sp/>rclcpp::Client&lt;AddRectangle&gt;::SharedPtr<sp/><sp/><sp/>rect_client_;</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>rclcpp::Client&lt;AddDoor&gt;::SharedPtr<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>door_client_;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/>rclcpp::Client&lt;ListObstacles&gt;::SharedPtr<sp/><sp/>list_client_;</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/>rclcpp::Client&lt;RemoveObstacle&gt;::SharedPtr<sp/>remove_client_;</highlight></codeline>
+<codeline lineno="52"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53"><highlight class="normal"><sp/><sp/>rviz_common::properties::EnumProperty<sp/><sp/>*<sp/>shape_prop_<sp/><sp/><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/>rviz_common::properties::FloatProperty<sp/>*<sp/>radius_prop_<sp/><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="55"><highlight class="normal"><sp/><sp/>rviz_common::properties::FloatProperty<sp/>*<sp/>width_prop_<sp/><sp/><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="56"><highlight class="normal"><sp/><sp/>rviz_common::properties::FloatProperty<sp/>*<sp/>height_prop_<sp/><sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="57"><highlight class="normal"><sp/><sp/>rviz_common::properties::BoolProperty<sp/><sp/>*<sp/>is_open_prop_<sp/>=<sp/></highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="59"><highlight class="normal"><sp/><sp/>std::atomic&lt;bool&gt;<sp/>pending_remove_{</highlight><highlight class="keyword">false</highlight><highlight class="normal">};</highlight></codeline>
+<codeline lineno="60"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>obs_counter_<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="61"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="62"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal">}<sp/><sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>iros_llm_rviz_tool</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="include/iros_llm_rviz_tool/place_obstacle_tool.hpp"/>
+  </compounddef>
+</doxygen>

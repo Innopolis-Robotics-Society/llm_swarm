@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['llmpanel_32',['LlmPanel',['../classiros__llm__rviz__panel_1_1LlmPanel.html',1,'iros_llm_rviz_panel']]]
+  ['gridmap_34',['GridMap',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_swarm_mapf/generated/doxygen/html/structGridMap.html',1,'']]]
 ];

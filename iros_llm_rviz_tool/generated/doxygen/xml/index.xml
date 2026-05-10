@@ -1,10 +1,54 @@
 <?xml version='1.0' encoding='UTF-8' standalone='no'?>
 <doxygenindex xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="index.xsd" version="1.9.1" xml:lang="en-US">
+  <compound refid="classiros__llm__rviz__tool_1_1DoorTool" kind="class"><name>iros_llm_rviz_tool::DoorTool</name>
+    <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a8652e1f06f689867ab27ec46727a60db" kind="typedef"><name>ListObstacles</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a2b9706bc827e86f8e5cf42160b1d06ca" kind="typedef"><name>OpenDoor</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a0d0a8637a58b249e999b534000df0d87" kind="typedef"><name>CloseDoor</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a25a41a738e27e4a2c28f35e41d60dc12" kind="variable"><name>node_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a5f56b946edfd2c8a45daf25cb7b5875e" kind="variable"><name>list_client_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a339cca5b7057c489f03cfe2047ba4811" kind="variable"><name>open_client_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a320683fbd2385a389bf90116923a10b9" kind="variable"><name>close_client_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a28126532dfe9fce19689deb8abdd422b" kind="variable"><name>pending_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1DoorTool_1ae0d0abb4dde4cb68ac4bc4ce0f4b0199" kind="function"><name>DoorTool</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a2912b72006d85539c685bc096e1731e8" kind="function"><name>~DoorTool</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1DoorTool_1add799443119bed99867eecd812fcadc3" kind="function"><name>onInitialize</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1DoorTool_1ae79dabbf2184e6ccd4c2d57e61f36b73" kind="function"><name>activate</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1DoorTool_1ac8ddaa749294e2c6bb9742f532d0ea75" kind="function"><name>deactivate</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a0f273454e69304c8037bea2c5e7195b5" kind="function"><name>processMouseEvent</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1DoorTool_1ab43d6ad002a85ba5c8f9b749ba650ac9" kind="function"><name>getGroundPosition</name></member>
+  </compound>
   <compound refid="structiros__llm__rviz__tool_1_1MapBounds" kind="struct"><name>iros_llm_rviz_tool::MapBounds</name>
     <member refid="structiros__llm__rviz__tool_1_1MapBounds_1a1be10862c27bfdbd942615db902c411d" kind="variable"><name>x_min</name></member>
     <member refid="structiros__llm__rviz__tool_1_1MapBounds_1a44c9b8b6607ecef4597730d9046e0e46" kind="variable"><name>x_max</name></member>
     <member refid="structiros__llm__rviz__tool_1_1MapBounds_1a7db316c1f6ce778528e6005672b16ae3" kind="variable"><name>y_min</name></member>
     <member refid="structiros__llm__rviz__tool_1_1MapBounds_1a7ac39befc3bb156587576fd8e993a5f0" kind="variable"><name>y_max</name></member>
+  </compound>
+  <compound refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool" kind="class"><name>iros_llm_rviz_tool::PlaceObstacleTool</name>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1ae1a3706c116ecdae8865e1ea5e6650aa" kind="typedef"><name>AddCircle</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1a026612ba6972a402a284befbd1263ec7" kind="typedef"><name>AddRectangle</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1a41e9ea65ff169f10b5d8e2a3c402ed0b" kind="typedef"><name>AddDoor</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1a34baacc48049243debd5b7784c28547c" kind="typedef"><name>ListObstacles</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1aefd495126410c7e2f1174cda93fad95d" kind="typedef"><name>RemoveObstacle</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1a8b4d1a29cde386788e354a4a706aa4b5" kind="variable"><name>node_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1af13bbb016ed61f19ce47b7eab33cbee3" kind="variable"><name>circle_client_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1a1993a185acd2c5a3986cc2d6585df086" kind="variable"><name>rect_client_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1a6cd16a46adf462150ce29d82e6a9936c" kind="variable"><name>door_client_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1ad8df18d422f6ed8d847c468c356c212a" kind="variable"><name>list_client_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1ae4a97e3faac3ca0d06514dab9e2b818c" kind="variable"><name>remove_client_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1a2b2d04aa5dff659101eeea2c111ab3b5" kind="variable"><name>shape_prop_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1a09a99850a4bdb9581a895bd2ae306f9e" kind="variable"><name>radius_prop_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1a78f6c1a8e6f6adec2af8f0d5799230a8" kind="variable"><name>width_prop_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1a4439966dd013d82d222397da5b2f79e6" kind="variable"><name>height_prop_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1a279eb1112bd39c4454f3a30adf0a502b" kind="variable"><name>is_open_prop_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1accde227a91f14799b43b6547a5d809ac" kind="variable"><name>pending_remove_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1aed4cfbbd5dd15021eccb2391fac812fb" kind="variable"><name>obs_counter_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1a0b3095b1c4789550b615d6d03b707c2f" kind="function"><name>PlaceObstacleTool</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1a51b16fad4a524fd3d1b72678b36ec47a" kind="function"><name>~PlaceObstacleTool</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1a8e4a258ea933f3ca069813dd6d85a662" kind="function"><name>onInitialize</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1ad631abcaaadc7a203c60a729baafabcc" kind="function"><name>activate</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1af0c7296e11a19ef74bf643b48f48e3a6" kind="function"><name>deactivate</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1a9b815a8962d8f47eafd4a3f9a1c31990" kind="function"><name>processMouseEvent</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1abd45cf0541fe36a1fc878a661ac5b9b6" kind="function"><name>getGroundPosition</name></member>
   </compound>
   <compound refid="structiros__llm__rviz__tool_1_1RobotGroup" kind="struct"><name>iros_llm_rviz_tool::RobotGroup</name>
     <member refid="structiros__llm__rviz__tool_1_1RobotGroup_1a06219d5db429ec43679e428add2ed2ca" kind="variable"><name>color</name></member>
@@ -27,9 +71,15 @@
   </compound>
   <compound refid="namespaceiros__llm__rviz__tool" kind="namespace"><name>iros_llm_rviz_tool</name>
   </compound>
+  <compound refid="namespacerviz__common" kind="namespace"><name>rviz_common</name>
+  </compound>
   <compound refid="namespacerviz__default__plugins" kind="namespace"><name>rviz_default_plugins</name>
   </compound>
   <compound refid="namespacerviz__default__plugins_1_1tools" kind="namespace"><name>rviz_default_plugins::tools</name>
+  </compound>
+  <compound refid="door__tool_8hpp" kind="file"><name>door_tool.hpp</name>
+  </compound>
+  <compound refid="place__obstacle__tool_8hpp" kind="file"><name>place_obstacle_tool.hpp</name>
   </compound>
   <compound refid="send__llm__goal__tool_8hpp" kind="file"><name>send_llm_goal_tool.hpp</name>
   </compound>

@@ -1,0 +1,122 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="door__tool_8hpp" kind="file" language="C++">
+    <compoundname>door_tool.hpp</compoundname>
+    <includes local="no">atomic</includes>
+    <includes local="no">limits</includes>
+    <includes local="no">memory</includes>
+    <includes local="no">rclcpp/rclcpp.hpp</includes>
+    <includes local="no">rviz_common/tool.hpp</includes>
+    <includes local="no">rviz_common/viewport_mouse_event.hpp</includes>
+    <includes local="yes">iros_llm_swarm_interfaces/srv/list_obstacles.hpp</includes>
+    <includes local="yes">iros_llm_swarm_interfaces/srv/open_door.hpp</includes>
+    <includes local="yes">iros_llm_swarm_interfaces/srv/close_door.hpp</includes>
+    <incdepgraph>
+      <node id="2">
+        <label>atomic</label>
+      </node>
+      <node id="6">
+        <label>rviz_common/tool.hpp</label>
+      </node>
+      <node id="3">
+        <label>limits</label>
+      </node>
+      <node id="8">
+        <label>iros_llm_swarm_interfaces/srv/list_obstacles.hpp</label>
+      </node>
+      <node id="7">
+        <label>rviz_common/viewport_mouse_event.hpp</label>
+      </node>
+      <node id="9">
+        <label>iros_llm_swarm_interfaces/srv/open_door.hpp</label>
+      </node>
+      <node id="5">
+        <label>rclcpp/rclcpp.hpp</label>
+      </node>
+      <node id="10">
+        <label>iros_llm_swarm_interfaces/srv/close_door.hpp</label>
+      </node>
+      <node id="1">
+        <label>include/iros_llm_rviz_tool/door_tool.hpp</label>
+        <link refid="door__tool_8hpp"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>memory</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classiros__llm__rviz__tool_1_1DoorTool" prot="public">iros_llm_rviz_tool::DoorTool</innerclass>
+    <innernamespace refid="namespaceiros__llm__rviz__tool">iros_llm_rviz_tool</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;atomic&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;limits&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;memory&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;rclcpp/rclcpp.hpp&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;rviz_common/tool.hpp&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;rviz_common/viewport_mouse_event.hpp&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;iros_llm_swarm_interfaces/srv/list_obstacles.hpp&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;iros_llm_swarm_interfaces/srv/open_door.hpp&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;iros_llm_swarm_interfaces/srv/close_door.hpp&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="keyword">namespace<sp/></highlight><highlight class="normal">iros_llm_rviz_tool</highlight></codeline>
+<codeline lineno="16"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="classiros__llm__rviz__tool_1_1DoorTool" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classiros__llm__rviz__tool_1_1DoorTool" kindref="compound">DoorTool</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>rviz_common::Tool</highlight></codeline>
+<codeline lineno="19"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/>Q_OBJECT</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/>ListObstacles<sp/>=<sp/>iros_llm_swarm_interfaces::srv::ListObstacles;</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/>OpenDoor<sp/><sp/><sp/><sp/><sp/><sp/>=<sp/>iros_llm_swarm_interfaces::srv::OpenDoor;</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">using</highlight><highlight class="normal"><sp/>CloseDoor<sp/><sp/><sp/><sp/><sp/>=<sp/>iros_llm_swarm_interfaces::srv::CloseDoor;</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"></highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><ref refid="classiros__llm__rviz__tool_1_1DoorTool" kindref="compound">DoorTool</ref>();</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>~<ref refid="classiros__llm__rviz__tool_1_1DoorTool" kindref="compound">DoorTool</ref>()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal"><sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>onInitialize()<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="31"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>activate()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>deactivate()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="33"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/><sp/>processMouseEvent(rviz_common::ViewportMouseEvent<sp/>&amp;<sp/>event)<sp/></highlight><highlight class="keyword">override</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"></highlight></codeline>
+<codeline lineno="35"><highlight class="normal"></highlight><highlight class="keyword">private</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>getGroundPosition(rviz_common::ViewportMouseEvent<sp/>&amp;<sp/>event,<sp/></highlight><highlight class="keywordtype">double</highlight><highlight class="normal"><sp/>&amp;<sp/>wx,<sp/></highlight><highlight class="keywordtype">double</highlight><highlight class="normal"><sp/>&amp;<sp/>wy);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"></highlight></codeline>
+<codeline lineno="38"><highlight class="normal"><sp/><sp/>rclcpp::Node::SharedPtr<sp/>node_;</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/>rclcpp::Client&lt;ListObstacles&gt;::SharedPtr<sp/>list_client_;</highlight></codeline>
+<codeline lineno="41"><highlight class="normal"><sp/><sp/>rclcpp::Client&lt;OpenDoor&gt;::SharedPtr<sp/><sp/><sp/><sp/><sp/><sp/>open_client_;</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>rclcpp::Client&lt;CloseDoor&gt;::SharedPtr<sp/><sp/><sp/><sp/><sp/>close_client_;</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"></highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/>std::atomic&lt;bool&gt;<sp/>pending_{</highlight><highlight class="keyword">false</highlight><highlight class="normal">};</highlight></codeline>
+<codeline lineno="45"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal">}<sp/><sp/></highlight><highlight class="comment">//<sp/>namespace<sp/>iros_llm_rviz_tool</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="include/iros_llm_rviz_tool/door_tool.hpp"/>
+  </compounddef>
+</doxygen>

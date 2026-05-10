@@ -1,5 +1,6 @@
 var searchData=
 [
-  ['reservationtable_38',['ReservationTable',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_swarm_mapf/generated/doxygen/html/classReservationTable.html',1,'']]],
-  ['robotgroup_39',['RobotGroup',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_rviz_tool/generated/doxygen/html/structiros__llm__rviz__tool_1_1RobotGroup.html',1,'iros_llm_rviz_tool']]]
+  ['pbssolver_39',['PBSSolver',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_swarm_mapf/generated/doxygen/html/classPBSSolver.html',1,'']]],
+  ['placeobstacletool_40',['PlaceObstacleTool',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_rviz_tool/generated/doxygen/html/classiros__llm__rviz__tool_1_1PlaceObstacleTool.html',1,'iros_llm_rviz_tool']]],
+  ['prioritygraph_41',['PriorityGraph',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_swarm_mapf/generated/doxygen/html/classPriorityGraph.html',1,'']]]
 ];

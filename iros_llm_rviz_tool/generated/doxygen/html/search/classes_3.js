@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['gridmap_26',['GridMap',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_swarm_mapf/generated/doxygen/html/structGridMap.html',1,'']]]
+  ['euclideanastarplanner_28',['EuclideanAStarPlanner',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_swarm_mapf/generated/doxygen/html/classEuclideanAStarPlanner.html',1,'']]]
 ];

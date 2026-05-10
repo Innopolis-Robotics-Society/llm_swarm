@@ -1,0 +1,271 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classiros__llm__rviz__tool_1_1DoorTool" kind="class" language="C++" prot="public">
+    <compoundname>iros_llm_rviz_tool::DoorTool</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">rviz_common::Tool</basecompoundref>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classiros__llm__rviz__tool_1_1DoorTool_1a8652e1f06f689867ab27ec46727a60db" prot="public" static="no">
+        <type>iros_llm_swarm_interfaces::srv::ListObstacles</type>
+        <definition>using iros_llm_rviz_tool::DoorTool::ListObstacles =  iros_llm_swarm_interfaces::srv::ListObstacles</definition>
+        <argsstring></argsstring>
+        <name>ListObstacles</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/door_tool.hpp" line="23" column="3" bodyfile="include/iros_llm_rviz_tool/door_tool.hpp" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classiros__llm__rviz__tool_1_1DoorTool_1a2b9706bc827e86f8e5cf42160b1d06ca" prot="public" static="no">
+        <type>iros_llm_swarm_interfaces::srv::OpenDoor</type>
+        <definition>using iros_llm_rviz_tool::DoorTool::OpenDoor =  iros_llm_swarm_interfaces::srv::OpenDoor</definition>
+        <argsstring></argsstring>
+        <name>OpenDoor</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/door_tool.hpp" line="24" column="3" bodyfile="include/iros_llm_rviz_tool/door_tool.hpp" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classiros__llm__rviz__tool_1_1DoorTool_1a0d0a8637a58b249e999b534000df0d87" prot="public" static="no">
+        <type>iros_llm_swarm_interfaces::srv::CloseDoor</type>
+        <definition>using iros_llm_rviz_tool::DoorTool::CloseDoor =  iros_llm_swarm_interfaces::srv::CloseDoor</definition>
+        <argsstring></argsstring>
+        <name>CloseDoor</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/door_tool.hpp" line="25" column="3" bodyfile="include/iros_llm_rviz_tool/door_tool.hpp" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1DoorTool_1a25a41a738e27e4a2c28f35e41d60dc12" prot="private" static="no" mutable="no">
+        <type>rclcpp::Node::SharedPtr</type>
+        <definition>rclcpp::Node::SharedPtr iros_llm_rviz_tool::DoorTool::node_</definition>
+        <argsstring></argsstring>
+        <name>node_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/door_tool.hpp" line="38" column="27" bodyfile="include/iros_llm_rviz_tool/door_tool.hpp" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1DoorTool_1a5f56b946edfd2c8a45daf25cb7b5875e" prot="private" static="no" mutable="no">
+        <type>rclcpp::Client&lt; ListObstacles &gt;::SharedPtr</type>
+        <definition>rclcpp::Client&lt;ListObstacles&gt;::SharedPtr iros_llm_rviz_tool::DoorTool::list_client_</definition>
+        <argsstring></argsstring>
+        <name>list_client_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/door_tool.hpp" line="40" column="30" bodyfile="include/iros_llm_rviz_tool/door_tool.hpp" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1DoorTool_1a339cca5b7057c489f03cfe2047ba4811" prot="private" static="no" mutable="no">
+        <type>rclcpp::Client&lt; OpenDoor &gt;::SharedPtr</type>
+        <definition>rclcpp::Client&lt;OpenDoor&gt;::SharedPtr iros_llm_rviz_tool::DoorTool::open_client_</definition>
+        <argsstring></argsstring>
+        <name>open_client_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/door_tool.hpp" line="41" column="35" bodyfile="include/iros_llm_rviz_tool/door_tool.hpp" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1DoorTool_1a320683fbd2385a389bf90116923a10b9" prot="private" static="no" mutable="no">
+        <type>rclcpp::Client&lt; CloseDoor &gt;::SharedPtr</type>
+        <definition>rclcpp::Client&lt;CloseDoor&gt;::SharedPtr iros_llm_rviz_tool::DoorTool::close_client_</definition>
+        <argsstring></argsstring>
+        <name>close_client_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/door_tool.hpp" line="42" column="34" bodyfile="include/iros_llm_rviz_tool/door_tool.hpp" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1DoorTool_1a28126532dfe9fce19689deb8abdd422b" prot="private" static="no" mutable="no">
+        <type>std::atomic&lt; bool &gt;</type>
+        <definition>std::atomic&lt;bool&gt; iros_llm_rviz_tool::DoorTool::pending_</definition>
+        <argsstring></argsstring>
+        <name>pending_</name>
+        <initializer>{false}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/door_tool.hpp" line="44" column="15" bodyfile="include/iros_llm_rviz_tool/door_tool.hpp" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1DoorTool_1ae0d0abb4dde4cb68ac4bc4ce0f4b0199" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>iros_llm_rviz_tool::DoorTool::DoorTool</definition>
+        <argsstring>()</argsstring>
+        <name>DoorTool</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/door_tool.hpp" line="27" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1DoorTool_1a2912b72006d85539c685bc096e1731e8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>iros_llm_rviz_tool::DoorTool::~DoorTool</definition>
+        <argsstring>() override=default</argsstring>
+        <name>~DoorTool</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/door_tool.hpp" line="28" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1DoorTool_1add799443119bed99867eecd812fcadc3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_tool::DoorTool::onInitialize</definition>
+        <argsstring>() override</argsstring>
+        <name>onInitialize</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/door_tool.hpp" line="30" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1DoorTool_1ae79dabbf2184e6ccd4c2d57e61f36b73" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_tool::DoorTool::activate</definition>
+        <argsstring>() override</argsstring>
+        <name>activate</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/door_tool.hpp" line="31" column="8" bodyfile="include/iros_llm_rviz_tool/door_tool.hpp" bodystart="31" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1DoorTool_1ac8ddaa749294e2c6bb9742f532d0ea75" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_tool::DoorTool::deactivate</definition>
+        <argsstring>() override</argsstring>
+        <name>deactivate</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/door_tool.hpp" line="32" column="8" bodyfile="include/iros_llm_rviz_tool/door_tool.hpp" bodystart="32" bodyend="32"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1DoorTool_1a0f273454e69304c8037bea2c5e7195b5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int iros_llm_rviz_tool::DoorTool::processMouseEvent</definition>
+        <argsstring>(rviz_common::ViewportMouseEvent &amp;event) override</argsstring>
+        <name>processMouseEvent</name>
+        <param>
+          <type>rviz_common::ViewportMouseEvent &amp;</type>
+          <declname>event</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/door_tool.hpp" line="33" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1DoorTool_1ab43d6ad002a85ba5c8f9b749ba650ac9" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool iros_llm_rviz_tool::DoorTool::getGroundPosition</definition>
+        <argsstring>(rviz_common::ViewportMouseEvent &amp;event, double &amp;wx, double &amp;wy)</argsstring>
+        <name>getGroundPosition</name>
+        <param>
+          <type>rviz_common::ViewportMouseEvent &amp;</type>
+          <declname>event</declname>
+        </param>
+        <param>
+          <type>double &amp;</type>
+          <declname>wx</declname>
+        </param>
+        <param>
+          <type>double &amp;</type>
+          <declname>wy</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/door_tool.hpp" line="36" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>iros_llm_rviz_tool::DoorTool</label>
+        <link refid="classiros__llm__rviz__tool_1_1DoorTool"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>rviz_common::Tool</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>iros_llm_rviz_tool::DoorTool</label>
+        <link refid="classiros__llm__rviz__tool_1_1DoorTool"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>rviz_common::Tool</label>
+      </node>
+    </collaborationgraph>
+    <location file="include/iros_llm_rviz_tool/door_tool.hpp" line="18" column="1" bodyfile="include/iros_llm_rviz_tool/door_tool.hpp" bodystart="19" bodyend="45"/>
+    <listofallmembers>
+      <member refid="classiros__llm__rviz__tool_1_1DoorTool_1ae79dabbf2184e6ccd4c2d57e61f36b73" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::DoorTool</scope><name>activate</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a320683fbd2385a389bf90116923a10b9" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::DoorTool</scope><name>close_client_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a0d0a8637a58b249e999b534000df0d87" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::DoorTool</scope><name>CloseDoor</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1DoorTool_1ac8ddaa749294e2c6bb9742f532d0ea75" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::DoorTool</scope><name>deactivate</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1DoorTool_1ae0d0abb4dde4cb68ac4bc4ce0f4b0199" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::DoorTool</scope><name>DoorTool</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1DoorTool_1ab43d6ad002a85ba5c8f9b749ba650ac9" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::DoorTool</scope><name>getGroundPosition</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a5f56b946edfd2c8a45daf25cb7b5875e" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::DoorTool</scope><name>list_client_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a8652e1f06f689867ab27ec46727a60db" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::DoorTool</scope><name>ListObstacles</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a25a41a738e27e4a2c28f35e41d60dc12" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::DoorTool</scope><name>node_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1DoorTool_1add799443119bed99867eecd812fcadc3" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::DoorTool</scope><name>onInitialize</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a339cca5b7057c489f03cfe2047ba4811" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::DoorTool</scope><name>open_client_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a2b9706bc827e86f8e5cf42160b1d06ca" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::DoorTool</scope><name>OpenDoor</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a28126532dfe9fce19689deb8abdd422b" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::DoorTool</scope><name>pending_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a0f273454e69304c8037bea2c5e7195b5" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::DoorTool</scope><name>processMouseEvent</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1DoorTool_1a2912b72006d85539c685bc096e1731e8" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::DoorTool</scope><name>~DoorTool</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

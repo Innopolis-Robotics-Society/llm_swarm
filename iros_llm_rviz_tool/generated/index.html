@@ -52,6 +52,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#full-c-api">Full C++ API</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#namespaces">Namespaces</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="namespace_iros_llm_rviz_tool.html">Namespace iros_llm_rviz_tool</a></li>
+<li class="toctree-l4"><a class="reference internal" href="namespace_rviz_common.html">Namespace rviz_common</a></li>
 <li class="toctree-l4"><a class="reference internal" href="namespace_rviz_default_plugins.html">Namespace rviz_default_plugins</a></li>
 <li class="toctree-l4"><a class="reference internal" href="namespace_rviz_default_plugins__tools.html">Namespace rviz_default_plugins::tools</a></li>
 </ul>
@@ -59,6 +60,8 @@
 <li class="toctree-l3"><a class="reference internal" href="#classes-and-structs">Classes and Structs</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="structiros__llm__rviz__tool_1_1MapBounds.html">Struct MapBounds</a></li>
 <li class="toctree-l4"><a class="reference internal" href="structiros__llm__rviz__tool_1_1RobotGroup.html">Struct RobotGroup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classiros__llm__rviz__tool_1_1DoorTool.html">Class DoorTool</a></li>
+<li class="toctree-l4"><a class="reference internal" href="classiros__llm__rviz__tool_1_1PlaceObstacleTool.html">Class PlaceObstacleTool</a></li>
 <li class="toctree-l4"><a class="reference internal" href="classiros__llm__rviz__tool_1_1SendLlmGoalTool.html">Class SendLlmGoalTool</a></li>
 </ul>
 </li>
@@ -68,6 +71,8 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#files">Files</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_rviz_tool_door_tool.hpp.html">File door_tool.hpp</a></li>
+<li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_rviz_tool_place_obstacle_tool.hpp.html">File place_obstacle_tool.hpp</a></li>
 <li class="toctree-l4"><a class="reference internal" href="file_include_iros_llm_rviz_tool_send_llm_goal_tool.hpp.html">File send_llm_goal_tool.hpp</a></li>
 </ul>
 </li>
@@ -115,7 +120,7 @@
 <ul class="treeView" id="class-treeView">
   <li>
     <ul class="collapsibleList">
-      <li>Namespace <a href="namespace_iros_llm_rviz_tool.html#namespace-iros-llm-rviz-tool">iros_llm_rviz_tool</a><ul><li>Struct <a href="structiros__llm__rviz__tool_1_1MapBounds.html#exhale-struct-structiros-llm-rviz-tool-1-1MapBounds">MapBounds</a></li><li>Struct <a href="structiros__llm__rviz__tool_1_1RobotGroup.html#exhale-struct-structiros-llm-rviz-tool-1-1RobotGroup">RobotGroup</a></li><li class="lastChild">Class <a href="classiros__llm__rviz__tool_1_1SendLlmGoalTool.html#exhale-class-classiros-llm-rviz-tool-1-1SendLlmGoalTool">SendLlmGoalTool</a></li></ul></li>
+      <li>Namespace <a href="namespace_iros_llm_rviz_tool.html#namespace-iros-llm-rviz-tool">iros_llm_rviz_tool</a><ul><li>Struct <a href="structiros__llm__rviz__tool_1_1MapBounds.html#exhale-struct-structiros-llm-rviz-tool-1-1MapBounds">MapBounds</a></li><li>Struct <a href="structiros__llm__rviz__tool_1_1RobotGroup.html#exhale-struct-structiros-llm-rviz-tool-1-1RobotGroup">RobotGroup</a></li><li>Class <a href="classiros__llm__rviz__tool_1_1DoorTool.html#exhale-class-classiros-llm-rviz-tool-1-1DoorTool">DoorTool</a></li><li>Class <a href="classiros__llm__rviz__tool_1_1PlaceObstacleTool.html#exhale-class-classiros-llm-rviz-tool-1-1PlaceObstacleTool">PlaceObstacleTool</a></li><li class="lastChild">Class <a href="classiros__llm__rviz__tool_1_1SendLlmGoalTool.html#exhale-class-classiros-llm-rviz-tool-1-1SendLlmGoalTool">SendLlmGoalTool</a></li></ul></li>
     </ul>
   </li><!-- only tree view element -->
 </ul><!-- /treeView class-treeView --></section>
@@ -124,7 +129,7 @@
 <ul class="treeView" id="file-treeView">
   <li>
     <ul class="collapsibleList">
-      <li class="lastChild">Directory <a href="dir_include.html#dir-include">include</a><ul><li class="lastChild">Directory <a href="dir_include_iros_llm_rviz_tool.html#dir-include-iros-llm-rviz-tool">iros_llm_rviz_tool</a><ul><li class="lastChild">File <a href="file_include_iros_llm_rviz_tool_send_llm_goal_tool.hpp.html#file-include-iros-llm-rviz-tool-send-llm-goal-tool.hpp">send_llm_goal_tool.hpp</a></li></ul></li></ul></li>
+      <li class="lastChild">Directory <a href="dir_include.html#dir-include">include</a><ul><li class="lastChild">Directory <a href="dir_include_iros_llm_rviz_tool.html#dir-include-iros-llm-rviz-tool">iros_llm_rviz_tool</a><ul><li>File <a href="file_include_iros_llm_rviz_tool_door_tool.hpp.html#file-include-iros-llm-rviz-tool-door-tool.hpp">door_tool.hpp</a></li><li>File <a href="file_include_iros_llm_rviz_tool_place_obstacle_tool.hpp.html#file-include-iros-llm-rviz-tool-place-obstacle-tool.hpp">place_obstacle_tool.hpp</a></li><li class="lastChild">File <a href="file_include_iros_llm_rviz_tool_send_llm_goal_tool.hpp.html#file-include-iros-llm-rviz-tool-send-llm-goal-tool.hpp">send_llm_goal_tool.hpp</a></li></ul></li></ul></li>
     </ul>
   </li><!-- only tree view element -->
 </ul><!-- /treeView file-treeView --></section>
@@ -135,6 +140,11 @@
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="namespace_iros_llm_rviz_tool.html">Namespace iros_llm_rviz_tool</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="namespace_rviz_common.html">Namespace rviz_common</a></li>
 </ul>
 </div>
 <div class="toctree-wrapper compound">
@@ -162,6 +172,16 @@
 </div>
 <div class="toctree-wrapper compound">
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="classiros__llm__rviz__tool_1_1DoorTool.html">Class DoorTool</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="classiros__llm__rviz__tool_1_1PlaceObstacleTool.html">Class PlaceObstacleTool</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="classiros__llm__rviz__tool_1_1SendLlmGoalTool.html">Class SendLlmGoalTool</a></li>
 </ul>
 </div>
@@ -181,6 +201,16 @@
 </section>
 <section id="files">
 <h3>Files<a class="headerlink" href="#files" title="Link to this heading"></a></h3>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="file_include_iros_llm_rviz_tool_door_tool.hpp.html">File door_tool.hpp</a></li>
+</ul>
+</div>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="file_include_iros_llm_rviz_tool_place_obstacle_tool.hpp.html">File place_obstacle_tool.hpp</a></li>
+</ul>
+</div>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="file_include_iros_llm_rviz_tool_send_llm_goal_tool.hpp.html">File send_llm_goal_tool.hpp</a></li>
