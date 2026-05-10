@@ -26,6 +26,7 @@ Examples:
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
+    ExecuteProcess,
     IncludeLaunchDescription,
     LogInfo,
     TimerAction,
@@ -73,6 +74,13 @@ def generate_launch_description():
         choices=['true', 'false'],
         description='Enable proactive LLM channel 2 (passive observer).',
     )
+    enable_rosbridge_arg = DeclareLaunchArgument(
+        'enable_rosbridge',
+        default_value='true',
+        choices=['true', 'false'],
+        description='Start rosbridge_server on port 9090 for default MCP '
+                    'read-only context.',
+    )
     llm_backend_arg = DeclareLaunchArgument(
         'llm_backend',
         default_value='http',
@@ -118,6 +126,7 @@ def generate_launch_description():
     num_robots       = LaunchConfiguration('num_robots')
     use_sim_time     = LaunchConfiguration('use_sim_time')
     enable_passive   = LaunchConfiguration('enable_passive_observer')
+    enable_rosbridge = LaunchConfiguration('enable_rosbridge')
     llm_backend      = LaunchConfiguration('llm_backend')
     llm_endpoint     = LaunchConfiguration('llm_endpoint')
     llm_model        = LaunchConfiguration('llm_model')
@@ -128,6 +137,18 @@ def generate_launch_description():
     is_lns        = IfCondition(PythonExpression(["'", planner, "' == 'lns'"]))
     is_pbs        = IfCondition(PythonExpression(["'", planner, "' == 'pbs'"]))
     use_formation = IfCondition(enable_formation)
+    use_rosbridge = IfCondition(enable_rosbridge)
+
+    rosbridge_notice = LogInfo(
+        msg='Starting rosbridge_server for MCP read-only context on port 9090...',
+        condition=use_rosbridge,
+    )
+    rosbridge = ExecuteProcess(
+        cmd=['ros2', 'launch', 'rosbridge_server',
+             'rosbridge_websocket_launch.xml'],
+        output='screen',
+        condition=use_rosbridge,
+    )
 
     # ----------------------------------------------------- foundational layers
     stage = IncludeLaunchDescription(
@@ -260,6 +281,7 @@ def generate_launch_description():
         num_robots_arg,
         use_sim_time_arg,
         enable_passive_arg,
+        enable_rosbridge_arg,
         llm_backend_arg,
         llm_endpoint_arg,
         llm_model_arg,
@@ -270,6 +292,8 @@ def generate_launch_description():
         # t=0
         stage,
         rviz,
+        rosbridge_notice,
+        rosbridge,
 
         TimerAction(period=1.0, actions=[
             LogInfo(msg='Starting per-robot Nav2 stack...'),

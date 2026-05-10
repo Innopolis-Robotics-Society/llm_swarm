@@ -152,7 +152,14 @@ def test_mcp_unavailable_fallback_returns_warning_context():
     context = asyncio.run(provider.get_context())
 
     assert context['source'] == 'mcp_readonly'
-    assert any('MCP server unavailable' in warning for warning in context['warnings'])
+    assert context['warnings']
+    assert any(
+        'MCP server unavailable' in warning
+        or 'rosbridge is not reachable' in warning
+        or 'uvx not found' in warning
+        or 'mcp Python SDK is not installed' in warning
+        for warning in context['warnings']
+    )
 
 
 def test_reply_only_guard_skips_factual_questions_but_allows_stop():

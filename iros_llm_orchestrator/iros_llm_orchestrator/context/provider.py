@@ -95,7 +95,8 @@ def make_context_provider(
         from iros_llm_orchestrator.context.mcp_readonly_provider import (
             McpReadonlyContextProvider,
         )
-        return McpReadonlyContextProvider(config)
+        logger = node.get_logger() if hasattr(node, 'get_logger') else None
+        return McpReadonlyContextProvider(config, logger=logger)
     return NoneContextProvider(config)
 
 

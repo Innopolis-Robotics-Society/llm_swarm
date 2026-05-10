@@ -271,9 +271,9 @@ class ChatServer(Node):
         context = bound_context(context, self._context_config.max_chars)
         source = context.get('source', 'unknown')
         if source != 'none':
-            warning_count = len(context.get('warnings') or [])
+            warnings = context.get('warnings') or []
             self.get_logger().info(
-                f'Chat runtime context source={source} warnings={warning_count}')
+                f'Chat runtime context source={source} warnings={warnings}')
         return context
 
     # ------------------------------------------------------------------
