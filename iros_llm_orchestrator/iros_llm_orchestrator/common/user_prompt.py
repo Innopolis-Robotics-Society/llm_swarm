@@ -252,6 +252,24 @@ def _bt_event_system() -> str:
     return _load_text('bt_event_system.txt')
 
 
+def _format_runtime_context(runtime_context: dict) -> str:
+    context_json = json.dumps(
+        runtime_context,
+        ensure_ascii=False,
+        separators=(',', ':'),
+    )
+    return (
+        'Read-only current ROS/system context for this chat turn.\n'
+        'Use it only as observed state. Do not claim direct ROS control, '
+        'do not invent missing state, and say when state is unknown or stale.\n'
+        'You must still return the existing JSON object with "reply" and '
+        '"plan". For factual state/status questions that require no robot '
+        'motion, answer in "reply" and return an idle no-op plan with a '
+        'reason starting with "reply_only:".\n'
+        f'Runtime context JSON:\n{context_json}'
+    )
+
+
 # ---------------------------------------------------------------------------
 # Public builders
 # ---------------------------------------------------------------------------
@@ -276,11 +294,20 @@ def build_user_prompt(
     history: list | None = None,
     map_name: str = 'warehouse',
     obstacle_context: str = '',
+    runtime_context: dict | None = None,
 ) -> list:
     system_content = _user_system(map_name)
+
     if obstacle_context:
         system_content += '\n\n' + obstacle_context
+
     messages = [{'role': 'system', 'content': system_content}]
+
+    if runtime_context and runtime_context.get('source') != 'none':
+        messages.append({
+            'role': 'system',
+            'content': _format_runtime_context(runtime_context),
+        })
     for ex in _get_examples(map_name):
         messages.append({'role': 'user',      'content': ex['user']})
         messages.append({'role': 'assistant', 'content': ex['out']})

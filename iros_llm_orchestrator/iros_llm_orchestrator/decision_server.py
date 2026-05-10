@@ -31,6 +31,10 @@ class LlmDecisionServer(Node):
         self.declare_parameter('llm_model',       '')
         self.declare_parameter('llm_max_tokens',  256)
         self.declare_parameter('llm_temperature', 0.2)
+        self.declare_parameter('llm_api_key',     '')
+        self.declare_parameter('llm_api_key_env', 'LLM_API_KEY')
+        self.declare_parameter('llm_force_chat',  True)
+        self.declare_parameter('llm_enable_stop', False)
         self.declare_parameter('timeout_sec',     10.0)
         self.declare_parameter('default_on_error','wait')
         self.declare_parameter('log_tail',        20)
@@ -47,6 +51,11 @@ class LlmDecisionServer(Node):
             model=model,
             max_tokens=int(self.get_parameter('llm_max_tokens').value),
             temperature=float(self.get_parameter('llm_temperature').value),
+            api_key=self.get_parameter('llm_api_key').value,
+            api_key_env=self.get_parameter('llm_api_key_env').value,
+            timeout=float(self.get_parameter('timeout_sec').value),
+            force_chat=bool(self.get_parameter('llm_force_chat').value),
+            enable_stop=bool(self.get_parameter('llm_enable_stop').value),
         )
         self._timeout       = float(self.get_parameter('timeout_sec').value)
         self._default       = self.get_parameter('default_on_error').value
@@ -77,6 +86,7 @@ class LlmDecisionServer(Node):
 
     async def _execute_async(self, goal_handle):
         req = goal_handle.request
+        self._publish_feedback(goal_handle, 'received')
         prompt = build_decision_prompt(
             DECISION_SCENARIOS, req.level, req.event, list(req.log_buffer), self._tail)
 
@@ -85,6 +95,7 @@ class LlmDecisionServer(Node):
 
         async with self._semaphore:
             try:
+                self._publish_feedback(goal_handle, 'thinking')
                 raw = await asyncio.wait_for(
                     self._llm.generate(prompt, prompt_kind='decision'),
                     timeout=self._timeout)
@@ -113,8 +124,15 @@ class LlmDecisionServer(Node):
 
         result = LlmDecision.Result()
         result.decision = decision
+        self._publish_feedback(goal_handle, 'done')
         goal_handle.succeed()
         return result
+
+    @staticmethod
+    def _publish_feedback(goal_handle, stage: str):
+        fb = LlmDecision.Feedback()
+        fb.stage = stage
+        goal_handle.publish_feedback(fb)
 
 
 def main(args=None):

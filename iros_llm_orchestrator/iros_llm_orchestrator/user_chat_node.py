@@ -22,10 +22,10 @@ from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from iros_llm_swarm_interfaces.action import LlmCommand
 from iros_llm_swarm_interfaces.msg import BTState
 
+from iros_llm_orchestrator.common.llm_factory import get_llm_client
 from iros_llm_orchestrator.common.plan_executor import PlanExecutor, parse_plan
 from iros_llm_orchestrator.common.user_prompt import (
     build_user_prompt, build_bt_event_prompt, load_map_config)
-from iros_llm_orchestrator.local.ollama_client import OllamaClient
 
 MAX_HISTORY   = 8
 CLUSTER_SPACE = 1.5
@@ -211,14 +211,19 @@ class UserChatNode(Node):
     def __init__(self):
         super().__init__('user_chat')
 
-        self.declare_parameter('llm_endpoint',    'http://localhost:11434/api/chat')
-        self.declare_parameter('llm_model',       'qwen2.5:14b')
-        self.declare_parameter('llm_max_tokens',  768)
-        self.declare_parameter('llm_temperature', 0.1)
-        self.declare_parameter('timeout_sec',     30.0)
-        self.declare_parameter('map_name',        'cave')
-        self.declare_parameter('log_enabled',     True)
-        self.declare_parameter('log_dir',         '~/.ros/user_chat_logs')
+        self.declare_parameter('llm_mode',         'ollama')
+        self.declare_parameter('llm_endpoint',     'http://localhost:11434/api/chat')
+        self.declare_parameter('llm_model',        'qwen2.5:14b')
+        self.declare_parameter('llm_max_tokens',   768)
+        self.declare_parameter('llm_temperature',  0.1)
+        self.declare_parameter('llm_api_key',      '')
+        self.declare_parameter('llm_api_key_env',  'LLM_API_KEY')
+        self.declare_parameter('llm_force_chat',   True)
+        self.declare_parameter('llm_enable_stop',  False)
+        self.declare_parameter('timeout_sec',      30.0)
+        self.declare_parameter('map_name',         'cave')
+        self.declare_parameter('log_enabled',      True)
+        self.declare_parameter('log_dir',          '~/.ros/user_chat_logs')
         self.declare_parameter('step_timeout_sec', 120.0)
 
         self._timeout      = float(self.get_parameter('timeout_sec').value)
@@ -229,14 +234,21 @@ class UserChatNode(Node):
 
         self._slog = _make_session_logger(log_dir) if log_enabled else logging.getLogger('null')
         self._slog.info(f'map={self._map_name}  '
+                        f'mode={self.get_parameter("llm_mode").value}  '
                         f'model={self.get_parameter("llm_model").value}  '
                         f'log_enabled={log_enabled}')
 
-        self._ollama = OllamaClient(
+        self._llm = get_llm_client(
+            mode=self.get_parameter('llm_mode').value,
             endpoint=self.get_parameter('llm_endpoint').value,
             model=self.get_parameter('llm_model').value,
             max_tokens=int(self.get_parameter('llm_max_tokens').value),
             temperature=float(self.get_parameter('llm_temperature').value),
+            api_key=self.get_parameter('llm_api_key').value,
+            api_key_env=self.get_parameter('llm_api_key_env').value,
+            timeout=self._timeout,
+            force_chat=bool(self.get_parameter('llm_force_chat').value),
+            enable_stop=bool(self.get_parameter('llm_enable_stop').value),
         )
         try:
             self._map_cfg = load_map_config(self._map_name)
@@ -429,7 +441,7 @@ class UserChatNode(Node):
             full_raw = await asyncio.wait_for(
                 self._stream_command(messages), timeout=self._timeout)
         except asyncio.TimeoutError:
-            self._out(f'\n  {ERR}  Timeout. Is Ollama running?  →  ollama serve')
+            self._out(f'\n  {ERR}  LLM backend timeout')
             self._slog.error('LLM timeout')
             self._prompt(); return
         except Exception as exc:
@@ -629,7 +641,7 @@ class UserChatNode(Node):
 
         print(f'{BOT} ', end='', flush=True)
 
-        async for chunk in self._ollama.stream(messages):
+        async for chunk in self._llm.stream(messages):
             full += chunk
 
             if state == AFTER_REPLY:
@@ -668,13 +680,13 @@ class UserChatNode(Node):
     async def _stream_all(self, messages: list[dict]) -> str:
         """Buffer full response without any output."""
         full = ''
-        async for chunk in self._ollama.stream(messages):
+        async for chunk in self._llm.stream(messages):
             full += chunk
         return full
 
     async def _stream_text(self, messages: list[dict]) -> str:
         full = ''
-        async for chunk in self._ollama.stream(messages):
+        async for chunk in self._llm.stream(messages):
             print(chunk, end='', flush=True)
             full += chunk
         return full
@@ -721,7 +733,8 @@ class UserChatNode(Node):
         log_dir_resolved = _resolve_log_dir(self.get_parameter('log_dir').value)
         log_info = (f'logs → {log_dir_resolved}'
                     if log_enabled else 'logging disabled')
-        print(f'\n  {BOT}  Swarm chat  |  model: {self._ollama.model}  |  map: {self._map_name}')
+        model = getattr(self._llm, 'model', self.get_parameter('llm_model').value)
+        print(f'\n  {BOT}  Swarm chat  |  model: {model}  |  map: {self._map_name}')
         print(f'       {desc}')
         print(f'       {log_info}')
         print('\n  Examples:')

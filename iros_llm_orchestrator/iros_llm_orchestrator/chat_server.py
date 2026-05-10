@@ -31,10 +31,19 @@ from iros_llm_swarm_interfaces.msg import LlmEvent
 from iros_llm_swarm_interfaces.srv import ListObstacles
 
 from iros_llm_orchestrator.common.leaf_sender import BTLeafSender
+from iros_llm_orchestrator.common.llm_factory import get_llm_client
 from iros_llm_orchestrator.common.plan_executor import PlanExecutor
 from iros_llm_orchestrator.common.user_prompt import (
     build_user_prompt, build_bt_event_prompt, load_map_config)
-from iros_llm_orchestrator.local.ollama_client import OllamaClient
+from iros_llm_orchestrator.context import (
+    DEFAULT_MCP_READ_TOOLS,
+    ChatContextConfig,
+    make_context_provider,
+)
+from iros_llm_orchestrator.context.no_execute import (
+    should_skip_reply_only_execution,
+)
+from iros_llm_orchestrator.context.provider import bound_context, utc_now
 from iros_llm_orchestrator.user_chat_node import _parse_response, _postprocess_plan
 
 MAX_HISTORY = 8   # conversation turns kept per session
@@ -44,28 +53,55 @@ class ChatServer(Node):
     def __init__(self):
         super().__init__('llm_chat_server')
 
+        self.declare_parameter('llm_mode',         'ollama')
         self.declare_parameter('llm_endpoint',     'http://localhost:11434/api/chat')
         self.declare_parameter('llm_model',        'qwen2.5:14b')
         self.declare_parameter('llm_max_tokens',   768)
         self.declare_parameter('llm_temperature',  0.1)
+        self.declare_parameter('llm_api_key',      '')
+        self.declare_parameter('llm_api_key_env',  'LLM_API_KEY')
+        self.declare_parameter('llm_force_chat',   True)
+        self.declare_parameter('llm_enable_stop',  False)
         self.declare_parameter('timeout_sec',      30.0)
         self.declare_parameter('step_timeout_sec', 120.0)
         self.declare_parameter('map_name',         'cave')
+        self.declare_parameter('context_provider', 'none')
+        self.declare_parameter('context_timeout_sec', 2.0)
+        self.declare_parameter('context_max_chars', 6000)
+        self.declare_parameter('context_include_bt_state', True)
+        self.declare_parameter('context_include_formations', True)
+        self.declare_parameter('context_include_map_summary', True)
+        self.declare_parameter('context_include_recent_events', True)
+        self.declare_parameter('mcp_enabled', False)
+        self.declare_parameter('mcp_transport', 'stdio')
+        self.declare_parameter('mcp_command', 'uvx')
+        self.declare_parameter('mcp_args', ['ros-mcp', '--transport=stdio'])
+        self.declare_parameter('mcp_tool_allowlist', list(DEFAULT_MCP_READ_TOOLS))
 
         self._timeout  = float(self.get_parameter('timeout_sec').value)
         self._map_name = self.get_parameter('map_name').value
 
-        self._ollama = OllamaClient(
+        mode = self.get_parameter('llm_mode').value
+        self._llm = get_llm_client(
+            mode=mode,
             endpoint=self.get_parameter('llm_endpoint').value,
             model=self.get_parameter('llm_model').value,
             max_tokens=int(self.get_parameter('llm_max_tokens').value),
             temperature=float(self.get_parameter('llm_temperature').value),
+            api_key=self.get_parameter('llm_api_key').value,
+            api_key_env=self.get_parameter('llm_api_key_env').value,
+            timeout=self._timeout,
+            force_chat=bool(self.get_parameter('llm_force_chat').value),
+            enable_stop=bool(self.get_parameter('llm_enable_stop').value),
         )
         try:
             self._map_cfg = load_map_config(self._map_name)
         except Exception as exc:
             self.get_logger().warn(f'Map config load failed: {exc}')
             self._map_cfg = {}
+
+        self._context_config = self._make_context_config()
+        self._context_provider = make_context_provider(self, self._context_config)
 
         self._sender = BTLeafSender(
             self,
@@ -106,7 +142,39 @@ class ChatServer(Node):
             goal_callback=lambda _: GoalResponse.ACCEPT,
             cancel_callback=lambda _: CancelResponse.ACCEPT,
         )
-        self.get_logger().info('LlmChatServer ready on /llm/chat')
+        self.get_logger().info(
+            f'LlmChatServer ready on /llm/chat '
+            f'(mode={mode}, context={self._context_config.provider})')
+
+    def _make_context_config(self) -> ChatContextConfig:
+        return ChatContextConfig(
+            provider=str(self.get_parameter('context_provider').value or 'none'),
+            timeout_sec=float(self.get_parameter('context_timeout_sec').value),
+            max_chars=int(self.get_parameter('context_max_chars').value),
+            include_bt_state=bool(
+                self.get_parameter('context_include_bt_state').value),
+            include_formations=bool(
+                self.get_parameter('context_include_formations').value),
+            include_map_summary=bool(
+                self.get_parameter('context_include_map_summary').value),
+            include_recent_events=bool(
+                self.get_parameter('context_include_recent_events').value),
+            map_name=str(self._map_name),
+            map_config=dict(self._map_cfg or {}),
+            mcp_enabled=bool(self.get_parameter('mcp_enabled').value),
+            mcp_transport=str(self.get_parameter('mcp_transport').value or 'stdio'),
+            mcp_command=str(self.get_parameter('mcp_command').value or 'uvx'),
+            mcp_args=self._param_string_list('mcp_args'),
+            mcp_tool_allowlist=self._param_string_list('mcp_tool_allowlist'),
+        )
+
+    def _param_string_list(self, name: str) -> list[str]:
+        value = self.get_parameter(name).value
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [value]
+        return [str(item) for item in list(value)]
 
     # ------------------------------------------------------------------
     # Action execute
@@ -136,10 +204,17 @@ class ChatServer(Node):
         result = LlmChat.Result()
 
         # ---- 1. Stream reply ----
-        messages = build_user_prompt(req.user_message, history=list(self._history),
-                                     map_name=self._map_name,
-                                     obstacle_context=self._get_obstacle_context())
         self._publish_fb(goal_handle, stage='thinking')
+
+        runtime_context = await self._get_runtime_context()
+
+        messages = build_user_prompt(
+            req.user_message,
+            history=list(self._history),
+            map_name=self._map_name,
+            obstacle_context=self._get_obstacle_context(),
+            runtime_context=runtime_context,
+        )
 
         try:
             full_raw = await asyncio.wait_for(
@@ -173,7 +248,14 @@ class ChatServer(Node):
                             reason=reply)
 
         # ---- 3. Optional execute ----
-        if req.execute_after_planning:
+        if req.execute_after_planning and should_skip_reply_only_execution(
+            req.user_message,
+            plan,
+            runtime_context,
+        ):
+            self.get_logger().info(
+                'Skipping PlanExecutor for reply-only context question')
+        elif req.execute_after_planning:
             self._publish_fb(goal_handle, stage='executing')
             executor = PlanExecutor(
                 send_fn=self._sender.send,
@@ -189,6 +271,37 @@ class ChatServer(Node):
         result.info    = ''
         goal_handle.succeed()
         return result
+
+    async def _get_runtime_context(self) -> dict:
+        try:
+            context = await asyncio.wait_for(
+                self._context_provider.get_context(),
+                timeout=max(0.1, float(self._context_config.timeout_sec)),
+            )
+        except Exception as exc:
+            context = {
+                'timestamp': utc_now(),
+                'source': self._context_config.provider,
+                'warnings': [
+                    f'Context provider failed; continuing without live context: {exc}',
+                ],
+            }
+        context = bound_context(context, self._context_config.max_chars)
+        source = context.get('source', 'unknown')
+        if source != 'none':
+            warnings = context.get('warnings') or []
+            self.get_logger().info(
+                f'Chat runtime context source={source} warnings={warnings}')
+        return context
+
+    def _get_obstacle_context(self) -> str:
+        heuristics = (self._map_cfg or {}).get('heuristics', '')
+        if not heuristics:
+            return ''
+        return (
+            'Obstacle and navigation constraints from the current map:\n'
+            f'{str(heuristics).strip()}'
+        )
 
     # ------------------------------------------------------------------
     # Reply streaming — emit only the JSON "reply" field via feedback
@@ -213,7 +326,7 @@ class ChatServer(Node):
         cap = max(len(m) for m in MARKERS)
 
         full = ''
-        async for chunk in self._ollama.stream(messages):
+        async for chunk in self._llm.stream(messages):
             full += chunk
             if state == AFTER:
                 continue
@@ -271,7 +384,7 @@ class ChatServer(Node):
     async def _collect_stream(self, messages: list[dict]) -> str:
         """Collect full streamed response into a string."""
         full = ''
-        async for chunk in self._ollama.stream(messages):
+        async for chunk in self._llm.stream(messages):
             full += chunk
         return full
 
