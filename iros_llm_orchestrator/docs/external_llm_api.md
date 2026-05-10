@@ -26,7 +26,37 @@ Default examples in `config/orchestrator.yaml` use:
 - Local vLLM: `http://localhost:8000/v1/chat/completions`
 
 For local offline demos without an API key, switch `llm_mode` back to `ollama`
-or `mock` in the relevant node parameters.
+or `mock`, or use the launch-time backend override.
+
+## Backend Choice
+
+External HTTP remains the default:
+
+```bash
+export LLM_API_KEY="your_key_here"
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py llm_backend:=http
+```
+
+Local Ollama is available without editing YAML:
+
+```bash
+ollama serve
+ollama pull qwen2.5:14b
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py llm_backend:=ollama
+```
+
+Override the local model if needed:
+
+```bash
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py \
+  llm_backend:=ollama llm_model:=qwen2.5:7b
+```
+
+The same arguments work when launching only the orchestrator:
+
+```bash
+ros2 launch iros_llm_orchestrator orchestrator.launch.py llm_backend:=ollama
+```
 
 ## Build And Launch
 

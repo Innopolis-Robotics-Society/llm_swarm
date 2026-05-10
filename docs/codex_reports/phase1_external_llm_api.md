@@ -11,25 +11,28 @@
 - `iros_llm_orchestrator/iros_llm_orchestrator/decision_server.py` — added HTTP API auth/routing params and passed them into the factory for channel 1 compatibility.
 - `iros_llm_orchestrator/iros_llm_orchestrator/passive_observer.py` — added the same HTTP API auth/routing params for channel 2 compatibility while keeping the observer disabled by default.
 - `iros_llm_orchestrator/config/orchestrator.yaml` — switched LLM-capable nodes to editable OpenAI-compatible HTTP defaults, kept API key values empty, preserved local/Ollama/OpenRouter/vLLM examples as comments, and kept passive observer disabled.
-- `iros_llm_orchestrator/launch/orchestrator.launch.py` — explicitly propagates `LLM_API_KEY` to decision, passive observer, and chat nodes.
+- `iros_llm_orchestrator/launch/orchestrator.launch.py` — explicitly propagates `LLM_API_KEY` to decision, passive observer, and chat nodes; added `llm_backend`, `llm_endpoint`, and `llm_model` launch overrides so local Ollama can be selected without editing YAML.
+- `iros_llm_swarm_bringup/launch/swarm_full_demo.launch.py` — passes the LLM backend override arguments through to the orchestrator include.
 - `.gitignore` — added ignore patterns for env files, API-key files, and `secrets/`.
-- `iros_llm_orchestrator/docs/external_llm_api.md` — added setup, launch, provider notes, preview smoke test, and secret-handling guidance for Phase 1.
+- `iros_llm_orchestrator/docs/external_llm_api.md` — added setup, launch, provider notes, preview smoke test, secret-handling guidance, and local Ollama backend examples.
+- `iros_llm_swarm_bringup/docs/smoke_test_demo.md` — added a short local Ollama launch variant for the full demo smoke test.
 - `iros_llm_orchestrator/test/test_http_client.py` — added unit coverage for auth headers, env-key lookup, chat/completions routing, SSE chunk parsing, fallback streaming, response extraction, and error redaction.
 - `iros_llm_orchestrator/test/test_chat_server_backend.py` — added a static guard that `/llm/chat` uses the backend factory instead of constructing `OllamaClient` directly.
 - `iros_llm_orchestrator/test/test_decision_server.py` — updated stale test field access to the current decision logger attribute.
 - `iros_llm_orchestrator/test/test_passive_observer.py` — updated stale test field access and explicitly enables the observer in the fixture.
 
 ## Tests run
-- `python3 -m compileall iros_llm_orchestrator/iros_llm_orchestrator iros_llm_orchestrator/test` — pass.
+- `python3 -m compileall iros_llm_orchestrator/launch iros_llm_swarm_bringup/launch iros_llm_orchestrator/iros_llm_orchestrator iros_llm_orchestrator/test` — pass.
 - `git diff --check` — pass.
 - Static check for direct `OllamaClient` construction in `chat_server.py` and `user_chat_node.py` — pass.
-- `rg -n "sk-[A-Za-z0-9]|gsk_[A-Za-z0-9]|OPENAI_API_KEY|GROQ_API_KEY" . -S` — pass, no matches.
+- `rg -n "sk-[A-Za-z0-9]|gsk_[A-Za-z0-9]|OPENAI_API_KEY|GROQ_API_KEY" . -S --glob '!docs/codex_reports/phase1_external_llm_api.md'` — pass, no matches.
 - `rg -n "ClearML|clearml|MCP|ROS-MCP|ros-mcp" --glob '!docs/codex_reports/phase1_external_llm_api.md' --glob '!/home/yoba/Downloads/*' . -S` — pass, no matches.
 - `python3 -m pytest iros_llm_orchestrator/test` — blocked: `/usr/bin/python3: No module named pytest`.
 - `colcon build --packages-select iros_llm_swarm_interfaces iros_llm_orchestrator` — blocked: `colcon: command not found`.
 
 ## Current status
 - Phase 1 implementation is code-complete at source level. Syntax and static checks pass in this shell; full ROS/pytest verification still needs the ROS/container environment.
+- Local Ollama remains a first-class launch choice via `llm_backend:=ollama`; the HTTP YAML default is still unchanged.
 
 ## Remaining risks
 - Streaming fallback is intentionally conservative; if a provider fails after partial chunks were already emitted, the error is surfaced rather than duplicating partial content.
@@ -37,10 +40,10 @@
 - `/llm/chat` refactor has not been exercised under ROS yet in this shell.
 - `user_chat_node.py` remains legacy/debug tooling and has not been smoke-tested interactively yet.
 - Channel 1 and 2 compatibility changes are parameter plumbing only; the main runtime gate remains `/llm/chat`.
-- With the active HTTP config, local offline demos should switch `llm_mode` back to `ollama` or `mock` if no external API key is available.
+- With the active HTTP config, local offline demos can use `llm_backend:=ollama` or `llm_backend:=mock` without editing YAML.
 - The new docs are source-tree docs and have not been wired into generated documentation.
 - `/llm/decision` now publishes its documented `received`, `thinking`, and `done` feedback stages because the existing integration test already required them.
 - Manual `/llm/chat` smoke with a real external provider has not been run in this environment.
 
 ## Next step
-- Run the `/llm/chat` preview smoke test in the ROS/container environment with `LLM_API_KEY` exported.
+- Run the `/llm/chat` preview smoke test in the ROS/container environment once with `llm_backend:=http` and once with `llm_backend:=ollama`.

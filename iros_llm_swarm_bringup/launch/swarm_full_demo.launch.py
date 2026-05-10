@@ -73,6 +73,23 @@ def generate_launch_description():
         choices=['true', 'false'],
         description='Enable proactive LLM channel 2 (passive observer).',
     )
+    llm_backend_arg = DeclareLaunchArgument(
+        'llm_backend',
+        default_value='http',
+        choices=['http', 'ollama', 'mock', 'local'],
+        description='LLM backend for orchestrator nodes. Use "ollama" for '
+                    'local Ollama without editing orchestrator.yaml.',
+    )
+    llm_endpoint_arg = DeclareLaunchArgument(
+        'llm_endpoint',
+        default_value='',
+        description='Optional LLM endpoint override passed to orchestrator.',
+    )
+    llm_model_arg = DeclareLaunchArgument(
+        'llm_model',
+        default_value='',
+        description='Optional LLM model override passed to orchestrator.',
+    )
     enable_formation_arg = DeclareLaunchArgument(
         'enable_formation',
         default_value='true',
@@ -101,6 +118,9 @@ def generate_launch_description():
     num_robots       = LaunchConfiguration('num_robots')
     use_sim_time     = LaunchConfiguration('use_sim_time')
     enable_passive   = LaunchConfiguration('enable_passive_observer')
+    llm_backend      = LaunchConfiguration('llm_backend')
+    llm_endpoint     = LaunchConfiguration('llm_endpoint')
+    llm_model        = LaunchConfiguration('llm_model')
     enable_formation = LaunchConfiguration('enable_formation')
     formations_cfg   = LaunchConfiguration('formations_cfg')
     rviz_cfg         = LaunchConfiguration('rviz_cfg')
@@ -178,6 +198,9 @@ def generate_launch_description():
         ])]),
         launch_arguments=[
             ('enable_passive_observer', enable_passive),
+            ('llm_backend', llm_backend),
+            ('llm_endpoint', llm_endpoint),
+            ('llm_model', llm_model),
             ('scenario', scenario),
             ('scenarios_file', scenarios_file),
         ],
@@ -237,6 +260,9 @@ def generate_launch_description():
         num_robots_arg,
         use_sim_time_arg,
         enable_passive_arg,
+        llm_backend_arg,
+        llm_endpoint_arg,
+        llm_model_arg,
         enable_formation_arg,
         formations_cfg_arg,
         rviz_cfg_arg,

@@ -13,6 +13,13 @@
    ```
    Дождаться сообщения `==== Full demo ready ====` (≈22 сек).
 
+   Если нужен локальный Ollama вместо внешнего HTTP API:
+   ```bash
+   ollama serve
+   ollama pull qwen2.5:14b
+   ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py llm_backend:=ollama
+   ```
+
 3. В другом терминале (с `source install/setup.bash`) проверить actions:
    ```bash
    ros2 action list | grep -E "set_goals|llm"

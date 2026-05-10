@@ -1,103 +1,180 @@
-llm_decision_server:
+# ============================================================
+# Shared LLM backend defaults for all LLM-capable nodes
+# ============================================================
+#
+# ROS2 Humble does NOT support YAML anchors/aliases in params files.
+# So do NOT use:
+#   &shared_llm_backend
+#   <<: *shared_llm_backend
+#
+# Instead, use the ROS2 wildcard block below.
+# These params are applied as defaults to every node that loads this file.
+#
+# To switch backend/model globally, edit only this block.
+
+"/**":
   ros__parameters:
-    # Backend: "mock" (heuristic, no GPU) | "ollama" (local Ollama) |
-    #          "http" (OpenAI-compatible) | "local" (transformers).
+    # Backend options:
+    #   "mock"   — heuristic fake LLM, no API/GPU
+    #   "ollama" — local Ollama
+    #   "http"   — OpenAI-compatible HTTP API, e.g. Groq/OpenRouter/vLLM
+    #   "local"  — local transformers backend
     llm_mode: "http"
 
-    # OpenAI-compatible HTTP backend.
-    # Keep llm_api_key empty; the client reads the env var named by
-    # llm_api_key_env. Never put real keys in this file.
+    # External API default: Groq Llama 70B.
     llm_endpoint: "https://api.groq.com/openai/v1/chat/completions"
     llm_model: "llama-3.3-70b-versatile"
+
+    # Never put a real API key here.
+    # The client reads the key from the env var named below.
     llm_api_key: ""
     llm_api_key_env: "LLM_API_KEY"
+
+    # HTTP/chat backend behavior.
     llm_force_chat: true
     llm_enable_stop: false
-    llm_max_tokens: 512
+
+    # Common generation defaults.
+    # Individual nodes can override these below.
     llm_temperature: 0.1
 
-    # Local alternatives:
-    #   Ollama:
-    #     llm_mode: "ollama"
-    #     llm_endpoint: "http://localhost:11434/api/chat"
-    #     llm_model: "mistral-small3.1"
-    #   OpenRouter:
-    #     llm_endpoint: "https://openrouter.ai/api/v1/chat/completions"
-    #     llm_model: "meta-llama/llama-3.3-70b-instruct"
-    #   Local vLLM:
-    #     llm_endpoint: "http://localhost:8000/v1/chat/completions"
-    #     llm_model: "nvidia/Nemotron-3-Nano-30B-A3B"
-    #     llm_api_key: ""
 
-    # JSONL dataset grows here — one file per UTC day.
+# ============================================================
+# Channel 1 — /llm/decision
+# BT/MAPF WARN/INFO -> wait / abort / replan
+# ============================================================
+
+llm_decision_server:
+  ros__parameters:
+    # Short decision output only.
+    llm_max_tokens: 512
+
+    # JSONL dataset for decision examples.
     dataset_path: "~/.ros/llm_decisions"
 
-    # Hard cap on simultaneous inference calls (MAPF feedback can fire several times per second).
+    # MAPF feedback can fire often; keep only one LLM call at a time.
     max_concurrent: 1
 
-    # Safe default on ANY error (timeout, parse failure, transport): keep BT running.
+    # Safe default on timeout/parse/API error.
     timeout_sec: 45.0
     default_on_error: "wait"
 
-    # How many last log_buffer lines to include in the prompt — more = noisier.
+    # How many recent feedback/log lines to include in decision prompts.
     log_tail: 20
+
+
+# ============================================================
+# Channel 2 — passive observer
+# Observes /bt/state and can propose high-level commands.
+# Keep disabled by default.
+# ============================================================
 
 llm_passive_observer:
   ros__parameters:
-    # Channel 2 — proactive observer subscribed to /bt/state.
-    llm_mode: "http"
-    llm_endpoint: "https://api.groq.com/openai/v1/chat/completions"
-    llm_model: "llama-3.3-70b-versatile"
-    llm_api_key: ""
-    llm_api_key_env: "LLM_API_KEY"
-    llm_force_chat: true
-    llm_enable_stop: false
+    # More output than decision server, but still not as much as chat.
     llm_max_tokens: 1024
-    llm_temperature: 0.1
 
     # Ring buffer of recent BTState snapshots fed into the prompt.
     history_size: 20
 
-    # Minimum seconds between two LLM triggers — WARN/ERROR states can be
-    # sticky for several seconds and we must not flood inference.
+    # Minimum seconds between LLM triggers.
     cooldown_sec: 10.0
 
-    # Hard timeout for a single LLM call.
+    # Hard timeout for one LLM call.
     timeout_sec: 45.0
 
-    # JSONL dataset for channel 2 (kept separate from decisions).
+    # JSONL dataset for passive observer command examples.
     dataset_path: "~/.ros/llm_commands"
 
-    # Kill-switch — flip via `ros2 param set` without restarting.
-    # Default: false (channel 2 disabled). Override via launch arg
-    # `enable_passive_observer:=true` or `ros2 param set ... enabled true`.
+    # Kill-switch.
+    # Default: false.
+    # Can be changed with:
+    #   ros2 param set /llm_passive_observer enabled true
     enabled: false
+
+
+# ============================================================
+# Channel 3 — /llm/chat
+# RViz operator chat -> reply + JSON plan
+# ============================================================
 
 llm_chat_server:
   ros__parameters:
-    # Channel 3 over ROS — /llm/chat action, used by the RViz panel.
-    llm_mode: "http"
-    llm_endpoint: "https://api.groq.com/openai/v1/chat/completions"
-    llm_model: "llama-3.3-70b-versatile"
-    llm_api_key: ""
-    llm_api_key_env: "LLM_API_KEY"
-    llm_force_chat: true
-    llm_enable_stop: false
+    # Main user-facing channel, so allow longer output.
     llm_max_tokens: 2000
-    llm_temperature: 0.1
 
     # LLM call timeout.
     timeout_sec: 60.0
 
-    # Per-leaf BT mission timeout. A single MAPF goal across the map can take
-    # ~1 minute with 20 robots; keep generous headroom for sequences.
+    # Per-leaf BT mission timeout.
     step_timeout_sec: 120.0
 
-    # `map_name` is set at launch time from the active scenario's
-    # `map_description` field — see orchestrator.launch.py.
+    # ========================================================
+    # Runtime context for /llm/chat
+    # ========================================================
+    #
+    # Options:
+    #   "none"         — Phase 1 behavior, no runtime context
+    #   "ros_readonly" — read local ROS topics directly
+    #   "mcp_readonly" — use read-only MCP context provider
+    #
+    # Recommended right now:
+    #   Use ros_readonly until uvx/ros-mcp/rosbridge MCP chain is installed.
+    #
+    # To enable MCP later:
+    #   context_provider: "mcp_readonly"
+    #   mcp_enabled: true
+    context_provider: "mcp_readonly"
+    context_timeout_sec: 2.0
+    context_max_chars: 6000
+
+    context_include_bt_state: true
+    context_include_formations: true
+    context_include_map_summary: true
+    context_include_recent_events: true
+
+    # ========================================================
+    # MCP read-only provider
+    # ========================================================
+    #
+    # This must remain observation-only.
+    # The LLM must NOT receive arbitrary MCP tool access.
+    #
+    # For real MCP mode you need:
+    #   1. uvx installed
+    #   2. rosbridge running:
+    #      ros2 launch rosbridge_server rosbridge_websocket_launch.xml
+    #
+    # Keep false while using ros_readonly.
+    mcp_enabled: true
+    mcp_transport: "stdio"
+    mcp_command: "uvx"
+    mcp_args:
+      - "ros-mcp"
+      - "--transport=stdio"
+
+    # Read-only MCP tools only.
+    # Do NOT add publish/service/action/parameter write tools here.
+    mcp_tool_allowlist:
+      - "get_topics"
+      - "get_topic_type"
+      - "get_topic_details"
+      - "subscribe_once"
+      - "get_nodes"
+      - "get_node_details"
+      - "get_services"
+      - "get_service_type"
+      - "get_service_details"
+      - "get_actions"
+      - "get_action_details"
+      - "get_action_status"
+
+
+# ============================================================
+# /llm/execute_plan
+# Operator-confirmed plan replay. No LLM call here.
+# ============================================================
 
 llm_execute_server:
   ros__parameters:
-    # Operator-confirmed plan replay — /llm/execute_plan action. No LLM call.
     step_timeout_sec: 120.0
-    # `map_name` is set at launch time, see llm_chat_server above.

@@ -27,6 +27,38 @@ def _resolve_map_name(context) -> str:
     return os.path.splitext(md)[0]
 
 
+def _resolve_llm_overrides(context) -> dict:
+    """Return launch-time LLM backend overrides.
+
+    The YAML keeps the external HTTP default. This helper lets demos switch
+    back to local Ollama with one launch argument instead of editing all three
+    LLM node sections by hand.
+    """
+    backend = LaunchConfiguration('llm_backend').perform(context).strip().lower()
+    endpoint = LaunchConfiguration('llm_endpoint').perform(context).strip()
+    model = LaunchConfiguration('llm_model').perform(context).strip()
+
+    overrides = {'llm_mode': backend}
+    if backend == 'ollama':
+        overrides.update({
+            'llm_endpoint': endpoint or 'http://localhost:11434/api/chat',
+            'llm_model': model or 'qwen2.5:14b',
+            'llm_api_key': '',
+            'llm_force_chat': True,
+            'llm_enable_stop': False,
+        })
+    elif backend == 'http':
+        if endpoint:
+            overrides['llm_endpoint'] = endpoint
+        if model:
+            overrides['llm_model'] = model
+    elif backend == 'local':
+        if model:
+            overrides['llm_model'] = model
+
+    return overrides
+
+
 def setup(context, *args, **kwargs):
     enable_passive = LaunchConfiguration('enable_passive_observer')
 
@@ -38,6 +70,7 @@ def setup(context, *args, **kwargs):
 
     map_name = _resolve_map_name(context)
     map_param = {'map_name': map_name}
+    llm_overrides = _resolve_llm_overrides(context)
     llm_env = {'LLM_API_KEY': os.environ.get('LLM_API_KEY', '')}
 
     return [
@@ -45,7 +78,7 @@ def setup(context, *args, **kwargs):
             package='iros_llm_orchestrator',
             executable='decision_server',
             name='llm_decision_server',
-            parameters=[config, map_param],
+            parameters=[config, llm_overrides, map_param],
             output='screen',
             additional_env=llm_env,
         ),
@@ -55,6 +88,7 @@ def setup(context, *args, **kwargs):
             name='llm_passive_observer',
             parameters=[
                 config,
+                llm_overrides,
                 {'enabled': enable_passive},
                 map_param,
             ],
@@ -65,7 +99,7 @@ def setup(context, *args, **kwargs):
             package='iros_llm_orchestrator',
             executable='chat_server',
             name='llm_chat_server',
-            parameters=[config, map_param],
+            parameters=[config, llm_overrides, map_param],
             output='screen',
             additional_env=llm_env,
         ),
@@ -80,6 +114,28 @@ def setup(context, *args, **kwargs):
 
 
 def generate_launch_description():
+    llm_backend_arg = DeclareLaunchArgument(
+        'llm_backend',
+        default_value='http',
+        description='LLM backend override for decision/passive/chat nodes. '
+                    'Use "ollama" for local Ollama without editing YAML.',
+        choices=['http', 'ollama', 'mock', 'local'],
+    )
+
+    llm_endpoint_arg = DeclareLaunchArgument(
+        'llm_endpoint',
+        default_value='',
+        description='Optional LLM endpoint override. Empty keeps YAML for '
+                    'http and uses the local Ollama default for ollama.',
+    )
+
+    llm_model_arg = DeclareLaunchArgument(
+        'llm_model',
+        default_value='',
+        description='Optional LLM model override. Empty keeps YAML for http '
+                    'and uses qwen2.5:14b for ollama.',
+    )
+
     enable_passive_arg = DeclareLaunchArgument(
         'enable_passive_observer',
         default_value='false',
@@ -106,6 +162,9 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        llm_backend_arg,
+        llm_endpoint_arg,
+        llm_model_arg,
         enable_passive_arg,
         scenario_arg,
         scenarios_file_arg,

@@ -9,5 +9,8 @@ def test_chat_server_uses_backend_factory_not_direct_ollama():
 
     assert 'get_llm_client' in source
     assert 'self._llm.stream' in source
+    assert 'make_context_provider' in source
+    assert 'Context provider failed; continuing without live context' in source
+    assert 'should_skip_reply_only_execution' in source
     assert 'from iros_llm_orchestrator.local.ollama_client import OllamaClient' not in source
     assert 'OllamaClient(' not in source
