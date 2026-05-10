@@ -278,9 +278,16 @@ def build_user_prompt(
     user_message: str,
     history: list | None = None,
     map_name: str = 'warehouse',
+    obstacle_context: str = '',
     runtime_context: dict | None = None,
 ) -> list:
-    messages = [{'role': 'system', 'content': _user_system(map_name)}]
+    system_content = _user_system(map_name)
+
+    if obstacle_context:
+        system_content += '\n\n' + obstacle_context
+
+    messages = [{'role': 'system', 'content': system_content}]
+
     if runtime_context and runtime_context.get('source') != 'none':
         messages.append({
             'role': 'system',

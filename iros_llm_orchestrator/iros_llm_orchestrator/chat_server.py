@@ -193,10 +193,16 @@ class ChatServer(Node):
 
         # ---- 1. Stream reply ----
         self._publish_fb(goal_handle, stage='thinking')
+
         runtime_context = await self._get_runtime_context()
-        messages = build_user_prompt(req.user_message, history=list(self._history),
-                                     map_name=self._map_name,
-                                     runtime_context=runtime_context)
+
+        messages = build_user_prompt(
+            req.user_message,
+            history=list(self._history),
+            map_name=self._map_name,
+            obstacle_context=self._get_obstacle_context(),
+            runtime_context=runtime_context,
+        )
 
         try:
             full_raw = await asyncio.wait_for(
@@ -275,6 +281,15 @@ class ChatServer(Node):
             self.get_logger().info(
                 f'Chat runtime context source={source} warnings={warnings}')
         return context
+
+    def _get_obstacle_context(self) -> str:
+        heuristics = (self._map_cfg or {}).get('heuristics', '')
+        if not heuristics:
+            return ''
+        return (
+            'Obstacle and navigation constraints from the current map:\n'
+            f'{str(heuristics).strip()}'
+        )
 
     # ------------------------------------------------------------------
     # Reply streaming — emit only the JSON "reply" field via feedback
