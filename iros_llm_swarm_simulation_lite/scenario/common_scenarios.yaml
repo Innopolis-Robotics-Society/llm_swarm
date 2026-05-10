@@ -24,8 +24,15 @@ scenarios:
       - [27.5, 25.0, 3.1415] 
       - [26.0, 26.5, 3.1415] 
       - [27.5, 26.5, 3.1415]
-      - [26.0, 28.0, 3.1415] 
+      - [26.0, 28.0, 3.1415]
       - [27.5, 28.0, 3.1415]
+    obstacles:
+      doors:
+        - id: corridor_center
+          position: [15.0, 14.5]
+          width: 3.5
+          height: 0.4
+          default_open: true
   warehouse_4:
     world: "warehouse_four.world"
     map: "warehouse.yaml"
@@ -165,3 +172,10 @@ scenarios:
       - [15.0, 12.5, 0.0]
       - [13.5, 14.0, 0.0]
       - [15.0, 14.0, 0.0]
+    obstacles:
+      doors:
+        - id: cafeteria_west_entrance
+          position: [-3.5, 7.0]
+          width: 2.5
+          height: 0.4
+          default_open: true

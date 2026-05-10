@@ -295,6 +295,7 @@ class MapfPlannerNode : public rclcpp::Node {
     map_origin_y_   = msg->info.origin.position.y;
     map_resolution_ = actual_res;
     map_ready_      = true;
+    map_changed_    = true;
   }
 
   // ------------------------------------------------------------------
@@ -872,6 +873,12 @@ class MapfPlannerNode : public rclcpp::Node {
       return;
     }
 
+    // Replan immediately when the obstacle map changed (door closed, obstacle placed).
+    if (map_changed_.exchange(false)) {
+      trigger_replan({}, lk);
+      return;
+    }
+
     const rclcpp::Time now_t = now();
 
     // ── Count arrived / active robots ────────────────────────────────
@@ -1135,6 +1142,7 @@ class MapfPlannerNode : public rclcpp::Node {
   std::mutex          state_mutex_;
   std::atomic<bool>   is_planning_{false};  // true while solver_.solve() runs
   std::atomic<bool>   is_active_{false};    // true for entire goal lifecycle
+  std::atomic<bool>   map_changed_{false};  // set in on_map(), consumed in check_schedule()
 
   // Subscriptions
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;
