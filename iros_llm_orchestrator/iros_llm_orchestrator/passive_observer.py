@@ -22,6 +22,7 @@ from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from iros_llm_swarm_interfaces.action import LlmCommand
 from iros_llm_swarm_interfaces.msg import BTState, LlmEvent
 
+from iros_llm_orchestrator.common.leaf_sender import BTLeafSender
 from iros_llm_orchestrator.common.llm_factory import get_llm_client
 from iros_llm_orchestrator.common.parsers import parse_llm_command
 from iros_llm_orchestrator.common.command_prompt import build_command_prompt
@@ -76,7 +77,8 @@ class PassiveObserver(Node):
         self._cmd_client = ActionClient(self, LlmCommand, '/llm/command')
         self._event_pub  = self.create_publisher(LlmEvent, '/llm/events', 10)
 
-        self._loop = asyncio.new_event_loop()
+        self._loop   = asyncio.new_event_loop()
+        self._sender = BTLeafSender(self, step_timeout_sec=30.0)
         threading.Thread(target=self._loop.run_forever, daemon=True).start()
 
         self.get_logger().info(f'PassiveObserver ready (mode={mode}, '
@@ -148,7 +150,10 @@ class PassiveObserver(Node):
         ev.reason   = command.get('reason', '')
         self._event_pub.publish(ev)
 
-        await self._send_command(command)
+        if command.get('mode') == 'obstacles':
+            await self._sender.send(command)
+        else:
+            await self._send_command(command)
         with self._observer_lock:
             self._is_thinking = False
 

@@ -63,13 +63,17 @@ def _setup_robots(context, *args, **kwargs):
     tf_remaps = [('/tf', '/tf'), ('/tf_static', '/tf_static')]
 
     actions = [
-        # Map server global
+        # Map server — publishes /raw_map so the obstacle manager can overlay it
         Node(
             package='iros_llm_swarm_costmap_plugins',
             executable='zone_map_server',
             name='map_server',
             output='log',
-            parameters=[{'yaml_filename': map_file, 'use_sim_time': True}],
+            parameters=[{
+                'yaml_filename': map_file,
+                'use_sim_time': True,
+                'topic_name': 'raw_map',
+            }],
             arguments=['--ros-args', '--log-level', 'WARN'],
         ),
         Node(
@@ -79,7 +83,20 @@ def _setup_robots(context, *args, **kwargs):
             output='log',
             parameters=[{'autostart': True, 'use_sim_time': True, 'node_names': ['map_server']}],
             arguments=['--ros-args', '--log-level', 'WARN'],
-        )
+        ),
+        # Dynamic obstacle manager — merges obstacles into /raw_map, republishes as /map
+        Node(
+            package='iros_llm_swarm_obstacles',
+            executable='dynamic_obstacle_manager',
+            name='dynamic_obstacle_manager',
+            output='screen',
+            parameters=[{
+                'raw_map_topic': '/raw_map',
+                'scenario_file': scenarios_path,
+                'scenario_name': scenario,
+                'use_sim_time': True,
+            }],
+        ),
     ]
 
     for i in range(num_robots):

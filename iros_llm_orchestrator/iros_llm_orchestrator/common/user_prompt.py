@@ -256,12 +256,31 @@ def _bt_event_system() -> str:
 # Public builders
 # ---------------------------------------------------------------------------
 
+def build_obstacle_context_str(circles, rectangles, doors) -> str:
+    lines = ['Current obstacles:']
+    if not circles and not rectangles and not doors:
+        lines.append('  none')
+        return '\n'.join(lines)
+    for c in circles:
+        lines.append(f'  circle      {c.id:<20} at ({c.position.x:.1f}, {c.position.y:.1f}) r={c.radius:.2f}m')
+    for r in rectangles:
+        lines.append(f'  rectangle   {r.id:<20} at ({r.position.x:.1f}, {r.position.y:.1f}) {r.width:.1f}x{r.height:.1f}m')
+    for d in doors:
+        state = 'OPEN' if d.is_open else 'CLOSED'
+        lines.append(f'  door        {d.id:<20} at ({d.position.x:.1f}, {d.position.y:.1f}) {d.width:.1f}x{d.height:.1f}m [{state}]')
+    return '\n'.join(lines)
+
+
 def build_user_prompt(
     user_message: str,
     history: list | None = None,
     map_name: str = 'warehouse',
+    obstacle_context: str = '',
 ) -> list:
-    messages = [{'role': 'system', 'content': _user_system(map_name)}]
+    system_content = _user_system(map_name)
+    if obstacle_context:
+        system_content += '\n\n' + obstacle_context
+    messages = [{'role': 'system', 'content': system_content}]
     for ex in _get_examples(map_name):
         messages.append({'role': 'user',      'content': ex['user']})
         messages.append({'role': 'assistant', 'content': ex['out']})

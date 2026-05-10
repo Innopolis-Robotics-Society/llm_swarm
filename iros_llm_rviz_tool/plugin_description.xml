@@ -8,4 +8,22 @@
       group, dispatch LlmCommand{mode=mapf} on /llm/command.
     </description>
   </class>
+  <class
+    name="iros_llm_rviz_tool/PlaceObstacle"
+    type="iros_llm_rviz_tool::PlaceObstacleTool"
+    base_class_type="rviz_common::Tool">
+    <description>
+      Left-click to place a circle, rectangle, or door obstacle.
+      Right-click to remove the nearest placed obstacle.
+    </description>
+  </class>
+  <class
+    name="iros_llm_rviz_tool/DoorControl"
+    type="iros_llm_rviz_tool::DoorTool"
+    base_class_type="rviz_common::Tool">
+    <description>
+      Left-click to open the door specified by Door ID property.
+      Right-click to close it.
+    </description>
+  </class>
 </library>

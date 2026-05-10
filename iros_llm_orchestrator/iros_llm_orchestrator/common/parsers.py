@@ -51,7 +51,7 @@ def parse_llm_decision(raw: str) -> str:
 # Command parser (channels 2 & 3)
 # ---------------------------------------------------------------------------
 
-_VALID_MODES = {'idle', 'mapf', 'formation'}
+_VALID_MODES = {'idle', 'mapf', 'formation', 'obstacles'}
 _FENCED_CMD  = re.compile(r'```(?:json)?\s*(\{.*?\})\s*```', re.DOTALL | re.IGNORECASE)
 
 
@@ -112,4 +112,36 @@ def parse_llm_command(raw: str) -> dict:
         if len(result['follower_ns']) != len(result['offsets_x']) or \
            len(result['follower_ns']) != len(result['offsets_y']):
             raise ValueError('follower_ns / offsets length mismatch')
+
+    if mode == 'obstacles':
+        _OBSTACLE_ACTIONS = {'add_circle', 'add_rectangle', 'add_door', 'remove', 'open_door', 'close_door'}
+        action = str(obj.get('action', '')).strip().lower()
+        if action not in _OBSTACLE_ACTIONS:
+            raise ValueError(f'obstacles: invalid action {action!r}; must be one of {_OBSTACLE_ACTIONS}')
+        result['action'] = action
+        if action in ('add_circle', 'add_rectangle', 'add_door'):
+            oid = str(obj.get('id', '')).strip()
+            if not oid:
+                raise ValueError(f'obstacles/{action}: id required')
+            result['id'] = oid
+            result['x']  = float(obj.get('x', 0.0))
+            result['y']  = float(obj.get('y', 0.0))
+            if action == 'add_circle':
+                result['radius'] = float(obj.get('radius', 0.5))
+            else:
+                result['width']  = float(obj.get('width',  1.0))
+                result['height'] = float(obj.get('height', 0.4))
+            if action == 'add_door':
+                result['is_open'] = bool(obj.get('is_open', True))
+        elif action == 'remove':
+            oid = str(obj.get('id', '')).strip()
+            if not oid:
+                raise ValueError('obstacles/remove: id required')
+            result['id'] = oid
+        else:  # open_door / close_door
+            door_id = str(obj.get('door_id', '')).strip()
+            if not door_id:
+                raise ValueError(f'obstacles/{action}: door_id required')
+            result['door_id'] = door_id
+
     return result

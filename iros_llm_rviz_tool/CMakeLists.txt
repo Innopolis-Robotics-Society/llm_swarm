@@ -18,11 +18,16 @@ find_package(rclcpp_action REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(iros_llm_swarm_interfaces REQUIRED)
 find_package(yaml-cpp REQUIRED)
+find_package(rviz_rendering REQUIRED)
 find_package(Qt5 REQUIRED COMPONENTS Widgets)
 
 add_library(${PROJECT_NAME} SHARED
   include/iros_llm_rviz_tool/send_llm_goal_tool.hpp
   src/send_llm_goal_tool.cpp
+  include/iros_llm_rviz_tool/place_obstacle_tool.hpp
+  src/place_obstacle_tool.cpp
+  include/iros_llm_rviz_tool/door_tool.hpp
+  src/door_tool.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -39,6 +44,7 @@ ament_target_dependencies(${PROJECT_NAME}
   ament_index_cpp
   rviz_common
   rviz_default_plugins
+  rviz_rendering
   pluginlib
   rclcpp
   rclcpp_action
@@ -75,6 +81,7 @@ ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME})
 ament_export_dependencies(
   rviz_common
+  rviz_rendering
   rclcpp
   rclcpp_action
   iros_llm_swarm_interfaces

@@ -28,6 +28,7 @@ from rclpy.node import Node
 
 from iros_llm_swarm_interfaces.action import LlmChat
 from iros_llm_swarm_interfaces.msg import LlmEvent
+from iros_llm_swarm_interfaces.srv import ListObstacles
 
 from iros_llm_orchestrator.common.leaf_sender import BTLeafSender
 from iros_llm_orchestrator.common.plan_executor import PlanExecutor
@@ -70,6 +71,7 @@ class ChatServer(Node):
             self,
             step_timeout_sec=float(self.get_parameter('step_timeout_sec').value),
         )
+        self._list_obstacles = self.create_client(ListObstacles, '/obstacles/list')
 
         # /llm/events publisher — channel 3 emits one event per turn.
         self._event_pub = self.create_publisher(LlmEvent, '/llm/events', 10)
@@ -115,6 +117,16 @@ class ChatServer(Node):
             self._execute_async(goal_handle), self._loop)
         return fut.result()
 
+    def _get_obstacle_context(self) -> str:
+        from iros_llm_orchestrator.common.user_prompt import build_obstacle_context_str
+        if not self._list_obstacles.wait_for_service(timeout_sec=0.5):
+            return ''
+        try:
+            resp = self._list_obstacles.call(ListObstacles.Request())
+            return build_obstacle_context_str(resp.circles, resp.rectangles, resp.doors)
+        except Exception:
+            return ''
+
     async def _execute_async(self, goal_handle):
         async with self._chat_lock:
             return await self._execute_body(goal_handle)
@@ -125,7 +137,8 @@ class ChatServer(Node):
 
         # ---- 1. Stream reply ----
         messages = build_user_prompt(req.user_message, history=list(self._history),
-                                     map_name=self._map_name)
+                                     map_name=self._map_name,
+                                     obstacle_context=self._get_obstacle_context())
         self._publish_fb(goal_handle, stage='thinking')
 
         try:
