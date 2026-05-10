@@ -1,6 +1,6 @@
-// iros_llm_swarm_mapf/lns2/src/gridmap_utils.cpp
+// iros_llm_swarm_mapf_lns/lns2/src/gridmap_utils.cpp
 
-#include "iros_llm_swarm_mapf/lns2/gridmap_utils.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/gridmap_utils.hpp"
 
 #include <queue>
 #include <unordered_set>

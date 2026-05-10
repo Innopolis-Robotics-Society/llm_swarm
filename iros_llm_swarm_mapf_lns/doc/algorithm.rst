@@ -1,7 +1,7 @@
 LNS2 Algorithm
 ==============
 
-The ``lns2`` static library under ``include/iros_llm_swarm_mapf/lns2/``
+The ``lns2`` static library under ``include/iros_llm_swarm_mapf_lns/lns2/``
 implements the algorithm side of the planner: pure C++17, no ROS
 dependencies. The ROS node (:doc:`ros_api`) wraps it but does not poke
 into its data structures directly.

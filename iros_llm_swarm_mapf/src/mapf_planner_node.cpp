@@ -160,7 +160,7 @@ class MapfPlannerNode : public rclcpp::Node {
     for (int i = 0; i < num_robots_; ++i) {
       const std::string odom_topic = "/robot_" + std::to_string(i) + "/odom";
       odom_subs_[i] = create_subscription<nav_msgs::msg::Odometry>(
-          odom_topic, 10,
+          odom_topic, rclcpp::SensorDataQoS(),
           [this, i](const nav_msgs::msg::Odometry::SharedPtr msg) {
             std::lock_guard<std::mutex> lk(state_mutex_);
             current_positions_[i] = {msg->pose.pose.position.x,

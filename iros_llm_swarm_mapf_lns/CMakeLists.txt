@@ -81,7 +81,6 @@ install(TARGETS
 )
 
 install(TARGETS lns2
-  EXPORT lns2Targets
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
 )
@@ -94,10 +93,5 @@ install(DIRECTORY launch config
   DESTINATION share/${PROJECT_NAME}
   OPTIONAL
 )
-
-# Export library for downstream packages that may want to link lns2 directly
-ament_export_include_directories(include)
-ament_export_libraries(lns2)
-ament_export_targets(lns2Targets)
 
 ament_package()

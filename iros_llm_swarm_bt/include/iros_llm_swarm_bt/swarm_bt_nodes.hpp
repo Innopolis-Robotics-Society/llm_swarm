@@ -294,6 +294,12 @@ private:
   std::shared_ptr<const LlmCommand::Goal> pending_goal_;
   std::shared_ptr<GoalHandle> pending_handle_;
 
+  // Hard upper bound on robot ids accepted by /llm/command. Far above the
+  // documented 20-robot fleet ceiling — exists only to reject obviously
+  // malformed / hostile goals (an attacker publishing robot_id = 1e9 should
+  // never be echoed into /bt/state or the JSONL audit log).
+  static constexpr uint32_t kMaxRobotId = 1024;
+
   rclcpp_action::GoalResponse handle_goal(
     const rclcpp_action::GoalUUID & uuid,
     std::shared_ptr<const LlmCommand::Goal> goal);

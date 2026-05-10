@@ -1,4 +1,4 @@
-// iros_llm_swarm_mapf/lns2/types.hpp
+// iros_llm_swarm_mapf_lns/lns2/types.hpp
 //
 // Basic types for the LNS2 MAPF solver. Self-contained, independent from
 // the parallel PBS implementation.
@@ -148,8 +148,11 @@ namespace std {
 template <>
 struct hash<lns2::Cell> {
   std::size_t operator()(const lns2::Cell& c) const noexcept {
-    return (static_cast<std::size_t>(c.row) << 32) ^
-           static_cast<std::size_t>(c.col);
+    const auto r = static_cast<std::uint32_t>(c.row);
+    const auto k = static_cast<std::uint32_t>(c.col);
+    const std::uint64_t combined =
+        (static_cast<std::uint64_t>(r) << 32) | k;
+    return std::hash<std::uint64_t>{}(combined);
   }
 };
 

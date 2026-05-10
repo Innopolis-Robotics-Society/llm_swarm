@@ -1,4 +1,4 @@
-// iros_llm_swarm_mapf/lns2/warm_start.hpp
+// iros_llm_swarm_mapf_lns/lns2/warm_start.hpp
 //
 // Build a warm-start Solution for LNS2Solver::solve_from() from the paths
 // of a previous plan, shifted forward in time and patched to match current
@@ -30,8 +30,8 @@
 #include <cstdint>
 #include <vector>
 
-#include "iros_llm_swarm_mapf/lns2/solution.hpp"
-#include "iros_llm_swarm_mapf/lns2/types.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/solution.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/types.hpp"
 
 namespace lns2 {
 

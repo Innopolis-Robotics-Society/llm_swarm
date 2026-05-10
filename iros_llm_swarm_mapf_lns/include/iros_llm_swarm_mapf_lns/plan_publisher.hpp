@@ -1,4 +1,4 @@
-// iros_llm_swarm_mapf/plan_publisher.hpp
+// iros_llm_swarm_mapf_lns/plan_publisher.hpp
 //
 // Owns the per-robot MAPFPlan / cmd_vel publishers and the plan_id counter.
 // All public methods must be called with the node's state mutex held — they
@@ -17,7 +17,7 @@
 
 #include "iros_llm_swarm_interfaces/msg/mapf_plan.hpp"
 
-#include "iros_llm_swarm_mapf/lns2/types.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/types.hpp"
 
 namespace lns2_node {
 

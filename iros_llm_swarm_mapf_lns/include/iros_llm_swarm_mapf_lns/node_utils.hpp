@@ -1,4 +1,4 @@
-// iros_llm_swarm_mapf/node_utils.hpp
+// iros_llm_swarm_mapf_lns/node_utils.hpp
 //
 // ROS-side utilities for mapf_lns2_node. Pure functions: no shared mutable
 // state and no logging side-effects (the optional logger argument lets the
@@ -15,7 +15,7 @@
 #include "geometry_msgs/msg/point.hpp"
 #include "iros_llm_swarm_interfaces/msg/mapf_step.hpp"
 
-#include "iros_llm_swarm_mapf/lns2/types.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/types.hpp"
 
 namespace lns2_node {
 

@@ -1,6 +1,6 @@
-// iros_llm_swarm_mapf/lns2/src/types.cpp
+// iros_llm_swarm_mapf_lns/lns2/src/types.cpp
 
-#include "iros_llm_swarm_mapf/lns2/types.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/types.hpp"
 
 #include <cmath>
 
