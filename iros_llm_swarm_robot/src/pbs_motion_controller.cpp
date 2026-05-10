@@ -91,11 +91,11 @@ class MotionControllerNode : public rclcpp::Node
 {
 public:
 
-  MotionControllerNode() : Node("motion_controller")
+  MotionControllerNode() : Node("pbs_motion_controller")
   {
     declare_parameter("robot_id",               0);
     declare_parameter("path_frame",             std::string("map"));
-    declare_parameter("schedule_tolerance_sec", 0.5);
+    declare_parameter("schedule_tolerance_sec", 0.3);
     declare_parameter("kp",                     1.2);
     declare_parameter("kd",                     0.3);
     declare_parameter("max_v",                  0.5);

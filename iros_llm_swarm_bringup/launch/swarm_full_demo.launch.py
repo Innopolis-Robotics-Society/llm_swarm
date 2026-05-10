@@ -79,14 +79,6 @@ def generate_launch_description():
         choices=['true', 'false'],
         description='Start formation_manager + formation_monitor nodes.',
     )
-    formations_cfg_arg = DeclareLaunchArgument(
-        'formations_cfg',
-        default_value=PathJoinSubstitution([
-            FindPackageShare('iros_llm_swarm_formation'),
-            'config', 'formations_2.yaml',
-        ]),
-        description='Path to formations YAML.',
-    )
     rviz_cfg_arg = DeclareLaunchArgument(
         'rviz_cfg',
         default_value=PathJoinSubstitution([
@@ -102,7 +94,6 @@ def generate_launch_description():
     use_sim_time     = LaunchConfiguration('use_sim_time')
     enable_passive   = LaunchConfiguration('enable_passive_observer')
     enable_formation = LaunchConfiguration('enable_formation')
-    formations_cfg   = LaunchConfiguration('formations_cfg')
     rviz_cfg         = LaunchConfiguration('rviz_cfg')
 
     is_lns        = IfCondition(PythonExpression(["'", planner, "' == 'lns'"]))
@@ -157,9 +148,7 @@ def generate_launch_description():
         condition=is_pbs,
     )
 
-    # PBS planner publishes paths only — pair it with motion_controllers that
-    # drive each robot. LNS2 already bundles equivalent path_followers.
-    pbs_motion = IncludeLaunchDescription(
+    motion_controllers = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([PathJoinSubstitution([
             FindPackageShare('iros_llm_swarm_robot'),
             'launch', 'motion_controllers.launch.py',
@@ -167,8 +156,8 @@ def generate_launch_description():
         launch_arguments=[
             ('num_robots', num_robots),
             ('use_sim_time', use_sim_time),
+            ('controller_type', planner),
         ],
-        condition=is_pbs,
     )
 
     orchestrator = IncludeLaunchDescription(
@@ -190,10 +179,11 @@ def generate_launch_description():
         name='formation_manager',
         output='screen',
         parameters=[{
+            'config_file':       '',
             'auto_activate':     False,
             'footprint_padding': 0.2,
             'robot_radius':      0.3,
-            'use_sim_time':      use_sim_time,
+            'position_tolerance': 0.5,
         }],
         condition=use_formation,
     )
@@ -238,7 +228,6 @@ def generate_launch_description():
         use_sim_time_arg,
         enable_passive_arg,
         enable_formation_arg,
-        formations_cfg_arg,
         rviz_cfg_arg,
 
         # t=0
@@ -254,7 +243,7 @@ def generate_launch_description():
             LogInfo(msg=['Starting MAPF planner (', planner, ')...']),
             lns_planner,
             pbs_planner,
-            pbs_motion,
+            motion_controllers,
         ]),
 
         TimerAction(period=12.0, actions=[

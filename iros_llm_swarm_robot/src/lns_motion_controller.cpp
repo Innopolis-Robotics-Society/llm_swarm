@@ -121,7 +121,7 @@ static void fix_orientations(nav_msgs::msg::Path & path)
 class PathFollowerNode : public rclcpp::Node
 {
 public:
-  PathFollowerNode() : Node("path_follower")
+  PathFollowerNode() : Node("lns_motion_controller")
   {
     declare_parameter("robot_id",       0);
     declare_parameter("path_frame",     std::string("map"));

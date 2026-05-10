@@ -10,6 +10,7 @@ from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
+
 # Launch order:
 #
 #  t=0s   Stage simulator + RViz
@@ -19,6 +20,7 @@ from launch_ros.substitutions import FindPackageShare
 #
 # After launch, send goals via service:
 #   ros2 run iros_llm_swarm_mapf test_send_goals --goal-x 15.0 --goal-y 15.0
+
 
 def generate_launch_description():
 
