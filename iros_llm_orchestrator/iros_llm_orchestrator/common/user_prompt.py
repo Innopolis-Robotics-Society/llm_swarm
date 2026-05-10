@@ -274,6 +274,21 @@ def _format_runtime_context(runtime_context: dict) -> str:
 # Public builders
 # ---------------------------------------------------------------------------
 
+def build_obstacle_context_str(circles, rectangles, doors) -> str:
+    lines = ['Current obstacles:']
+    if not circles and not rectangles and not doors:
+        lines.append('  none')
+        return '\n'.join(lines)
+    for c in circles:
+        lines.append(f'  circle      {c.id:<20} at ({c.position.x:.1f}, {c.position.y:.1f}) r={c.radius:.2f}m')
+    for r in rectangles:
+        lines.append(f'  rectangle   {r.id:<20} at ({r.position.x:.1f}, {r.position.y:.1f}) {r.width:.1f}x{r.height:.1f}m')
+    for d in doors:
+        state = 'OPEN' if d.is_open else 'CLOSED'
+        lines.append(f'  door        {d.id:<20} at ({d.position.x:.1f}, {d.position.y:.1f}) {d.width:.1f}x{d.height:.1f}m [{state}]')
+    return '\n'.join(lines)
+
+
 def build_user_prompt(
     user_message: str,
     history: list | None = None,

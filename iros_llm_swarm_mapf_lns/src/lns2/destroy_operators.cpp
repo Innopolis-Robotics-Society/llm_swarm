@@ -1,6 +1,6 @@
-// iros_llm_swarm_mapf/lns2/src/destroy_operators.cpp
+// iros_llm_swarm_mapf_lns/lns2/src/destroy_operators.cpp
 
-#include "iros_llm_swarm_mapf/lns2/destroy_operators.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/destroy_operators.hpp"
 
 #include <algorithm>
 #include <numeric>

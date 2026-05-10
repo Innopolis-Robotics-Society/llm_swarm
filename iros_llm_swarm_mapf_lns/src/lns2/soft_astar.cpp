@@ -1,6 +1,6 @@
-// iros_llm_swarm_mapf/lns2/src/soft_astar.cpp
+// iros_llm_swarm_mapf_lns/lns2/src/soft_astar.cpp
 
-#include "iros_llm_swarm_mapf/lns2/soft_astar.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/soft_astar.hpp"
 
 #include <algorithm>
 #include <array>

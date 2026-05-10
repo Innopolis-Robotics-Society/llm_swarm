@@ -44,7 +44,7 @@ from typing import Dict, List, Optional
 
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
+from rclpy.qos import QoSProfile, DurabilityPolicy, HistoryPolicy, ReliabilityPolicy
 
 from std_msgs.msg import Header
 from nav_msgs.msg import Odometry
@@ -245,7 +245,8 @@ class FormationMonitorNode(Node):
             Odometry,
             f"/{ns}/odom",
             lambda msg, _ns=ns: self._on_odom(msg, _ns),
-            10,
+            QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
+                       history=HistoryPolicy.KEEP_LAST, depth=10),
         )
         self._odom_subs[ns] = sub
 

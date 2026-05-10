@@ -1,5 +1,6 @@
 #include "iros_llm_swarm_bt/swarm_bt_nodes.hpp"
 
+#include <cstdio>
 #include <sstream>
 #include <string>
 
@@ -76,7 +77,7 @@ BT::NodeStatus MapfPlan::onStart()
     return BT::NodeStatus::FAILURE;
   }
 
-  if (!client_->wait_for_action_server(2s)) {
+  if (!client_->action_server_is_ready()) {
     RCLCPP_ERROR(node->get_logger(), "MapfPlan: /swarm/set_goals not available");
     setOutput("mapf_ok", false);
     setOutput("mapf_info", "action server unavailable");
@@ -331,7 +332,7 @@ void MapfPlan::onHalted()
   // marker instead of a frozen "MapfPlan / OK" snapshot.
   bb->set<std::string>("@action_status", "HALTED");
   std::string prev_err;
-  try { prev_err = bb->get<std::string>("@last_error"); } catch (...) {}
+  try { prev_err = bb->get<std::string>("@last_error"); } catch (const std::exception &) {}
   if (prev_err.empty()) {
     bb->set<std::string>("@last_error", "MapfPlan halted");
   }
@@ -365,19 +366,24 @@ void MapfPlan::on_feedback(
   GoalHandle::SharedPtr /*gh*/,
   const std::shared_ptr<const Feedback> fb)
 {
-  // Build a one-line summary of this feedback tick
-  std::ostringstream line;
-  line << "[t=" << fb->elapsed_ms << "ms"
-       << " status=" << fb->status
-       << " arrived=" << fb->robots_arrived
-       << " active=" << fb->robots_active
-       << " stall=" << fb->robot_stall
-       << " replans=" << fb->replans_done
-       << "]";
-  if (!fb->info.empty())    line << " INFO: "    << fb->info;
-  if (!fb->warning.empty()) line << " WARN: "    << fb->warning;
-
-  const std::string line_str = line.str();
+  // Build a one-line summary of this feedback tick. snprintf into a stack
+  // buffer for the numeric prefix (no heap), then append the optional
+  // INFO / WARN strings.
+  char prefix[160];
+  const int n = std::snprintf(prefix, sizeof(prefix),
+      "[t=%lldms status=%s arrived=%u active=%u stall=%u replans=%u]",
+      static_cast<long long>(fb->elapsed_ms),
+      fb->status.c_str(),
+      static_cast<unsigned>(fb->robots_arrived),
+      static_cast<unsigned>(fb->robots_active),
+      static_cast<unsigned>(fb->robot_stall),
+      static_cast<unsigned>(fb->replans_done));
+  std::string line_str;
+  line_str.reserve((n > 0 ? static_cast<size_t>(n) : 0) +
+                   fb->info.size() + fb->warning.size() + 16);
+  line_str.assign(prefix, n > 0 ? static_cast<size_t>(n) : 0);
+  if (!fb->info.empty())    { line_str += " INFO: ";    line_str += fb->info; }
+  if (!fb->warning.empty()) { line_str += " WARN: ";    line_str += fb->warning; }
 
   // Ring buffer — has its own mutex, safe from any thread
   {
@@ -436,12 +442,12 @@ void MapfPlan::send_to_llm(const std::string & level, const std::string & event)
   goal.level = level;
   goal.event = event;
 
-  // Snapshot log buffer
+  // Snapshot log buffer. Single bulk copy under the lock — no incremental
+  // push_back (which would also reallocate inside the critical section)
+  // and no deep loop over the deque.
   {
     std::lock_guard<std::mutex> lk(buffer_mutex_);
-    for (const auto & s : info_buffer_) {
-      goal.log_buffer.push_back(s);
-    }
+    goal.log_buffer.assign(info_buffer_.begin(), info_buffer_.end());
   }
 
   llm_goal_handle_.reset();
@@ -513,7 +519,7 @@ bool SetFormation::start_service_call()
     return false;
   }
 
-  if (!client_->wait_for_service(2s)) {
+  if (!client_->service_is_ready()) {
     RCLCPP_ERROR(node->get_logger(), "SetFormation: /formation/set not available");
     last_error_ = "/formation/set service unavailable";
     return false;
@@ -783,7 +789,7 @@ bool DisableFormation::start_service_call()
     return false;
   }
 
-  if (!client_->wait_for_service(2s)) {
+  if (!client_->service_is_ready()) {
     RCLCPP_ERROR(node->get_logger(), "DisableFormation: /formation/deactivate not available");
     last_error_ = "/formation/deactivate service unavailable";
     return false;
@@ -1038,7 +1044,7 @@ std::string bb_get_str(
 {
   try {
     return bb->get<std::string>(key);
-  } catch (...) {
+  } catch (const std::exception &) {
     return def;
   }
 }
@@ -1069,10 +1075,10 @@ void publish_bt_state(
     for (auto id : ids) {
       msg.robot_ids.push_back(static_cast<uint32_t>(id));
     }
-  } catch (...) {}
+  } catch (const std::exception &) {}
   try {
     msg.goals = bb->get<std::vector<geometry_msgs::msg::Point>>("@goals");
-  } catch (...) {}
+  } catch (const std::exception &) {}
 
   if (fs) {
     msg.formation_state          = fs->state;
@@ -1094,7 +1100,7 @@ void publish_bt_state(
 
   try {
     msg.llm_thinking = bb->get<bool>("@llm_thinking");
-  } catch (...) {
+  } catch (const std::exception &) {
     msg.llm_thinking = false;
   }
 
@@ -1143,14 +1149,14 @@ BT::NodeStatus BTStatePublisher::tick()
   // the cache so stale DEGRADED/BROKEN entries from a previous mission don't
   // leak into the next mode and trigger spurious WARN/ERROR escalations.
   std::string mode;
-  try { mode = bb->get<std::string>("@mode"); } catch (...) {}
+  try { mode = bb->get<std::string>("@mode"); } catch (const std::exception &) {}
   if (mode != "formation") {
     std::lock_guard<std::mutex> lk(formation_cache_mutex_);
     formation_cache_.clear();
   }
 
   std::string formation_id;
-  try { formation_id = bb->get<std::string>("@formation_id"); } catch (...) {}
+  try { formation_id = bb->get<std::string>("@formation_id"); } catch (const std::exception &) {}
 
   FormationStatusMsg cached_fs;
   bool have_fs = false;
@@ -1167,7 +1173,7 @@ BT::NodeStatus BTStatePublisher::tick()
   // and user_chat see the same WARN/ERROR transitions they get from MAPF feedback.
   if (have_fs) {
     std::string action_status;
-    try { action_status = bb->get<std::string>("@action_status"); } catch (...) {}
+    try { action_status = bb->get<std::string>("@action_status"); } catch (const std::exception &) {}
 
     if (cached_fs.state == FormationStatusMsg::STATE_BROKEN &&
         action_status != "ERROR")
@@ -1237,6 +1243,25 @@ rclcpp_action::GoalResponse LlmCommandReceiver::handle_goal(
   // mapf in flight). Rejecting here would surface as a confusing
   // "BT rejected goal" in the chat.
   if (goal->mode != "idle" && goal->mode != "mapf" && goal->mode != "formation") {
+    return rclcpp_action::GoalResponse::REJECT;
+  }
+  for (const auto rid : goal->robot_ids) {
+    if (rid >= kMaxRobotId) {
+      auto node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
+      RCLCPP_WARN(node->get_logger(),
+        "LlmCommandReceiver: rejecting goal — robot_id %u exceeds cap %u",
+        rid, kMaxRobotId);
+      return rclcpp_action::GoalResponse::REJECT;
+    }
+  }
+  if (goal->mode == "mapf" &&
+      goal->goals.size() != goal->robot_ids.size())
+  {
+    auto node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
+    RCLCPP_WARN(node->get_logger(),
+      "LlmCommandReceiver: rejecting mapf goal — robot_ids size %zu != "
+      "goals size %zu",
+      goal->robot_ids.size(), goal->goals.size());
     return rclcpp_action::GoalResponse::REJECT;
   }
   return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;

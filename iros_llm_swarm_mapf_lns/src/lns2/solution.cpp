@@ -1,6 +1,6 @@
-// iros_llm_swarm_mapf/lns2/src/solution.cpp
+// iros_llm_swarm_mapf_lns/lns2/src/solution.cpp
 
-#include "iros_llm_swarm_mapf/lns2/solution.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/solution.hpp"
 
 #include <algorithm>
 #include <cassert>

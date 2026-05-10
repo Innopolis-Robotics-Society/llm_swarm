@@ -100,7 +100,7 @@ class MapfPlannerNode : public rclcpp::Node {
     declare_parameter("max_astar_expansions", 200000);
     declare_parameter("cost_curve",           std::string("quadratic"));
     declare_parameter("proximity_penalty",    15);
-    declare_parameter("max_zone_cost",        50);
+    declare_parameter("max_zone_cost",        10);
     declare_parameter("max_speed",             0.5);
     declare_parameter("urgency",              1.0);
 
@@ -160,7 +160,7 @@ class MapfPlannerNode : public rclcpp::Node {
     for (int i = 0; i < num_robots_; ++i) {
       const std::string odom_topic = "/robot_" + std::to_string(i) + "/odom";
       odom_subs_[i] = create_subscription<nav_msgs::msg::Odometry>(
-          odom_topic, 10,
+          odom_topic, rclcpp::SensorDataQoS(),
           [this, i](const nav_msgs::msg::Odometry::SharedPtr msg) {
             std::lock_guard<std::mutex> lk(state_mutex_);
             current_positions_[i] = {msg->pose.pose.position.x,
@@ -295,6 +295,7 @@ class MapfPlannerNode : public rclcpp::Node {
     map_origin_y_   = msg->info.origin.position.y;
     map_resolution_ = actual_res;
     map_ready_      = true;
+    map_changed_    = true;
   }
 
   // ------------------------------------------------------------------
@@ -872,6 +873,12 @@ class MapfPlannerNode : public rclcpp::Node {
       return;
     }
 
+    // Replan immediately when the obstacle map changed (door closed, obstacle placed).
+    if (map_changed_.exchange(false)) {
+      trigger_replan({}, lk);
+      return;
+    }
+
     const rclcpp::Time now_t = now();
 
     // ── Count arrived / active robots ────────────────────────────────
@@ -1114,7 +1121,7 @@ class MapfPlannerNode : public rclcpp::Node {
   size_t      max_astar_expansions_ = 200000;
   CostCurve   cost_curve_           = CostCurve::Quadratic;
   int         proximity_penalty_    = 50;
-  int         max_zone_cost_        = 50;
+  int         max_zone_cost_        = 10;
   double      max_speed_            = 0.5;
   double      urgency_              = 1.0;
 
@@ -1135,6 +1142,7 @@ class MapfPlannerNode : public rclcpp::Node {
   std::mutex          state_mutex_;
   std::atomic<bool>   is_planning_{false};  // true while solver_.solve() runs
   std::atomic<bool>   is_active_{false};    // true for entire goal lifecycle
+  std::atomic<bool>   map_changed_{false};  // set in on_map(), consumed in check_schedule()
 
   // Subscriptions
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;

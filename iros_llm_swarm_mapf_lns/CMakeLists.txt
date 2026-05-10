@@ -73,35 +73,14 @@ target_compile_options(mapf_lns2_node PRIVATE
 )
 
 # -------------------------------------------------------------------------
-# path_follower_node  (single-robot path executor)
-# -------------------------------------------------------------------------
-add_executable(path_follower_node src/path_follower_node.cpp)
-
-target_include_directories(path_follower_node PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-)
-
-ament_target_dependencies(path_follower_node
-  rclcpp
-  rclcpp_action
-  nav_msgs
-  nav2_msgs
-  geometry_msgs
-  iros_llm_swarm_interfaces
-)
-
-# -------------------------------------------------------------------------
 # Install
 # -------------------------------------------------------------------------
 install(TARGETS 
   mapf_lns2_node
-  path_follower_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
 install(TARGETS lns2
-  EXPORT lns2Targets
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
 )
@@ -114,10 +93,5 @@ install(DIRECTORY launch config
   DESTINATION share/${PROJECT_NAME}
   OPTIONAL
 )
-
-# Export library for downstream packages that may want to link lns2 directly
-ament_export_include_directories(include)
-ament_export_libraries(lns2)
-ament_export_targets(lns2Targets)
 
 ament_package()

@@ -37,6 +37,14 @@ Available recovery commands:
   {"mode":"formation", "formation_id":"...", "leader_ns":"robot_N",
    "follower_ns":["robot_A",...], "offsets_x":[...], "offsets_y":[...], "reason":"..."}
 
+  obstacles — place/remove obstacles or open/close doors
+  {"mode":"obstacles", "action":"add_circle",    "id":"crate_1",  "x":5.0, "y":3.0, "radius":0.5, "reason":"..."}
+  {"mode":"obstacles", "action":"add_rectangle", "id":"box_1",    "x":5.0, "y":3.0, "width":1.0, "height":0.5, "reason":"..."}
+  {"mode":"obstacles", "action":"add_door",      "id":"gate_1",   "x":5.0, "y":3.0, "width":1.5, "height":0.4, "is_open":true, "reason":"..."}
+  {"mode":"obstacles", "action":"remove",        "id":"crate_1",  "reason":"..."}
+  {"mode":"obstacles", "action":"open_door",     "door_id":"corridor_center", "reason":"..."}
+  {"mode":"obstacles", "action":"close_door",    "door_id":"corridor_center", "reason":"..."}
+
 Recovery heuristics:
   MAPF WARN (stall/deadlock)  → mapf with different goals or subset of robots
   MAPF ERROR (fatal/no-path)  → idle
@@ -45,6 +53,8 @@ Recovery heuristics:
   Formation BROKEN FOLLOWER_STUCK → formation excluding stuck robot, or different leader
   Formation BROKEN LEADER_LOST   → idle (operator must intervene)
   Formation setup fail            → formation with different leader_ns
+  Obstacle blocking path          → obstacles/open_door (if a door) or obstacles/remove
+  Door closed unexpectedly        → mapf to reroute, or obstacles/open_door
 
 Respond strictly with valid JSON — no surrounding text, no markdown.
 """

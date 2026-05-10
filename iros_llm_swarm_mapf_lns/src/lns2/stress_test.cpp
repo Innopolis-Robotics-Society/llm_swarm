@@ -3,7 +3,7 @@
 #include <cstdio>
 #include <vector>
 
-#include "iros_llm_swarm_mapf/lns2/lns2_solver.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/lns2_solver.hpp"
 
 using namespace lns2;
 

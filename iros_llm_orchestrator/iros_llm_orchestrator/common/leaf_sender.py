@@ -27,6 +27,8 @@ from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 
 from iros_llm_swarm_interfaces.action import LlmCommand
 from iros_llm_swarm_interfaces.msg import BTState
+from iros_llm_swarm_interfaces.srv import (
+    AddCircle, AddRectangle, AddDoor, RemoveObstacle, OpenDoor, CloseDoor)
 
 
 class BTLeafSender:
@@ -42,6 +44,13 @@ class BTLeafSender:
         self._step_timeout     = float(step_timeout_sec)
         self._cmd_client       = ActionClient(node, LlmCommand, '/llm/command')
         self._cmd_server_ready = False
+
+        self._add_circle  = node.create_client(AddCircle,      '/obstacles/add_circle')
+        self._add_rect    = node.create_client(AddRectangle,   '/obstacles/add_rectangle')
+        self._add_door_cl = node.create_client(AddDoor,        '/obstacles/add_door')
+        self._remove_obs  = node.create_client(RemoveObstacle, '/obstacles/remove')
+        self._open_door   = node.create_client(OpenDoor,       '/doors/open')
+        self._close_door  = node.create_client(CloseDoor,      '/doors/close')
 
         self._mode_lock          = threading.Lock()
         self._last_mode          = ''
@@ -88,6 +97,9 @@ class BTLeafSender:
 
     async def send(self, command: dict) -> bool:
         t = command.get('type') or command.get('mode', '')
+
+        if t == 'obstacles':
+            return await self._dispatch_obstacles(command)
 
         if not await self._ensure_cmd_server():
             self._node.get_logger().error('/llm/command unavailable')
@@ -155,4 +167,58 @@ class BTLeafSender:
 
         self._node.get_logger().error(
             f'step timeout on {t!r} after {self._step_timeout:.0f}s')
+        return False
+
+    # ------------------------------------------------------------------
+    # Obstacle / door dispatch (bypasses BT)
+    # ------------------------------------------------------------------
+
+    async def _call_srv(self, client, request) -> bool:
+        loop = asyncio.get_running_loop()
+        def _blocking():
+            if not client.wait_for_service(timeout_sec=2.0):
+                return None
+            return client.call(request)
+        result = await loop.run_in_executor(None, _blocking)
+        return result is not None and bool(result.success)
+
+    async def _dispatch_obstacles(self, cmd: dict) -> bool:
+        action = cmd.get('action', '')
+        if action == 'add_circle':
+            req = AddCircle.Request()
+            req.id = cmd.get('id', '')
+            req.position.x = float(cmd.get('x', 0.0))
+            req.position.y = float(cmd.get('y', 0.0))
+            req.radius = float(cmd.get('radius', 0.5))
+            return await self._call_srv(self._add_circle, req)
+        if action == 'add_rectangle':
+            req = AddRectangle.Request()
+            req.id = cmd.get('id', '')
+            req.position.x = float(cmd.get('x', 0.0))
+            req.position.y = float(cmd.get('y', 0.0))
+            req.width  = float(cmd.get('width',  1.0))
+            req.height = float(cmd.get('height', 0.5))
+            return await self._call_srv(self._add_rect, req)
+        if action == 'add_door':
+            req = AddDoor.Request()
+            req.id = cmd.get('id', '')
+            req.position.x = float(cmd.get('x', 0.0))
+            req.position.y = float(cmd.get('y', 0.0))
+            req.width   = float(cmd.get('width',  1.5))
+            req.height  = float(cmd.get('height', 0.4))
+            req.is_open = bool(cmd.get('is_open', True))
+            return await self._call_srv(self._add_door_cl, req)
+        if action == 'remove':
+            req = RemoveObstacle.Request()
+            req.id = cmd.get('id', '')
+            return await self._call_srv(self._remove_obs, req)
+        if action == 'open_door':
+            req = OpenDoor.Request()
+            req.door_id = cmd.get('door_id', '')
+            return await self._call_srv(self._open_door, req)
+        if action == 'close_door':
+            req = CloseDoor.Request()
+            req.door_id = cmd.get('door_id', '')
+            return await self._call_srv(self._close_door, req)
+        self._node.get_logger().error(f'obstacles: unknown action {action!r}')
         return False
