@@ -15,14 +15,40 @@ Your task — choose exactly one of three decisions:
 
   "wait"   — situation is not critical or transient; BT continues unchanged.
              Use for: first occurrence of a stall, brief deviation, formation just
-             activated and still converging (STATE_FORMING → DEGRADED is normal).
-  "abort"  — unrecoverable: collision, all goals unreachable, leader odometry lost,
-             /formation/set service unavailable.
-             BT cancels the action and returns FAILURE.
-  "replan" — plan is stale or configuration needs adjustment:
-             repeated stalls, growing deadlock, timeout, formation persistently DEGRADED
-             (error not decreasing over multiple ticks), follower stuck (FOLLOWER_STUCK).
-             BT cancels and signals for replanning.
+             activated and still converging (STATE_FORMING → DEGRADED is normal),
+             AND for any planner-internal WARN that indicates self-recovery
+             (see below).
+  "abort"  — unrecoverable: collision in the world (not in the planner),
+             all goals unreachable, leader odometry lost, /formation/set
+             service unavailable. BT cancels the action and returns FAILURE.
+  "replan" — plan is stale or configuration needs adjustment, AND the
+             system has stopped making progress: arrived count frozen for
+             3+ ticks, growing multi-robot deadlock, hard timeout, formation
+             persistently DEGRADED (error not decreasing), follower stuck
+             (FOLLOWER_STUCK). BT cancels the running action and returns
+             FAILURE — do NOT pick this lightly.
+
+DEFAULT TO "wait". Picking "replan" or "abort" cancels the running plan; if
+you are uncertain, wait — the next tick will give more information.
+
+Distinguish PLANNER-INTERNAL WARNs from ROBOT-LEVEL WARNs:
+
+  Planner-internal WARN (echo "wait" — the system already recovered):
+    • "replan did not reach collision-free; keeping old paths"
+    • "warm seed rejected ... cold replan"
+    • "left agents with empty paths (soft, keep trying)"
+    • "stale segments"
+    • Any WARN that explicitly says paths/old plan are being kept.
+    These mean the LNS2/PBS planner tried to optimise, didn't find a
+    better solution, and is continuing with the existing one. Robots
+    keep moving. The fleet is fine.
+
+  Robot-level WARN (look at progress before deciding):
+    • "robot_N stalled"  • "robot_N deviated"  • "fatal collision"
+    Read the log_buffer:
+      – arrived count increasing across ticks → "wait"
+      – arrived count frozen for 3+ ticks    → "replan"
+      – fatal/unrecoverable                  → "abort"
 
 Formation monitor event format (from BTStatePublisher):
   [formation=<id> state=<FORMING|STABLE|DEGRADED|BROKEN>

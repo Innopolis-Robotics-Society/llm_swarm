@@ -88,6 +88,30 @@ Formation staging — MANDATORY pre-check (do not skip):
       robot_<id>; please confirm or move it first"}
   and put a short question in "reply".
 
+Moving a formation to a destination — LEADER ONLY:
+- When a formation is active, the followers run in FOLLOWER mode: they
+  track the leader via /formations/config and ignore their own mapf goals.
+  Sending followers a goal while the formation is active makes them either
+  refuse the goal or cluster at the destination and BREAK the shape.
+- Therefore, the mapf step that moves a formation MUST contain ONLY the
+  leader id. Do not put any follower id in robot_ids of that mapf. The
+  followers travel automatically because they're chasing the leader's pose.
+- The operator phrasings that mean "move the formation" include: "send the
+  line to X", "move the wedge to Y", "формация magenta к центру", "<color>
+  line, head to <place>", "take the formation to <place>". Anything that
+  references the formation as a single unit and gives it a destination.
+- This rule applies in two situations:
+    (a) Formation is already active (visible in runtime_context.formations
+        with status STABLE/FORMING/DEGRADED): emit a single mapf leaf with
+        robot_ids=[leader_id] and goals=[destination].
+    (b) Operator asks to form X AND go to Y in the same turn: emit a
+        sequence — stage followers (mapf with FOLLOWERS at leader_xy +
+        offsets), activate (formation leaf), THEN move leader (mapf with
+        robot_ids=[leader_id] only).
+- The legacy "go to X first, then form" pattern (example below: "cyan go
+  to hub, then form a wedge") still uses a cluster mapf with ALL ids —
+  there is no formation active yet, so robots are just travelling together.
+
 Examples:
 
 Operator: "yellow to east, green to west"
@@ -144,6 +168,32 @@ All three followers exceed the 0.5 m tolerance — stage them first, then form:
     "follower_ns":["robot_5","robot_6","robot_7"],
     "offsets_x":[-1.5,-3.0,-4.5],"offsets_y":[0.0,0.0,0.0],
     "reason":"line behind robot_4"}
+ ]}}
+
+Operator: "send the magenta line to the central hub"
+Given runtime_context.formations:
+  [{"formation_id":"magenta_line","leader_ns":"robot_4",
+    "followers":["robot_5","robot_6","robot_7"],"status":"STABLE", ...}]
+The formation is already active — followers track robot_4 automatically.
+Move ONLY the leader; do NOT put 5/6/7 in robot_ids:
+{"reply":"Moving robot_4 to the central hub — the magenta line follows.",
+ "plan":{"type":"mapf","robot_ids":[4],"goals":[[-6.0,2.0]],
+         "reason":"move magenta_line leader to central_hub"}}
+
+Operator: "magenta line, head to hub"
+Given runtime_context.robots (same as the form-a-line example above) and
+no active formation yet. Stage, activate, THEN move the leader only:
+{"reply":"Staging magenta, activating the line, then leading to the hub.",
+ "plan":{"type":"sequence","steps":[
+   {"type":"mapf","robot_ids":[5,6,7],
+    "goals":[[-10.95,-6.65],[-12.45,-6.65],[-13.95,-6.65]],
+    "reason":"stage magenta followers at line offsets"},
+   {"type":"formation","formation_id":"magenta_line","leader_ns":"robot_4",
+    "follower_ns":["robot_5","robot_6","robot_7"],
+    "offsets_x":[-1.5,-3.0,-4.5],"offsets_y":[0.0,0.0,0.0],
+    "reason":"line behind robot_4"},
+   {"type":"mapf","robot_ids":[4],"goals":[[-6.0,2.0]],
+    "reason":"move magenta_line leader to central_hub (followers track)"}
  ]}}
 
 Remediation and operator escalation:

@@ -140,6 +140,51 @@ DECISION_SCENARIOS = [
         ],
         'decision': {'decision': 'wait', 'reason': 'steady progress, no stalls'},
     },
+    # ---- Planner-internal: optimisation failed but old plan retained -> wait ----
+    # The LNS2 planner tried to re-optimise mid-execution, didn't reach
+    # collision-free, and explicitly says it is KEEPING THE OLD PATHS.
+    # Robots keep moving on the old plan. arrived count is still climbing.
+    # This is healthy self-recovery — do NOT cancel.
+    {
+        'level': 'WARN',
+        'event': 'replan did not reach collision-free (4 collisions remain); keeping old paths',
+        'log_buffer': [
+            '[t=12000ms status=executing arrived=1 active=7 stall=0 replans=0]',
+            '[t=15000ms status=executing arrived=2 active=6 stall=0 replans=0]',
+            '[t=18000ms status=executing arrived=3 active=5 stall=0 replans=1] WARN: replan did not reach collision-free; keeping old paths',
+            '[t=21000ms status=executing arrived=4 active=4 stall=0 replans=1]',
+        ],
+        'decision': {'decision': 'wait',
+                     'reason': 'planner kept old paths; fleet still arriving (4/8 done)'},
+    },
+    # ---- Planner-internal: warm seed rejected, cold replan attempted -> wait ----
+    # Another LNS2 internal message — the warm-start seed for the
+    # optimisation was thrown out and a cold replan was tried. This is
+    # the planner doing its job, not a failure mode for the operator.
+    {
+        'level': 'WARN',
+        'event': 'warm seed rejected; cold replan attempted',
+        'log_buffer': [
+            '[t=8000ms status=executing arrived=2 active=6 stall=0 replans=0]',
+            '[t=11000ms status=executing arrived=3 active=5 stall=0 replans=1] WARN: warm seed rejected (coll=783, on_track=1)',
+            '[t=14000ms status=executing arrived=4 active=4 stall=0 replans=1]',
+        ],
+        'decision': {'decision': 'wait',
+                     'reason': 'planner internal warm-seed reject; arrivals still progressing'},
+    },
+    # ---- Planner-internal: a few agents left without paths (soft) -> wait ----
+    # "(soft, keep trying)" is the planner's own signal that this is
+    # recoverable on the next tick.
+    {
+        'level': 'WARN',
+        'event': "solve() left agents with empty paths (soft, keep trying): [14 15 16]",
+        'log_buffer': [
+            '[t=20000ms status=executing arrived=3 active=4 stall=0 replans=1]',
+            '[t=22000ms status=executing arrived=4 active=3 stall=0 replans=1] WARN: left agents with empty paths (soft)',
+        ],
+        'decision': {'decision': 'wait',
+                     'reason': 'soft empty-paths flag, planner says keep trying; fleet progressing'},
+    },
 ]
 
 # ---------------------------------------------------------------------------
