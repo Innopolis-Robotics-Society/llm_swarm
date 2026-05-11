@@ -58,6 +58,11 @@ class BTLeafSender:
         self._last_action_status = 'OK'
         self._last_bt_error      = ''
 
+        # Failure metadata for the most recent send(). Populated whenever
+        # send() returns False; cleared on each new send() call. Chat-side
+        # remediation reads this to brief the LLM about which leaf failed.
+        self._last_failure: dict | None = None
+
         qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
                          history=HistoryPolicy.KEEP_LAST, depth=10)
         self._sub = node.create_subscription(
@@ -95,14 +100,41 @@ class BTLeafSender:
         self._cmd_server_ready = ok
         return ok
 
+    def last_failure(self) -> dict | None:
+        """Return failure metadata from the most recent send(), or None."""
+        return self._last_failure
+
+    def _record_failure(self, *, leaf_type: str, phase: str,
+                        info: str = '') -> None:
+        status = self._get_mode_state()[2]
+        err    = self._get_mode_state()[3]
+        # Prefer the explicit info string (action result / timeout reason)
+        # over a stale /bt/state error if we have one.
+        last_error = info or err or ''
+        self._last_failure = {
+            'leaf_type':       leaf_type,
+            'action_status':   status,
+            'last_error':      last_error[:240],
+            'failed_at_phase': phase,
+        }
+
     async def send(self, command: dict) -> bool:
         t = command.get('type') or command.get('mode', '')
 
+        # Reset failure slot — only the latest send() is reported.
+        self._last_failure = None
+
         if t == 'obstacles':
-            return await self._dispatch_obstacles(command)
+            ok = await self._dispatch_obstacles(command)
+            if not ok:
+                self._record_failure(leaf_type=t, phase='obstacles')
+            return ok
 
         if not await self._ensure_cmd_server():
             self._node.get_logger().error('/llm/command unavailable')
+            self._record_failure(
+                leaf_type=t, phase='no_server',
+                info='/llm/command action server unavailable')
             return False
 
         goal = LlmCommand.Goal()
@@ -122,12 +154,16 @@ class BTLeafSender:
         handle = await self._cmd_client.send_goal_async(goal)
         if not handle.accepted:
             self._node.get_logger().warn(f'BT rejected {t!r} goal')
+            self._record_failure(leaf_type=t, phase='rejected',
+                                 info='BT rejected goal')
             return False
 
         cmd_result = await handle.get_result_async()
         if not cmd_result.result.success:
+            info = str(cmd_result.result.info or '')
             self._node.get_logger().error(
-                f'BT error on {t!r}: {cmd_result.result.info}')
+                f'BT error on {t!r}: {info}')
+            self._record_failure(leaf_type=t, phase='accept', info=info)
             return False
 
         if t == 'idle':
@@ -147,6 +183,8 @@ class BTLeafSender:
                         # Mission failed (partial plan, no path, etc.)
                         self._node.get_logger().error(
                             f'leaf {t!r}: BT returned idle with ERROR: {err_now}')
+                        self._record_failure(leaf_type=t, phase='phase1',
+                                             info=err_now)
                         return False
                     # Genuine fast completion (e.g. instant formation setup)
                     return True
@@ -158,15 +196,29 @@ class BTLeafSender:
             # goal or ModeDispatch no-op). Treat as success rather than block.
             return True
 
-        # Phase 2 — wait for mission to finish (mode returns to idle)
+        # Phase 2 — wait for mission to finish (mode returns to idle).
+        # Once mode flips back to idle, check action_status: if ERROR the
+        # mission aborted (e.g. SetFormation exhausted its retry budget) and
+        # we must surface that failure rather than silently succeed.
         deadline = time.monotonic() + self._step_timeout
         while time.monotonic() < deadline:
-            if self._get_mode_state()[0] == 'idle':
+            mode_now, _, status_now, err_now = self._get_mode_state()
+            if mode_now == 'idle':
+                if status_now == 'ERROR':
+                    self._node.get_logger().error(
+                        f'leaf {t!r}: BT returned to idle with ERROR: '
+                        f'{err_now}')
+                    self._record_failure(leaf_type=t, phase='phase2',
+                                         info=err_now)
+                    return False
                 return True
             await asyncio.sleep(0.1)
 
         self._node.get_logger().error(
             f'step timeout on {t!r} after {self._step_timeout:.0f}s')
+        self._record_failure(
+            leaf_type=t, phase='timeout',
+            info=f'step timeout after {self._step_timeout:.0f}s')
         return False
 
     # ------------------------------------------------------------------

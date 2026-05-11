@@ -317,6 +317,73 @@ def build_user_prompt(
     return messages
 
 
+_REMEDIATION_RUBRIC = (
+    'A plan you produced just failed during execution. The runtime context '
+    'above has been refreshed via MCP after the failure.\n'
+    'Either (a) produce a corrected plan that fixes the root cause, or '
+    '(b) emit {"type":"idle","reason":"needs_help: <question>"} if you '
+    'need operator input to proceed.\n'
+    'Use "needs_help:" prefix for operator clarification, "clarify:" prefix '
+    'if you want to ask a follow-up but believe a default exists. Keep the '
+    'reply field short and in the operator\'s language.'
+)
+
+
+def _format_attempts(attempts: list[dict]) -> str:
+    lines = []
+    for i, att in enumerate(attempts, start=1):
+        leaf = att.get('leaf_type', '?')
+        phase = att.get('failed_at_phase', '?')
+        err = str(att.get('last_error', '') or '')[:240]
+        lines.append(f'  - attempt {i}: leaf={leaf} phase={phase} error="{err}"')
+    return '\n'.join(lines) if lines else '  (none recorded)'
+
+
+def build_remediation_prompt(
+    original_user_message: str,
+    original_plan: dict,
+    attempts: list[dict],
+    failure_info: dict,
+    fresh_runtime_context: dict | None,
+    history: list | None = None,
+    map_name: str = 'warehouse',
+    obstacle_context: str = '',
+) -> list:
+    """Compose a remediation prompt for one retry attempt.
+
+    Starts from the same system+examples+history+user-message stack as the
+    first turn, then appends:
+      * a remediation rubric (system),
+      * the assistant's previously-produced plan,
+      * a fresh failure summary with the per-attempt log.
+    """
+    messages = build_user_prompt(
+        original_user_message,
+        history=history,
+        map_name=map_name,
+        obstacle_context=obstacle_context,
+        runtime_context=fresh_runtime_context,
+    )
+    messages.append({'role': 'system', 'content': _REMEDIATION_RUBRIC})
+    messages.append({
+        'role': 'assistant',
+        'content': json.dumps(original_plan, ensure_ascii=False),
+    })
+    failed_leaf = (failure_info or {}).get('leaf_type', '?')
+    last_error  = str((failure_info or {}).get('last_error', '') or '')[:240]
+    phase       = (failure_info or {}).get('failed_at_phase', '?')
+    summary = (
+        f'The plan above failed.\n'
+        f'Failed leaf: {failed_leaf} (phase={phase})\n'
+        f'Last error: {last_error}\n'
+        f'Per-attempt log:\n{_format_attempts(attempts)}\n'
+        f'Original user request: {original_user_message}\n'
+        'Produce either a corrected plan or a needs_help: idle reply.'
+    )
+    messages.append({'role': 'user', 'content': summary})
+    return messages
+
+
 def build_bt_event_prompt(bt_state: Any, history: list | None = None) -> list:
     messages = [{'role': 'system', 'content': _bt_event_system()}]
     if history:

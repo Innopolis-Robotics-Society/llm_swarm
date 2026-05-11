@@ -69,6 +69,28 @@ def should_skip_reply_only_execution(
     return False
 
 
+_HELP_PREFIXES = ('needs_help:', 'clarify:')
+
+
+def is_help_request(plan: dict | None) -> bool:
+    """True if the plan is an idle leaf with a needs_help/clarify reason.
+
+    Walks the plan tree so the prefix is honoured even if the LLM wraps the
+    idle leaf in a sequence/parallel container.
+    """
+    if not isinstance(plan, dict):
+        return False
+    t = plan.get('type')
+    if t == 'idle':
+        reason = str(plan.get('reason', '') or '').strip().lower()
+        return any(reason.startswith(p) for p in _HELP_PREFIXES)
+    if t in ('sequence', 'parallel'):
+        for step in plan.get('steps', []) or []:
+            if is_help_request(step):
+                return True
+    return False
+
+
 def _is_direct_stop_command(text: str) -> bool:
     low = text.strip().lower()
     return low in {'stop', 'halt', 'cancel', 'стоп', 'остановить', 'отмена'}

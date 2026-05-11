@@ -39,6 +39,13 @@ llm_chat_server:
     timeout_sec: 60.0
     step_timeout_sec: 120.0
 
+    # Remediation: on plan-execution failure, re-prompt the LLM with the
+    # failure info and a fresh (targeted) MCP snapshot up to N times. Set
+    # max_remediation_attempts=0 or remediation_enabled=false to keep the
+    # legacy "fail fast" behaviour.
+    remediation_enabled: true
+    max_remediation_attempts: 2
+
     # Read-only runtime context for /llm/chat.
     # Default demo path uses MCP read-only context. Use "ros_readonly" for a
     # local ROS-topic fallback or "none" for Phase 1 behavior.

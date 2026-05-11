@@ -34,19 +34,33 @@ from iros_llm_orchestrator.common.leaf_sender import BTLeafSender
 from iros_llm_orchestrator.common.llm_factory import get_llm_client
 from iros_llm_orchestrator.common.plan_executor import PlanExecutor
 from iros_llm_orchestrator.common.user_prompt import (
-    build_user_prompt, build_bt_event_prompt, load_map_config)
+    build_remediation_prompt,
+    build_user_prompt,
+    build_bt_event_prompt,
+    load_map_config,
+)
 from iros_llm_orchestrator.context import (
     DEFAULT_MCP_READ_TOOLS,
     ChatContextConfig,
     make_context_provider,
 )
+from iros_llm_orchestrator.context.mcp_readonly_provider import (
+    summarize_for_remediation,
+)
 from iros_llm_orchestrator.context.no_execute import (
+    is_help_request,
     should_skip_reply_only_execution,
 )
 from iros_llm_orchestrator.context.provider import bound_context, utc_now
 from iros_llm_orchestrator.user_chat_node import _parse_response, _postprocess_plan
 
 MAX_HISTORY = 8   # conversation turns kept per session
+
+
+class _LlmStageError(RuntimeError):
+    """Wraps any failure during stream/parse/postprocess so the caller
+    can decide between hard-fail (initial turn) and operator escalation
+    (remediation turn)."""
 
 
 class ChatServer(Node):
@@ -77,6 +91,13 @@ class ChatServer(Node):
         self.declare_parameter('mcp_command', 'uvx')
         self.declare_parameter('mcp_args', ['ros-mcp', '--transport=stdio'])
         self.declare_parameter('mcp_tool_allowlist', list(DEFAULT_MCP_READ_TOOLS))
+        self.declare_parameter('max_remediation_attempts', 2)
+        self.declare_parameter('remediation_enabled', True)
+
+        self._max_remediation_attempts = max(0, int(
+            self.get_parameter('max_remediation_attempts').value))
+        self._remediation_enabled = bool(
+            self.get_parameter('remediation_enabled').value)
 
         self._timeout  = float(self.get_parameter('timeout_sec').value)
         self._map_name = self.get_parameter('map_name').value
@@ -203,11 +224,9 @@ class ChatServer(Node):
         req = goal_handle.request
         result = LlmChat.Result()
 
-        # ---- 1. Stream reply ----
+        # ---- 1. Stream initial reply ----
         self._publish_fb(goal_handle, stage='thinking')
-
         runtime_context = await self._get_runtime_context()
-
         messages = build_user_prompt(
             req.user_message,
             history=list(self._history),
@@ -217,60 +236,192 @@ class ChatServer(Node):
         )
 
         try:
-            full_raw = await asyncio.wait_for(
-                self._stream_reply(messages, goal_handle),
-                timeout=self._timeout)
-        except asyncio.TimeoutError:
-            return self._fail(goal_handle, result, 'LLM timeout')
-        except Exception as exc:
-            return self._fail(goal_handle, result, f'LLM error: {exc}')
+            reply, plan, full_raw = await self._stream_and_parse(
+                messages, goal_handle)
+        except _LlmStageError as exc:
+            return self._fail(goal_handle, result, str(exc))
 
-        # ---- 2. Parse ----
-        try:
-            reply, plan = _parse_response(full_raw)
-        except ValueError as exc:
-            return self._fail(goal_handle, result, f'parse error: {exc}')
-
-        plan = _postprocess_plan(plan, self._map_cfg)
         plan_json = json.dumps(plan, ensure_ascii=False)
         result.final_reply = reply
         result.plan_json   = plan_json
-
-        # Save turn to shared history
         self._history.append({'role': 'user',      'content': req.user_message})
         self._history.append({'role': 'assistant', 'content': full_raw})
         self._trim_history()
-
         self._publish_fb(goal_handle, stage='parsed', detail=plan_json)
         self._publish_event(channel=LlmEvent.CHANNEL_USER,
                             trigger=req.user_message,
                             output=plan_json,
                             reason=reply)
 
-        # ---- 3. Optional execute ----
+        # ---- 2. Reply-only / help-request short circuits ----
         if req.execute_after_planning and should_skip_reply_only_execution(
-            req.user_message,
-            plan,
-            runtime_context,
+            req.user_message, plan, runtime_context,
         ):
             self.get_logger().info(
                 'Skipping PlanExecutor for reply-only context question')
-        elif req.execute_after_planning:
-            self._publish_fb(goal_handle, stage='executing')
-            executor = PlanExecutor(
-                send_fn=self._sender.send,
-                log_fn=lambda m: self.get_logger().info(f'executor: {m}'))
-            ok = await executor.run(plan)
-            result.plan_executed = ok
-            if not ok:
-                return self._fail(goal_handle, result,
-                                  'plan execution failed', got_plan=True)
+            return self._succeed(goal_handle, result)
 
-        self._publish_fb(goal_handle, stage='done')
-        result.success = True
-        result.info    = ''
-        goal_handle.succeed()
-        return result
+        if is_help_request(plan):
+            return self._finalize_help(
+                goal_handle, result, reply, plan,
+                trigger=req.user_message,
+                reason='LLM emitted needs_help on initial reply')
+
+        if not req.execute_after_planning:
+            return self._succeed(goal_handle, result)
+
+        # ---- 3. Execute ----
+        self._publish_fb(goal_handle, stage='executing')
+        ok, failure_info = await self._execute_plan(plan)
+        result.plan_executed = ok
+        if ok:
+            return self._succeed(goal_handle, result)
+
+        if not self._remediation_enabled or self._max_remediation_attempts == 0:
+            return self._fail(goal_handle, result,
+                              'plan execution failed', got_plan=True)
+
+        # ---- 4. Remediation loop ----
+        attempts: list[dict] = [failure_info or {}]
+        last_plan  = plan
+        last_reply = reply
+
+        for n in range(1, self._max_remediation_attempts + 1):
+            failed_leaf = attempts[-1].get('leaf_type', '?')
+            self._publish_fb(
+                goal_handle, stage='remediating',
+                detail=f'attempt={n} leaf={failed_leaf}')
+
+            fresh_ctx = await self._get_targeted_runtime_context(
+                attempts[-1], cached=runtime_context)
+            slim_ctx = summarize_for_remediation(fresh_ctx)
+
+            rem_messages = build_remediation_prompt(
+                req.user_message,
+                last_plan,
+                attempts,
+                attempts[-1],
+                fresh_runtime_context=slim_ctx,
+                history=list(self._history),
+                map_name=self._map_name,
+                obstacle_context=self._get_obstacle_context(),
+            )
+
+            try:
+                r_reply, r_plan, r_raw = await self._stream_and_parse(
+                    rem_messages, goal_handle)
+            except _LlmStageError as exc:
+                return self._finalize_help(
+                    goal_handle, result, last_reply, last_plan,
+                    trigger=req.user_message,
+                    reason=f'LLM error during remediation {n}: {exc}',
+                    last_failure=attempts[-1])
+
+            self._history.append({
+                'role': 'user',
+                'content': (f'[remediation {n}: {failed_leaf} failed — '
+                            f'{str(attempts[-1].get("last_error",""))[:160]}]'),
+            })
+            self._history.append({'role': 'assistant', 'content': r_raw})
+            self._trim_history()
+
+            last_plan  = r_plan
+            last_reply = r_reply
+            result.final_reply = r_reply
+            result.plan_json   = json.dumps(r_plan, ensure_ascii=False)
+            self._publish_fb(goal_handle, stage='parsed',
+                             detail=result.plan_json)
+            self._publish_event(channel=LlmEvent.CHANNEL_USER,
+                                trigger=req.user_message,
+                                output=result.plan_json,
+                                reason=r_reply)
+
+            if is_help_request(r_plan):
+                return self._finalize_help(
+                    goal_handle, result, r_reply, r_plan,
+                    trigger=req.user_message,
+                    reason=f'LLM emitted needs_help on remediation {n}',
+                    last_failure=attempts[-1])
+
+            self._publish_fb(goal_handle, stage='executing')
+            ok, failure_info = await self._execute_plan(r_plan)
+            result.plan_executed = ok
+            if ok:
+                return self._succeed(goal_handle, result)
+            attempts.append(failure_info or {})
+
+        # Retries exhausted — escalate to operator
+        return self._finalize_help(
+            goal_handle, result, last_reply, last_plan,
+            trigger=req.user_message,
+            reason=(f'remediation budget '
+                    f'{self._max_remediation_attempts} exhausted'),
+            last_failure=attempts[-1])
+
+    async def _stream_and_parse(self, messages, goal_handle):
+        """Stream → parse → postprocess; raises _LlmStageError on any failure."""
+        try:
+            full_raw = await asyncio.wait_for(
+                self._stream_reply(messages, goal_handle),
+                timeout=self._timeout)
+        except asyncio.TimeoutError as exc:
+            raise _LlmStageError('LLM timeout') from exc
+        except Exception as exc:
+            raise _LlmStageError(f'LLM error: {exc}') from exc
+        try:
+            reply, plan = _parse_response(full_raw)
+        except ValueError as exc:
+            raise _LlmStageError(f'parse error: {exc}') from exc
+        plan = _postprocess_plan(plan, self._map_cfg)
+        return reply, plan, full_raw
+
+    async def _execute_plan(self, plan: dict) -> tuple[bool, dict | None]:
+        """Run a plan via the shared sender; return (ok, failure_info)."""
+        executor = PlanExecutor(
+            send_fn=self._sender.send,
+            log_fn=lambda m: self.get_logger().info(f'executor: {m}'))
+        ok = await executor.run(plan)
+        if ok:
+            return True, None
+        failure = dict(self._sender.last_failure() or {})
+        # If sender did not record one (executor refused to send for some
+        # other reason) fall back to the leaf type from the executor.
+        if not failure and executor.failed_leaf:
+            failure = {
+                'leaf_type': str(executor.failed_leaf.get('type') or '?'),
+                'last_error': 'plan execution failed (no sender detail)',
+                'failed_at_phase': 'unknown',
+                'action_status': '',
+            }
+        return False, failure
+
+    async def _get_targeted_runtime_context(
+        self,
+        failure: dict,
+        *,
+        cached: dict,
+    ) -> dict:
+        """Refresh runtime context after a failure, with stale fallback."""
+        get_targeted = getattr(
+            self._context_provider, 'get_targeted_context', None)
+        if get_targeted is None:
+            # Provider doesn't support targeting (none/ros_readonly) — just
+            # re-fetch the base context.
+            return await self._get_runtime_context()
+        try:
+            context = await asyncio.wait_for(
+                get_targeted(failure),
+                timeout=max(0.1, float(self._context_config.timeout_sec)),
+            )
+        except Exception as exc:
+            context = dict(cached or {})
+            warnings = list(context.get('warnings') or [])
+            warnings.append(
+                f'targeted MCP refresh failed; using stale snapshot: {exc}')
+            warnings.append('mcp_stale: true')
+            context['warnings'] = warnings
+            context['source'] = 'mcp_readonly_remediation_stale'
+        return bound_context(context, self._context_config.max_chars)
 
     async def _get_runtime_context(self) -> dict:
         try:
@@ -451,6 +602,61 @@ class ChatServer(Node):
         result.info    = info
         if not got_plan:
             result.plan_json = ''
+        gh.succeed()
+        return result
+
+    def _succeed(self, gh, result):
+        self._publish_fb(gh, stage='done')
+        result.success = True
+        if not result.info:
+            result.info = ''
+        gh.succeed()
+        return result
+
+    def _finalize_help(
+        self,
+        gh,
+        result,
+        last_reply: str,
+        last_plan: dict,
+        *,
+        trigger: str,
+        reason: str,
+        last_failure: dict | None = None,
+    ):
+        """Deliver the LLM's question (or our synthesized fallback) to the
+        operator instead of treating the turn as a hard failure.
+
+        Sets ``success=True, plan_executed=False`` so panel callers see the
+        turn as completed-with-question rather than crashed, and prefixes
+        the displayed reply with a short bilingual banner whenever the LLM
+        did not itself emit a ``needs_help:`` idle leaf.
+        """
+        failure = last_failure or {}
+        leaf = failure.get('leaf_type', '?')
+        err  = str(failure.get('last_error', '') or '')[:240]
+        if not is_help_request(last_plan):
+            banner = (f'Нужна помощь оператора: {leaf} — {err}\n'
+                      f'Operator help required: {leaf} — {err}\n\n')
+            last_reply = banner + (last_reply or '')
+
+        info = f'needs_help: {reason}'
+        if leaf != '?':
+            info += f' (leaf={leaf})'
+
+        result.final_reply   = last_reply
+        result.plan_json     = json.dumps(last_plan, ensure_ascii=False)
+        result.plan_executed = False
+        result.success       = True
+        result.info          = info
+
+        self._publish_fb(gh, stage='needs_help', detail=info)
+        self._publish_event(
+            channel=LlmEvent.CHANNEL_USER,
+            trigger=trigger,
+            output='needs_help',
+            reason=info,
+        )
         gh.succeed()
         return result
 

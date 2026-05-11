@@ -174,8 +174,12 @@ class PlanExecutor:
         self._send  = send_fn
         self._log   = log_fn or (lambda _: None)
         self._depth = 0
+        # Set to the leaf node that produced a False return; remediation
+        # callers use this to brief the LLM about which step broke.
+        self.failed_leaf: dict | None = None
 
     async def run(self, plan: dict) -> bool:
+        self.failed_leaf = None
         return await self._execute(plan)
 
     async def _execute(self, node: dict) -> bool:
@@ -234,4 +238,7 @@ class PlanExecutor:
             self._log(
                 f"{ind}🔷 formation {node.get('formation_id','')} "
                 f"leader={node.get('leader_ns','')}: {node.get('reason','')}")
-        return await self._send(node)
+        ok = await self._send(node)
+        if not ok and self.failed_leaf is None:
+            self.failed_leaf = node
+        return ok
