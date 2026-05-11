@@ -15,6 +15,8 @@ Launch order (sim seconds):
           - pbs: mapf (PBS planner) + motion_controllers (per-robot drivers)
   t=12  Formation manager + monitor (if enable_formation:=true)
   t=18  LLM orchestrator (decision/passive/chat/execute servers)
+          + rosbridge_server on :9090 for the MCP read-only context
+            (skipped when enable_rosbridge:=false)
   t=20  BT runner
 
 Examples:
@@ -26,7 +28,6 @@ Examples:
 from launch import LaunchDescription
 from launch.actions import (
     DeclareLaunchArgument,
-    ExecuteProcess,
     IncludeLaunchDescription,
     LogInfo,
     TimerAction,
@@ -61,7 +62,7 @@ def generate_launch_description():
     )
     planner_arg = DeclareLaunchArgument(
         'planner',
-        default_value='pbs',
+        default_value='lns',
         choices=['lns', 'pbs'],
         description='MAPF planner: "lns" (LNS2, scalable) or "pbs" '
                     '(Priority-Based Search, more deterministic).',
@@ -128,18 +129,6 @@ def generate_launch_description():
     is_lns        = IfCondition(PythonExpression(["'", planner, "' == 'lns'"]))
     is_pbs        = IfCondition(PythonExpression(["'", planner, "' == 'pbs'"]))
     use_formation = IfCondition(enable_formation)
-    use_rosbridge = IfCondition(enable_rosbridge)
-
-    rosbridge_notice = LogInfo(
-        msg='Starting rosbridge_server for MCP read-only context on port 9090...',
-        condition=use_rosbridge,
-    )
-    rosbridge = ExecuteProcess(
-        cmd=['ros2', 'launch', 'rosbridge_server',
-             'rosbridge_websocket_launch.xml'],
-        output='screen',
-        condition=use_rosbridge,
-    )
 
     # ----------------------------------------------------- foundational layers
     stage = IncludeLaunchDescription(
@@ -208,6 +197,7 @@ def generate_launch_description():
         ])]),
         launch_arguments=[
             ('enable_passive_observer', enable_passive),
+            ('enable_rosbridge', enable_rosbridge),
             ('llm_backend', llm_backend),
             ('llm_endpoint', llm_endpoint),
             ('llm_model', llm_model),
@@ -223,11 +213,15 @@ def generate_launch_description():
         name='formation_manager',
         output='screen',
         parameters=[{
-            'config_file':       '',
-            'auto_activate':     False,
-            'footprint_padding': 0.2,
-            'robot_radius':      0.3,
+            'config_file':        '',
+            'auto_activate':      False,
+            'footprint_padding':  0.2,
+            'robot_radius':       0.3,
             'position_tolerance': 0.5,
+            # Prewarm odom subscriptions for all controlled robots so the
+            # first /formation/set doesn't race the first odom message.
+            'num_robots':         num_robots,
+            'robot_ns_prefix':    'robot_',
         }],
         condition=use_formation,
     )
@@ -281,8 +275,6 @@ def generate_launch_description():
         # t=0
         stage,
         rviz,
-        rosbridge_notice,
-        rosbridge,
 
         TimerAction(period=1.0, actions=[
             LogInfo(msg='Starting per-robot Nav2 stack...'),

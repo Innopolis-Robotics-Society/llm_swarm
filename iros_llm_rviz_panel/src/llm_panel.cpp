@@ -901,7 +901,7 @@ void LlmPanel::sendChatGoal(const QString & text, bool execute_after_planning)
 {
   chat_view_->append(QString("<b>You:</b> %1").arg(text.toHtmlEscaped()));
   chat_input_->clear();
-  chat_view_->append(QString::fromUtf8("<b>🤖:</b> "));
+  chat_view_->append(QString::fromUtf8("<b>UwU:</b> "));
   chat_in_flight_ = true;
 
   LlmChat::Goal goal;

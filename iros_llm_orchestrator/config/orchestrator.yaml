@@ -56,6 +56,18 @@ llm_chat_server:
     context_include_formations: true
     context_include_map_summary: true
     context_include_recent_events: true
+    # Live robot poses sourced from /robot_*/odom via a local subscriber
+    # cache. The LLM uses these to compute formation goals as
+    # leader_xy + offsets instead of inventing absolute coordinates.
+    context_include_robot_positions: true
+    context_pose_stale_ms: 2000
+
+    # Server-side safety net: when the LLM emits a bare formation leaf
+    # without prepending a staging mapf, PlanExecutor reads live poses,
+    # computes leader_xy + offsets, and auto-injects the staging step for
+    # any follower further than this from its target. Must match
+    # formation_manager_node's position_tolerance (default 0.5 m).
+    formation_tolerance_m: 0.5
 
     # MCP read-only provider. The full demo starts rosbridge by default.
     # The provider logs actionable diagnostics if uvx, ros-mcp, the MCP SDK,

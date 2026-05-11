@@ -3,7 +3,8 @@ import os
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, LogInfo, OpaqueFunction
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -61,6 +62,7 @@ def _resolve_llm_overrides(context) -> dict:
 
 def setup(context, *args, **kwargs):
     enable_passive = LaunchConfiguration('enable_passive_observer')
+    enable_rosbridge = LaunchConfiguration('enable_rosbridge')
 
     config = os.path.join(
         get_package_share_directory('iros_llm_orchestrator'),
@@ -73,7 +75,21 @@ def setup(context, *args, **kwargs):
     llm_overrides = _resolve_llm_overrides(context)
     llm_env = {'LLM_API_KEY': os.environ.get('LLM_API_KEY', '')}
 
+    rosbridge_condition = IfCondition(enable_rosbridge)
+    rosbridge_notice = LogInfo(
+        msg='Starting rosbridge_server on port 9090 for MCP read-only context...',
+        condition=rosbridge_condition,
+    )
+    rosbridge = ExecuteProcess(
+        cmd=['ros2', 'launch', 'rosbridge_server',
+             'rosbridge_websocket_launch.xml'],
+        output='screen',
+        condition=rosbridge_condition,
+    )
+
     return [
+        rosbridge_notice,
+        rosbridge,
         Node(
             package='iros_llm_orchestrator',
             executable='decision_server',
@@ -144,6 +160,15 @@ def generate_launch_description():
         choices=['true', 'false'],
     )
 
+    enable_rosbridge_arg = DeclareLaunchArgument(
+        'enable_rosbridge',
+        default_value='true',
+        description='Start rosbridge_server on port 9090. Required by the '
+                    'mcp_readonly context provider; disable when an external '
+                    'rosbridge is already running.',
+        choices=['true', 'false'],
+    )
+
     scenario_arg = DeclareLaunchArgument(
         'scenario',
         default_value='amongus',
@@ -166,6 +191,7 @@ def generate_launch_description():
         llm_endpoint_arg,
         llm_model_arg,
         enable_passive_arg,
+        enable_rosbridge_arg,
         scenario_arg,
         scenarios_file_arg,
         OpaqueFunction(function=setup),

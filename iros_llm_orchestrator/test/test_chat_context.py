@@ -10,6 +10,7 @@ from iros_llm_orchestrator.context import (
     ChatContextConfig,
     NoneContextProvider,
     make_context_provider,
+    robots_snapshot_dict,
 )
 from iros_llm_orchestrator.context.mcp_readonly_provider import (
     McpReadonlyContextProvider,
@@ -18,15 +19,35 @@ from iros_llm_orchestrator.context.no_execute import (
     should_skip_reply_only_execution,
 )
 from iros_llm_orchestrator.context.provider import (
+    assignment_from_bt,
     bound_context,
     safe_mcp_allowlist,
 )
 from iros_llm_orchestrator.context.ros_readonly_provider import (
-    derive_robot_summary,
     normalize_bt_state,
     normalize_formations_status,
     normalize_llm_event,
 )
+
+
+class _FakePoseCache:
+    """In-test stand-in for RobotPoseCache that returns a fixed snapshot."""
+
+    def __init__(self, poses: dict[int, dict]):
+        self._poses = poses
+
+    def snapshot(self, stale_threshold_ms: int = 2000) -> dict[int, dict]:
+        out = {}
+        for rid, entry in self._poses.items():
+            stale_ms = int(entry.get('stale_ms', 0))
+            out[rid] = {
+                'x': float(entry['x']),
+                'y': float(entry['y']),
+                'yaw': float(entry.get('yaw', 0.0)),
+                'stale_ms': stale_ms,
+                'stale': stale_ms > stale_threshold_ms,
+            }
+        return out
 
 
 def test_default_context_provider_is_none():
@@ -75,13 +96,87 @@ def test_ros_readonly_normalizes_fake_messages():
     ])
 
     bt_context = normalize_bt_state(bt)
-    robots = derive_robot_summary(bt, {'robot_groups': {'cyan': {'ids': [0, 1, 2]}}})
+    assignment = assignment_from_bt(
+        bt, {'robot_groups': {'cyan': {'ids': [0, 1, 2]}}})
 
     assert bt_context['formation_state'] == 'STABLE'
     assert bt_context['goals'] == [[1.235, 2.346]]
-    assert robots == {'active': [0, 1], 'idle': [2], 'unknown': []}
+    assert assignment == {'active': [0, 1], 'idle': [2], 'unknown': []}
     assert 'channel=3' in normalize_llm_event(event)
     assert normalize_formations_status(formations)[0]['status'] == 'STABLE'
+
+
+def test_robots_snapshot_serializes_per_id_with_stale_flag():
+    cache = _FakePoseCache({
+        12: {'x': -0.15, 'y': -11.65, 'yaw': 1.57, 'stale_ms': 80},
+        17: {'x': 18.0,  'y': 2.0,    'yaw': 0.0,  'stale_ms': 3500},
+    })
+
+    snapshot = robots_snapshot_dict(cache, stale_threshold_ms=2000)
+
+    assert set(snapshot.keys()) == {'12', '17'}
+    assert snapshot['12']['x'] == -0.15
+    assert snapshot['12']['stale'] is False
+    assert snapshot['17']['stale'] is True
+    assert robots_snapshot_dict(None, 2000) == {}
+
+
+def test_ros_readonly_includes_poses_when_pose_cache_supplied():
+    from iros_llm_orchestrator.context.ros_readonly_provider import (
+        RosReadonlyContextProvider,
+    )
+
+    config = ChatContextConfig(
+        provider='ros_readonly',
+        include_bt_state=False,
+        include_formations=False,
+        include_map_summary=False,
+        include_recent_events=False,
+        include_robot_positions=True,
+    )
+    cache = _FakePoseCache({
+        0: {'x': 1.0, 'y': 2.0, 'yaw': 0.0, 'stale_ms': 100},
+    })
+    fake_node = SimpleNamespace(
+        create_subscription=lambda *a, **kw: None,
+        get_logger=lambda: SimpleNamespace(warn=lambda _m: None,
+                                           info=lambda _m: None),
+    )
+
+    provider = RosReadonlyContextProvider(fake_node, config, pose_cache=cache)
+    context = asyncio.run(provider.get_context())
+
+    assert context['source'] == 'ros_readonly'
+    assert context['robots']['0']['x'] == 1.0
+    assert context['robots']['0']['stale'] is False
+
+
+def test_ros_readonly_warns_when_pose_cache_empty():
+    from iros_llm_orchestrator.context.ros_readonly_provider import (
+        RosReadonlyContextProvider,
+    )
+
+    config = ChatContextConfig(
+        provider='ros_readonly',
+        include_bt_state=False,
+        include_formations=False,
+        include_map_summary=False,
+        include_recent_events=False,
+        include_robot_positions=True,
+    )
+    fake_node = SimpleNamespace(
+        create_subscription=lambda *a, **kw: None,
+        get_logger=lambda: SimpleNamespace(warn=lambda _m: None,
+                                           info=lambda _m: None),
+    )
+
+    provider = RosReadonlyContextProvider(
+        fake_node, config, pose_cache=_FakePoseCache({}))
+    context = asyncio.run(provider.get_context())
+
+    assert context['robots'] == {}
+    assert any('leader pose unavailable' in w
+               for w in context.get('warnings', []))
 
 
 def test_context_is_capped_by_max_chars():

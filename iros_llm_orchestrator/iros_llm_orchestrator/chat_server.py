@@ -42,6 +42,8 @@ from iros_llm_orchestrator.common.user_prompt import (
 from iros_llm_orchestrator.context import (
     DEFAULT_MCP_READ_TOOLS,
     ChatContextConfig,
+    RobotPoseCache,
+    compute_formation_staging,
     make_context_provider,
 )
 from iros_llm_orchestrator.context.mcp_readonly_provider import (
@@ -51,7 +53,11 @@ from iros_llm_orchestrator.context.no_execute import (
     is_help_request,
     should_skip_reply_only_execution,
 )
-from iros_llm_orchestrator.context.provider import bound_context, utc_now
+from iros_llm_orchestrator.context.provider import (
+    bound_context,
+    known_robot_ids,
+    utc_now,
+)
 from iros_llm_orchestrator.user_chat_node import _parse_response, _postprocess_plan
 
 MAX_HISTORY = 8   # conversation turns kept per session
@@ -86,6 +92,12 @@ class ChatServer(Node):
         self.declare_parameter('context_include_formations', True)
         self.declare_parameter('context_include_map_summary', True)
         self.declare_parameter('context_include_recent_events', True)
+        self.declare_parameter('context_include_robot_positions', True)
+        self.declare_parameter('context_pose_stale_ms', 2000)
+        # Must match formation_manager_node's position_tolerance. PlanExecutor
+        # uses this to decide whether a formation leaf needs an auto-staging
+        # mapf step prepended before dispatch.
+        self.declare_parameter('formation_tolerance_m', 0.5)
         self.declare_parameter('mcp_enabled', False)
         self.declare_parameter('mcp_transport', 'stdio')
         self.declare_parameter('mcp_command', 'uvx')
@@ -122,7 +134,12 @@ class ChatServer(Node):
             self._map_cfg = {}
 
         self._context_config = self._make_context_config()
-        self._context_provider = make_context_provider(self, self._context_config)
+        self._pose_cache = RobotPoseCache(
+            self, known_robot_ids(self._map_cfg or {}))
+        self._formation_tolerance_m = float(
+            self.get_parameter('formation_tolerance_m').value)
+        self._context_provider = make_context_provider(
+            self, self._context_config, pose_cache=self._pose_cache)
 
         self._sender = BTLeafSender(
             self,
@@ -180,6 +197,10 @@ class ChatServer(Node):
                 self.get_parameter('context_include_map_summary').value),
             include_recent_events=bool(
                 self.get_parameter('context_include_recent_events').value),
+            include_robot_positions=bool(
+                self.get_parameter('context_include_robot_positions').value),
+            pose_stale_ms=int(
+                self.get_parameter('context_pose_stale_ms').value),
             map_name=str(self._map_name),
             map_config=dict(self._map_cfg or {}),
             mcp_enabled=bool(self.get_parameter('mcp_enabled').value),
@@ -375,11 +396,27 @@ class ChatServer(Node):
         plan = _postprocess_plan(plan, self._map_cfg)
         return reply, plan, full_raw
 
+    def _formation_prestage_hook(self, formation_node: dict) -> dict | None:
+        """Auto-stage out-of-tolerance followers when the LLM emits a bare
+        formation leaf. Reads live poses from the chat_server's RobotPoseCache.
+        """
+        if self._pose_cache is None:
+            return None
+        snapshot = self._pose_cache.snapshot(
+            stale_threshold_ms=int(self._context_config.pose_stale_ms))
+        return compute_formation_staging(
+            formation_node,
+            snapshot,
+            tolerance_m=self._formation_tolerance_m,
+        )
+
     async def _execute_plan(self, plan: dict) -> tuple[bool, dict | None]:
         """Run a plan via the shared sender; return (ok, failure_info)."""
         executor = PlanExecutor(
             send_fn=self._sender.send,
-            log_fn=lambda m: self.get_logger().info(f'executor: {m}'))
+            log_fn=lambda m: self.get_logger().info(f'executor: {m}'),
+            formation_prestage_hook=self._formation_prestage_hook,
+        )
         ok = await executor.run(plan)
         if ok:
             return True, None

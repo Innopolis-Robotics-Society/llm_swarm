@@ -116,6 +116,14 @@ class FormationManagerNode(Node):
         self.declare_parameter("footprint_padding",  0.2)
         self.declare_parameter("robot_radius",       0.3)
         self.declare_parameter("position_tolerance", 0.5)
+        # Pre-subscribe to /<prefix><i>/odom for i in [0, num_robots). Without
+        # this, /formation/set creates the leader's odom subscription and
+        # immediately calls _check_positions in the same callback — the first
+        # odom message hasn't arrived yet, so the check fails with
+        # "No odometry received from leader 'robot_N'" on the first attempt.
+        # Set num_robots=0 to keep the legacy lazy-subscribe behaviour.
+        self.declare_parameter("num_robots",         20)
+        self.declare_parameter("robot_ns_prefix",    "robot_")
 
         self._padding  = self.get_parameter("footprint_padding").value
         self._robot_r  = self.get_parameter("robot_radius").value
@@ -139,6 +147,12 @@ class FormationManagerNode(Node):
         # ns → odom subscription
         self._odom_subs: dict[str, object] = {}
 
+        # Namespaces whose odom subscription must survive formation churn —
+        # populated by the startup pre-subscribe loop. _release_odom_sub
+        # treats these as permanent so the cache stays warm even when every
+        # formation referencing the namespace is removed.
+        self._pinned_namespaces: set[str] = set()
+
         # Services
         self.create_service(ActivateFormation,   "/formation/activate",   self._on_activate)
         self.create_service(DeactivateFormation, "/formation/deactivate", self._on_deactivate)
@@ -153,12 +167,31 @@ class FormationManagerNode(Node):
         if cfg:
             self._load_yaml(cfg)
 
+        self._prewarm_odom_subscriptions()
+
         self.get_logger().info(
             f"formation_manager ready  topic={FORMATIONS_TOPIC}  "
             f"formations={list(self._registry.keys())}  "
-            f"position_tolerance={self._pos_tol}m"
+            f"position_tolerance={self._pos_tol}m  "
+            f"prewarmed_ns={len(self._pinned_namespaces)}"
         )
         self._publish_all()
+
+    def _prewarm_odom_subscriptions(self):
+        """Subscribe to every expected /<prefix><i>/odom up front.
+
+        Without this, _check_positions called from _on_set fires before the
+        first odom message ever arrives on the freshly-created subscription
+        and the LLM sees a spurious "No odometry received from leader" error.
+        """
+        num_robots = int(self.get_parameter("num_robots").value or 0)
+        prefix = str(self.get_parameter("robot_ns_prefix").value or "robot_")
+        if num_robots <= 0:
+            return
+        for i in range(num_robots):
+            ns = f"{prefix}{i}"
+            self._ensure_odom_sub(ns)
+            self._pinned_namespaces.add(ns)
 
     # ------------------------------------------------------------------
     # Odometry subscription management
@@ -179,7 +212,15 @@ class FormationManagerNode(Node):
         self.get_logger().debug(f"  subscribed to /{ns}/odom")
 
     def _release_odom_sub(self, ns: str):
-        """Unsubscribe from /<ns>/odom if no remaining formation needs it."""
+        """Unsubscribe from /<ns>/odom if no remaining formation needs it.
+
+        Subscriptions in ``_pinned_namespaces`` (created by the startup
+        prewarm loop) are never released — keeping them alive avoids the
+        first-message latency every time a new formation references the
+        same robot.
+        """
+        if ns in self._pinned_namespaces:
+            return
         still_needed = any(
             ns in ([f.leader_ns] + list(f.follower_ns))
             for f in self._registry.values()

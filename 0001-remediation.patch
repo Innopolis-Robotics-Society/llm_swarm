@@ -1,0 +1,1499 @@
+From 262aad9340f2e9353d835c35578e5aec051f7fb2 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Mon, 11 May 2026 11:43:35 +0000
+Subject: [PATCH] feat(orchestrator): MCP-grounded remediation loop with
+ operator escalation
+
+When a chat-driven plan fails mid-execution, re-prompt the LLM with a
+fresh, leaf-targeted MCP snapshot and the per-attempt failure log so it
+can correct against reality instead of re-firing the same command. If
+retries exhaust or the LLM emits `needs_help:`, deliver the question to
+the operator as a chat reply (success=True, plan_executed=False) instead
+of silently failing the turn.
+
+- leaf_sender: surface phase-2 ERROR (was swallowing SetFormation aborts)
+  and expose last_failure() with leaf_type/phase/error.
+- plan_executor: record executor.failed_leaf on first False return.
+- mcp_readonly_provider: get_targeted_context(failure) biases planned
+  calls by failed leaf type (formation -> /formations/status, mapf ->
+  get_action_status /swarm/set_goals); summarize_for_remediation drops
+  topology listings.
+- user_prompt: build_remediation_prompt reuses build_user_prompt and
+  appends rubric + failed plan + attempt log.
+- no_execute: is_help_request recognises needs_help: / clarify: prefixes.
+- chat_server: loop with stale-MCP fallback; _finalize_help banner.
+- user_chat_node: CLI mirror (no MCP refresh).
+- orchestrator.yaml: remediation_enabled, max_remediation_attempts=2.
+- prompts: document escalation prefixes + examples.
+- tests: 15 new unit tests; full suite passes locally.
+
+https://claude.ai/code/session_01DQ3D54syuoTwsMHD8GNSTp
+---
+ .../config/orchestrator.yaml                  |   7 +
+ .../iros_llm_orchestrator/chat_server.py      | 284 +++++++++++++++---
+ .../common/leaf_sender.py                     |  60 +++-
+ .../common/plan_executor.py                   |   9 +-
+ .../common/user_prompt.py                     |  67 +++++
+ .../context/mcp_readonly_provider.py          | 126 +++++++-
+ .../context/no_execute.py                     |  22 ++
+ .../iros_llm_orchestrator/user_chat_node.py   | 190 ++++++++++--
+ .../prompts/user_chat_system.txt              |  34 ++-
+ .../test/test_remediation.py                  | 281 +++++++++++++++++
+ 10 files changed, 1012 insertions(+), 68 deletions(-)
+ create mode 100644 iros_llm_orchestrator/test/test_remediation.py
+
+diff --git a/iros_llm_orchestrator/config/orchestrator.yaml b/iros_llm_orchestrator/config/orchestrator.yaml
+index 2988c7b..173b274 100644
+--- a/iros_llm_orchestrator/config/orchestrator.yaml
++++ b/iros_llm_orchestrator/config/orchestrator.yaml
+@@ -39,6 +39,13 @@ llm_chat_server:
+     timeout_sec: 60.0
+     step_timeout_sec: 120.0
+ 
++    # Remediation: on plan-execution failure, re-prompt the LLM with the
++    # failure info and a fresh (targeted) MCP snapshot up to N times. Set
++    # max_remediation_attempts=0 or remediation_enabled=false to keep the
++    # legacy "fail fast" behaviour.
++    remediation_enabled: true
++    max_remediation_attempts: 2
++
+     # Read-only runtime context for /llm/chat.
+     # Default demo path uses MCP read-only context. Use "ros_readonly" for a
+     # local ROS-topic fallback or "none" for Phase 1 behavior.
+diff --git a/iros_llm_orchestrator/iros_llm_orchestrator/chat_server.py b/iros_llm_orchestrator/iros_llm_orchestrator/chat_server.py
+index 7ada530..502b3b0 100644
+--- a/iros_llm_orchestrator/iros_llm_orchestrator/chat_server.py
++++ b/iros_llm_orchestrator/iros_llm_orchestrator/chat_server.py
+@@ -34,13 +34,21 @@ from iros_llm_orchestrator.common.leaf_sender import BTLeafSender
+ from iros_llm_orchestrator.common.llm_factory import get_llm_client
+ from iros_llm_orchestrator.common.plan_executor import PlanExecutor
+ from iros_llm_orchestrator.common.user_prompt import (
+-    build_user_prompt, build_bt_event_prompt, load_map_config)
++    build_remediation_prompt,
++    build_user_prompt,
++    build_bt_event_prompt,
++    load_map_config,
++)
+ from iros_llm_orchestrator.context import (
+     DEFAULT_MCP_READ_TOOLS,
+     ChatContextConfig,
+     make_context_provider,
+ )
++from iros_llm_orchestrator.context.mcp_readonly_provider import (
++    summarize_for_remediation,
++)
+ from iros_llm_orchestrator.context.no_execute import (
++    is_help_request,
+     should_skip_reply_only_execution,
+ )
+ from iros_llm_orchestrator.context.provider import bound_context, utc_now
+@@ -49,6 +57,12 @@ from iros_llm_orchestrator.user_chat_node import _parse_response, _postprocess_p
+ MAX_HISTORY = 8   # conversation turns kept per session
+ 
+ 
++class _LlmStageError(RuntimeError):
++    """Wraps any failure during stream/parse/postprocess so the caller
++    can decide between hard-fail (initial turn) and operator escalation
++    (remediation turn)."""
++
++
+ class ChatServer(Node):
+     def __init__(self):
+         super().__init__('llm_chat_server')
+@@ -77,6 +91,13 @@ class ChatServer(Node):
+         self.declare_parameter('mcp_command', 'uvx')
+         self.declare_parameter('mcp_args', ['ros-mcp', '--transport=stdio'])
+         self.declare_parameter('mcp_tool_allowlist', list(DEFAULT_MCP_READ_TOOLS))
++        self.declare_parameter('max_remediation_attempts', 2)
++        self.declare_parameter('remediation_enabled', True)
++
++        self._max_remediation_attempts = max(0, int(
++            self.get_parameter('max_remediation_attempts').value))
++        self._remediation_enabled = bool(
++            self.get_parameter('remediation_enabled').value)
+ 
+         self._timeout  = float(self.get_parameter('timeout_sec').value)
+         self._map_name = self.get_parameter('map_name').value
+@@ -203,11 +224,9 @@ class ChatServer(Node):
+         req = goal_handle.request
+         result = LlmChat.Result()
+ 
+-        # ---- 1. Stream reply ----
++        # ---- 1. Stream initial reply ----
+         self._publish_fb(goal_handle, stage='thinking')
+-
+         runtime_context = await self._get_runtime_context()
+-
+         messages = build_user_prompt(
+             req.user_message,
+             history=list(self._history),
+@@ -217,60 +236,192 @@ class ChatServer(Node):
+         )
+ 
+         try:
+-            full_raw = await asyncio.wait_for(
+-                self._stream_reply(messages, goal_handle),
+-                timeout=self._timeout)
+-        except asyncio.TimeoutError:
+-            return self._fail(goal_handle, result, 'LLM timeout')
+-        except Exception as exc:
+-            return self._fail(goal_handle, result, f'LLM error: {exc}')
+-
+-        # ---- 2. Parse ----
+-        try:
+-            reply, plan = _parse_response(full_raw)
+-        except ValueError as exc:
+-            return self._fail(goal_handle, result, f'parse error: {exc}')
++            reply, plan, full_raw = await self._stream_and_parse(
++                messages, goal_handle)
++        except _LlmStageError as exc:
++            return self._fail(goal_handle, result, str(exc))
+ 
+-        plan = _postprocess_plan(plan, self._map_cfg)
+         plan_json = json.dumps(plan, ensure_ascii=False)
+         result.final_reply = reply
+         result.plan_json   = plan_json
+-
+-        # Save turn to shared history
+         self._history.append({'role': 'user',      'content': req.user_message})
+         self._history.append({'role': 'assistant', 'content': full_raw})
+         self._trim_history()
+-
+         self._publish_fb(goal_handle, stage='parsed', detail=plan_json)
+         self._publish_event(channel=LlmEvent.CHANNEL_USER,
+                             trigger=req.user_message,
+                             output=plan_json,
+                             reason=reply)
+ 
+-        # ---- 3. Optional execute ----
++        # ---- 2. Reply-only / help-request short circuits ----
+         if req.execute_after_planning and should_skip_reply_only_execution(
+-            req.user_message,
+-            plan,
+-            runtime_context,
++            req.user_message, plan, runtime_context,
+         ):
+             self.get_logger().info(
+                 'Skipping PlanExecutor for reply-only context question')
+-        elif req.execute_after_planning:
++            return self._succeed(goal_handle, result)
++
++        if is_help_request(plan):
++            return self._finalize_help(
++                goal_handle, result, reply, plan,
++                trigger=req.user_message,
++                reason='LLM emitted needs_help on initial reply')
++
++        if not req.execute_after_planning:
++            return self._succeed(goal_handle, result)
++
++        # ---- 3. Execute ----
++        self._publish_fb(goal_handle, stage='executing')
++        ok, failure_info = await self._execute_plan(plan)
++        result.plan_executed = ok
++        if ok:
++            return self._succeed(goal_handle, result)
++
++        if not self._remediation_enabled or self._max_remediation_attempts == 0:
++            return self._fail(goal_handle, result,
++                              'plan execution failed', got_plan=True)
++
++        # ---- 4. Remediation loop ----
++        attempts: list[dict] = [failure_info or {}]
++        last_plan  = plan
++        last_reply = reply
++
++        for n in range(1, self._max_remediation_attempts + 1):
++            failed_leaf = attempts[-1].get('leaf_type', '?')
++            self._publish_fb(
++                goal_handle, stage='remediating',
++                detail=f'attempt={n} leaf={failed_leaf}')
++
++            fresh_ctx = await self._get_targeted_runtime_context(
++                attempts[-1], cached=runtime_context)
++            slim_ctx = summarize_for_remediation(fresh_ctx)
++
++            rem_messages = build_remediation_prompt(
++                req.user_message,
++                last_plan,
++                attempts,
++                attempts[-1],
++                fresh_runtime_context=slim_ctx,
++                history=list(self._history),
++                map_name=self._map_name,
++                obstacle_context=self._get_obstacle_context(),
++            )
++
++            try:
++                r_reply, r_plan, r_raw = await self._stream_and_parse(
++                    rem_messages, goal_handle)
++            except _LlmStageError as exc:
++                return self._finalize_help(
++                    goal_handle, result, last_reply, last_plan,
++                    trigger=req.user_message,
++                    reason=f'LLM error during remediation {n}: {exc}',
++                    last_failure=attempts[-1])
++
++            self._history.append({
++                'role': 'user',
++                'content': (f'[remediation {n}: {failed_leaf} failed — '
++                            f'{str(attempts[-1].get("last_error",""))[:160]}]'),
++            })
++            self._history.append({'role': 'assistant', 'content': r_raw})
++            self._trim_history()
++
++            last_plan  = r_plan
++            last_reply = r_reply
++            result.final_reply = r_reply
++            result.plan_json   = json.dumps(r_plan, ensure_ascii=False)
++            self._publish_fb(goal_handle, stage='parsed',
++                             detail=result.plan_json)
++            self._publish_event(channel=LlmEvent.CHANNEL_USER,
++                                trigger=req.user_message,
++                                output=result.plan_json,
++                                reason=r_reply)
++
++            if is_help_request(r_plan):
++                return self._finalize_help(
++                    goal_handle, result, r_reply, r_plan,
++                    trigger=req.user_message,
++                    reason=f'LLM emitted needs_help on remediation {n}',
++                    last_failure=attempts[-1])
++
+             self._publish_fb(goal_handle, stage='executing')
+-            executor = PlanExecutor(
+-                send_fn=self._sender.send,
+-                log_fn=lambda m: self.get_logger().info(f'executor: {m}'))
+-            ok = await executor.run(plan)
++            ok, failure_info = await self._execute_plan(r_plan)
+             result.plan_executed = ok
+-            if not ok:
+-                return self._fail(goal_handle, result,
+-                                  'plan execution failed', got_plan=True)
+-
+-        self._publish_fb(goal_handle, stage='done')
+-        result.success = True
+-        result.info    = ''
+-        goal_handle.succeed()
+-        return result
++            if ok:
++                return self._succeed(goal_handle, result)
++            attempts.append(failure_info or {})
++
++        # Retries exhausted — escalate to operator
++        return self._finalize_help(
++            goal_handle, result, last_reply, last_plan,
++            trigger=req.user_message,
++            reason=(f'remediation budget '
++                    f'{self._max_remediation_attempts} exhausted'),
++            last_failure=attempts[-1])
++
++    async def _stream_and_parse(self, messages, goal_handle):
++        """Stream → parse → postprocess; raises _LlmStageError on any failure."""
++        try:
++            full_raw = await asyncio.wait_for(
++                self._stream_reply(messages, goal_handle),
++                timeout=self._timeout)
++        except asyncio.TimeoutError as exc:
++            raise _LlmStageError('LLM timeout') from exc
++        except Exception as exc:
++            raise _LlmStageError(f'LLM error: {exc}') from exc
++        try:
++            reply, plan = _parse_response(full_raw)
++        except ValueError as exc:
++            raise _LlmStageError(f'parse error: {exc}') from exc
++        plan = _postprocess_plan(plan, self._map_cfg)
++        return reply, plan, full_raw
++
++    async def _execute_plan(self, plan: dict) -> tuple[bool, dict | None]:
++        """Run a plan via the shared sender; return (ok, failure_info)."""
++        executor = PlanExecutor(
++            send_fn=self._sender.send,
++            log_fn=lambda m: self.get_logger().info(f'executor: {m}'))
++        ok = await executor.run(plan)
++        if ok:
++            return True, None
++        failure = dict(self._sender.last_failure() or {})
++        # If sender did not record one (executor refused to send for some
++        # other reason) fall back to the leaf type from the executor.
++        if not failure and executor.failed_leaf:
++            failure = {
++                'leaf_type': str(executor.failed_leaf.get('type') or '?'),
++                'last_error': 'plan execution failed (no sender detail)',
++                'failed_at_phase': 'unknown',
++                'action_status': '',
++            }
++        return False, failure
++
++    async def _get_targeted_runtime_context(
++        self,
++        failure: dict,
++        *,
++        cached: dict,
++    ) -> dict:
++        """Refresh runtime context after a failure, with stale fallback."""
++        get_targeted = getattr(
++            self._context_provider, 'get_targeted_context', None)
++        if get_targeted is None:
++            # Provider doesn't support targeting (none/ros_readonly) — just
++            # re-fetch the base context.
++            return await self._get_runtime_context()
++        try:
++            context = await asyncio.wait_for(
++                get_targeted(failure),
++                timeout=max(0.1, float(self._context_config.timeout_sec)),
++            )
++        except Exception as exc:
++            context = dict(cached or {})
++            warnings = list(context.get('warnings') or [])
++            warnings.append(
++                f'targeted MCP refresh failed; using stale snapshot: {exc}')
++            warnings.append('mcp_stale: true')
++            context['warnings'] = warnings
++            context['source'] = 'mcp_readonly_remediation_stale'
++        return bound_context(context, self._context_config.max_chars)
+ 
+     async def _get_runtime_context(self) -> dict:
+         try:
+@@ -454,6 +605,61 @@ class ChatServer(Node):
+         gh.succeed()
+         return result
+ 
++    def _succeed(self, gh, result):
++        self._publish_fb(gh, stage='done')
++        result.success = True
++        if not result.info:
++            result.info = ''
++        gh.succeed()
++        return result
++
++    def _finalize_help(
++        self,
++        gh,
++        result,
++        last_reply: str,
++        last_plan: dict,
++        *,
++        trigger: str,
++        reason: str,
++        last_failure: dict | None = None,
++    ):
++        """Deliver the LLM's question (or our synthesized fallback) to the
++        operator instead of treating the turn as a hard failure.
++
++        Sets ``success=True, plan_executed=False`` so panel callers see the
++        turn as completed-with-question rather than crashed, and prefixes
++        the displayed reply with a short bilingual banner whenever the LLM
++        did not itself emit a ``needs_help:`` idle leaf.
++        """
++        failure = last_failure or {}
++        leaf = failure.get('leaf_type', '?')
++        err  = str(failure.get('last_error', '') or '')[:240]
++        if not is_help_request(last_plan):
++            banner = (f'Нужна помощь оператора: {leaf} — {err}\n'
++                      f'Operator help required: {leaf} — {err}\n\n')
++            last_reply = banner + (last_reply or '')
++
++        info = f'needs_help: {reason}'
++        if leaf != '?':
++            info += f' (leaf={leaf})'
++
++        result.final_reply   = last_reply
++        result.plan_json     = json.dumps(last_plan, ensure_ascii=False)
++        result.plan_executed = False
++        result.success       = True
++        result.info          = info
++
++        self._publish_fb(gh, stage='needs_help', detail=info)
++        self._publish_event(
++            channel=LlmEvent.CHANNEL_USER,
++            trigger=trigger,
++            output='needs_help',
++            reason=info,
++        )
++        gh.succeed()
++        return result
++
+ 
+ def main(args=None):
+     rclpy.init(args=args)
+diff --git a/iros_llm_orchestrator/iros_llm_orchestrator/common/leaf_sender.py b/iros_llm_orchestrator/iros_llm_orchestrator/common/leaf_sender.py
+index 896a157..1258e23 100644
+--- a/iros_llm_orchestrator/iros_llm_orchestrator/common/leaf_sender.py
++++ b/iros_llm_orchestrator/iros_llm_orchestrator/common/leaf_sender.py
+@@ -58,6 +58,11 @@ class BTLeafSender:
+         self._last_action_status = 'OK'
+         self._last_bt_error      = ''
+ 
++        # Failure metadata for the most recent send(). Populated whenever
++        # send() returns False; cleared on each new send() call. Chat-side
++        # remediation reads this to brief the LLM about which leaf failed.
++        self._last_failure: dict | None = None
++
+         qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
+                          history=HistoryPolicy.KEEP_LAST, depth=10)
+         self._sub = node.create_subscription(
+@@ -95,14 +100,41 @@ class BTLeafSender:
+         self._cmd_server_ready = ok
+         return ok
+ 
++    def last_failure(self) -> dict | None:
++        """Return failure metadata from the most recent send(), or None."""
++        return self._last_failure
++
++    def _record_failure(self, *, leaf_type: str, phase: str,
++                        info: str = '') -> None:
++        status = self._get_mode_state()[2]
++        err    = self._get_mode_state()[3]
++        # Prefer the explicit info string (action result / timeout reason)
++        # over a stale /bt/state error if we have one.
++        last_error = info or err or ''
++        self._last_failure = {
++            'leaf_type':       leaf_type,
++            'action_status':   status,
++            'last_error':      last_error[:240],
++            'failed_at_phase': phase,
++        }
++
+     async def send(self, command: dict) -> bool:
+         t = command.get('type') or command.get('mode', '')
+ 
++        # Reset failure slot — only the latest send() is reported.
++        self._last_failure = None
++
+         if t == 'obstacles':
+-            return await self._dispatch_obstacles(command)
++            ok = await self._dispatch_obstacles(command)
++            if not ok:
++                self._record_failure(leaf_type=t, phase='obstacles')
++            return ok
+ 
+         if not await self._ensure_cmd_server():
+             self._node.get_logger().error('/llm/command unavailable')
++            self._record_failure(
++                leaf_type=t, phase='no_server',
++                info='/llm/command action server unavailable')
+             return False
+ 
+         goal = LlmCommand.Goal()
+@@ -122,12 +154,16 @@ class BTLeafSender:
+         handle = await self._cmd_client.send_goal_async(goal)
+         if not handle.accepted:
+             self._node.get_logger().warn(f'BT rejected {t!r} goal')
++            self._record_failure(leaf_type=t, phase='rejected',
++                                 info='BT rejected goal')
+             return False
+ 
+         cmd_result = await handle.get_result_async()
+         if not cmd_result.result.success:
++            info = str(cmd_result.result.info or '')
+             self._node.get_logger().error(
+-                f'BT error on {t!r}: {cmd_result.result.info}')
++                f'BT error on {t!r}: {info}')
++            self._record_failure(leaf_type=t, phase='accept', info=info)
+             return False
+ 
+         if t == 'idle':
+@@ -147,6 +183,8 @@ class BTLeafSender:
+                         # Mission failed (partial plan, no path, etc.)
+                         self._node.get_logger().error(
+                             f'leaf {t!r}: BT returned idle with ERROR: {err_now}')
++                        self._record_failure(leaf_type=t, phase='phase1',
++                                             info=err_now)
+                         return False
+                     # Genuine fast completion (e.g. instant formation setup)
+                     return True
+@@ -158,15 +196,29 @@ class BTLeafSender:
+             # goal or ModeDispatch no-op). Treat as success rather than block.
+             return True
+ 
+-        # Phase 2 — wait for mission to finish (mode returns to idle)
++        # Phase 2 — wait for mission to finish (mode returns to idle).
++        # Once mode flips back to idle, check action_status: if ERROR the
++        # mission aborted (e.g. SetFormation exhausted its retry budget) and
++        # we must surface that failure rather than silently succeed.
+         deadline = time.monotonic() + self._step_timeout
+         while time.monotonic() < deadline:
+-            if self._get_mode_state()[0] == 'idle':
++            mode_now, _, status_now, err_now = self._get_mode_state()
++            if mode_now == 'idle':
++                if status_now == 'ERROR':
++                    self._node.get_logger().error(
++                        f'leaf {t!r}: BT returned to idle with ERROR: '
++                        f'{err_now}')
++                    self._record_failure(leaf_type=t, phase='phase2',
++                                         info=err_now)
++                    return False
+                 return True
+             await asyncio.sleep(0.1)
+ 
+         self._node.get_logger().error(
+             f'step timeout on {t!r} after {self._step_timeout:.0f}s')
++        self._record_failure(
++            leaf_type=t, phase='timeout',
++            info=f'step timeout after {self._step_timeout:.0f}s')
+         return False
+ 
+     # ------------------------------------------------------------------
+diff --git a/iros_llm_orchestrator/iros_llm_orchestrator/common/plan_executor.py b/iros_llm_orchestrator/iros_llm_orchestrator/common/plan_executor.py
+index f595930..914620c 100644
+--- a/iros_llm_orchestrator/iros_llm_orchestrator/common/plan_executor.py
++++ b/iros_llm_orchestrator/iros_llm_orchestrator/common/plan_executor.py
+@@ -174,8 +174,12 @@ class PlanExecutor:
+         self._send  = send_fn
+         self._log   = log_fn or (lambda _: None)
+         self._depth = 0
++        # Set to the leaf node that produced a False return; remediation
++        # callers use this to brief the LLM about which step broke.
++        self.failed_leaf: dict | None = None
+ 
+     async def run(self, plan: dict) -> bool:
++        self.failed_leaf = None
+         return await self._execute(plan)
+ 
+     async def _execute(self, node: dict) -> bool:
+@@ -234,4 +238,7 @@ class PlanExecutor:
+             self._log(
+                 f"{ind}🔷 formation {node.get('formation_id','')} "
+                 f"leader={node.get('leader_ns','')}: {node.get('reason','')}")
+-        return await self._send(node)
+\ No newline at end of file
++        ok = await self._send(node)
++        if not ok and self.failed_leaf is None:
++            self.failed_leaf = node
++        return ok
+\ No newline at end of file
+diff --git a/iros_llm_orchestrator/iros_llm_orchestrator/common/user_prompt.py b/iros_llm_orchestrator/iros_llm_orchestrator/common/user_prompt.py
+index 4b60471..1b2ec1e 100644
+--- a/iros_llm_orchestrator/iros_llm_orchestrator/common/user_prompt.py
++++ b/iros_llm_orchestrator/iros_llm_orchestrator/common/user_prompt.py
+@@ -317,6 +317,73 @@ def build_user_prompt(
+     return messages
+ 
+ 
++_REMEDIATION_RUBRIC = (
++    'A plan you produced just failed during execution. The runtime context '
++    'above has been refreshed via MCP after the failure.\n'
++    'Either (a) produce a corrected plan that fixes the root cause, or '
++    '(b) emit {"type":"idle","reason":"needs_help: <question>"} if you '
++    'need operator input to proceed.\n'
++    'Use "needs_help:" prefix for operator clarification, "clarify:" prefix '
++    'if you want to ask a follow-up but believe a default exists. Keep the '
++    'reply field short and in the operator\'s language.'
++)
++
++
++def _format_attempts(attempts: list[dict]) -> str:
++    lines = []
++    for i, att in enumerate(attempts, start=1):
++        leaf = att.get('leaf_type', '?')
++        phase = att.get('failed_at_phase', '?')
++        err = str(att.get('last_error', '') or '')[:240]
++        lines.append(f'  - attempt {i}: leaf={leaf} phase={phase} error="{err}"')
++    return '\n'.join(lines) if lines else '  (none recorded)'
++
++
++def build_remediation_prompt(
++    original_user_message: str,
++    original_plan: dict,
++    attempts: list[dict],
++    failure_info: dict,
++    fresh_runtime_context: dict | None,
++    history: list | None = None,
++    map_name: str = 'warehouse',
++    obstacle_context: str = '',
++) -> list:
++    """Compose a remediation prompt for one retry attempt.
++
++    Starts from the same system+examples+history+user-message stack as the
++    first turn, then appends:
++      * a remediation rubric (system),
++      * the assistant's previously-produced plan,
++      * a fresh failure summary with the per-attempt log.
++    """
++    messages = build_user_prompt(
++        original_user_message,
++        history=history,
++        map_name=map_name,
++        obstacle_context=obstacle_context,
++        runtime_context=fresh_runtime_context,
++    )
++    messages.append({'role': 'system', 'content': _REMEDIATION_RUBRIC})
++    messages.append({
++        'role': 'assistant',
++        'content': json.dumps(original_plan, ensure_ascii=False),
++    })
++    failed_leaf = (failure_info or {}).get('leaf_type', '?')
++    last_error  = str((failure_info or {}).get('last_error', '') or '')[:240]
++    phase       = (failure_info or {}).get('failed_at_phase', '?')
++    summary = (
++        f'The plan above failed.\n'
++        f'Failed leaf: {failed_leaf} (phase={phase})\n'
++        f'Last error: {last_error}\n'
++        f'Per-attempt log:\n{_format_attempts(attempts)}\n'
++        f'Original user request: {original_user_message}\n'
++        'Produce either a corrected plan or a needs_help: idle reply.'
++    )
++    messages.append({'role': 'user', 'content': summary})
++    return messages
++
++
+ def build_bt_event_prompt(bt_state: Any, history: list | None = None) -> list:
+     messages = [{'role': 'system', 'content': _bt_event_system()}]
+     if history:
+diff --git a/iros_llm_orchestrator/iros_llm_orchestrator/context/mcp_readonly_provider.py b/iros_llm_orchestrator/iros_llm_orchestrator/context/mcp_readonly_provider.py
+index 25fb3a8..bcf965c 100644
+--- a/iros_llm_orchestrator/iros_llm_orchestrator/context/mcp_readonly_provider.py
++++ b/iros_llm_orchestrator/iros_llm_orchestrator/context/mcp_readonly_provider.py
+@@ -32,9 +32,42 @@ class McpReadonlyContextProvider(ChatContextProvider):
+             config.mcp_tool_allowlist)
+ 
+     async def get_context(self) -> dict:
++        return await self._build_context(
++            source='mcp_readonly',
++            calls=self._planned_calls(),
++        )
++
++    async def get_targeted_context(self, failure: dict) -> dict:
++        """Re-snapshot MCP biased toward the leaf that just failed.
++
++        ``failure`` is the dict returned by ``BTLeafSender.last_failure()``
++        (leaf_type, action_status, last_error, failed_at_phase). For
++        formation/mapf failures we force-enable the topics that diagnose
++        the root cause regardless of the include_* flags so the LLM sees
++        the freshest possible state for the remediation prompt.
++        """
++        calls = self._planned_calls_for(failure or {})
++        context = await self._build_context(
++            source='mcp_readonly_remediation',
++            calls=calls,
++        )
++        context['failure_summary'] = {
++            'leaf_type':       (failure or {}).get('leaf_type', ''),
++            'failed_at_phase': (failure or {}).get('failed_at_phase', ''),
++            'action_status':   (failure or {}).get('action_status', ''),
++            'last_error':      (failure or {}).get('last_error', ''),
++        }
++        return bound_context(context, self.config.max_chars)
++
++    async def _build_context(
++        self,
++        *,
++        source: str,
++        calls: list[tuple[str, dict]],
++    ) -> dict:
+         context = {
+             'timestamp': utc_now(),
+-            'source': 'mcp_readonly',
++            'source': source,
+             'warnings': list(self._allowlist_warnings),
+         }
+         if self.config.include_map_summary:
+@@ -56,7 +89,7 @@ class McpReadonlyContextProvider(ChatContextProvider):
+                 self._log_warning_list(context['warnings'])
+                 return bound_context(context, self.config.max_chars)
+             snapshot = await asyncio.wait_for(
+-                self._collect_snapshot(),
++                self._collect_snapshot(calls),
+                 timeout=max(0.1, self.config.timeout_sec),
+             )
+             context.update(snapshot)
+@@ -112,7 +145,10 @@ class McpReadonlyContextProvider(ChatContextProvider):
+ 
+         return warnings
+ 
+-    async def _collect_snapshot(self) -> dict:
++    async def _collect_snapshot(
++        self,
++        calls: list[tuple[str, dict]] | None = None,
++    ) -> dict:
+         if self.config.mcp_transport != 'stdio':
+             raise RuntimeError(
+                 f'unsupported MCP transport for Phase 2: {self.config.mcp_transport}'
+@@ -128,15 +164,23 @@ class McpReadonlyContextProvider(ChatContextProvider):
+             command=self.config.mcp_command,
+             args=list(self.config.mcp_args),
+         )
++        planned = self._planned_calls() if calls is None else calls
+         out: dict[str, Any] = {'mcp': {}}
++        # subscribe_once results are keyed by tool name in the legacy path,
++        # but a single tool name can show up multiple times for different
++        # topics. Disambiguate using "<tool>:<topic>" so two subscribe_once
++        # calls don't collide.
+         async with stdio_client(server_params) as (read, write):
+             async with ClientSession(read, write) as session:
+                 await session.initialize()
+                 self._info('MCP stdio client initialized')
+-                for tool_name, args in self._planned_calls():
++                for tool_name, args in planned:
+                     if tool_name not in self._allowlist:
+                         continue
+-                    out['mcp'][tool_name] = await self._call_tool(
++                    key = tool_name
++                    if tool_name == 'subscribe_once' and args.get('topic'):
++                        key = f"subscribe_once:{args['topic']}"
++                    out['mcp'][key] = await self._call_tool(
+                         session,
+                         tool_name,
+                         args,
+@@ -171,6 +215,43 @@ class McpReadonlyContextProvider(ChatContextProvider):
+             ))
+         return calls
+ 
++    def _planned_calls_for(
++        self,
++        failure: dict,
++    ) -> list[tuple[str, dict]]:
++        """Targeted call set keyed on the leaf type that just failed.
++
++        Always pulls the minimum diagnostic surface (topology + bt_state)
++        plus the topic that exposes the failed leaf's root cause. Forces
++        these in even if the corresponding ``include_*`` flag is off — this
++        snapshot is for remediation, not the cheap recurring chat-turn
++        snapshot, so we accept slightly more cost for sharper signal.
++        """
++        leaf = str(failure.get('leaf_type') or '').lower()
++        calls: list[tuple[str, dict]] = [
++            ('get_topics', {}),
++            ('get_nodes', {}),
++            ('subscribe_once', {
++                'topic': '/bt/state',
++                'msg_type': 'iros_llm_swarm_interfaces/msg/BTState',
++            }),
++        ]
++        # Match on the BT leaf type names (lower-case) emitted by the C++
++        # nodes via the ``LlmCommand.mode`` field. SetFormation/Disable map
++        # to mode == "formation"/"idle"; MapfPlan to "mapf".
++        if leaf in {'formation', 'set_formation', 'setformation',
++                    'disable_formation', 'disableformation'}:
++            calls.append(('subscribe_once', {
++                'topic': '/formations/status',
++                'msg_type':
++                    'iros_llm_swarm_interfaces/msg/FormationsStatus',
++            }))
++        elif leaf in {'mapf', 'mapfplan', 'mapf_plan'}:
++            calls.append(('get_action_status', {
++                'action': '/swarm/set_goals',
++            }))
++        return calls
++
+     async def _call_tool(self, session: Any, name: str, args: dict) -> Any:
+         result = await session.call_tool(name, args)
+         return _tool_result_to_jsonable(result)
+@@ -209,6 +290,41 @@ class McpReadonlyContextProvider(ChatContextProvider):
+             self._logger.warn(message)
+ 
+ 
++def summarize_for_remediation(snapshot: dict) -> dict:
++    """Slim a runtime-context snapshot for use in a remediation prompt.
++
++    Drops the topology listings (``get_topics`` / ``get_nodes`` /
++    ``get_services`` / ``get_actions``) — they are noise once the failed
++    leaf is already identified — and keeps the diagnostic surface the LLM
++    needs to choose a corrective plan: bt_state, formations, robots,
++    recent_events, map name, warnings, and any failure_summary echo.
++    """
++    if not isinstance(snapshot, dict):
++        return {}
++    slim: dict = {}
++    for key in (
++        'timestamp', 'source', 'warnings', 'failure_summary',
++        'bt_state', 'formations', 'robots', 'recent_events',
++    ):
++        if key in snapshot:
++            slim[key] = snapshot[key]
++    if isinstance(snapshot.get('map'), dict):
++        name = snapshot['map'].get('name')
++        if name:
++            slim['map'] = {'name': name}
++    mcp = snapshot.get('mcp')
++    if isinstance(mcp, dict):
++        kept = {
++            key: value
++            for key, value in mcp.items()
++            if key.startswith('subscribe_once:')
++            or key in {'get_action_status'}
++        }
++        if kept:
++            slim['mcp'] = kept
++    return slim
++
++
+ def _tool_result_to_jsonable(result: Any) -> Any:
+     data = to_jsonable(result)
+     if isinstance(data, dict) and 'content' in data:
+diff --git a/iros_llm_orchestrator/iros_llm_orchestrator/context/no_execute.py b/iros_llm_orchestrator/iros_llm_orchestrator/context/no_execute.py
+index b2f25cc..1cbf63b 100644
+--- a/iros_llm_orchestrator/iros_llm_orchestrator/context/no_execute.py
++++ b/iros_llm_orchestrator/iros_llm_orchestrator/context/no_execute.py
+@@ -69,6 +69,28 @@ def should_skip_reply_only_execution(
+     return False
+ 
+ 
++_HELP_PREFIXES = ('needs_help:', 'clarify:')
++
++
++def is_help_request(plan: dict | None) -> bool:
++    """True if the plan is an idle leaf with a needs_help/clarify reason.
++
++    Walks the plan tree so the prefix is honoured even if the LLM wraps the
++    idle leaf in a sequence/parallel container.
++    """
++    if not isinstance(plan, dict):
++        return False
++    t = plan.get('type')
++    if t == 'idle':
++        reason = str(plan.get('reason', '') or '').strip().lower()
++        return any(reason.startswith(p) for p in _HELP_PREFIXES)
++    if t in ('sequence', 'parallel'):
++        for step in plan.get('steps', []) or []:
++            if is_help_request(step):
++                return True
++    return False
++
++
+ def _is_direct_stop_command(text: str) -> bool:
+     low = text.strip().lower()
+     return low in {'stop', 'halt', 'cancel', 'стоп', 'остановить', 'отмена'}
+diff --git a/iros_llm_orchestrator/iros_llm_orchestrator/user_chat_node.py b/iros_llm_orchestrator/iros_llm_orchestrator/user_chat_node.py
+index 75eddce..1efaf23 100644
+--- a/iros_llm_orchestrator/iros_llm_orchestrator/user_chat_node.py
++++ b/iros_llm_orchestrator/iros_llm_orchestrator/user_chat_node.py
+@@ -25,7 +25,9 @@ from iros_llm_swarm_interfaces.msg import BTState
+ from iros_llm_orchestrator.common.llm_factory import get_llm_client
+ from iros_llm_orchestrator.common.plan_executor import PlanExecutor, parse_plan
+ from iros_llm_orchestrator.common.user_prompt import (
+-    build_user_prompt, build_bt_event_prompt, load_map_config)
++    build_remediation_prompt, build_user_prompt,
++    build_bt_event_prompt, load_map_config)
++from iros_llm_orchestrator.context.no_execute import is_help_request
+ 
+ MAX_HISTORY   = 8
+ CLUSTER_SPACE = 1.5
+@@ -225,6 +227,16 @@ class UserChatNode(Node):
+         self.declare_parameter('log_enabled',      True)
+         self.declare_parameter('log_dir',          '~/.ros/user_chat_logs')
+         self.declare_parameter('step_timeout_sec', 120.0)
++        self.declare_parameter('max_remediation_attempts', 2)
++        self.declare_parameter('remediation_enabled', True)
++
++        self._max_remediation_attempts = max(0, int(
++            self.get_parameter('max_remediation_attempts').value))
++        self._remediation_enabled = bool(
++            self.get_parameter('remediation_enabled').value)
++        # Most recent _send_leaf failure metadata — read by the chat-side
++        # remediation loop to brief the LLM on what broke.
++        self._last_send_failure: dict | None = None
+ 
+         self._timeout      = float(self.get_parameter('timeout_sec').value)
+         self._step_timeout = float(self.get_parameter('step_timeout_sec').value)
+@@ -273,6 +285,8 @@ class UserChatNode(Node):
+         self._mode_lock          = threading.Lock()
+         self._last_mode          = ''
+         self._mode_seq           = 0
++        self._last_action_status = 'OK'
++        self._last_bt_error      = ''
+         self._history: list[dict] = []
+         self._bt_event_analyzing = False
+         # /llm/command server readiness is checked once per session, off the
+@@ -304,6 +318,21 @@ class UserChatNode(Node):
+         with self._mode_lock:
+             return self._last_mode, self._mode_seq
+ 
++    def _get_bt_status(self) -> tuple[str, str]:
++        with self._mode_lock:
++            return self._last_action_status, self._last_bt_error
++
++    def _record_send_failure(self, *, leaf_type: str, phase: str,
++                              info: str = '') -> None:
++        status, err = self._get_bt_status()
++        last_error = info or err or ''
++        self._last_send_failure = {
++            'leaf_type':       leaf_type,
++            'action_status':   status,
++            'last_error':      last_error[:240],
++            'failed_at_phase': phase,
++        }
++
+     # ------------------------------------------------------------------
+     # BT feedback
+     # ------------------------------------------------------------------
+@@ -319,6 +348,9 @@ class UserChatNode(Node):
+                 self._last_mode = msg.mode
+                 self._mode_seq += 1
+                 seq = self._mode_seq
++            # Mirror status/error so _send_leaf can surface real failures.
++            self._last_action_status = msg.action_status
++            self._last_bt_error      = msg.last_error
+         if transitioned:
+             self._slog.debug(f'mode: {prev_mode!r} → {msg.mode!r} (seq={seq})')
+             if prev_mode and prev_mode != 'idle' and msg.mode == 'idle':
+@@ -437,47 +469,140 @@ class UserChatNode(Node):
+         messages = build_user_prompt(text, history=self._history,
+                                      map_name=self._map_name)
+ 
++        parsed = await self._stream_parse_and_announce(messages)
++        if parsed is None:
++            self._prompt(); return
++        reply, plan, full_raw = parsed
++
++        self._history.append({'role': 'user', 'content': text})
++        self._history.append({'role': 'assistant', 'content': full_raw})
++        self._trim_history()
++
++        if is_help_request(plan):
++            self._announce_help(reply, plan, source='initial')
++            self._prompt(); return
++
++        ok = await self._run_plan(plan)
++        if ok:
++            self._out(f'\n  {OK}  Plan complete.')
++            self._slog.info('Plan result: Plan complete.')
++            self._prompt(); return
++
++        # ---- Remediation loop ----
++        if not self._remediation_enabled or self._max_remediation_attempts == 0:
++            self._out(f'\n  {ERR}  Plan failed or was interrupted.')
++            self._slog.info('Plan result: failed; remediation disabled')
++            self._prompt(); return
++
++        attempts: list[dict] = [dict(self._last_send_failure or {})]
++        last_plan = plan
++        last_reply = reply
++
++        for n in range(1, self._max_remediation_attempts + 1):
++            failed_leaf = attempts[-1].get('leaf_type', '?')
++            self._out(f'  {WRN} remediation {n}/{self._max_remediation_attempts} '
++                      f'(leaf={failed_leaf}) — asking LLM to correct…')
++            self._slog.info(f'remediation {n}: leaf={failed_leaf} '
++                            f'error={attempts[-1].get("last_error","")[:160]}')
++
++            rem_messages = build_remediation_prompt(
++                text, last_plan, attempts, attempts[-1],
++                fresh_runtime_context=None,
++                history=self._history,
++                map_name=self._map_name,
++            )
++            self._out(f'\n  {THK} ')
++            parsed = await self._stream_parse_and_announce(rem_messages)
++            if parsed is None:
++                self._announce_help(last_reply, last_plan, source=f'remediation {n}: LLM failure',
++                                    last_failure=attempts[-1])
++                self._prompt(); return
++            r_reply, r_plan, r_raw = parsed
++
++            self._history.append({
++                'role': 'user',
++                'content': (f'[remediation {n}: {failed_leaf} failed — '
++                            f'{str(attempts[-1].get("last_error",""))[:160]}]'),
++            })
++            self._history.append({'role': 'assistant', 'content': r_raw})
++            self._trim_history()
++
++            last_plan  = r_plan
++            last_reply = r_reply
++
++            if is_help_request(r_plan):
++                self._announce_help(r_reply, r_plan,
++                                    source=f'remediation {n}',
++                                    last_failure=attempts[-1])
++                self._prompt(); return
++
++            ok = await self._run_plan(r_plan)
++            if ok:
++                self._out(f'\n  {OK}  Plan complete (remediation {n}).')
++                self._slog.info(f'Plan result: complete after remediation {n}')
++                self._prompt(); return
++            attempts.append(dict(self._last_send_failure or {}))
++
++        self._announce_help(last_reply, last_plan,
++                            source=(f'remediation budget '
++                                    f'{self._max_remediation_attempts} exhausted'),
++                            last_failure=attempts[-1])
++        self._prompt()
++
++    async def _stream_parse_and_announce(
++        self, messages: list[dict],
++    ) -> tuple[str, dict, str] | None:
+         try:
+             full_raw = await asyncio.wait_for(
+                 self._stream_command(messages), timeout=self._timeout)
+         except asyncio.TimeoutError:
+             self._out(f'\n  {ERR}  LLM backend timeout')
+             self._slog.error('LLM timeout')
+-            self._prompt(); return
++            return None
+         except Exception as exc:
+             self._out(f'\n  {ERR}  LLM error: {exc}')
+             self._slog.error(f'LLM error: {exc}')
+-            self._prompt(); return
+-
++            return None
+         print()  # newline after streamed reply
+         self._slog.debug(f'LLM raw ({len(full_raw)} chars):\n{full_raw}')
+-
+         try:
+             reply, plan = _parse_response(full_raw)
+         except ValueError as exc:
+             self._out(f'  {ERR}  Parse error: {exc}')
+             self._out(f'       Raw: {full_raw[:400]}')
+             self._slog.error(f'Parse error: {exc}\nRaw: {full_raw}')
+-            self._prompt(); return
+-
++            return None
+         self._slog.info(f'Plan: {json.dumps(plan, ensure_ascii=False)}')
+         plan = _postprocess_plan(plan, self._map_cfg)
+         self._describe_plan(plan)
++        return reply, plan, full_raw
+ 
+-        self._history.append({'role': 'user', 'content': text})
+-        self._history.append({'role': 'assistant', 'content': full_raw})
+-        self._trim_history()
+-
++    async def _run_plan(self, plan: dict) -> bool:
+         executor = PlanExecutor(
+             send_fn=self._send_leaf,
+             log_fn=lambda m: (print(f'  {m}', flush=True),
+                               self._slog.debug(f'executor: {m}'))[0],
+         )
+-        ok = await executor.run(plan)
+-        result_msg = 'Plan complete.' if ok else 'Plan failed or was interrupted.'
+-        self._out(f'\n  {OK if ok else ERR}  {result_msg}')
+-        self._slog.info(f'Plan result: {result_msg}')
+-        self._prompt()
++        return await executor.run(plan)
++
++    def _announce_help(
++        self,
++        reply: str,
++        plan: dict,
++        *,
++        source: str,
++        last_failure: dict | None = None,
++    ):
++        failure = last_failure or {}
++        leaf = failure.get('leaf_type', '?')
++        err  = str(failure.get('last_error', '') or '')[:240]
++        if not is_help_request(plan):
++            banner = (f'Нужна помощь оператора: {leaf} — {err}\n'
++                      f'Operator help required: {leaf} — {err}')
++            self._out(f'\n  {WRN} {banner}')
++        self._out(f'  {WRN} needs_help ({source}): {reply}')
++        self._slog.warning(
++            f'needs_help ({source}) leaf={leaf} err={err} reply={reply[:200]}')
+ 
+     # ------------------------------------------------------------------
+     # Leaf execution
+@@ -502,6 +627,9 @@ class UserChatNode(Node):
+         t = command.get('type') or command.get('mode', '')
+         self._slog.debug(f'send_leaf: type={t} ids={command.get("robot_ids",[])}')
+ 
++        # Reset failure slot — only the latest send is reported upstream.
++        self._last_send_failure = None
++
+         if t == 'idle':
+             return await self._send_bt_goal(mode='idle',
+                                             reason=command.get('reason', ''))
+@@ -509,6 +637,9 @@ class UserChatNode(Node):
+         if not await self._ensure_cmd_server():
+             self._out(f'  {ERR}  /llm/command not available.')
+             self._slog.error('send_leaf: /llm/command server not available')
++            self._record_send_failure(
++                leaf_type=t, phase='no_server',
++                info='/llm/command action server unavailable')
+             return False
+ 
+         goal = LlmCommand.Goal()
+@@ -538,12 +669,16 @@ class UserChatNode(Node):
+         if not handle.accepted:
+             self._out(f'  {ERR}  BT rejected goal (say "stop" to cancel current mission).')
+             self._slog.warning('send_leaf: goal rejected by BT')
++            self._record_send_failure(leaf_type=t, phase='rejected',
++                                       info='BT rejected goal')
+             return False
+ 
+         result = await handle.get_result_async()
+         if not result.result.success:
+-            self._out(f'  {ERR}  BT error: {result.result.info}')
+-            self._slog.error(f'send_leaf: BT error: {result.result.info}')
++            info = str(result.result.info or '')
++            self._out(f'  {ERR}  BT error: {info}')
++            self._slog.error(f'send_leaf: BT error: {info}')
++            self._record_send_failure(leaf_type=t, phase='accept', info=info)
+             return False
+ 
+         self._slog.debug(
+@@ -563,6 +698,14 @@ class UserChatNode(Node):
+             mode_now, seq_now = self._get_mode_state()
+             if seq_now > seq_at_send:
+                 if mode_now == 'idle':
++                    status_now, err_now = self._get_bt_status()
++                    if status_now == 'ERROR':
++                        self._out(f'  {ERR}  Mission failed: {err_now}')
++                        self._slog.error(
++                            f'send_leaf: {t} idle with ERROR: {err_now}')
++                        self._record_send_failure(
++                            leaf_type=t, phase='phase1', info=err_now)
++                        return False
+                     self._slog.info(
+                         f'send_leaf: {t} fast-completed (returned to idle '
+                         f'in <1.5s, seq {seq_at_send}->{seq_now})')
+@@ -581,6 +724,14 @@ class UserChatNode(Node):
+         deadline = time.monotonic() + self._step_timeout
+         while time.monotonic() < deadline:
+             if self._get_mode() == 'idle':
++                status_now, err_now = self._get_bt_status()
++                if status_now == 'ERROR':
++                    self._out(f'  {ERR}  Mission failed: {err_now}')
++                    self._slog.error(
++                        f'send_leaf: {t} idle with ERROR after run: {err_now}')
++                    self._record_send_failure(
++                        leaf_type=t, phase='phase2', info=err_now)
++                    return False
+                 self._slog.debug('send_leaf: mission complete (mode=idle)')
+                 return True
+             await asyncio.sleep(0.1)
+@@ -588,6 +739,9 @@ class UserChatNode(Node):
+         self._out(f'  {ERR}  Timed out waiting for mission to finish '
+                   f'({self._step_timeout:.0f}s).')
+         self._slog.error(f'send_leaf: step timeout after {self._step_timeout}s')
++        self._record_send_failure(
++            leaf_type=t, phase='timeout',
++            info=f'step timeout after {self._step_timeout:.0f}s')
+         return False
+ 
+     async def _send_bt_goal(self, mode: str, reason: str = '') -> bool:
+diff --git a/iros_llm_orchestrator/prompts/user_chat_system.txt b/iros_llm_orchestrator/prompts/user_chat_system.txt
+index f2aef7b..ec829a8 100644
+--- a/iros_llm_orchestrator/prompts/user_chat_system.txt
++++ b/iros_llm_orchestrator/prompts/user_chat_system.txt
+@@ -86,4 +86,36 @@ Operator: "cyan and magenta go to hub, then cyan forms a line while magenta goes
+  ]}}
+ 
+ Operator: "stop"
+-{"reply":"Stopping all robots.","plan":{"type":"idle","reason":"operator stop"}}
+\ No newline at end of file
++{"reply":"Stopping all robots.","plan":{"type":"idle","reason":"operator stop"}}
++
++Remediation and operator escalation:
++- If you are given a refreshed runtime context together with a failure summary
++  ("The plan above failed. Failed leaf: ..."), produce either a corrected
++  plan that addresses the root cause or, when the situation is ambiguous,
++  escalate to the operator using a special idle reason.
++- Reason prefixes on an idle leaf:
++    "reply_only:"   — factual answer, no robot motion.
++    "operator stop" — operator-requested stop.
++    "needs_help: <question>" — you cannot decide without operator input;
++                               put the question in the reply field.
++    "clarify: <question>"    — you have a sensible default but want
++                               operator confirmation; reply with the
++                               question and choose the default.
++
++Remediation example — formation failed because followers were too far from
++their offset targets. The refreshed runtime context shows
++formations[*].failure_code = FOLLOWER_STUCK and max_error_m = 3.7.
++Correct by sending each follower to leader_pose + (offset_x, offset_y) before
++re-activating the formation:
++{"reply":"Followers were not at their offset positions; staging them first, then activating the line.",
++ "plan":{"type":"sequence","steps":[
++   {"type":"mapf","robot_ids":[17,18,19],"goals":[[20.5,2.0],[19.0,2.0],[17.5,2.0]],"reason":"stage yellow followers at offsets"},
++   {"type":"formation","formation_id":"yellow_line","leader_ns":"robot_16",
++    "follower_ns":["robot_17","robot_18","robot_19"],
++    "offsets_x":[-1.5,-3.0,-4.5],"offsets_y":[0.0,0.0,0.0],"reason":"line after staging"}
++ ]}}
++
++Operator escalation example — the snapshot is empty or marked mcp_stale
++and the error is ambiguous:
++{"reply":"I cannot determine where the followers ended up — should I bring them home first or hold position?",
++ "plan":{"type":"idle","reason":"needs_help: cannot determine follower positions; please confirm desired layout"}}
+\ No newline at end of file
+diff --git a/iros_llm_orchestrator/test/test_remediation.py b/iros_llm_orchestrator/test/test_remediation.py
+new file mode 100644
+index 0000000..3309309
+--- /dev/null
++++ b/iros_llm_orchestrator/test/test_remediation.py
+@@ -0,0 +1,281 @@
++"""Unit tests for the remediation loop.
++
++Covers the pure-Python pieces (no rclpy spin): planned-call selection by
++leaf type, the remediation prompt builder, is_help_request detection, and
++the PlanExecutor failed_leaf bookkeeping. The chat-server side is exercised
++by stubbing the context provider; we don't spin a ROS executor here.
++"""
++
++import asyncio
++import json
++
++import pytest
++
++from iros_llm_orchestrator.common import user_prompt
++from iros_llm_orchestrator.common.plan_executor import PlanExecutor
++from iros_llm_orchestrator.common.user_prompt import build_remediation_prompt
++from iros_llm_orchestrator.context.mcp_readonly_provider import (
++    McpReadonlyContextProvider,
++    summarize_for_remediation,
++)
++from iros_llm_orchestrator.context.no_execute import is_help_request
++from iros_llm_orchestrator.context.provider import ChatContextConfig
++
++
++# ---------------------------------------------------------------------------
++# is_help_request
++# ---------------------------------------------------------------------------
++
++def test_is_help_request_detects_needs_help_prefix():
++    assert is_help_request(
++        {'type': 'idle', 'reason': 'needs_help: where should I put them?'})
++
++
++def test_is_help_request_detects_clarify_prefix():
++    assert is_help_request(
++        {'type': 'idle', 'reason': 'clarify: did you mean east or west?'})
++
++
++def test_is_help_request_ignores_other_idle_reasons():
++    assert not is_help_request(
++        {'type': 'idle', 'reason': 'operator stop'})
++    assert not is_help_request(
++        {'type': 'idle', 'reason': 'reply_only: status report'})
++
++
++def test_is_help_request_walks_containers():
++    plan = {
++        'type': 'sequence',
++        'steps': [
++            {'type': 'mapf', 'robot_ids': [0], 'goals': [[0.0, 0.0]]},
++            {'type': 'idle', 'reason': 'needs_help: nested'},
++        ],
++    }
++    assert is_help_request(plan)
++
++
++def test_is_help_request_handles_none_and_non_dict():
++    assert not is_help_request(None)
++    assert not is_help_request('idle')
++    assert not is_help_request({})
++
++
++# ---------------------------------------------------------------------------
++# _planned_calls_for
++# ---------------------------------------------------------------------------
++
++def _provider(**overrides) -> McpReadonlyContextProvider:
++    cfg = ChatContextConfig(
++        provider='mcp_readonly',
++        include_bt_state=False,
++        include_formations=False,
++        include_map_summary=False,
++        include_recent_events=False,
++        mcp_enabled=True,
++        **overrides,
++    )
++    return McpReadonlyContextProvider(cfg)
++
++
++def _call_names(calls):
++    return [
++        f"{name}:{args.get('topic') or args.get('action') or ''}"
++        if name in {'subscribe_once', 'get_action_status'}
++        else name
++        for name, args in calls
++    ]
++
++
++def test_planned_calls_for_set_formation_forces_bt_and_formations():
++    prov = _provider()  # include_* flags off
++    calls = prov._planned_calls_for({'leaf_type': 'formation'})
++    names = _call_names(calls)
++    assert 'subscribe_once:/bt/state' in names
++    assert 'subscribe_once:/formations/status' in names
++
++
++def test_planned_calls_for_disable_formation_also_pulls_formations():
++    prov = _provider()
++    calls = prov._planned_calls_for({'leaf_type': 'disable_formation'})
++    names = _call_names(calls)
++    assert 'subscribe_once:/formations/status' in names
++
++
++def test_planned_calls_for_mapf_includes_action_status():
++    prov = _provider()
++    calls = prov._planned_calls_for({'leaf_type': 'mapf'})
++    names = _call_names(calls)
++    assert 'subscribe_once:/bt/state' in names
++    assert 'get_action_status:/swarm/set_goals' in names
++    assert 'subscribe_once:/formations/status' not in names
++
++
++def test_planned_calls_for_unknown_leaf_still_pulls_bt_state():
++    prov = _provider()
++    calls = prov._planned_calls_for({})
++    names = _call_names(calls)
++    assert 'subscribe_once:/bt/state' in names
++    # No formation/action-status query for unknown failure types.
++    assert 'subscribe_once:/formations/status' not in names
++    assert 'get_action_status:/swarm/set_goals' not in names
++
++
++# ---------------------------------------------------------------------------
++# summarize_for_remediation
++# ---------------------------------------------------------------------------
++
++def test_summarize_drops_topology_listings_keeps_diagnostic_keys():
++    snapshot = {
++        'timestamp': 't',
++        'source': 'mcp_readonly_remediation',
++        'warnings': ['x'],
++        'failure_summary': {'leaf_type': 'formation'},
++        'bt_state': {'mode': 'idle', 'action_status': 'ERROR'},
++        'formations': [{'formation_id': 'a', 'failure_code': 'FOLLOWER_STUCK'}],
++        'robots': {'active': []},
++        'recent_events': ['ev'],
++        'map': {'name': 'cave', 'known_zones': ['hub']},
++        'mcp': {
++            'get_topics': ['/topic'],
++            'get_nodes': ['/node'],
++            'get_services': ['/srv'],
++            'get_actions': ['/act'],
++            'subscribe_once:/bt/state': [{'mode': 'idle'}],
++            'subscribe_once:/formations/status': [{'failure_code': 1}],
++            'get_action_status': {'status': 'SUCCEEDED'},
++        },
++    }
++    slim = summarize_for_remediation(snapshot)
++    assert slim['source'] == 'mcp_readonly_remediation'
++    assert slim['failure_summary']['leaf_type'] == 'formation'
++    assert slim['bt_state']['action_status'] == 'ERROR'
++    assert slim['formations'][0]['failure_code'] == 'FOLLOWER_STUCK'
++    # Only the name is kept from map (not known_zones)
++    assert slim['map'] == {'name': 'cave'}
++    # subscribe_once + action_status keys preserved; topology dropped
++    assert 'subscribe_once:/bt/state' in slim['mcp']
++    assert 'subscribe_once:/formations/status' in slim['mcp']
++    assert 'get_action_status' in slim['mcp']
++    assert 'get_topics' not in slim['mcp']
++    assert 'get_nodes' not in slim['mcp']
++
++
++def test_summarize_handles_non_dict():
++    assert summarize_for_remediation(None) == {}
++    assert summarize_for_remediation('garbage') == {}
++
++
++# ---------------------------------------------------------------------------
++# build_remediation_prompt
++# ---------------------------------------------------------------------------
++
++@pytest.fixture
++def stub_user_prompt(monkeypatch):
++    """Avoid touching the map_descriptions YAMLs from unit tests."""
++    monkeypatch.setattr(user_prompt, '_user_system', lambda _m: 'system')
++    monkeypatch.setattr(user_prompt, '_get_examples', lambda _m: [])
++
++
++def test_build_remediation_prompt_contains_attempts_and_fresh_ctx(stub_user_prompt):
++    fresh = {
++        'source': 'mcp_readonly_remediation',
++        'bt_state': {'action_status': 'ERROR'},
++    }
++    attempts = [
++        {'leaf_type': 'formation', 'last_error': 'follower 17 stuck',
++         'failed_at_phase': 'phase2'},
++    ]
++    messages = build_remediation_prompt(
++        original_user_message='yellow form a line at hub',
++        original_plan={
++            'type': 'sequence',
++            'steps': [{'type': 'formation', 'formation_id': 'yellow_line',
++                       'leader_ns': 'robot_16'}],
++        },
++        attempts=attempts,
++        failure_info=attempts[-1],
++        fresh_runtime_context=fresh,
++        history=[],
++        map_name='cave',
++    )
++    blob = json.dumps(messages, ensure_ascii=False)
++    # Original prompt content
++    assert 'yellow form a line at hub' in blob
++    # Fresh runtime context fingerprint
++    assert 'mcp_readonly_remediation' in blob
++    # Per-attempt log
++    assert 'follower 17 stuck' in blob
++    assert 'phase=phase2' in blob
++    # Original failed plan echoed back to the LLM as assistant message
++    assert any(m['role'] == 'assistant' and 'yellow_line' in m['content']
++               for m in messages)
++    # Remediation rubric present
++    assert any('needs_help:' in m['content'] for m in messages
++               if m['role'] == 'system')
++
++
++def test_build_remediation_prompt_skips_runtime_when_no_context(stub_user_prompt):
++    """Caller may pass fresh_runtime_context=None (e.g. CLI without MCP)."""
++    messages = build_remediation_prompt(
++        original_user_message='cyan to hub',
++        original_plan={'type': 'idle'},
++        attempts=[{'leaf_type': 'mapf', 'last_error': 'no path',
++                   'failed_at_phase': 'phase1'}],
++        failure_info={'leaf_type': 'mapf', 'last_error': 'no path',
++                      'failed_at_phase': 'phase1'},
++        fresh_runtime_context=None,
++        history=[],
++        map_name='cave',
++    )
++    # When runtime_context is None build_user_prompt does not inject a
++    # runtime-context system message — the only system messages should be
++    # the user_chat_system prompt and the remediation rubric.
++    blob = json.dumps(messages, ensure_ascii=False)
++    assert 'mcp_readonly_remediation' not in blob
++    assert 'no path' in blob
++
++
++# ---------------------------------------------------------------------------
++# PlanExecutor.failed_leaf
++# ---------------------------------------------------------------------------
++
++def test_plan_executor_records_failed_leaf_in_sequence():
++    """The second leaf of a sequence fails — failed_leaf points at it."""
++    calls: list[dict] = []
++
++    async def send_fn(node):
++        calls.append(node)
++        return node.get('reason') != 'fail-me'
++
++    plan = {
++        'type': 'sequence',
++        'steps': [
++            {'type': 'idle', 'reason': 'ok-leaf'},
++            {'type': 'idle', 'reason': 'fail-me'},
++            {'type': 'idle', 'reason': 'never-runs'},
++        ],
++    }
++    executor = PlanExecutor(send_fn=send_fn)
++    ok = asyncio.run(executor.run(plan))
++    assert ok is False
++    assert executor.failed_leaf is not None
++    assert executor.failed_leaf.get('reason') == 'fail-me'
++    # Third leaf must not have been attempted.
++    reasons = [c.get('reason') for c in calls]
++    assert 'never-runs' not in reasons
++
++
++def test_plan_executor_failed_leaf_resets_on_new_run():
++    async def fail_first(node):
++        return False
++
++    async def succeed(node):
++        return True
++
++    executor = PlanExecutor(send_fn=fail_first)
++    asyncio.run(executor.run({'type': 'idle', 'reason': 'r'}))
++    assert executor.failed_leaf is not None
++
++    executor._send = succeed
++    asyncio.run(executor.run({'type': 'idle', 'reason': 'r'}))
++    assert executor.failed_leaf is None
+-- 
+2.43.0
+

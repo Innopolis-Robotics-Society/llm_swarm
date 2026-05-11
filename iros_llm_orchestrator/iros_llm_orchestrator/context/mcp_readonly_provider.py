@@ -18,6 +18,7 @@ from iros_llm_orchestrator.context.provider import (
     ChatContextProvider,
     bound_context,
     map_summary,
+    robots_snapshot_dict,
     safe_mcp_allowlist,
     to_jsonable,
     utc_now,
@@ -25,9 +26,16 @@ from iros_llm_orchestrator.context.provider import (
 
 
 class McpReadonlyContextProvider(ChatContextProvider):
-    def __init__(self, config: ChatContextConfig, logger: Any | None = None):
+    def __init__(
+        self,
+        config: ChatContextConfig,
+        logger: Any | None = None,
+        *,
+        pose_cache: Any | None = None,
+    ):
         super().__init__(config)
         self._logger = logger
+        self._pose_cache = pose_cache
         self._allowlist, self._allowlist_warnings = safe_mcp_allowlist(
             config.mcp_tool_allowlist)
 
@@ -75,6 +83,13 @@ class McpReadonlyContextProvider(ChatContextProvider):
                 self.config.map_name,
                 self.config.map_config,
             )
+        if self.config.include_robot_positions:
+            poses = robots_snapshot_dict(
+                self._pose_cache, self.config.pose_stale_ms)
+            context['robots'] = poses
+            if not poses:
+                context['warnings'].append(
+                    'No /robot_*/odom received yet — leader pose unavailable')
         if not self.config.mcp_enabled:
             context['warnings'].append('MCP context disabled')
             return bound_context(context, self.config.max_chars)
@@ -304,7 +319,8 @@ def summarize_for_remediation(snapshot: dict) -> dict:
     slim: dict = {}
     for key in (
         'timestamp', 'source', 'warnings', 'failure_summary',
-        'bt_state', 'formations', 'robots', 'recent_events',
+        'bt_state', 'formations', 'robots', 'robot_assignment',
+        'recent_events',
     ):
         if key in snapshot:
             slim[key] = snapshot[key]

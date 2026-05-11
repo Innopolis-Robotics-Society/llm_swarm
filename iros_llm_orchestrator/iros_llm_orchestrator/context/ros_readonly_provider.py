@@ -8,9 +8,10 @@ from typing import Any
 from iros_llm_orchestrator.context.provider import (
     ChatContextConfig,
     ChatContextProvider,
+    assignment_from_bt,
     bound_context,
-    known_robot_ids,
     map_summary,
+    robots_snapshot_dict,
     safe_str,
     utc_now,
 )
@@ -35,9 +36,16 @@ FORMATION_FAILURES = {
 class RosReadonlyContextProvider(ChatContextProvider):
     """Cache selected ROS topics and return a small normalized context."""
 
-    def __init__(self, node: Any, config: ChatContextConfig):
+    def __init__(
+        self,
+        node: Any,
+        config: ChatContextConfig,
+        *,
+        pose_cache: Any | None = None,
+    ):
         super().__init__(config)
         self._node = node
+        self._pose_cache = pose_cache
         self._latest_bt = None
         self._latest_formations = None
         self._recent_events = deque(maxlen=12)
@@ -110,10 +118,16 @@ class RosReadonlyContextProvider(ChatContextProvider):
                 context['warnings'].append('No /bt/state received yet')
             else:
                 context['bt_state'] = normalize_bt_state(self._latest_bt)
-                context['robots'] = derive_robot_summary(
-                    self._latest_bt,
-                    self.config.map_config,
-                )
+            context['robot_assignment'] = assignment_from_bt(
+                self._latest_bt, self.config.map_config)
+
+        if self.config.include_robot_positions:
+            poses = robots_snapshot_dict(
+                self._pose_cache, self.config.pose_stale_ms)
+            context['robots'] = poses
+            if not poses:
+                context['warnings'].append(
+                    'No /robot_*/odom received yet — leader pose unavailable')
 
         if self.config.include_formations:
             if self._latest_formations is not None:
@@ -163,33 +177,6 @@ def normalize_bt_state(msg: Any) -> dict:
         'formation_mean_error_m': float(
             getattr(msg, 'formation_mean_error_m', -1.0)),
         'stamp_ms': int(getattr(msg, 'stamp_ms', 0)),
-    }
-
-
-def derive_robot_summary(msg: Any, map_config: dict) -> dict:
-    known = set(known_robot_ids(map_config))
-    active = {
-        int(rid)
-        for rid in list(getattr(msg, 'robot_ids', []) or [])
-        if str(rid).strip()
-    }
-    mode = safe_str(getattr(msg, 'mode', ''), 80)
-    if mode == 'idle' and known:
-        return {
-            'active': [],
-            'idle': sorted(known),
-            'unknown': [],
-        }
-    if known:
-        return {
-            'active': sorted(active),
-            'idle': sorted(known - active),
-            'unknown': [],
-        }
-    return {
-        'active': sorted(active),
-        'idle': [],
-        'unknown': [],
     }
 
 

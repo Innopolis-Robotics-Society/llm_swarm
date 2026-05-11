@@ -49,6 +49,8 @@ class ChatContextConfig:
     include_formations: bool = True
     include_map_summary: bool = True
     include_recent_events: bool = True
+    include_robot_positions: bool = True
+    pose_stale_ms: int = 2000
     map_name: str = 'cave'
     map_config: dict[str, Any] = field(default_factory=dict)
     mcp_enabled: bool = False
@@ -84,20 +86,70 @@ class NoneContextProvider(ChatContextProvider):
 def make_context_provider(
     node: Any,
     config: ChatContextConfig,
+    *,
+    pose_cache: Any | None = None,
 ) -> ChatContextProvider:
     provider = (config.provider or 'none').strip().lower()
     if provider == 'ros_readonly':
         from iros_llm_orchestrator.context.ros_readonly_provider import (
             RosReadonlyContextProvider,
         )
-        return RosReadonlyContextProvider(node, config)
+        return RosReadonlyContextProvider(node, config, pose_cache=pose_cache)
     if provider == 'mcp_readonly':
         from iros_llm_orchestrator.context.mcp_readonly_provider import (
             McpReadonlyContextProvider,
         )
         logger = node.get_logger() if hasattr(node, 'get_logger') else None
-        return McpReadonlyContextProvider(config, logger=logger)
+        return McpReadonlyContextProvider(
+            config, logger=logger, pose_cache=pose_cache)
     return NoneContextProvider(config)
+
+
+def robots_snapshot_dict(
+    pose_cache: Any | None,
+    stale_threshold_ms: int,
+) -> dict[str, dict]:
+    """Return ``{<robot_id_str>: {x, y, yaw, stale_ms, stale}}``.
+
+    Pose is keyed by string id (e.g. ``"12"``) so the dict is JSON-stable
+    when serialised into the prompt — integer keys are JSON-illegal anyway.
+    Returns an empty dict if ``pose_cache`` is None or empty, which the
+    prompt rules treat as "leader pose unavailable".
+    """
+    if pose_cache is None:
+        return {}
+    snapshot = pose_cache.snapshot(stale_threshold_ms=stale_threshold_ms)
+    return {str(rid): entry for rid, entry in sorted(snapshot.items())}
+
+
+def assignment_from_bt(
+    bt_msg: Any,
+    map_config: dict[str, Any],
+) -> dict[str, list[int]]:
+    """Active/idle robot lists for the ``robot_assignment`` field.
+
+    Mirrors the previous behaviour of ``derive_robot_summary`` so existing
+    prompt consumers that look at active/idle buckets keep working, while
+    leaving the new ``robots`` dict free for positional data.
+    """
+    known = set(known_robot_ids(map_config))
+    active: set[int] = set()
+    mode = safe_str(getattr(bt_msg, 'mode', ''), 80) if bt_msg is not None else ''
+    if bt_msg is not None:
+        for rid in list(getattr(bt_msg, 'robot_ids', []) or []):
+            try:
+                active.add(int(rid))
+            except (TypeError, ValueError):
+                continue
+    if mode == 'idle' and known:
+        return {'active': [], 'idle': sorted(known), 'unknown': []}
+    if known:
+        return {
+            'active': sorted(active),
+            'idle': sorted(known - active),
+            'unknown': sorted(active - known),
+        }
+    return {'active': sorted(active), 'idle': [], 'unknown': []}
 
 
 def utc_now() -> str:
@@ -152,7 +204,11 @@ def bound_context(context: dict, max_chars: int) -> dict:
     warnings.append(f'context truncated to {max_chars} characters')
     bounded['warnings'] = warnings
 
-    for key in ('recent_events', 'mcp', 'formations', 'robots'):
+    # Order = priority. Earlier entries are trimmed first, so positions
+    # (``robots``) survive truncation longer than topology lists. We do NOT
+    # trim ``robots`` itself by arbitrary subsetting — losing robot_19's
+    # pose when the operator asked about robot_19 would be silently wrong.
+    for key in ('recent_events', 'mcp', 'formations', 'robot_assignment'):
         if len(compact_json(bounded)) <= max_chars:
             break
         if key in bounded:
