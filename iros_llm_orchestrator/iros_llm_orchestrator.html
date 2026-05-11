@@ -56,6 +56,7 @@
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.chat_server.html">iros_llm_orchestrator.chat_server module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.decision_server.html">iros_llm_orchestrator.decision_server module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.execute_server.html">iros_llm_orchestrator.execute_server module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.help_responder.html">iros_llm_orchestrator.help_responder module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.passive_observer.html">iros_llm_orchestrator.passive_observer module</a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.user_chat_node.html">iros_llm_orchestrator.user_chat_node module</a></li>
 </ul>
@@ -151,6 +152,7 @@
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.common.user_prompt.html#iros_llm_orchestrator.common.user_prompt.build_bt_event_prompt"><code class="docutils literal notranslate"><span class="pre">build_bt_event_prompt()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.common.user_prompt.html#iros_llm_orchestrator.common.user_prompt.build_map_context"><code class="docutils literal notranslate"><span class="pre">build_map_context()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.common.user_prompt.html#iros_llm_orchestrator.common.user_prompt.build_obstacle_context_str"><code class="docutils literal notranslate"><span class="pre">build_obstacle_context_str()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.common.user_prompt.html#iros_llm_orchestrator.common.user_prompt.build_remediation_prompt"><code class="docutils literal notranslate"><span class="pre">build_remediation_prompt()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.common.user_prompt.html#iros_llm_orchestrator.common.user_prompt.build_user_prompt"><code class="docutils literal notranslate"><span class="pre">build_user_prompt()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.common.user_prompt.html#iros_llm_orchestrator.common.user_prompt.load_map_config"><code class="docutils literal notranslate"><span class="pre">load_map_config()</span></code></a></li>
 </ul>
@@ -164,21 +166,30 @@
 <li class="toctree-l2"><a class="reference internal" href="iros_llm_orchestrator.context.html#submodules">Submodules</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="iros_llm_orchestrator.context.mcp_readonly_provider.html">iros_llm_orchestrator.context.mcp_readonly_provider module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.mcp_readonly_provider.html#iros_llm_orchestrator.context.mcp_readonly_provider.McpReadonlyContextProvider"><code class="docutils literal notranslate"><span class="pre">McpReadonlyContextProvider</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.mcp_readonly_provider.html#iros_llm_orchestrator.context.mcp_readonly_provider.summarize_for_remediation"><code class="docutils literal notranslate"><span class="pre">summarize_for_remediation()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="iros_llm_orchestrator.context.no_execute.html">iros_llm_orchestrator.context.no_execute module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.no_execute.html#iros_llm_orchestrator.context.no_execute.is_help_request"><code class="docutils literal notranslate"><span class="pre">is_help_request()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.no_execute.html#iros_llm_orchestrator.context.no_execute.should_skip_reply_only_execution"><code class="docutils literal notranslate"><span class="pre">should_skip_reply_only_execution()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="iros_llm_orchestrator.context.pose_cache.html">iros_llm_orchestrator.context.pose_cache module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.pose_cache.html#iros_llm_orchestrator.context.pose_cache.RobotPoseCache"><code class="docutils literal notranslate"><span class="pre">RobotPoseCache</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.pose_cache.html#iros_llm_orchestrator.context.pose_cache.compute_formation_staging"><code class="docutils literal notranslate"><span class="pre">compute_formation_staging()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="iros_llm_orchestrator.context.provider.html">iros_llm_orchestrator.context.provider module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.ChatContextConfig"><code class="docutils literal notranslate"><span class="pre">ChatContextConfig</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.ChatContextProvider"><code class="docutils literal notranslate"><span class="pre">ChatContextProvider</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.NoneContextProvider"><code class="docutils literal notranslate"><span class="pre">NoneContextProvider</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.assignment_from_bt"><code class="docutils literal notranslate"><span class="pre">assignment_from_bt()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.bound_context"><code class="docutils literal notranslate"><span class="pre">bound_context()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.compact_json"><code class="docutils literal notranslate"><span class="pre">compact_json()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.known_robot_ids"><code class="docutils literal notranslate"><span class="pre">known_robot_ids()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.make_context_provider"><code class="docutils literal notranslate"><span class="pre">make_context_provider()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.map_summary"><code class="docutils literal notranslate"><span class="pre">map_summary()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.robots_snapshot_dict"><code class="docutils literal notranslate"><span class="pre">robots_snapshot_dict()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.safe_mcp_allowlist"><code class="docutils literal notranslate"><span class="pre">safe_mcp_allowlist()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.safe_str"><code class="docutils literal notranslate"><span class="pre">safe_str()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.provider.html#iros_llm_orchestrator.context.provider.to_jsonable"><code class="docutils literal notranslate"><span class="pre">to_jsonable()</span></code></a></li>
@@ -187,7 +198,6 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="iros_llm_orchestrator.context.ros_readonly_provider.html">iros_llm_orchestrator.context.ros_readonly_provider module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.ros_readonly_provider.html#iros_llm_orchestrator.context.ros_readonly_provider.RosReadonlyContextProvider"><code class="docutils literal notranslate"><span class="pre">RosReadonlyContextProvider</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.ros_readonly_provider.html#iros_llm_orchestrator.context.ros_readonly_provider.derive_robot_summary"><code class="docutils literal notranslate"><span class="pre">derive_robot_summary()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.ros_readonly_provider.html#iros_llm_orchestrator.context.ros_readonly_provider.formation_failure_name"><code class="docutils literal notranslate"><span class="pre">formation_failure_name()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.ros_readonly_provider.html#iros_llm_orchestrator.context.ros_readonly_provider.formation_state_name"><code class="docutils literal notranslate"><span class="pre">formation_state_name()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.ros_readonly_provider.html#iros_llm_orchestrator.context.ros_readonly_provider.normalize_bt_state"><code class="docutils literal notranslate"><span class="pre">normalize_bt_state()</span></code></a></li>
@@ -203,6 +213,7 @@
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.include_formations"><code class="docutils literal notranslate"><span class="pre">ChatContextConfig.include_formations</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.include_map_summary"><code class="docutils literal notranslate"><span class="pre">ChatContextConfig.include_map_summary</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.include_recent_events"><code class="docutils literal notranslate"><span class="pre">ChatContextConfig.include_recent_events</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.include_robot_positions"><code class="docutils literal notranslate"><span class="pre">ChatContextConfig.include_robot_positions</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.map_config"><code class="docutils literal notranslate"><span class="pre">ChatContextConfig.map_config</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.map_name"><code class="docutils literal notranslate"><span class="pre">ChatContextConfig.map_name</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.max_chars"><code class="docutils literal notranslate"><span class="pre">ChatContextConfig.max_chars</span></code></a></li>
@@ -211,6 +222,7 @@
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.mcp_enabled"><code class="docutils literal notranslate"><span class="pre">ChatContextConfig.mcp_enabled</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.mcp_tool_allowlist"><code class="docutils literal notranslate"><span class="pre">ChatContextConfig.mcp_tool_allowlist</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.mcp_transport"><code class="docutils literal notranslate"><span class="pre">ChatContextConfig.mcp_transport</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.pose_stale_ms"><code class="docutils literal notranslate"><span class="pre">ChatContextConfig.pose_stale_ms</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.provider"><code class="docutils literal notranslate"><span class="pre">ChatContextConfig.provider</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.ChatContextConfig.timeout_sec"><code class="docutils literal notranslate"><span class="pre">ChatContextConfig.timeout_sec</span></code></a></li>
 </ul>
@@ -223,7 +235,15 @@
 <li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.NoneContextProvider.get_context"><code class="docutils literal notranslate"><span class="pre">NoneContextProvider.get_context()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.RobotPoseCache"><code class="docutils literal notranslate"><span class="pre">RobotPoseCache</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.RobotPoseCache.enabled"><code class="docutils literal notranslate"><span class="pre">RobotPoseCache.enabled</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.RobotPoseCache.snapshot"><code class="docutils literal notranslate"><span class="pre">RobotPoseCache.snapshot()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.assignment_from_bt"><code class="docutils literal notranslate"><span class="pre">assignment_from_bt()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.compute_formation_staging"><code class="docutils literal notranslate"><span class="pre">compute_formation_staging()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.make_context_provider"><code class="docutils literal notranslate"><span class="pre">make_context_provider()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="iros_llm_orchestrator.context.html#iros_llm_orchestrator.context.robots_snapshot_dict"><code class="docutils literal notranslate"><span class="pre">robots_snapshot_dict()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -276,6 +296,7 @@
 <li class="toctree-l2"><a class="reference internal" href="iros_llm_orchestrator.execute_server.html#iros_llm_orchestrator.execute_server.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="iros_llm_orchestrator.help_responder.html">iros_llm_orchestrator.help_responder module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="iros_llm_orchestrator.passive_observer.html">iros_llm_orchestrator.passive_observer module</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="iros_llm_orchestrator.passive_observer.html#iros_llm_orchestrator.passive_observer.PassiveObserver"><code class="docutils literal notranslate"><span class="pre">PassiveObserver</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="iros_llm_orchestrator.passive_observer.html#iros_llm_orchestrator.passive_observer.PassiveObserver.TRIGGER_STATUSES"><code class="docutils literal notranslate"><span class="pre">PassiveObserver.TRIGGER_STATUSES</span></code></a></li>
