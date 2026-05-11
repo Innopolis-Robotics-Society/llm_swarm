@@ -79,7 +79,7 @@ def _provider(**overrides) -> McpReadonlyContextProvider:
 
 def _call_names(calls):
     return [
-        f"{name}:{args.get('topic') or args.get('action') or ''}"
+        f"{name}:{args.get('topic') or args.get('action_name') or args.get('action') or ''}"
         if name in {'subscribe_once', 'get_action_status'}
         else name
         for name, args in calls

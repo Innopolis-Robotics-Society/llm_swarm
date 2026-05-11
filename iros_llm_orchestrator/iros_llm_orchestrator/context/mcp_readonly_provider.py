@@ -262,8 +262,12 @@ class McpReadonlyContextProvider(ChatContextProvider):
                     'iros_llm_swarm_interfaces/msg/FormationsStatus',
             }))
         elif leaf in {'mapf', 'mapfplan', 'mapf_plan'}:
+            # ros-mcp's get_action_status takes `action_name`, not `action`.
+            # Passing the wrong key trips the FastMCP/pydantic validator and
+            # the tool call returns an error string that's just noise in the
+            # runtime context.
             calls.append(('get_action_status', {
-                'action': '/swarm/set_goals',
+                'action_name': '/swarm/set_goals',
             }))
         return calls
 
