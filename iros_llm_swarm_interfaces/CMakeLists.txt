@@ -33,6 +33,19 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/SetGoals.action"
   "action/LlmDecision.action"
   "action/LlmCommand.action"
+  "action/LlmChat.action"
+  "action/LlmExecutePlan.action"
+  "msg/LlmEvent.msg"
+  "msg/obstacles/CircleObstacle.msg"
+  "msg/obstacles/RectangleObstacle.msg"
+  "msg/obstacles/Door.msg"
+  "srv/obstacles/AddCircle.srv"
+  "srv/obstacles/AddRectangle.srv"
+  "srv/obstacles/AddDoor.srv"
+  "srv/obstacles/RemoveObstacle.srv"
+  "srv/obstacles/OpenDoor.srv"
+  "srv/obstacles/CloseDoor.srv"
+  "srv/obstacles/ListObstacles.srv"
   DEPENDENCIES std_msgs geometry_msgs
 )
 

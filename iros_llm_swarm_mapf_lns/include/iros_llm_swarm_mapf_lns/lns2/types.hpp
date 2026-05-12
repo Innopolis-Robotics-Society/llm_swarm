@@ -1,0 +1,159 @@
+// iros_llm_swarm_mapf_lns/lns2/types.hpp
+//
+// Basic types for the LNS2 MAPF solver. Self-contained, independent from
+// the parallel PBS implementation.
+
+#pragma once
+
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <limits>
+#include <vector>
+
+namespace lns2 {
+
+// ---------------------------------------------------------------------------
+// Scalar aliases
+// ---------------------------------------------------------------------------
+using AgentId  = std::uint32_t;
+using Timestep = std::uint32_t;
+using CellIdx  = std::uint32_t;   // row * cols + col
+using Cost     = std::int64_t;    // collisions * penalty + steps
+
+constexpr Cost kInfCost = std::numeric_limits<Cost>::max() / 4;
+
+// ---------------------------------------------------------------------------
+// Cell — signed row/col so footprint offsets can be negative.
+// ---------------------------------------------------------------------------
+struct Cell {
+  std::int32_t row = 0;
+  std::int32_t col = 0;
+
+  bool operator==(const Cell& o) const { return row == o.row && col == o.col; }
+  bool operator!=(const Cell& o) const { return !(*this == o); }
+};
+
+struct CellOffset {
+  std::int32_t drow = 0;
+  std::int32_t dcol = 0;
+};
+
+inline Cell operator+(const Cell& a, const CellOffset& o) {
+  return Cell{a.row + o.drow, a.col + o.dcol};
+}
+
+// ---------------------------------------------------------------------------
+// Path — sequence of cells indexed by discrete timestep.
+// path[0] is the position at t=0, path[k] at t=k.
+// A path reaching its goal ends at the goal cell; the agent is assumed to
+// remain there (vertex-occupied) for all t >= path.size() - 1.
+// ---------------------------------------------------------------------------
+using Path = std::vector<Cell>;
+
+// ---------------------------------------------------------------------------
+// GridMap — static occupancy. blocked[row * cols + col] != 0 means obstacle.
+// ---------------------------------------------------------------------------
+struct GridMap {
+  std::size_t rows = 0;
+  std::size_t cols = 0;
+  std::vector<std::uint8_t> blocked;  // row-major, 0 = free, 1 = obstacle
+
+  bool in_bounds(const Cell& c) const {
+    return c.row >= 0 && c.col >= 0 &&
+           static_cast<std::size_t>(c.row) < rows &&
+           static_cast<std::size_t>(c.col) < cols;
+  }
+
+  bool is_blocked(const Cell& c) const {
+    if (!in_bounds(c)) return true;
+    return blocked[static_cast<std::size_t>(c.row) * cols +
+                   static_cast<std::size_t>(c.col)] != 0;
+  }
+
+  CellIdx index_of(const Cell& c) const {
+    return static_cast<CellIdx>(c.row) * static_cast<CellIdx>(cols) +
+           static_cast<CellIdx>(c.col);
+  }
+
+  Cell cell_of(CellIdx idx) const {
+    return Cell{static_cast<std::int32_t>(idx / cols),
+                static_cast<std::int32_t>(idx % cols)};
+  }
+};
+
+// ---------------------------------------------------------------------------
+// FootprintModel — set of cell offsets relative to base_link that the
+// robot covers when its base cell is c. Includes the (0,0) offset.
+//
+// For an arbitrary rotation model footprints could be heading-indexed, but
+// for v1 we use heading-independent (circular envelope).
+// ---------------------------------------------------------------------------
+struct FootprintModel {
+  std::vector<CellOffset> offsets;
+
+  // Convenience: build from radius (meters) and cell resolution (m / cell).
+  // Rasterizes the disk into a list of offsets.
+  static FootprintModel from_radius(double radius_m, double resolution_m);
+
+  bool empty() const { return offsets.empty(); }
+  std::size_t size() const { return offsets.size(); }
+};
+
+// Footprint-aware static validity: every offset cell is in-bounds & free.
+inline bool footprint_fits(const Cell& base, const FootprintModel& fp,
+                            const GridMap& grid) {
+  for (const auto& off : fp.offsets) {
+    const Cell c = base + off;
+    if (!grid.in_bounds(c)) return false;
+    if (grid.is_blocked(c)) return false;
+  }
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// Agent — input to the solver.
+//
+// IMPORTANT: `id` must be a DENSE internal index equal to the agent's
+// position in the std::vector<Agent> passed to the solver. If your external
+// identifiers are sparse (e.g. robot_12 and robot_17 out of a fleet of 20),
+// remap them to [0, N) before calling, and keep the external <-> internal
+// mapping at the call site.
+// ---------------------------------------------------------------------------
+struct Agent {
+  AgentId id = 0;
+  Cell start;
+  Cell goal;
+  FootprintModel footprint;  // owned copy per agent
+};
+
+// ---------------------------------------------------------------------------
+// Collision — what sample_random_collision returns.
+// ---------------------------------------------------------------------------
+struct Collision {
+  AgentId a = 0;
+  AgentId b = 0;
+  CellIdx cell_idx = 0;   // for vertex collisions; one shared cell
+  Timestep t = 0;
+  enum Kind : std::uint8_t { Vertex = 0, Edge = 1 } kind = Vertex;
+};
+
+}  // namespace lns2
+
+// ---------------------------------------------------------------------------
+// Hash specializations
+// ---------------------------------------------------------------------------
+namespace std {
+
+template <>
+struct hash<lns2::Cell> {
+  std::size_t operator()(const lns2::Cell& c) const noexcept {
+    const auto r = static_cast<std::uint32_t>(c.row);
+    const auto k = static_cast<std::uint32_t>(c.col);
+    const std::uint64_t combined =
+        (static_cast<std::uint64_t>(r) << 32) | k;
+    return std::hash<std::uint64_t>{}(combined);
+  }
+};
+
+}  // namespace std

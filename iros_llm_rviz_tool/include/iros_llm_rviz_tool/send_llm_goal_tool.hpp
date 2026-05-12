@@ -1,0 +1,73 @@
+// Copyright 2026 — iros_llm_swarm contributors. Apache-2.0.
+//
+// SendLlmGoalTool — RViz2 Tool plugin for click-to-send LLM goals.
+//
+// Subclasses rviz_default_plugins::tools::PoseTool, which gives us a free
+// 2D click on the ground plane. We don't use the orientation; theta is
+// discarded. After the click we pop a QInputDialog::getItem so the
+// operator picks a robot group, then dispatch LlmCommand{mode=mapf} with
+// the group's robot_ids and the click point spread out as goals.
+//
+// No LLM in the loop — this path goes straight to /llm/command.
+
+#pragma once
+
+#include <memory>
+#include <string>
+#include <vector>
+
+#include <rclcpp/rclcpp.hpp>
+#include <rclcpp_action/rclcpp_action.hpp>
+
+#include <rviz_default_plugins/tools/pose/pose_tool.hpp>
+
+#include <iros_llm_swarm_interfaces/action/llm_command.hpp>
+
+namespace iros_llm_rviz_tool
+{
+
+struct RobotGroup
+{
+  std::string         color;
+  std::vector<int>    ids;
+  std::vector<std::string> aliases;
+};
+
+struct MapBounds
+{
+  double x_min{-1e9}, x_max{1e9}, y_min{-1e9}, y_max{1e9};
+};
+
+class SendLlmGoalTool : public rviz_default_plugins::tools::PoseTool
+{
+  Q_OBJECT
+
+public:
+  using LlmCommand = iros_llm_swarm_interfaces::action::LlmCommand;
+
+  SendLlmGoalTool();
+  ~SendLlmGoalTool() override;
+
+  void onInitialize() override;
+
+protected:
+  // PoseTool dispatch — orientation is unused.
+  void onPoseSet(double x, double y, double theta) override;
+
+private:
+  void loadMap(const std::string & map_name);
+
+  // Spread N goals around a centre, identical to user_chat_node._spread_goals
+  // so robots don't pile on top of each other.
+  std::vector<std::pair<double, double>> spreadGoals(
+    double cx, double cy, std::size_t n) const;
+
+  rclcpp::Node::SharedPtr                          node_;
+  rclcpp_action::Client<LlmCommand>::SharedPtr     cmd_client_;
+
+  std::vector<RobotGroup> groups_;
+  MapBounds               bounds_;
+  std::string             map_name_{"cave"};
+};
+
+}  // namespace iros_llm_rviz_tool

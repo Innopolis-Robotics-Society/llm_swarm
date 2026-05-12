@@ -245,6 +245,18 @@ RUN bash -lc '\
   colcon build --symlink-install \
 ' && chown -R $USERNAME:$USERNAME /home/$USERNAME/extras_ws
 
+# AI python libs
+RUN python3 -m pip install --no-cache-dir --upgrade pip \
+ && python3 -m pip install --no-cache-dir \ 
+    aiohttp
+
+# rosbridge_server (apt) + MCP Python SDK + uv/uvx system-wide so the chat
+# server (running as $USERNAME) can spawn `uvx ros-mcp --transport=stdio` for
+# the mcp_readonly context provider. Installing uv via pip lands uvx in
+# /usr/local/bin, which is on every user's PATH — the upstream curl installer
+# would put it in /root/.local/bin and be invisible to $USERNAME.
+RUN (ros2 pkg prefix rosbridge_server || (apt update && apt install -y ros-humble-rosbridge-server)) \
+    && python3 -m pip install --no-cache-dir --break-system-packages mcp uv
 
 # Add source in .bashrc
 RUN echo "source /opt/ros/${ROS_DISTRO}/setup.bash" >> /home/$USERNAME/.bashrc

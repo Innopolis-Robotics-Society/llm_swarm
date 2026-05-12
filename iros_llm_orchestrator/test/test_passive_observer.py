@@ -59,13 +59,14 @@ def running_stack():
     tmp_dir = tempfile.mkdtemp(prefix='llm_commands_')
 
     observer = PassiveObserver()
-    observer.llm.mode = 'mock'
-    observer.dataset_logger.path = tmp_dir
+    observer._logger_ds.path = tmp_dir
     os.makedirs(tmp_dir, exist_ok=True)
     # Shorter cooldown so the second-trigger test runs inside the window.
     observer.set_parameters([
         rclpy.parameter.Parameter(
             'cooldown_sec', rclpy.Parameter.Type.DOUBLE, 5.0),
+        rclpy.parameter.Parameter(
+            'enabled', rclpy.Parameter.Type.BOOL, True),
     ])
 
     fake_server = _FakeCommandServer()

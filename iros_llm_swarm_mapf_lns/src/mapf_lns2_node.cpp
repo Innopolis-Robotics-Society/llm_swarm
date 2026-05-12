@@ -9,6 +9,7 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
+#include <condition_variable>
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -22,6 +23,9 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
+#include "rcl_interfaces/msg/floating_point_range.hpp"
+#include "rcl_interfaces/msg/integer_range.hpp"
+#include "rcl_interfaces/msg/parameter_descriptor.hpp"
 
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "nav_msgs/msg/odometry.hpp"
@@ -34,12 +38,12 @@
 #include "iros_llm_swarm_interfaces/msg/mapf_step.hpp"
 #include "iros_llm_swarm_interfaces/msg/follower_status.hpp"
 
-#include "iros_llm_swarm_mapf/lns2/gridmap_utils.hpp"
-#include "iros_llm_swarm_mapf/lns2/lns2_solver.hpp"
-#include "iros_llm_swarm_mapf/lns2/warm_start.hpp"
-#include "iros_llm_swarm_mapf/node_utils.hpp"
-#include "iros_llm_swarm_mapf/plan_publisher.hpp"
-#include "iros_llm_swarm_mapf/robot_lifecycle.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/gridmap_utils.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/lns2_solver.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/warm_start.hpp"
+#include "iros_llm_swarm_mapf_lns/node_utils.hpp"
+#include "iros_llm_swarm_mapf_lns/plan_publisher.hpp"
+#include "iros_llm_swarm_mapf_lns/robot_lifecycle.hpp"
 
 using namespace std::chrono_literals;
 using SetGoalsAction = iros_llm_swarm_interfaces::action::SetGoals;
@@ -47,6 +51,56 @@ using GoalHandle     = rclcpp_action::ServerGoalHandle<SetGoalsAction>;
 using MAPFPlanMsg    = iros_llm_swarm_interfaces::msg::MAPFPlan;
 using MAPFStepMsg    = iros_llm_swarm_interfaces::msg::MAPFStep;
 using FollowerStatus = iros_llm_swarm_interfaces::msg::FollowerStatus;
+
+namespace {
+
+rcl_interfaces::msg::ParameterDescriptor make_int_desc(
+    const std::string& description, int64_t min_v, int64_t max_v)
+{
+  rcl_interfaces::msg::ParameterDescriptor d;
+  d.description = description;
+  d.type = rcl_interfaces::msg::ParameterType::PARAMETER_INTEGER;
+  rcl_interfaces::msg::IntegerRange r;
+  r.from_value = min_v;
+  r.to_value   = max_v;
+  r.step       = 1;
+  d.integer_range.push_back(r);
+  return d;
+}
+
+rcl_interfaces::msg::ParameterDescriptor make_double_desc(
+    const std::string& description, double min_v, double max_v)
+{
+  rcl_interfaces::msg::ParameterDescriptor d;
+  d.description = description;
+  d.type = rcl_interfaces::msg::ParameterType::PARAMETER_DOUBLE;
+  rcl_interfaces::msg::FloatingPointRange r;
+  r.from_value = min_v;
+  r.to_value   = max_v;
+  r.step       = 0.0;
+  d.floating_point_range.push_back(r);
+  return d;
+}
+
+rcl_interfaces::msg::ParameterDescriptor make_bool_desc(
+    const std::string& description)
+{
+  rcl_interfaces::msg::ParameterDescriptor d;
+  d.description = description;
+  d.type = rcl_interfaces::msg::ParameterType::PARAMETER_BOOL;
+  return d;
+}
+
+rcl_interfaces::msg::ParameterDescriptor make_string_desc(
+    const std::string& description)
+{
+  rcl_interfaces::msg::ParameterDescriptor d;
+  d.description = description;
+  d.type = rcl_interfaces::msg::ParameterType::PARAMETER_STRING;
+  return d;
+}
+
+}  // namespace
 
 // ---------------------------------------------------------------------------
 // Node
@@ -59,6 +113,11 @@ class MapfLns2Node : public rclcpp::Node {
     // Joining the workers ensures their captures (including `this`) outlive
     // the node. Using detach() here would be a use-after-free at shutdown
     // if a thread is still in execute_goal / the cancel poll.
+    {
+      std::lock_guard<std::mutex> lk(cancel_mutex_);
+      shutting_down_ = true;
+    }
+    cancel_cv_.notify_all();
     if (execute_thread_.joinable()) execute_thread_.join();
     if (cancel_thread_.joinable())  cancel_thread_.join();
   }
@@ -66,79 +125,112 @@ class MapfLns2Node : public rclcpp::Node {
   MapfLns2Node() : Node("mapf_lns2")
   {
     // ---- parameters -----------------------------------------------------
-    declare_parameter("num_robots",              20);
-    declare_parameter("time_step_sec",           0.5);
-    declare_parameter("map_topic",               std::string("/map"));
-    declare_parameter("grid_resolution",         0.2);
-    declare_parameter("default_robot_radius",    0.22);
-    declare_parameter("inflation_radius",        0.0);
-    declare_parameter("max_speed",               0.5);
-    declare_parameter("goal_reached_m",          0.5);
+    declare_parameter("num_robots",              20,
+        make_int_desc("Number of controllable robots in the fleet.", 1, 100));
+    declare_parameter("time_step_sec",           0.5,
+        make_double_desc("Plan step duration (s).", 0.01, 10.0));
+    declare_parameter("map_topic",               std::string("/map"),
+        make_string_desc("Static map topic to subscribe to."));
+    declare_parameter("grid_resolution",         0.2,
+        make_double_desc("Planning grid cell size (m).", 0.01, 5.0));
+    declare_parameter("default_robot_radius",    0.22,
+        make_double_desc("Robot footprint radius used when no /local_costmap "
+                         "footprint is published (m).", 0.01, 5.0));
+    declare_parameter("inflation_radius",        0.0,
+        make_double_desc("Soft inflation radius around obstacles (m).",
+                         0.0, 10.0));
+    declare_parameter("max_speed",               0.5,
+        make_double_desc("Maximum linear speed used in cost estimates (m/s).",
+                         0.01, 10.0));
+    declare_parameter("goal_reached_m",          0.5,
+        make_double_desc("Distance under which a goal is considered reached "
+                         "(m).", 0.0, 10.0));
     // LNS2 params
-    declare_parameter("collision_penalty",       10000);
-    declare_parameter("horizon_steps",           300);
-    declare_parameter("max_astar_expansions",    200000);
-    declare_parameter("neighborhood_size",       8);
-    declare_parameter("time_budget_ms",          500);
-    declare_parameter("plateau_limit",           200);
-    declare_parameter("segment_size",            50);
-    declare_parameter("alns_reaction",           0.1);
-    declare_parameter("diagonal_moves",          false);
+    declare_parameter("collision_penalty",       10000,
+        make_int_desc("Penalty applied per residual collision in LNS2 cost.",
+                      0, 1'000'000'000));
+    declare_parameter("horizon_steps",           300,
+        make_int_desc("Time horizon (steps) per agent path.", 1, 10'000));
+    declare_parameter("max_astar_expansions",    200000,
+        make_int_desc("A* expansion cap during initial build.",
+                      1, 100'000'000));
+    declare_parameter("neighborhood_size",       8,
+        make_int_desc("LNS2 destroy-set size (agents per iteration).",
+                      1, 1024));
+    declare_parameter("time_budget_ms",          500,
+        make_int_desc("Wall-clock LNS2 repair budget per solve (ms).",
+                      0, 600'000));
+    declare_parameter("plateau_limit",           200,
+        make_int_desc("LNS2 iterations without improvement before stopping.",
+                      0, 1'000'000));
+    declare_parameter("segment_size",            50,
+        make_int_desc("Window size used by Bottleneck/Random-walk operators.",
+                      1, 10'000));
+    declare_parameter("alns_reaction",           0.1,
+        make_double_desc("ALNS operator-weight reaction rate (0 = static "
+                         "weights, 1 = follow last reward).", 0.0, 1.0));
+    declare_parameter("diagonal_moves",          false,
+        make_bool_desc("If true, allow 8-connected diagonal moves on the "
+                       "grid; otherwise 4-connected only."));
     // Replan / warm start
-    declare_parameter("replan_check_hz",              2.0);
-    declare_parameter("replan_cooldown_sec",          2.0);
-    declare_parameter("replan_time_budget_ms",        150);
-    declare_parameter("replan_segment_size",          8);
-    // A* expansion cap for cold replans and warm repairs. Lower than the
-    // initial-solve cap to keep replan latency bounded.
-    declare_parameter("replan_max_astar_expansions",  200000);
-    // Wall-clock cap for build_initial_solution during the initial mission
-    // solve (execute_goal). When exceeded the loop stops early and the repair
-    // loop handles remaining agents. 0 = no limit.
-    declare_parameter("initial_build_time_budget_ms", 6000);
-    declare_parameter("warm_start_enabled",            true);
-    declare_parameter("warm_patch_radius_cells",       10);
-    // Max BFS expansions when splicing actual_cell -> tail of prev_path.
-    // 0 disables splice (every off-track agent becomes a stub).
-    declare_parameter("warm_splice_max_expansions",    2000);
-    // Seed rejection threshold: max collisions per agent before falling back
-    // to cold start. Lower values are conservative but cause unnecessary cold
-    // replans when stubs (StubFar) are present.
-    declare_parameter("warm_max_collisions_per_agent", 4);
-    // Stall detection: if a robot doesn't move at least `stall_move_thresh_m`
-    // over `stall_timeout_sec` and hasn't arrived at its goal, force a replan.
-    // This catches the case where ros_path's expected position equals the
-    // robot's current position (e.g. robot reached the end of its plan but
-    // not its goal), so the deviation check would never trigger.
-    declare_parameter("stall_timeout_sec",       4.0);
-    declare_parameter("stall_move_thresh_m",     0.15);
-    declare_parameter("progress_log_interval_sec", 3.0);
-    // Soft unplanable: robots are not marked unplanable on first failure.
-    // The previous hard-marking caused cascades where one failed solve for
-    // robot A -> block A's cell -> now B can't plan -> block B -> etc, even
-    // when A just needed a few seconds for its neighbours to move out.
-    //   empty_fails_before_unplanable: consecutive solve() calls that leave
-    //     this robot with an empty path before we give up on it.
-    //   stall_iters_before_unplanable: consecutive check_schedule ticks
-    //     reporting this robot as stalled before we give up on it. With
-    //     replan_check_hz=2 and stall_timeout_sec=4, one tick ~= 0.5 s of
-    //     extra stall time past the initial 4 s, so 10 = 5 extra seconds.
-    declare_parameter("empty_fails_before_unplanable", 3);
-    declare_parameter("stall_iters_before_unplanable", 10);
-
-    // "Lives" system: instead of permanently benching a robot that hits
-    // the unplanable threshold, give it a retry after a cooldown. A
-    // robot often gets stuck transiently because a neighbour happens
-    // to be in the way; if we wait a few seconds the neighbour moves
-    // on and the robot can succeed. We burn a life per unplanable
-    // event; when lives hit zero the robot is permanently skipped.
-    //   max_lives: total unplanable events a robot can survive. Set
-    //     to 1 to recover the old "permanent-on-first-fail" behaviour.
-    //   unplanable_retry_delay_sec: how long a robot stays benched
-    //     before being put back in the planning pool.
-    declare_parameter("max_lives", 3);
-    declare_parameter("unplanable_retry_delay_sec", 8.0);
-    declare_parameter("publish_debug_grid",      true); 
+    declare_parameter("replan_check_hz",              2.0,
+        make_double_desc("Schedule monitor frequency (Hz).", 0.1, 100.0));
+    declare_parameter("replan_cooldown_sec",          2.0,
+        make_double_desc("Minimum gap between consecutive replans (s).",
+                         0.0, 600.0));
+    declare_parameter("replan_time_budget_ms",        150,
+        make_int_desc("LNS2 repair wall-clock budget for warm replans (ms).",
+                      0, 600'000));
+    declare_parameter("replan_segment_size",          8,
+        make_int_desc("Segment size for replan-time operators.", 1, 10'000));
+    declare_parameter("replan_max_astar_expansions",  200000,
+        make_int_desc("A* expansion cap for cold replans and warm repairs. "
+                      "Lower than the initial-solve cap to keep replan "
+                      "latency bounded.", 1, 100'000'000));
+    declare_parameter("initial_build_time_budget_ms", 6000,
+        make_int_desc("Wall-clock cap for build_initial_solution during the "
+                      "initial mission solve (ms). 0 = no limit.",
+                      0, 600'000));
+    declare_parameter("warm_start_enabled",            true,
+        make_bool_desc("Whether to seed replans from the previous solution."));
+    declare_parameter("warm_patch_radius_cells",       10,
+        make_int_desc("Radius (cells) around an off-track agent to repair "
+                      "during warm start.", 0, 10'000));
+    declare_parameter("warm_splice_max_expansions",    2000,
+        make_int_desc("Max BFS expansions when splicing actual_cell -> tail "
+                      "of prev_path. 0 disables splice (every off-track "
+                      "agent becomes a stub).", 0, 100'000'000));
+    declare_parameter("warm_max_collisions_per_agent", 4,
+        make_int_desc("Seed rejection threshold: max collisions per agent "
+                      "before falling back to cold start.",
+                      0, 1'000'000));
+    declare_parameter("stall_timeout_sec",       4.0,
+        make_double_desc("Time (s) without progress before forcing a replan.",
+                         0.0, 600.0));
+    declare_parameter("stall_move_thresh_m",     0.15,
+        make_double_desc("Movement threshold (m) used by stall detection.",
+                         0.0, 10.0));
+    declare_parameter("progress_log_interval_sec", 3.0,
+        make_double_desc("Interval (s) between progress log lines.",
+                         0.0, 600.0));
+    declare_parameter("empty_fails_before_unplanable", 3,
+        make_int_desc("Consecutive solve() calls leaving an agent with an "
+                      "empty path before it is marked unplanable.",
+                      1, 1'000'000));
+    declare_parameter("stall_iters_before_unplanable", 10,
+        make_int_desc("Consecutive check_schedule ticks reporting an agent "
+                      "stalled before it is marked unplanable.",
+                      1, 1'000'000));
+    declare_parameter("max_lives", 3,
+        make_int_desc("Number of unplanable events an agent can survive "
+                      "before being permanently skipped. 1 reproduces the "
+                      "old permanent-on-first-fail behaviour.",
+                      1, 1024));
+    declare_parameter("unplanable_retry_delay_sec", 8.0,
+        make_double_desc("Cooldown (s) before a benched agent is retried.",
+                         0.0, 600.0));
+    declare_parameter("publish_debug_grid",      true,
+        make_bool_desc("Publish the planning grid for visualization."));
 
     num_robots_            = get_parameter("num_robots").as_int();
     time_step_sec_         = get_parameter("time_step_sec").as_double();
@@ -207,7 +299,8 @@ class MapfLns2Node : public rclcpp::Node {
     last_status_time_.assign(num_robots_, rclcpp::Time{0, 0, RCL_ROS_TIME});
     for (int i = 0; i < num_robots_; ++i) {
       odom_subs_[i] = create_subscription<nav_msgs::msg::Odometry>(
-          "/robot_" + std::to_string(i) + "/odom", 10,
+          "/robot_" + std::to_string(i) + "/odom",
+          rclcpp::SensorDataQoS(),
           [this, i](const nav_msgs::msg::Odometry::SharedPtr msg) {
             std::lock_guard<std::mutex> lk(state_mutex_);
             current_positions_[i] = {msg->pose.pose.position.x,
@@ -503,14 +596,19 @@ class MapfLns2Node : public rclcpp::Node {
     // Reclaim the previous cancel waiter (rare: only if cancel was issued
     // multiple times). join() is bounded to the poll budget (~1s).
     if (cancel_thread_.joinable()) cancel_thread_.join();
-    cancel_thread_ = std::thread([gh, result]() {
+    cancel_thread_ = std::thread([this, gh, result]() {
       using namespace std::chrono_literals;
-      for (int i = 0; i < 200; ++i) {
+      const auto deadline = std::chrono::steady_clock::now() + 1s;
+      std::unique_lock<std::mutex> lk(cancel_mutex_);
+      while (std::chrono::steady_clock::now() < deadline) {
+        if (shutting_down_) return;
         if (gh->is_canceling()) {
+          lk.unlock();
           gh->canceled(result);
           return;
         }
-        std::this_thread::sleep_for(5ms);
+        cancel_cv_.wait_for(lk, 5ms,
+            [this] { return shutting_down_; });
       }
       // Goal transitioned to a terminal state before CANCELING
       // (e.g., succeed() won a race). No action needed.
@@ -804,6 +902,7 @@ class MapfLns2Node : public rclcpp::Node {
 
     result->success = true;
     if (result->message.empty()) result->message = "OK";
+    last_plan_metrics_ = *result;
     RCLCPP_INFO(get_logger(),
                 "LNS2 initial plan: %zu agents, %.1fms, iters=%zu, "
                 "init_coll=%zu -> 0",
@@ -1173,14 +1272,17 @@ class MapfLns2Node : public rclcpp::Node {
     }
 
     if (plan_required > 0 && arrived_and_planable == plan_required) {
-      auto result = std::make_shared<SetGoalsAction::Result>();
+      auto result = std::make_shared<SetGoalsAction::Result>(last_plan_metrics_);
       result->success = true;
+      result->error_code = SetGoalsAction::Result::NONE;
       if (life_.unplanable.empty()) {
         result->message = "All agents arrived";
       } else {
         result->message = "All planable agents arrived (" +
             std::to_string(life_.unplanable.size()) + " unplanable skipped)";
       }
+      result->total_replans = total_replans_;
+      result->total_execution_sec = (now() - mission_start_time_).seconds();
       RCLCPP_INFO(get_logger(), "%s", result->message.c_str());
       auto gh = active_goal_handle_;
       active_goal_handle_.reset();
@@ -1290,10 +1392,14 @@ class MapfLns2Node : public rclcpp::Node {
       // Defer the "replanning" feedback publish until after we drop the
       // mutex so that DDS / network blips on the feedback writer can never
       // hold up trigger_replan.
+      // Routine auto-replan: surface as info (rate-limited at the BT side)
+      // rather than warning, so the LLM is not asked to decide on a normal
+      // recovery the planner is already handling.
       pending_feedbacks.push_back({"replanning",
                                    arrived_count, in_progress_count, stalled.size(),
-                                   life_.unplanable.size(), "",
-                                   "replan triggered by stalls"});
+                                   life_.unplanable.size(),
+                                   "replan triggered by stalls (" + parts + ")",
+                                   ""});
 
       lk.unlock();
       drain_feedbacks(fb_gh, pending_feedbacks);
@@ -1940,6 +2046,12 @@ class MapfLns2Node : public rclcpp::Node {
   uint32_t total_replans_ = 0;
   rclcpp::Time mission_start_time_{0, 0, RCL_ROS_TIME};
 
+  // Snapshot of metric fields (num_agents_planned, planning_time_ms,
+  // path_lengths, A*/iters stats) from the most recent successful initial
+  // plan. Reused when the mission completes successfully so the action
+  // Result carries planning metrics, not just success/message.
+  SetGoalsAction::Result last_plan_metrics_;
+
   // Active plan
   std::vector<lns2::Path> prev_grid_paths_;
   std::vector<uint32_t>   active_robot_ids_;
@@ -1966,6 +2078,12 @@ class MapfLns2Node : public rclcpp::Node {
   // (which capture `this`) cannot outlive the node.
   std::thread         execute_thread_;
   std::thread         cancel_thread_;
+
+  // Interrupt path for cancel_thread_'s polling loop so the destructor does
+  // not stall up to 1 s on shutdown.
+  std::mutex                cancel_mutex_;
+  std::condition_variable   cancel_cv_;
+  bool                      shutting_down_ = false;
 
   // Follower status cache. Indexed by external robot_id; updated by the
   // /robot_*/follower_status subscription and consumed by check_schedule.

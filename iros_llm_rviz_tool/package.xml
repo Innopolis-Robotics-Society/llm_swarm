@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>iros_llm_rviz_tool</name>
+  <version>0.0.1</version>
+  <description>
+    RViz2 Tool plugin: click-to-send LLM goals. Operator picks a robot
+    group from a popup, the click point becomes the MAPF goal, and a
+    LlmCommand{mode=mapf} is dispatched on /llm/command — no LLM in the
+    loop. Uses map YAML from iros_llm_orchestrator for group/bounds info.
+  </description>
+
+  <maintainer email="you@example.com">you</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>rviz_common</depend>
+  <depend>rviz_default_plugins</depend>
+  <depend>rviz_rendering</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_action</depend>
+  <depend>geometry_msgs</depend>
+  <depend>iros_llm_swarm_interfaces</depend>
+  <depend>ament_index_cpp</depend>
+  <depend>yaml-cpp</depend>
+  <depend>libqt5-widgets</depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+    <rviz plugin="${prefix}/plugin_description.xml"/>
+  </export>
+</package>

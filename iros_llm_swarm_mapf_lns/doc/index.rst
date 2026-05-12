@@ -88,7 +88,7 @@ What's documented in this package
 
 * :doc:`algorithm` — LNS2 algorithm internals: types, soft A*, collision
   table, destroy operators, warm start, and the module layout under
-  ``include/iros_llm_swarm_mapf/lns2/``.
+  ``include/iros_llm_swarm_mapf_lns/lns2/``.
 * :doc:`ros_api` — full ROS contract: action server, topics, parameters
   for both ``mapf_lns2_node`` and ``path_follower_node``.
 

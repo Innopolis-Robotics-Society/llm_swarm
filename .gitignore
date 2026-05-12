@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# colcon / ROS 2 build artefacts
+build/
+install/
+log/
+.colcon/
+
+# C++ build artefacts (in case CMake is run in-tree)
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.o
+*.so
+*.a
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Secrets / API keys
+.env
+*.env
+*api_key*
+*_key.txt
+secrets/
+
+maf.md

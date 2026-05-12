@@ -1,5 +1,6 @@
 #include "iros_llm_swarm_bt/swarm_bt_nodes.hpp"
 
+#include <cstdio>
 #include <sstream>
 #include <string>
 
@@ -76,7 +77,7 @@ BT::NodeStatus MapfPlan::onStart()
     return BT::NodeStatus::FAILURE;
   }
 
-  if (!client_->wait_for_action_server(2s)) {
+  if (!client_->action_server_is_ready()) {
     RCLCPP_ERROR(node->get_logger(), "MapfPlan: /swarm/set_goals not available");
     setOutput("mapf_ok", false);
     setOutput("mapf_info", "action server unavailable");
@@ -278,9 +279,28 @@ BT::NodeStatus MapfPlan::onRunning()
   }
 
   if (!res->success) {
+    // Partial plan — some agents could not be routed (PBS failed or
+    // start/goal blocked). This is recoverable in some cases (different
+    // goals, fewer agents) but the current plan is stale.
+    // Escalate to WARN so channel 1 (LLM decision) gets to decide.
+    const std::string warn_msg =
+      std::string("partial plan: ") + res->message +
+      " planned=" + std::to_string(res->num_agents_planned) +
+      "/" + std::to_string(res->num_agents_planned);  // BT will fill total
     RCLCPP_WARN(node->get_logger(),
       "MapfPlan: partial plan (%u agents). %s",
       res->num_agents_planned, oss.str().c_str());
+    setOutput("mapf_ok", false);
+    config().blackboard->set<std::string>("@action_status", "WARN");
+    config().blackboard->set<std::string>("@last_error", warn_msg);
+    config().blackboard->set<std::string>(
+      "@action_summary", oss.str());
+    // Do NOT return FAILURE yet — let LLM decide via send_to_llm.
+    // If no LLM call is pending, trigger one now.
+    if (!llm_pending_) {
+      send_to_llm("WARN", warn_msg);
+    }
+    return BT::NodeStatus::RUNNING;
   } else {
     RCLCPP_INFO(node->get_logger(), "MapfPlan: done — %s", oss.str().c_str());
   }
@@ -306,7 +326,16 @@ void MapfPlan::onHalted()
     llm_goal_handle_.reset();
   }
   llm_pending_ = false;
-  config().blackboard->set<bool>("@llm_thinking", false);
+  auto bb = config().blackboard;
+  bb->set<bool>("@llm_thinking", false);
+  // Surface the halt in /bt/state so the operator sees a clear terminal
+  // marker instead of a frozen "MapfPlan / OK" snapshot.
+  bb->set<std::string>("@action_status", "HALTED");
+  std::string prev_err;
+  try { prev_err = bb->get<std::string>("@last_error"); } catch (const std::exception &) {}
+  if (prev_err.empty()) {
+    bb->set<std::string>("@last_error", "MapfPlan halted");
+  }
   {
     std::lock_guard<std::mutex> lk(decision_mutex_);
     pending_decision_ = "";
@@ -337,19 +366,24 @@ void MapfPlan::on_feedback(
   GoalHandle::SharedPtr /*gh*/,
   const std::shared_ptr<const Feedback> fb)
 {
-  // Build a one-line summary of this feedback tick
-  std::ostringstream line;
-  line << "[t=" << fb->elapsed_ms << "ms"
-       << " status=" << fb->status
-       << " arrived=" << fb->robots_arrived
-       << " active=" << fb->robots_active
-       << " stall=" << fb->robot_stall
-       << " replans=" << fb->replans_done
-       << "]";
-  if (!fb->info.empty())    line << " INFO: "    << fb->info;
-  if (!fb->warning.empty()) line << " WARN: "    << fb->warning;
-
-  const std::string line_str = line.str();
+  // Build a one-line summary of this feedback tick. snprintf into a stack
+  // buffer for the numeric prefix (no heap), then append the optional
+  // INFO / WARN strings.
+  char prefix[160];
+  const int n = std::snprintf(prefix, sizeof(prefix),
+      "[t=%lldms status=%s arrived=%u active=%u stall=%u replans=%u]",
+      static_cast<long long>(fb->elapsed_ms),
+      fb->status.c_str(),
+      static_cast<unsigned>(fb->robots_arrived),
+      static_cast<unsigned>(fb->robots_active),
+      static_cast<unsigned>(fb->robot_stall),
+      static_cast<unsigned>(fb->replans_done));
+  std::string line_str;
+  line_str.reserve((n > 0 ? static_cast<size_t>(n) : 0) +
+                   fb->info.size() + fb->warning.size() + 16);
+  line_str.assign(prefix, n > 0 ? static_cast<size_t>(n) : 0);
+  if (!fb->info.empty())    { line_str += " INFO: ";    line_str += fb->info; }
+  if (!fb->warning.empty()) { line_str += " WARN: ";    line_str += fb->warning; }
 
   // Ring buffer — has its own mutex, safe from any thread
   {
@@ -408,12 +442,12 @@ void MapfPlan::send_to_llm(const std::string & level, const std::string & event)
   goal.level = level;
   goal.event = event;
 
-  // Snapshot log buffer
+  // Snapshot log buffer. Single bulk copy under the lock — no incremental
+  // push_back (which would also reallocate inside the critical section)
+  // and no deep loop over the deque.
   {
     std::lock_guard<std::mutex> lk(buffer_mutex_);
-    for (const auto & s : info_buffer_) {
-      goal.log_buffer.push_back(s);
-    }
+    goal.log_buffer.assign(info_buffer_.begin(), info_buffer_.end());
   }
 
   llm_goal_handle_.reset();
@@ -485,7 +519,7 @@ bool SetFormation::start_service_call()
     return false;
   }
 
-  if (!client_->wait_for_service(2s)) {
+  if (!client_->service_is_ready()) {
     RCLCPP_ERROR(node->get_logger(), "SetFormation: /formation/set not available");
     last_error_ = "/formation/set service unavailable";
     return false;
@@ -755,7 +789,7 @@ bool DisableFormation::start_service_call()
     return false;
   }
 
-  if (!client_->wait_for_service(2s)) {
+  if (!client_->service_is_ready()) {
     RCLCPP_ERROR(node->get_logger(), "DisableFormation: /formation/deactivate not available");
     last_error_ = "/formation/deactivate service unavailable";
     return false;
@@ -1002,46 +1036,38 @@ BT::NodeStatus CheckMode::tick()
 // BTStatePublisher
 // ===========================================================================
 
-BTStatePublisher::BTStatePublisher(
-  const std::string & name,
-  const BT::NodeConfiguration & config)
-: BT::SyncActionNode(name, config)
-{
-  auto node = config.blackboard->get<rclcpp::Node::SharedPtr>("node");
-  rclcpp::QoS qos(10);
-  qos.best_effort();
-  publisher_ = node->create_publisher<BTStateMsg>("/bt/state", qos);
-  clock_ = node->get_clock();
-}
-
-BT::PortsList BTStatePublisher::providedPorts()
-{
-  return {};
-}
-
-std::string BTStatePublisher::get_str(
+namespace {
+std::string bb_get_str(
+  const BT::Blackboard::Ptr & bb,
   const std::string & key,
   const std::string & def)
 {
   try {
-    return config().blackboard->get<std::string>(key);
-  } catch (...) {
+    return bb->get<std::string>(key);
+  } catch (const std::exception &) {
     return def;
   }
 }
+}  // namespace
 
-BT::NodeStatus BTStatePublisher::tick()
+void publish_bt_state(
+  const BT::Blackboard::Ptr & bb,
+  rclcpp::Publisher<iros_llm_swarm_interfaces::msg::BTState>::SharedPtr publisher,
+  const rclcpp::Clock::SharedPtr & clock,
+  const iros_llm_swarm_interfaces::msg::FormationStatus * fs)
 {
-  auto bb = config().blackboard;
-  BTStateMsg msg;
+  if (!publisher || !bb) {
+    return;
+  }
+  iros_llm_swarm_interfaces::msg::BTState msg;
 
-  msg.mode           = get_str("@mode", "idle");
-  msg.action_status  = get_str("@action_status", "OK");
-  msg.active_action  = get_str("@active_action", "none");
-  msg.action_summary = get_str("@action_summary", "");
-  msg.last_error     = get_str("@last_error", "");
-  msg.formation_id   = get_str("@formation_id", "");
-  msg.leader_ns      = get_str("@leader_ns", "");
+  msg.mode           = bb_get_str(bb, "@mode", "idle");
+  msg.action_status  = bb_get_str(bb, "@action_status", "OK");
+  msg.active_action  = bb_get_str(bb, "@active_action", "none");
+  msg.action_summary = bb_get_str(bb, "@action_summary", "");
+  msg.last_error     = bb_get_str(bb, "@last_error", "");
+  msg.formation_id   = bb_get_str(bb, "@formation_id", "");
+  msg.leader_ns      = bb_get_str(bb, "@leader_ns", "");
 
   try {
     auto ids = bb->get<std::vector<int>>("@robot_ids");
@@ -1049,20 +1075,136 @@ BT::NodeStatus BTStatePublisher::tick()
     for (auto id : ids) {
       msg.robot_ids.push_back(static_cast<uint32_t>(id));
     }
-  } catch (...) {}
+  } catch (const std::exception &) {}
   try {
     msg.goals = bb->get<std::vector<geometry_msgs::msg::Point>>("@goals");
-  } catch (...) {}
+  } catch (const std::exception &) {}
 
-  msg.stamp_ms = static_cast<int64_t>(clock_->now().nanoseconds() / 1000000);
+  if (fs) {
+    msg.formation_state          = fs->state;
+    msg.formation_failure_code   = fs->failure_code;
+    msg.formation_failure_reason = fs->failure_reason;
+    msg.formation_max_error_m    = fs->max_error_m;
+    msg.formation_mean_error_m   = fs->mean_error_m;
+  } else {
+    msg.formation_state          = 0;     // INACTIVE
+    msg.formation_failure_code   = 0;     // NONE
+    msg.formation_failure_reason = "";
+    msg.formation_max_error_m    = -1.0f;
+    msg.formation_mean_error_m   = -1.0f;
+  }
+
+  msg.stamp_ms = clock
+    ? static_cast<int64_t>(clock->now().nanoseconds() / 1000000)
+    : 0;
 
   try {
     msg.llm_thinking = bb->get<bool>("@llm_thinking");
-  } catch (...) {
+  } catch (const std::exception &) {
     msg.llm_thinking = false;
   }
 
-  publisher_->publish(msg);
+  publisher->publish(msg);
+}
+
+BTStatePublisher::BTStatePublisher(
+  const std::string & name,
+  const BT::NodeConfiguration & config)
+: BT::SyncActionNode(name, config)
+{
+  auto node = config.blackboard->get<rclcpp::Node::SharedPtr>("node");
+  publisher_ = node->create_publisher<BTStateMsg>("/bt/state", bt_state_qos());
+  clock_ = node->get_clock();
+
+  // Subscribe to formation monitor. Reliable QoS matches the publisher in
+  // formation_monitor_node.
+  formation_status_sub_ = node->create_subscription<FormationsStatusMsg>(
+    "/formations/status",
+    rclcpp::QoS(10).reliable(),
+    [this](const FormationsStatusMsg::SharedPtr msg) {
+      on_formation_status(msg);
+    });
+}
+
+BT::PortsList BTStatePublisher::providedPorts()
+{
+  return {};
+}
+
+void BTStatePublisher::on_formation_status(const FormationsStatusMsg::SharedPtr msg)
+{
+  // Called from ROS executor thread — only updates the cache under a mutex.
+  // tick() (BT thread) reads from this cache; all blackboard writes happen there.
+  std::lock_guard<std::mutex> lk(formation_cache_mutex_);
+  for (const auto & fs : msg->formations) {
+    formation_cache_[fs.formation_id] = fs;
+  }
+}
+
+BT::NodeStatus BTStatePublisher::tick()
+{
+  auto bb = config().blackboard;
+
+  // When mode != "formation" there is no active formation to monitor — clear
+  // the cache so stale DEGRADED/BROKEN entries from a previous mission don't
+  // leak into the next mode and trigger spurious WARN/ERROR escalations.
+  std::string mode;
+  try { mode = bb->get<std::string>("@mode"); } catch (const std::exception &) {}
+  if (mode != "formation") {
+    std::lock_guard<std::mutex> lk(formation_cache_mutex_);
+    formation_cache_.clear();
+  }
+
+  std::string formation_id;
+  try { formation_id = bb->get<std::string>("@formation_id"); } catch (const std::exception &) {}
+
+  FormationStatusMsg cached_fs;
+  bool have_fs = false;
+  if (!formation_id.empty()) {
+    std::lock_guard<std::mutex> lk(formation_cache_mutex_);
+    auto it = formation_cache_.find(formation_id);
+    if (it != formation_cache_.end()) {
+      cached_fs = it->second;
+      have_fs = true;
+    }
+  }
+
+  // Mirror formation health into @action_status / @last_error so PassiveObserver
+  // and user_chat see the same WARN/ERROR transitions they get from MAPF feedback.
+  if (have_fs) {
+    std::string action_status;
+    try { action_status = bb->get<std::string>("@action_status"); } catch (const std::exception &) {}
+
+    if (cached_fs.state == FormationStatusMsg::STATE_BROKEN &&
+        action_status != "ERROR")
+    {
+      const std::string err = cached_fs.failure_reason.empty()
+        ? "formation broken" : cached_fs.failure_reason;
+      bb->set<std::string>("@action_status", "ERROR");
+      bb->set<std::string>("@last_error",    err);
+      bb->set<std::string>("@action_summary",
+        "formation " + formation_id + " broken: " + err);
+    }
+    else if (cached_fs.state == FormationStatusMsg::STATE_DEGRADED &&
+             action_status == "OK")
+    {
+      const std::string warn =
+        "formation degraded, max_error=" +
+        std::to_string(cached_fs.max_error_m) + "m";
+      bb->set<std::string>("@action_status", "WARN");
+      bb->set<std::string>("@last_error",    warn);
+      bb->set<std::string>("@action_summary", warn);
+    }
+    // Only clear WARN — never overwrite a genuine ERROR with OK.
+    else if (cached_fs.state == FormationStatusMsg::STATE_STABLE &&
+             action_status == "WARN")
+    {
+      bb->set<std::string>("@action_status", "OK");
+      bb->set<std::string>("@last_error",    "");
+    }
+  }
+
+  publish_bt_state(bb, publisher_, clock_, have_fs ? &cached_fs : nullptr);
   return BT::NodeStatus::SUCCESS;
 }
 
@@ -1101,6 +1243,25 @@ rclcpp_action::GoalResponse LlmCommandReceiver::handle_goal(
   // mapf in flight). Rejecting here would surface as a confusing
   // "BT rejected goal" in the chat.
   if (goal->mode != "idle" && goal->mode != "mapf" && goal->mode != "formation") {
+    return rclcpp_action::GoalResponse::REJECT;
+  }
+  for (const auto rid : goal->robot_ids) {
+    if (rid >= kMaxRobotId) {
+      auto node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
+      RCLCPP_WARN(node->get_logger(),
+        "LlmCommandReceiver: rejecting goal — robot_id %u exceeds cap %u",
+        rid, kMaxRobotId);
+      return rclcpp_action::GoalResponse::REJECT;
+    }
+  }
+  if (goal->mode == "mapf" &&
+      goal->goals.size() != goal->robot_ids.size())
+  {
+    auto node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
+    RCLCPP_WARN(node->get_logger(),
+      "LlmCommandReceiver: rejecting mapf goal — robot_ids size %zu != "
+      "goals size %zu",
+      goal->robot_ids.size(), goal->goals.size());
     return rclcpp_action::GoalResponse::REJECT;
   }
   return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;

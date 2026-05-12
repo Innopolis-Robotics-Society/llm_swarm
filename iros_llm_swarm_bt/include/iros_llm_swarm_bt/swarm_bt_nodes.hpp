@@ -5,6 +5,7 @@
 #include <memory>
 #include <mutex>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "behaviortree_cpp_v3/action_node.h"
@@ -14,6 +15,8 @@
 #include "iros_llm_swarm_interfaces/action/llm_decision.hpp"
 #include "iros_llm_swarm_interfaces/action/set_goals.hpp"
 #include "iros_llm_swarm_interfaces/msg/bt_state.hpp"
+#include "iros_llm_swarm_interfaces/msg/formations_status.hpp"
+#include "iros_llm_swarm_interfaces/msg/formation_status.hpp"
 #include "iros_llm_swarm_interfaces/srv/deactivate_formation.hpp"
 #include "iros_llm_swarm_interfaces/srv/set_formation.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -216,13 +219,40 @@ public:
 };
 
 // ---------------------------------------------------------------------------
+// /bt/state QoS — kept reliable so terminal one-shot states (HALTED / ERROR)
+// don't get dropped during 100ms mode flips. Other subscribers can still
+// declare BEST_EFFORT — that's compatible with a RELIABLE publisher.
+// ---------------------------------------------------------------------------
+inline rclcpp::QoS bt_state_qos()
+{
+  return rclcpp::QoS(20).reliable();
+}
+
+// ---------------------------------------------------------------------------
+// publish_bt_state — snapshot the blackboard into a BTState message and
+// publish it on the supplied publisher. Used both by BTStatePublisher (every
+// tick) and by test_bt_runner directly (to flush a terminal snapshot before
+// haltTree wipes the blackboard).
+// ---------------------------------------------------------------------------
+void publish_bt_state(
+  const BT::Blackboard::Ptr & blackboard,
+  rclcpp::Publisher<iros_llm_swarm_interfaces::msg::BTState>::SharedPtr publisher,
+  const rclcpp::Clock::SharedPtr & clock,
+  const iros_llm_swarm_interfaces::msg::FormationStatus * fs = nullptr);
+
+// ---------------------------------------------------------------------------
 // BTStatePublisher — each tick snapshots blackboard and publishes /bt/state.
 // Always returns SUCCESS so it does not break surrounding ReactiveSequence.
+// Also subscribes to /formations/status and escalates action_status when
+// the active formation degrades or breaks — mirrors how MapfPlan feedback
+// feeds into @action_status during MAPF execution.
 // ---------------------------------------------------------------------------
 class BTStatePublisher : public BT::SyncActionNode
 {
 public:
-  using BTStateMsg = iros_llm_swarm_interfaces::msg::BTState;
+  using BTStateMsg          = iros_llm_swarm_interfaces::msg::BTState;
+  using FormationsStatusMsg = iros_llm_swarm_interfaces::msg::FormationsStatus;
+  using FormationStatusMsg  = iros_llm_swarm_interfaces::msg::FormationStatus;
 
   BTStatePublisher(const std::string & name, const BT::NodeConfiguration & config);
   static BT::PortsList providedPorts();
@@ -232,7 +262,14 @@ private:
   rclcpp::Publisher<BTStateMsg>::SharedPtr publisher_;
   rclcpp::Clock::SharedPtr clock_;
 
-  std::string get_str(const std::string & key, const std::string & def = "");
+  // Formation monitor cache — written from the ROS executor thread via the
+  // /formations/status subscription, read inside tick() (BT thread).
+  // Protected by formation_cache_mutex_.
+  rclcpp::Subscription<FormationsStatusMsg>::SharedPtr formation_status_sub_;
+  mutable std::mutex formation_cache_mutex_;
+  std::unordered_map<std::string, FormationStatusMsg> formation_cache_;
+
+  void on_formation_status(const FormationsStatusMsg::SharedPtr msg);
 };
 
 // ---------------------------------------------------------------------------
@@ -256,6 +293,12 @@ private:
   std::mutex pending_mutex_;
   std::shared_ptr<const LlmCommand::Goal> pending_goal_;
   std::shared_ptr<GoalHandle> pending_handle_;
+
+  // Hard upper bound on robot ids accepted by /llm/command. Far above the
+  // documented 20-robot fleet ceiling — exists only to reject obviously
+  // malformed / hostile goals (an attacker publishing robot_id = 1e9 should
+  // never be echoed into /bt/state or the JSONL audit log).
+  static constexpr uint32_t kMaxRobotId = 1024;
 
   rclcpp_action::GoalResponse handle_goal(
     const rclcpp_action::GoalUUID & uuid,

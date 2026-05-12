@@ -22,16 +22,18 @@ from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 from iros_llm_swarm_interfaces.action import LlmCommand
 from iros_llm_swarm_interfaces.msg import BTState
 
+from iros_llm_orchestrator.common.llm_factory import get_llm_client
 from iros_llm_orchestrator.common.plan_executor import PlanExecutor, parse_plan
 from iros_llm_orchestrator.common.user_prompt import (
-    build_user_prompt, build_bt_event_prompt, load_map_config)
-from iros_llm_orchestrator.local.ollama_client import OllamaClient
+    build_remediation_prompt, build_user_prompt,
+    build_bt_event_prompt, load_map_config)
+from iros_llm_orchestrator.context.no_execute import is_help_request
 
 MAX_HISTORY   = 8
 CLUSTER_SPACE = 1.5
 MIN_GOAL_DIST = 1.0
 
-BOT='🤖'; THK='🧠'; WRN='⚠ '; OK='✓'; ERR='✗'; ARR='→'
+BOT='BOT'; THK='🧠'; WRN='⚠ '; OK='✓'; ERR='✗'; ARR='→'
 
 
 # ---------------------------------------------------------------------------
@@ -84,18 +86,37 @@ def _clamp_goals(goals: list, cfg: dict) -> list:
 
 
 def _postprocess_plan(node: dict, map_cfg: dict) -> dict:
+    """Recursively post-process plan nodes.
+
+    - mapf: clamp + spread goals so robots don't pile on one point.
+    - formation: warn if requested outside known formation zones.
+    - sequence/parallel: recurse into steps.
+    """
     t = node['type']
     if t in ('sequence', 'parallel'):
         node['steps'] = [_postprocess_plan(s, map_cfg) for s in node['steps']]
     elif t == 'mapf' and 'goals' in node:
-        # Clamp the LLM-supplied centres first so spread happens around an
-        # in-bounds point — otherwise the spread radius pushes goals out of
-        # bounds and the post-spread clamp collapses formations onto the
-        # boundary line. Re-clamp afterwards as a safety net for spread
-        # radii larger than the boundary margin.
+        # Clamp first so spread happens around an in-bounds centre,
+        # then clamp again as safety net for large spread radii.
         node['goals'] = _clamp_goals(
             _spread_goals(_clamp_goals(node['goals'], map_cfg)),
             map_cfg)
+    elif t == 'formation':
+        # Warn if the formation is requested somewhere with insufficient
+        # clearance. The actual enforcement is in formation_manager_node.
+        fzones = map_cfg.get('formation_zones', [])
+        if fzones:
+            # Check if the formation_id matches a known safe zone name
+            # (operator-named formations bypass this check — they may be
+            # at a custom location chosen by the LLM).
+            safe_ids = {z.get('name', '') for z in fzones}
+            fid = node.get('formation_id', '')
+            if fid and fid not in safe_ids:
+                min_radius = min((z.get('radius', 0) for z in fzones), default=0)
+                node.setdefault('_hint',
+                    f'Formation "{fid}" is not in a pre-approved zone '
+                    f'(min clearance ~{min_radius:.1f} m). '
+                    f'Approved zones: {sorted(safe_ids)}')
     return node
 
 
@@ -192,15 +213,30 @@ class UserChatNode(Node):
     def __init__(self):
         super().__init__('user_chat')
 
-        self.declare_parameter('llm_endpoint',    'http://localhost:11434/api/chat')
-        self.declare_parameter('llm_model',       'qwen2.5:14b')
-        self.declare_parameter('llm_max_tokens',  768)
-        self.declare_parameter('llm_temperature', 0.1)
-        self.declare_parameter('timeout_sec',     30.0)
-        self.declare_parameter('map_name',        'cave')
-        self.declare_parameter('log_enabled',     True)
-        self.declare_parameter('log_dir',         '~/.ros/user_chat_logs')
+        self.declare_parameter('llm_mode',         'ollama')
+        self.declare_parameter('llm_endpoint',     'http://localhost:11434/api/chat')
+        self.declare_parameter('llm_model',        'qwen2.5:14b')
+        self.declare_parameter('llm_max_tokens',   768)
+        self.declare_parameter('llm_temperature',  0.1)
+        self.declare_parameter('llm_api_key',      '')
+        self.declare_parameter('llm_api_key_env',  'LLM_API_KEY')
+        self.declare_parameter('llm_force_chat',   True)
+        self.declare_parameter('llm_enable_stop',  False)
+        self.declare_parameter('timeout_sec',      30.0)
+        self.declare_parameter('map_name',         'cave')
+        self.declare_parameter('log_enabled',      True)
+        self.declare_parameter('log_dir',          '~/.ros/user_chat_logs')
         self.declare_parameter('step_timeout_sec', 120.0)
+        self.declare_parameter('max_remediation_attempts', 2)
+        self.declare_parameter('remediation_enabled', True)
+
+        self._max_remediation_attempts = max(0, int(
+            self.get_parameter('max_remediation_attempts').value))
+        self._remediation_enabled = bool(
+            self.get_parameter('remediation_enabled').value)
+        # Most recent _send_leaf failure metadata — read by the chat-side
+        # remediation loop to brief the LLM on what broke.
+        self._last_send_failure: dict | None = None
 
         self._timeout      = float(self.get_parameter('timeout_sec').value)
         self._step_timeout = float(self.get_parameter('step_timeout_sec').value)
@@ -210,14 +246,21 @@ class UserChatNode(Node):
 
         self._slog = _make_session_logger(log_dir) if log_enabled else logging.getLogger('null')
         self._slog.info(f'map={self._map_name}  '
+                        f'mode={self.get_parameter("llm_mode").value}  '
                         f'model={self.get_parameter("llm_model").value}  '
                         f'log_enabled={log_enabled}')
 
-        self._ollama = OllamaClient(
+        self._llm = get_llm_client(
+            mode=self.get_parameter('llm_mode').value,
             endpoint=self.get_parameter('llm_endpoint').value,
             model=self.get_parameter('llm_model').value,
             max_tokens=int(self.get_parameter('llm_max_tokens').value),
             temperature=float(self.get_parameter('llm_temperature').value),
+            api_key=self.get_parameter('llm_api_key').value,
+            api_key_env=self.get_parameter('llm_api_key_env').value,
+            timeout=self._timeout,
+            force_chat=bool(self.get_parameter('llm_force_chat').value),
+            enable_stop=bool(self.get_parameter('llm_enable_stop').value),
         )
         try:
             self._map_cfg = load_map_config(self._map_name)
@@ -242,6 +285,8 @@ class UserChatNode(Node):
         self._mode_lock          = threading.Lock()
         self._last_mode          = ''
         self._mode_seq           = 0
+        self._last_action_status = 'OK'
+        self._last_bt_error      = ''
         self._history: list[dict] = []
         self._bt_event_analyzing = False
         # /llm/command server readiness is checked once per session, off the
@@ -273,6 +318,21 @@ class UserChatNode(Node):
         with self._mode_lock:
             return self._last_mode, self._mode_seq
 
+    def _get_bt_status(self) -> tuple[str, str]:
+        with self._mode_lock:
+            return self._last_action_status, self._last_bt_error
+
+    def _record_send_failure(self, *, leaf_type: str, phase: str,
+                              info: str = '') -> None:
+        status, err = self._get_bt_status()
+        last_error = info or err or ''
+        self._last_send_failure = {
+            'leaf_type':       leaf_type,
+            'action_status':   status,
+            'last_error':      last_error[:240],
+            'failed_at_phase': phase,
+        }
+
     # ------------------------------------------------------------------
     # BT feedback
     # ------------------------------------------------------------------
@@ -288,6 +348,9 @@ class UserChatNode(Node):
                 self._last_mode = msg.mode
                 self._mode_seq += 1
                 seq = self._mode_seq
+            # Mirror status/error so _send_leaf can surface real failures.
+            self._last_action_status = msg.action_status
+            self._last_bt_error      = msg.last_error
         if transitioned:
             self._slog.debug(f'mode: {prev_mode!r} → {msg.mode!r} (seq={seq})')
             if prev_mode and prev_mode != 'idle' and msg.mode == 'idle':
@@ -406,47 +469,140 @@ class UserChatNode(Node):
         messages = build_user_prompt(text, history=self._history,
                                      map_name=self._map_name)
 
+        parsed = await self._stream_parse_and_announce(messages)
+        if parsed is None:
+            self._prompt(); return
+        reply, plan, full_raw = parsed
+
+        self._history.append({'role': 'user', 'content': text})
+        self._history.append({'role': 'assistant', 'content': full_raw})
+        self._trim_history()
+
+        if is_help_request(plan):
+            self._announce_help(reply, plan, source='initial')
+            self._prompt(); return
+
+        ok = await self._run_plan(plan)
+        if ok:
+            self._out(f'\n  {OK}  Plan complete.')
+            self._slog.info('Plan result: Plan complete.')
+            self._prompt(); return
+
+        # ---- Remediation loop ----
+        if not self._remediation_enabled or self._max_remediation_attempts == 0:
+            self._out(f'\n  {ERR}  Plan failed or was interrupted.')
+            self._slog.info('Plan result: failed; remediation disabled')
+            self._prompt(); return
+
+        attempts: list[dict] = [dict(self._last_send_failure or {})]
+        last_plan = plan
+        last_reply = reply
+
+        for n in range(1, self._max_remediation_attempts + 1):
+            failed_leaf = attempts[-1].get('leaf_type', '?')
+            self._out(f'  {WRN} remediation {n}/{self._max_remediation_attempts} '
+                      f'(leaf={failed_leaf}) — asking LLM to correct…')
+            self._slog.info(f'remediation {n}: leaf={failed_leaf} '
+                            f'error={attempts[-1].get("last_error","")[:160]}')
+
+            rem_messages = build_remediation_prompt(
+                text, last_plan, attempts, attempts[-1],
+                fresh_runtime_context=None,
+                history=self._history,
+                map_name=self._map_name,
+            )
+            self._out(f'\n  {THK} ')
+            parsed = await self._stream_parse_and_announce(rem_messages)
+            if parsed is None:
+                self._announce_help(last_reply, last_plan, source=f'remediation {n}: LLM failure',
+                                    last_failure=attempts[-1])
+                self._prompt(); return
+            r_reply, r_plan, r_raw = parsed
+
+            self._history.append({
+                'role': 'user',
+                'content': (f'[remediation {n}: {failed_leaf} failed — '
+                            f'{str(attempts[-1].get("last_error",""))[:160]}]'),
+            })
+            self._history.append({'role': 'assistant', 'content': r_raw})
+            self._trim_history()
+
+            last_plan  = r_plan
+            last_reply = r_reply
+
+            if is_help_request(r_plan):
+                self._announce_help(r_reply, r_plan,
+                                    source=f'remediation {n}',
+                                    last_failure=attempts[-1])
+                self._prompt(); return
+
+            ok = await self._run_plan(r_plan)
+            if ok:
+                self._out(f'\n  {OK}  Plan complete (remediation {n}).')
+                self._slog.info(f'Plan result: complete after remediation {n}')
+                self._prompt(); return
+            attempts.append(dict(self._last_send_failure or {}))
+
+        self._announce_help(last_reply, last_plan,
+                            source=(f'remediation budget '
+                                    f'{self._max_remediation_attempts} exhausted'),
+                            last_failure=attempts[-1])
+        self._prompt()
+
+    async def _stream_parse_and_announce(
+        self, messages: list[dict],
+    ) -> tuple[str, dict, str] | None:
         try:
             full_raw = await asyncio.wait_for(
                 self._stream_command(messages), timeout=self._timeout)
         except asyncio.TimeoutError:
-            self._out(f'\n  {ERR}  Timeout. Is Ollama running?  →  ollama serve')
+            self._out(f'\n  {ERR}  LLM backend timeout')
             self._slog.error('LLM timeout')
-            self._prompt(); return
+            return None
         except Exception as exc:
             self._out(f'\n  {ERR}  LLM error: {exc}')
             self._slog.error(f'LLM error: {exc}')
-            self._prompt(); return
-
+            return None
         print()  # newline after streamed reply
         self._slog.debug(f'LLM raw ({len(full_raw)} chars):\n{full_raw}')
-
         try:
             reply, plan = _parse_response(full_raw)
         except ValueError as exc:
             self._out(f'  {ERR}  Parse error: {exc}')
             self._out(f'       Raw: {full_raw[:400]}')
             self._slog.error(f'Parse error: {exc}\nRaw: {full_raw}')
-            self._prompt(); return
-
+            return None
         self._slog.info(f'Plan: {json.dumps(plan, ensure_ascii=False)}')
         plan = _postprocess_plan(plan, self._map_cfg)
         self._describe_plan(plan)
+        return reply, plan, full_raw
 
-        self._history.append({'role': 'user', 'content': text})
-        self._history.append({'role': 'assistant', 'content': full_raw})
-        self._trim_history()
-
+    async def _run_plan(self, plan: dict) -> bool:
         executor = PlanExecutor(
             send_fn=self._send_leaf,
             log_fn=lambda m: (print(f'  {m}', flush=True),
                               self._slog.debug(f'executor: {m}'))[0],
         )
-        ok = await executor.run(plan)
-        result_msg = 'Plan complete.' if ok else 'Plan failed or was interrupted.'
-        self._out(f'\n  {OK if ok else ERR}  {result_msg}')
-        self._slog.info(f'Plan result: {result_msg}')
-        self._prompt()
+        return await executor.run(plan)
+
+    def _announce_help(
+        self,
+        reply: str,
+        plan: dict,
+        *,
+        source: str,
+        last_failure: dict | None = None,
+    ):
+        failure = last_failure or {}
+        leaf = failure.get('leaf_type', '?')
+        err  = str(failure.get('last_error', '') or '')[:240]
+        if not is_help_request(plan):
+            banner = (f'Нужна помощь оператора: {leaf} — {err}\n'
+                      f'Operator help required: {leaf} — {err}')
+            self._out(f'\n  {WRN} {banner}')
+        self._out(f'  {WRN} needs_help ({source}): {reply}')
+        self._slog.warning(
+            f'needs_help ({source}) leaf={leaf} err={err} reply={reply[:200]}')
 
     # ------------------------------------------------------------------
     # Leaf execution
@@ -471,6 +627,9 @@ class UserChatNode(Node):
         t = command.get('type') or command.get('mode', '')
         self._slog.debug(f'send_leaf: type={t} ids={command.get("robot_ids",[])}')
 
+        # Reset failure slot — only the latest send is reported upstream.
+        self._last_send_failure = None
+
         if t == 'idle':
             return await self._send_bt_goal(mode='idle',
                                             reason=command.get('reason', ''))
@@ -478,6 +637,9 @@ class UserChatNode(Node):
         if not await self._ensure_cmd_server():
             self._out(f'  {ERR}  /llm/command not available.')
             self._slog.error('send_leaf: /llm/command server not available')
+            self._record_send_failure(
+                leaf_type=t, phase='no_server',
+                info='/llm/command action server unavailable')
             return False
 
         goal = LlmCommand.Goal()
@@ -507,12 +669,16 @@ class UserChatNode(Node):
         if not handle.accepted:
             self._out(f'  {ERR}  BT rejected goal (say "stop" to cancel current mission).')
             self._slog.warning('send_leaf: goal rejected by BT')
+            self._record_send_failure(leaf_type=t, phase='rejected',
+                                       info='BT rejected goal')
             return False
 
         result = await handle.get_result_async()
         if not result.result.success:
-            self._out(f'  {ERR}  BT error: {result.result.info}')
-            self._slog.error(f'send_leaf: BT error: {result.result.info}')
+            info = str(result.result.info or '')
+            self._out(f'  {ERR}  BT error: {info}')
+            self._slog.error(f'send_leaf: BT error: {info}')
+            self._record_send_failure(leaf_type=t, phase='accept', info=info)
             return False
 
         self._slog.debug(
@@ -532,6 +698,14 @@ class UserChatNode(Node):
             mode_now, seq_now = self._get_mode_state()
             if seq_now > seq_at_send:
                 if mode_now == 'idle':
+                    status_now, err_now = self._get_bt_status()
+                    if status_now == 'ERROR':
+                        self._out(f'  {ERR}  Mission failed: {err_now}')
+                        self._slog.error(
+                            f'send_leaf: {t} idle with ERROR: {err_now}')
+                        self._record_send_failure(
+                            leaf_type=t, phase='phase1', info=err_now)
+                        return False
                     self._slog.info(
                         f'send_leaf: {t} fast-completed (returned to idle '
                         f'in <1.5s, seq {seq_at_send}->{seq_now})')
@@ -550,6 +724,14 @@ class UserChatNode(Node):
         deadline = time.monotonic() + self._step_timeout
         while time.monotonic() < deadline:
             if self._get_mode() == 'idle':
+                status_now, err_now = self._get_bt_status()
+                if status_now == 'ERROR':
+                    self._out(f'  {ERR}  Mission failed: {err_now}')
+                    self._slog.error(
+                        f'send_leaf: {t} idle with ERROR after run: {err_now}')
+                    self._record_send_failure(
+                        leaf_type=t, phase='phase2', info=err_now)
+                    return False
                 self._slog.debug('send_leaf: mission complete (mode=idle)')
                 return True
             await asyncio.sleep(0.1)
@@ -557,6 +739,9 @@ class UserChatNode(Node):
         self._out(f'  {ERR}  Timed out waiting for mission to finish '
                   f'({self._step_timeout:.0f}s).')
         self._slog.error(f'send_leaf: step timeout after {self._step_timeout}s')
+        self._record_send_failure(
+            leaf_type=t, phase='timeout',
+            info=f'step timeout after {self._step_timeout:.0f}s')
         return False
 
     async def _send_bt_goal(self, mode: str, reason: str = '') -> bool:
@@ -610,7 +795,7 @@ class UserChatNode(Node):
 
         print(f'{BOT} ', end='', flush=True)
 
-        async for chunk in self._ollama.stream(messages):
+        async for chunk in self._llm.stream(messages):
             full += chunk
 
             if state == AFTER_REPLY:
@@ -649,13 +834,13 @@ class UserChatNode(Node):
     async def _stream_all(self, messages: list[dict]) -> str:
         """Buffer full response without any output."""
         full = ''
-        async for chunk in self._ollama.stream(messages):
+        async for chunk in self._llm.stream(messages):
             full += chunk
         return full
 
     async def _stream_text(self, messages: list[dict]) -> str:
         full = ''
-        async for chunk in self._ollama.stream(messages):
+        async for chunk in self._llm.stream(messages):
             print(chunk, end='', flush=True)
             full += chunk
         return full
@@ -702,7 +887,8 @@ class UserChatNode(Node):
         log_dir_resolved = _resolve_log_dir(self.get_parameter('log_dir').value)
         log_info = (f'logs → {log_dir_resolved}'
                     if log_enabled else 'logging disabled')
-        print(f'\n  {BOT}  Swarm chat  |  model: {self._ollama.model}  |  map: {self._map_name}')
+        model = getattr(self._llm, 'model', self.get_parameter('llm_model').value)
+        print(f'\n  {BOT}  Swarm chat  |  model: {model}  |  map: {self._map_name}')
         print(f'       {desc}')
         print(f'       {log_info}')
         print('\n  Examples:')
@@ -714,7 +900,43 @@ class UserChatNode(Node):
         self._prompt()
 
 
+def _inject_default_config(args: list | None) -> list:
+    """Prepend --params-file <orchestrator.yaml> if not already in args.
+
+    Looks for the config in order:
+      1. Already in args — do nothing.
+      2. ament share directory (installed package).
+      3. Next to this file's package root (running from source).
+    """
+    args = list(args or [])
+    if '--params-file' in args:
+        return args
+
+    candidates: list[str] = []
+
+    # 1. Installed share
+    try:
+        from ament_index_python.packages import get_package_share_directory
+        share = get_package_share_directory('iros_llm_orchestrator')
+        candidates.append(os.path.join(share, 'config', 'orchestrator.yaml'))
+    except Exception:
+        pass
+
+    # 2. Source tree relative to this file
+    pkg_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    candidates.append(os.path.join(pkg_root, 'config', 'orchestrator.yaml'))
+
+    for path in candidates:
+        if os.path.isfile(path):
+            args = ['--ros-args', '--params-file', path] + args
+            print(f'  [config] {path}', flush=True)
+            return args
+
+    return args
+
+
 def main(args=None):
+    args = _inject_default_config(args)
     rclpy.init(args=args)
     node = UserChatNode()
     executor = MultiThreadedExecutor(num_threads=4)

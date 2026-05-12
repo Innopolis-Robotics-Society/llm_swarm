@@ -1,8 +1,8 @@
-// iros_llm_swarm_mapf/src/plan_publisher.cpp
+// iros_llm_swarm_mapf_lns/src/plan_publisher.cpp
 
-#include "iros_llm_swarm_mapf/plan_publisher.hpp"
+#include "iros_llm_swarm_mapf_lns/plan_publisher.hpp"
 
-#include "iros_llm_swarm_mapf/node_utils.hpp"
+#include "iros_llm_swarm_mapf_lns/node_utils.hpp"
 
 namespace lns2_node {
 

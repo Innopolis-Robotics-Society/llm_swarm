@@ -1,6 +1,6 @@
-// iros_llm_swarm_mapf/lns2/src/collision_table.cpp
+// iros_llm_swarm_mapf_lns/lns2/src/collision_table.cpp
 
-#include "iros_llm_swarm_mapf/lns2/collision_table.hpp"
+#include "iros_llm_swarm_mapf_lns/lns2/collision_table.hpp"
 
 #include <algorithm>
 #include <cassert>

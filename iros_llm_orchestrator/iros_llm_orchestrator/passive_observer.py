@@ -20,8 +20,9 @@ from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 
 from iros_llm_swarm_interfaces.action import LlmCommand
-from iros_llm_swarm_interfaces.msg import BTState
+from iros_llm_swarm_interfaces.msg import BTState, LlmEvent
 
+from iros_llm_orchestrator.common.leaf_sender import BTLeafSender
 from iros_llm_orchestrator.common.llm_factory import get_llm_client
 from iros_llm_orchestrator.common.parsers import parse_llm_command
 from iros_llm_orchestrator.common.command_prompt import build_command_prompt
@@ -40,6 +41,10 @@ class PassiveObserver(Node):
         self.declare_parameter('llm_model',       '')
         self.declare_parameter('llm_max_tokens',  512)
         self.declare_parameter('llm_temperature', 0.3)
+        self.declare_parameter('llm_api_key',     '')
+        self.declare_parameter('llm_api_key_env', 'LLM_API_KEY')
+        self.declare_parameter('llm_force_chat',  True)
+        self.declare_parameter('llm_enable_stop', False)
         self.declare_parameter('timeout_sec',     15.0)
         self.declare_parameter('history_size',    20)
         self.declare_parameter('cooldown_sec',    10.0)
@@ -56,6 +61,11 @@ class PassiveObserver(Node):
             model=model,
             max_tokens=int(self.get_parameter('llm_max_tokens').value),
             temperature=float(self.get_parameter('llm_temperature').value),
+            api_key=self.get_parameter('llm_api_key').value,
+            api_key_env=self.get_parameter('llm_api_key_env').value,
+            timeout=float(self.get_parameter('timeout_sec').value),
+            force_chat=bool(self.get_parameter('llm_force_chat').value),
+            enable_stop=bool(self.get_parameter('llm_enable_stop').value),
         )
         self._timeout     = float(self.get_parameter('timeout_sec').value)
         self._cooldown    = float(self.get_parameter('cooldown_sec').value)
@@ -74,8 +84,10 @@ class PassiveObserver(Node):
                          history=HistoryPolicy.KEEP_LAST, depth=20)
         self.create_subscription(BTState, '/bt/state', self._on_state, qos)
         self._cmd_client = ActionClient(self, LlmCommand, '/llm/command')
+        self._event_pub  = self.create_publisher(LlmEvent, '/llm/events', 10)
 
-        self._loop = asyncio.new_event_loop()
+        self._loop   = asyncio.new_event_loop()
+        self._sender = BTLeafSender(self, step_timeout_sec=30.0)
         threading.Thread(target=self._loop.run_forever, daemon=True).start()
 
         self.get_logger().info(f'PassiveObserver ready (mode={mode}, '
@@ -131,14 +143,26 @@ class PassiveObserver(Node):
                 self._is_thinking = False
             return
 
-        self._logger_ds.log(
-            level=trigger.action_status,
-            event=f'{trigger.active_action}: {trigger.last_error}',
-            log_buffer=[],
-            decision=command.get('mode', 'idle'),
-            reason=command.get('reason', ''))
+        self._logger_ds.log({
+            'level': trigger.action_status,
+            'event': f'{trigger.active_action}: {trigger.last_error}',
+            'log_buffer': [],
+            'decision': command.get('mode', 'idle'),
+            'reason': command.get('reason', ''),
+        })
 
-        await self._send_command(command)
+        ev = LlmEvent()
+        ev.stamp_ms = int(self.get_clock().now().nanoseconds / 1e6)
+        ev.channel  = LlmEvent.CHANNEL_OBSERVER
+        ev.trigger  = f'{trigger.active_action}: {trigger.last_error}'
+        ev.output   = command.get('mode', 'idle')
+        ev.reason   = command.get('reason', '')
+        self._event_pub.publish(ev)
+
+        if command.get('mode') == 'obstacles':
+            await self._sender.send(command)
+        else:
+            await self._send_command(command)
         with self._observer_lock:
             self._is_thinking = False
 

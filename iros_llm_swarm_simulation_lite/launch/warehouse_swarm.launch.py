@@ -85,7 +85,7 @@ def generate_launch_description():
 
     scenario_arg = DeclareLaunchArgument(
         'scenario',
-        default_value='cave',
+        default_value='amongus',
         description='Scenario name'
     )
 

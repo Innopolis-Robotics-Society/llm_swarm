@@ -100,6 +100,7 @@ class MapfPlannerNode : public rclcpp::Node {
     declare_parameter("max_astar_expansions", 200000);
     declare_parameter("cost_curve",           std::string("quadratic"));
     declare_parameter("proximity_penalty",    15);
+    declare_parameter("max_zone_cost",        10);
     declare_parameter("max_speed",             0.5);
     declare_parameter("urgency",              1.0);
 
@@ -136,6 +137,7 @@ class MapfPlannerNode : public rclcpp::Node {
       }
     }
     proximity_penalty_ = get_parameter("proximity_penalty").as_int();
+    max_zone_cost_     = get_parameter("max_zone_cost").as_int();
     max_speed_         = get_parameter("max_speed").as_double();
     urgency_           = get_parameter("urgency").as_double();
 
@@ -158,7 +160,7 @@ class MapfPlannerNode : public rclcpp::Node {
     for (int i = 0; i < num_robots_; ++i) {
       const std::string odom_topic = "/robot_" + std::to_string(i) + "/odom";
       odom_subs_[i] = create_subscription<nav_msgs::msg::Odometry>(
-          odom_topic, 10,
+          odom_topic, rclcpp::SensorDataQoS(),
           [this, i](const nav_msgs::msg::Odometry::SharedPtr msg) {
             std::lock_guard<std::mutex> lk(state_mutex_);
             current_positions_[i] = {msg->pose.pose.position.x,
@@ -241,12 +243,50 @@ class MapfPlannerNode : public rclcpp::Node {
     grid_.rows = static_cast<size_t>(dst_h);
     grid_.cols = static_cast<size_t>(dst_w);
     grid_.blocked.assign(grid_.rows * grid_.cols, 0);
+    grid_.wall_cost.assign(grid_.rows * grid_.cols, 0);
 
     for (int sr = 0; sr < src_h; ++sr) {
       for (int sc = 0; sc < src_w; ++sc) {
         const int8_t v = msg->data[static_cast<size_t>(sr * src_w + sc)];
-        if (v > 50 || v < 0) {
-          grid_.blocked[static_cast<size_t>((sr / ratio) * dst_w + (sc / ratio))] = 1;
+        const size_t di = static_cast<size_t>((sr / ratio) * dst_w + (sc / ratio));
+        if (v >= 100 || v < 0) {
+          grid_.blocked[di] = 1;
+        } else if (v > 0) {
+          // Scale OccupancyGrid 1-99 → 1-max_zone_cost_ linearly
+          const int scaled = std::max(1, static_cast<int>(std::round(v * max_zone_cost_ / 99.0)));
+          grid_.wall_cost[di] = std::max(grid_.wall_cost[di], scaled);
+        }
+      }
+    }
+
+    // Inflate zone costs outward: gradient runs from the cell's own cost down to 0
+    // at inflation_radius_. Does not use proximity_penalty_ — zone cells are not walls.
+    // Snapshot prevents cascading (each cell spreads from its original value only).
+    if (inflation_radius_ > 0.0) {
+      const int inflate_cells =
+          static_cast<int>(std::ceil(inflation_radius_ / actual_res));  // actual_res is set for this message; map_resolution_ not yet updated
+      const float inflate_r_f = static_cast<float>(inflate_cells);
+      const std::vector<int> zone_snap = grid_.wall_cost;
+
+      for (int r = 0; r < static_cast<int>(grid_.rows); ++r) {
+        for (int c = 0; c < static_cast<int>(grid_.cols); ++c) {
+          const size_t si = static_cast<size_t>(r) * grid_.cols + static_cast<size_t>(c);
+          if (zone_snap[si] == 0 || grid_.blocked[si]) continue;
+          const float src = static_cast<float>(zone_snap[si]);
+          for (int dr = -inflate_cells; dr <= inflate_cells; ++dr) {
+            for (int dc = -inflate_cells; dc <= inflate_cells; ++dc) {
+              const float dist = std::sqrt(static_cast<float>(dr * dr + dc * dc));
+              if (dist > inflate_r_f) continue;
+              const int nr = r + dr, nc = c + dc;
+              if (nr < 0 || nr >= static_cast<int>(grid_.rows)) continue;
+              if (nc < 0 || nc >= static_cast<int>(grid_.cols)) continue;
+              const size_t di = static_cast<size_t>(nr) * grid_.cols + static_cast<size_t>(nc);
+              if (grid_.blocked[di]) continue;
+              const float ratio = 1.0f - dist / inflate_r_f;
+              const int spread = static_cast<int>(src * apply_curve(ratio, cost_curve_));
+              grid_.wall_cost[di] = std::max(grid_.wall_cost[di], spread);
+            }
+          }
         }
       }
     }
@@ -255,6 +295,7 @@ class MapfPlannerNode : public rclcpp::Node {
     map_origin_y_   = msg->info.origin.position.y;
     map_resolution_ = actual_res;
     map_ready_      = true;
+    map_changed_    = true;
   }
 
   // ------------------------------------------------------------------
@@ -385,6 +426,39 @@ class MapfPlannerNode : public rclcpp::Node {
       plan_world_goals.push_back(geometry_msgs::msg::Point());
       plan_world_goals.back().x = gwx;
       plan_world_goals.back().y = gwy;
+    }
+
+    // Add all robots NOT in the request as stationary agents (goal = current pos)
+    // so PBS treats them as physical obstacles in the plan.
+    {
+      std::unordered_set<uint32_t> requested_set(req->robot_ids.begin(),
+                                                  req->robot_ids.end());
+      size_t background_count = 0;
+      for (int i = 0; i < num_robots_; ++i) {
+        const uint32_t rid = static_cast<uint32_t>(i);
+        if (requested_set.count(rid) || !snap_have_odom[rid]) continue;
+        Agent a;
+        a.id = rid;
+        const auto& [sx, sy] = snap_pos[rid];
+        a.start = world_to_cell(sx, sy, snap_ox, snap_oy, snap_res,
+                                 snap_grid.rows, snap_grid.cols);
+        a.goal  = a.start;
+        if (!validate_agent(a, rid, snap_footprint, snap_grid, snap_res,
+                             snap_ox, snap_oy, inflated_cache, skipped_ids))
+          continue;
+        agents.push_back(a);
+        plan_robot_ids.push_back(rid);
+        double gwx, gwy;
+        cell_to_world(a.goal, snap_ox, snap_oy, snap_res, gwx, gwy);
+        plan_world_goals.push_back(geometry_msgs::msg::Point());
+        plan_world_goals.back().x = gwx;
+        plan_world_goals.back().y = gwy;
+        ++background_count;
+      }
+      if (background_count > 0)
+        RCLCPP_INFO(get_logger(),
+            "Added %zu stationary background robots as PBS obstacles",
+            background_count);
     }
 
     if (agents.empty()) {
@@ -799,6 +873,12 @@ class MapfPlannerNode : public rclcpp::Node {
       return;
     }
 
+    // Replan immediately when the obstacle map changed (door closed, obstacle placed).
+    if (map_changed_.exchange(false)) {
+      trigger_replan({}, lk);
+      return;
+    }
+
     const rclcpp::Time now_t = now();
 
     // ── Count arrived / active robots ────────────────────────────────
@@ -1041,6 +1121,7 @@ class MapfPlannerNode : public rclcpp::Node {
   size_t      max_astar_expansions_ = 200000;
   CostCurve   cost_curve_           = CostCurve::Quadratic;
   int         proximity_penalty_    = 50;
+  int         max_zone_cost_        = 10;
   double      max_speed_            = 0.5;
   double      urgency_              = 1.0;
 
@@ -1061,6 +1142,7 @@ class MapfPlannerNode : public rclcpp::Node {
   std::mutex          state_mutex_;
   std::atomic<bool>   is_planning_{false};  // true while solver_.solve() runs
   std::atomic<bool>   is_active_{false};    // true for entire goal lifecycle
+  std::atomic<bool>   map_changed_{false};  // set in on_map(), consumed in check_schedule()
 
   // Subscriptions
   rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr map_sub_;

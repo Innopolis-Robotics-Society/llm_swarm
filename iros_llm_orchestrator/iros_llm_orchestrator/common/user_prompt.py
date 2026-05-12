@@ -37,17 +37,22 @@ def _prompts_dir() -> str:
         os.path.join(os.path.dirname(__file__), '..', '..', '..', 'prompts'))
 
 
+def _map_descriptions_dir() -> str:
+    if _AMENT_OK:
+        try:
+            return os.path.join(
+                get_package_share_directory('iros_llm_swarm_simulation_lite'),
+                'map_descriptions')
+        except Exception:
+            pass
+    return os.path.normpath(os.path.join(
+        os.path.dirname(__file__), '..', '..', '..',
+        'iros_llm_swarm_simulation_lite', 'map_descriptions'))
+
+
 def _load_text(rel: str) -> str:
     with open(os.path.join(_prompts_dir(), rel), 'r', encoding='utf-8') as f:
         return f.read()
-
-
-def _load_yaml(rel: str) -> dict:
-    if not _YAML_OK:
-        raise RuntimeError(
-            'PyYAML required: pip install pyyaml --break-system-packages')
-    with open(os.path.join(_prompts_dir(), rel), 'r', encoding='utf-8') as f:
-        return _yaml.safe_load(f)
 
 
 # ---------------------------------------------------------------------------
@@ -56,7 +61,12 @@ def _load_yaml(rel: str) -> dict:
 
 @lru_cache(maxsize=4)
 def load_map_config(map_name: str) -> dict:
-    return _load_yaml(f'maps/{map_name}.yaml')
+    if not _YAML_OK:
+        raise RuntimeError(
+            'PyYAML required: pip install pyyaml --break-system-packages')
+    path = os.path.join(_map_descriptions_dir(), f'{map_name}.yaml')
+    with open(path, 'r', encoding='utf-8') as f:
+        return _yaml.safe_load(f)
 
 
 def build_map_context(map_name: str) -> str:
@@ -242,22 +252,135 @@ def _bt_event_system() -> str:
     return _load_text('bt_event_system.txt')
 
 
+def _format_runtime_context(runtime_context: dict) -> str:
+    context_json = json.dumps(
+        runtime_context,
+        ensure_ascii=False,
+        separators=(',', ':'),
+    )
+    return (
+        'Read-only current ROS/system context for this chat turn.\n'
+        'Use it only as observed state. Do not claim direct ROS control, '
+        'do not invent missing state, and say when state is unknown or stale.\n'
+        'You must still return the existing JSON object with "reply" and '
+        '"plan". For factual state/status questions that require no robot '
+        'motion, answer in "reply" and return an idle no-op plan with a '
+        'reason starting with "reply_only:".\n'
+        f'Runtime context JSON:\n{context_json}'
+    )
+
+
 # ---------------------------------------------------------------------------
 # Public builders
 # ---------------------------------------------------------------------------
+
+def build_obstacle_context_str(circles, rectangles, doors) -> str:
+    lines = ['Current obstacles:']
+    if not circles and not rectangles and not doors:
+        lines.append('  none')
+        return '\n'.join(lines)
+    for c in circles:
+        lines.append(f'  circle      {c.id:<20} at ({c.position.x:.1f}, {c.position.y:.1f}) r={c.radius:.2f}m')
+    for r in rectangles:
+        lines.append(f'  rectangle   {r.id:<20} at ({r.position.x:.1f}, {r.position.y:.1f}) {r.width:.1f}x{r.height:.1f}m')
+    for d in doors:
+        state = 'OPEN' if d.is_open else 'CLOSED'
+        lines.append(f'  door        {d.id:<20} at ({d.position.x:.1f}, {d.position.y:.1f}) {d.width:.1f}x{d.height:.1f}m [{state}]')
+    return '\n'.join(lines)
+
 
 def build_user_prompt(
     user_message: str,
     history: list | None = None,
     map_name: str = 'warehouse',
+    obstacle_context: str = '',
+    runtime_context: dict | None = None,
 ) -> list:
-    messages = [{'role': 'system', 'content': _user_system(map_name)}]
+    system_content = _user_system(map_name)
+
+    if obstacle_context:
+        system_content += '\n\n' + obstacle_context
+
+    messages = [{'role': 'system', 'content': system_content}]
+
+    if runtime_context and runtime_context.get('source') != 'none':
+        messages.append({
+            'role': 'system',
+            'content': _format_runtime_context(runtime_context),
+        })
     for ex in _get_examples(map_name):
         messages.append({'role': 'user',      'content': ex['user']})
         messages.append({'role': 'assistant', 'content': ex['out']})
     if history:
         messages.extend(history)
     messages.append({'role': 'user', 'content': user_message})
+    return messages
+
+
+_REMEDIATION_RUBRIC = (
+    'A plan you produced just failed during execution. The runtime context '
+    'above has been refreshed via MCP after the failure.\n'
+    'Either (a) produce a corrected plan that fixes the root cause, or '
+    '(b) emit {"type":"idle","reason":"needs_help: <question>"} if you '
+    'need operator input to proceed.\n'
+    'Use "needs_help:" prefix for operator clarification, "clarify:" prefix '
+    'if you want to ask a follow-up but believe a default exists. Keep the '
+    'reply field short and in the operator\'s language.'
+)
+
+
+def _format_attempts(attempts: list[dict]) -> str:
+    lines = []
+    for i, att in enumerate(attempts, start=1):
+        leaf = att.get('leaf_type', '?')
+        phase = att.get('failed_at_phase', '?')
+        err = str(att.get('last_error', '') or '')[:240]
+        lines.append(f'  - attempt {i}: leaf={leaf} phase={phase} error="{err}"')
+    return '\n'.join(lines) if lines else '  (none recorded)'
+
+
+def build_remediation_prompt(
+    original_user_message: str,
+    original_plan: dict,
+    attempts: list[dict],
+    failure_info: dict,
+    fresh_runtime_context: dict | None,
+    history: list | None = None,
+    map_name: str = 'warehouse',
+    obstacle_context: str = '',
+) -> list:
+    """Compose a remediation prompt for one retry attempt.
+
+    Starts from the same system+examples+history+user-message stack as the
+    first turn, then appends:
+      * a remediation rubric (system),
+      * the assistant's previously-produced plan,
+      * a fresh failure summary with the per-attempt log.
+    """
+    messages = build_user_prompt(
+        original_user_message,
+        history=history,
+        map_name=map_name,
+        obstacle_context=obstacle_context,
+        runtime_context=fresh_runtime_context,
+    )
+    messages.append({'role': 'system', 'content': _REMEDIATION_RUBRIC})
+    messages.append({
+        'role': 'assistant',
+        'content': json.dumps(original_plan, ensure_ascii=False),
+    })
+    failed_leaf = (failure_info or {}).get('leaf_type', '?')
+    last_error  = str((failure_info or {}).get('last_error', '') or '')[:240]
+    phase       = (failure_info or {}).get('failed_at_phase', '?')
+    summary = (
+        f'The plan above failed.\n'
+        f'Failed leaf: {failed_leaf} (phase={phase})\n'
+        f'Last error: {last_error}\n'
+        f'Per-attempt log:\n{_format_attempts(attempts)}\n'
+        f'Original user request: {original_user_message}\n'
+        'Produce either a corrected plan or a needs_help: idle reply.'
+    )
+    messages.append({'role': 'user', 'content': summary})
     return messages
 
 

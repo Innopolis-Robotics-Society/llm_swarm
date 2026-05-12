@@ -1,67 +1,98 @@
+"/**":
+  ros__parameters:
+    # Shared LLM backend/model settings for LLM-capable nodes.
+    # Defaults use an OpenAI-compatible HTTP API. Never store a real API key
+    # here; set the environment variable named by llm_api_key_env instead.
+    llm_mode: "http"
+    llm_endpoint: "https://api.groq.com/openai/v1/chat/completions"
+    llm_model: "llama-3.3-70b-versatile"
+    llm_api_key: ""
+    llm_api_key_env: "LLM_API_KEY"
+    llm_force_chat: true
+    llm_enable_stop: false
+    llm_temperature: 0.1
+
 llm_decision_server:
   ros__parameters:
-    # Backend: "mock" (heuristic, no GPU) | "ollama" (local Ollama) |
-    #          "http" (OpenAI-compatible) | "local" (transformers).
-    llm_mode: "ollama"
-
-    # --- Ollama (local inference, recommended for RTX 5060 Ti 16 GB) ---
-    # Install:  curl -fsSL https://ollama.com/install.sh | sh
-    # Pull:     ollama pull qwen2.5:14b
-    #
-    # Model VRAM guide (pick the heaviest that fits):
-    #   qwen2.5:14b        ~9 GB   — best quality/speed for 16 GB cards  ← default
-    #   mistral-small3.1   ~13 GB  — smarter, ~2× slower
-    #   qwen2.5:7b         ~5 GB   — fastest, acceptable quality
-    llm_endpoint: "http://localhost:11434/api/chat"
-    llm_model: "qwen2.5:14b"
-
-    # --- HTTP/OpenAI-compatible backend (vLLM / TGI / llama.cpp-server) ---
-    # llm_mode: "http"
-    # llm_endpoint: "http://localhost:8000/v1/completions"
-    # llm_model: "nvidia/Nemotron-3-Nano-30B-A3B"
-
+    # Channel 1 — BT/MAPF WARN/INFO -> wait / abort / replan.
     llm_max_tokens: 512
-    llm_temperature: 0.2
-
-    # JSONL dataset grows here — one file per UTC day.
     dataset_path: "~/.ros/llm_decisions"
-
-    # Hard cap on simultaneous inference calls (MAPF feedback can fire several times per second).
     max_concurrent: 1
-
-    # Ollama loads the model on the first request (~5-10s for 14B).
-    # Give enough headroom so the BT doesn't abort on a cold start.
-    timeout_sec: 30.0
-
-    # Safe default on ANY error (timeout, parse failure, transport): keep BT running.
+    timeout_sec: 45.0
     default_on_error: "wait"
-
-    # How many last log_buffer lines to include in the prompt — more = noisier.
     log_tail: 20
 
 llm_passive_observer:
   ros__parameters:
-    # Channel 2 — proactive observer subscribed to /bt/state.
-    llm_mode: "ollama"
-    llm_endpoint: "http://localhost:11434/api/chat"
-    llm_model: "qwen2.5:14b"
+    # Channel 2 — passive observer. Disabled by default.
     llm_max_tokens: 1024
-    llm_temperature: 0.3
-
-    # Ring buffer of recent BTState snapshots fed into the prompt.
     history_size: 20
-
-    # Minimum seconds between two LLM triggers — WARN/ERROR states can be
-    # sticky for several seconds and we must not flood inference.
     cooldown_sec: 10.0
-
-    # Hard timeout for a single LLM call.
-    timeout_sec: 30.0
-
-    # JSONL dataset for channel 2 (kept separate from decisions).
+    timeout_sec: 45.0
     dataset_path: "~/.ros/llm_commands"
-
-    # Kill-switch — flip via `ros2 param set` without restarting.
-    # Default: false (channel 2 disabled). Override via launch arg
-    # `enable_passive_observer:=true` or `ros2 param set ... enabled true`.
     enabled: false
+
+llm_chat_server:
+  ros__parameters:
+    # Channel 3 — RViz operator chat -> reply + JSON plan.
+    llm_max_tokens: 2000
+    timeout_sec: 60.0
+    step_timeout_sec: 120.0
+
+    # Remediation: on plan-execution failure, re-prompt the LLM with the
+    # failure info and a fresh (targeted) MCP snapshot up to N times. Set
+    # max_remediation_attempts=0 or remediation_enabled=false to keep the
+    # legacy "fail fast" behaviour.
+    remediation_enabled: true
+    max_remediation_attempts: 2
+
+    # Read-only runtime context for /llm/chat.
+    # Default demo path uses MCP read-only context. Use "ros_readonly" for a
+    # local ROS-topic fallback or "none" for Phase 1 behavior.
+    context_provider: "mcp_readonly"
+    context_timeout_sec: 2.0
+    context_max_chars: 6000
+    context_include_bt_state: true
+    context_include_formations: true
+    context_include_map_summary: true
+    context_include_recent_events: true
+    # Live robot poses sourced from /robot_*/odom via a local subscriber
+    # cache. The LLM uses these to compute formation goals as
+    # leader_xy + offsets instead of inventing absolute coordinates.
+    context_include_robot_positions: true
+    context_pose_stale_ms: 2000
+
+    # Server-side safety net: when the LLM emits a bare formation leaf
+    # without prepending a staging mapf, PlanExecutor reads live poses,
+    # computes leader_xy + offsets, and auto-injects the staging step for
+    # any follower further than this from its target. Must match
+    # formation_manager_node's position_tolerance (default 0.5 m).
+    formation_tolerance_m: 0.5
+
+    # MCP read-only provider. The full demo starts rosbridge by default.
+    # The provider logs actionable diagnostics if uvx, ros-mcp, the MCP SDK,
+    # rosbridge, or tool calls are unavailable.
+    mcp_enabled: true
+    mcp_transport: "stdio"
+    mcp_command: "uvx"
+    mcp_args:
+      - "ros-mcp"
+      - "--transport=stdio"
+    mcp_tool_allowlist:
+      - "get_topics"
+      - "get_topic_type"
+      - "get_topic_details"
+      - "subscribe_once"
+      - "get_nodes"
+      - "get_node_details"
+      - "get_services"
+      - "get_service_type"
+      - "get_service_details"
+      - "get_actions"
+      - "get_action_details"
+      - "get_action_status"
+
+llm_execute_server:
+  ros__parameters:
+    # Operator-confirmed plan replay. No LLM call here.
+    step_timeout_sec: 120.0

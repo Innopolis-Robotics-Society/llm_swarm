@@ -9,14 +9,14 @@
 # ---------------------------------------------------------------------------
 
 DECISION_SCENARIOS = [
-    # WARN -> wait
+    # ---- MAPF: WARN -> wait ----
     {
         'level': 'WARN',
         'event': 'robot_3 stalled for 5s at (12.4, 8.1)',
         'log_buffer': [
             '[t=1200ms status=executing arrived=5 active=15 stall=0 replans=0]',
             '[t=2400ms status=executing arrived=8 active=12 stall=0 replans=0]',
-            '[t=3600ms status=executing arrived=8 active=12 stall=1 replans=0] WARN: robot_3 stalled for 5s at (12.4, 8.1)',
+            '[t=3600ms status=executing arrived=8 active=12 stall=1 replans=0] WARN: robot_3 stalled for 5s',
         ],
         'decision': {'decision': 'wait', 'reason': 'single brief stall, fleet still progressing'},
     },
@@ -30,7 +30,7 @@ DECISION_SCENARIOS = [
         ],
         'decision': {'decision': 'wait', 'reason': 'small deviation already absorbed'},
     },
-    # WARN -> replan
+    # ---- MAPF: WARN -> replan ----
     {
         'level': 'WARN',
         'event': 'robot_3 stalled for 15s, 3 replans already tried',
@@ -60,7 +60,7 @@ DECISION_SCENARIOS = [
         ],
         'decision': {'decision': 'replan', 'reason': 'timeout with half fleet still en route'},
     },
-    # WARN -> abort
+    # ---- MAPF: WARN -> abort ----
     {
         'level': 'WARN',
         'event': 'fatal collision detected near checkpoint C',
@@ -79,13 +79,57 @@ DECISION_SCENARIOS = [
         ],
         'decision': {'decision': 'abort', 'reason': 'zero valid agents — goals unreachable'},
     },
+    # ---- Formation setup: WARN -> abort ----
     {
         'level': 'WARN',
         'event': 'formation setup failed: leader_ns robot_1 unreachable',
         'log_buffer': [],
         'decision': {'decision': 'abort', 'reason': 'leader unreachable — formation cannot be established'},
     },
-    # INFO -> wait
+    # ---- Formation monitor: DEGRADED -> wait ----
+    # Followers are still converging just after activation — give it time.
+    {
+        'level': 'WARN',
+        'event': 'formation degraded, max_error=0.42m',
+        'log_buffer': [
+            '[formation=line state=FORMING max_error=0.28m mean_error=0.19m]',
+            '[formation=line state=DEGRADED max_error=0.42m mean_error=0.31m] WARN: formation degraded',
+        ],
+        'decision': {'decision': 'wait', 'reason': 'formation just activated, followers still converging'},
+    },
+    # ---- Formation monitor: DEGRADED persistent -> replan ----
+    # Error not decreasing over multiple ticks — something is blocking convergence.
+    {
+        'level': 'WARN',
+        'event': 'formation degraded, max_error=0.48m',
+        'log_buffer': [
+            '[formation=wedge state=DEGRADED max_error=0.45m mean_error=0.38m] WARN: degraded',
+            '[formation=wedge state=DEGRADED max_error=0.47m mean_error=0.39m] WARN: degraded',
+            '[formation=wedge state=DEGRADED max_error=0.48m mean_error=0.40m] WARN: degraded, not improving',
+        ],
+        'decision': {'decision': 'replan', 'reason': 'error growing over multiple ticks — retry with adjusted parameters'},
+    },
+    # ---- Formation monitor: BROKEN follower stuck -> replan ----
+    {
+        'level': 'ERROR',
+        'event': 'formation broken: Follower(s) stuck: [robot_2]',
+        'log_buffer': [
+            '[formation=line state=DEGRADED max_error=0.52m] robot_2 error not improving',
+            '[formation=line state=BROKEN failure=FOLLOWER_STUCK] ERROR: robot_2 stuck',
+        ],
+        'decision': {'decision': 'replan', 'reason': 'follower stuck — retry excluding robot_2 or with a different leader'},
+    },
+    # ---- Formation monitor: BROKEN leader lost -> abort ----
+    {
+        'level': 'ERROR',
+        'event': 'formation broken: Leader robot_0 odom timeout (2.3s)',
+        'log_buffer': [
+            '[formation=wedge state=STABLE max_error=0.09m]',
+            '[formation=wedge state=BROKEN failure=LEADER_LOST] ERROR: robot_0 odom timeout 2.3s',
+        ],
+        'decision': {'decision': 'abort', 'reason': 'leader odometry lost — formation cannot be maintained without localization'},
+    },
+    # ---- INFO -> wait ----
     {
         'level': 'INFO',
         'event': 'planner progressing normally',
@@ -96,6 +140,51 @@ DECISION_SCENARIOS = [
         ],
         'decision': {'decision': 'wait', 'reason': 'steady progress, no stalls'},
     },
+    # ---- Planner-internal: optimisation failed but old plan retained -> wait ----
+    # The LNS2 planner tried to re-optimise mid-execution, didn't reach
+    # collision-free, and explicitly says it is KEEPING THE OLD PATHS.
+    # Robots keep moving on the old plan. arrived count is still climbing.
+    # This is healthy self-recovery — do NOT cancel.
+    {
+        'level': 'WARN',
+        'event': 'replan did not reach collision-free (4 collisions remain); keeping old paths',
+        'log_buffer': [
+            '[t=12000ms status=executing arrived=1 active=7 stall=0 replans=0]',
+            '[t=15000ms status=executing arrived=2 active=6 stall=0 replans=0]',
+            '[t=18000ms status=executing arrived=3 active=5 stall=0 replans=1] WARN: replan did not reach collision-free; keeping old paths',
+            '[t=21000ms status=executing arrived=4 active=4 stall=0 replans=1]',
+        ],
+        'decision': {'decision': 'wait',
+                     'reason': 'planner kept old paths; fleet still arriving (4/8 done)'},
+    },
+    # ---- Planner-internal: warm seed rejected, cold replan attempted -> wait ----
+    # Another LNS2 internal message — the warm-start seed for the
+    # optimisation was thrown out and a cold replan was tried. This is
+    # the planner doing its job, not a failure mode for the operator.
+    {
+        'level': 'WARN',
+        'event': 'warm seed rejected; cold replan attempted',
+        'log_buffer': [
+            '[t=8000ms status=executing arrived=2 active=6 stall=0 replans=0]',
+            '[t=11000ms status=executing arrived=3 active=5 stall=0 replans=1] WARN: warm seed rejected (coll=783, on_track=1)',
+            '[t=14000ms status=executing arrived=4 active=4 stall=0 replans=1]',
+        ],
+        'decision': {'decision': 'wait',
+                     'reason': 'planner internal warm-seed reject; arrivals still progressing'},
+    },
+    # ---- Planner-internal: a few agents left without paths (soft) -> wait ----
+    # "(soft, keep trying)" is the planner's own signal that this is
+    # recoverable on the next tick.
+    {
+        'level': 'WARN',
+        'event': "solve() left agents with empty paths (soft, keep trying): [14 15 16]",
+        'log_buffer': [
+            '[t=20000ms status=executing arrived=3 active=4 stall=0 replans=1]',
+            '[t=22000ms status=executing arrived=4 active=3 stall=0 replans=1] WARN: left agents with empty paths (soft)',
+        ],
+        'decision': {'decision': 'wait',
+                     'reason': 'soft empty-paths flag, planner says keep trying; fleet progressing'},
+    },
 ]
 
 # ---------------------------------------------------------------------------
@@ -103,6 +192,7 @@ DECISION_SCENARIOS = [
 # ---------------------------------------------------------------------------
 
 COMMAND_SCENARIOS = [
+    # ---- MAPF stall -> replan without stuck robots ----
     {
         'history': [
             '[t=10000ms mode=mapf status=OK action=MapfPlan] [t=1200ms arrived=5 active=15 stall=0]',
@@ -120,6 +210,7 @@ COMMAND_SCENARIOS = [
             'reason': 'replan without stalled robots 3 and 7',
         },
     },
+    # ---- MAPF fatal -> idle ----
     {
         'history': [
             '[t=4500ms mode=mapf status=OK action=MapfPlan] [t=1000ms arrived=2 active=18]',
@@ -132,6 +223,7 @@ COMMAND_SCENARIOS = [
         },
         'command': {'mode': 'idle', 'reason': 'halt on fatal error'},
     },
+    # ---- Formation setup fail -> retry with different leader ----
     {
         'history': [
             '[t=2500ms mode=formation status=OK action=SetFormation] configuring wedge',
@@ -151,5 +243,62 @@ COMMAND_SCENARIOS = [
             'offsets_y': [0.0, 0.0],
             'reason': 'retry with different leader',
         },
+    },
+    # ---- Formation DEGRADED (persistent) -> retry with wider offsets ----
+    # Followers may be blocked by obstacles at tight offsets — widen spacing.
+    {
+        'history': [
+            '[t=5000ms mode=formation status=OK action=none formation=line state=FORMING max_error=0.31m]',
+            '[t=8000ms mode=formation status=WARN action=none formation=line state=DEGRADED max_error=0.47m]',
+            '[t=11000ms mode=formation status=WARN action=none formation=line state=DEGRADED max_error=0.49m]',
+        ],
+        'trigger': {
+            'action_status': 'WARN',
+            'active_action': 'none',
+            'last_error': 'formation degraded, max_error=0.49m',
+        },
+        'command': {
+            'mode': 'formation',
+            'formation_id': 'line',
+            'leader_ns': 'robot_0',
+            'follower_ns': ['robot_1', 'robot_2', 'robot_3'],
+            'offsets_x': [-2.0, -4.0, -6.0],
+            'offsets_y': [0.0, 0.0, 0.0],
+            'reason': 'retry with wider inter-robot spacing to reduce congestion',
+        },
+    },
+    # ---- Formation BROKEN follower stuck -> regroup then reform without stuck robot ----
+    {
+        'history': [
+            '[t=6000ms mode=formation status=OK action=none formation=wedge state=STABLE max_error=0.11m]',
+            '[t=9000ms mode=formation status=ERROR action=none formation=wedge state=BROKEN failure=FOLLOWER_STUCK]',
+        ],
+        'trigger': {
+            'action_status': 'ERROR',
+            'active_action': 'none',
+            'last_error': 'formation broken: Follower(s) stuck: [robot_2]',
+        },
+        'command': {
+            'mode': 'formation',
+            'formation_id': 'wedge',
+            'leader_ns': 'robot_0',
+            'follower_ns': ['robot_1', 'robot_3'],
+            'offsets_x': [-1.0, -1.0],
+            'offsets_y': [0.6, -0.6],
+            'reason': 'reform wedge excluding stuck robot_2',
+        },
+    },
+    # ---- Formation BROKEN leader lost -> idle, operator must intervene ----
+    {
+        'history': [
+            '[t=7000ms mode=formation status=OK action=none formation=line state=STABLE max_error=0.08m]',
+            '[t=8000ms mode=formation status=ERROR action=none formation=line state=BROKEN failure=LEADER_LOST]',
+        ],
+        'trigger': {
+            'action_status': 'ERROR',
+            'active_action': 'none',
+            'last_error': 'formation broken: Leader robot_0 odom timeout (2.1s)',
+        },
+        'command': {'mode': 'idle', 'reason': 'leader localization lost — halt until operator reassigns leader'},
     },
 ]

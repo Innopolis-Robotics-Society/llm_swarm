@@ -15,6 +15,9 @@ class LLMClientBase:
     async def generate(self, prompt: str | list, prompt_kind: str = 'decision') -> str:
         raise NotImplementedError
 
+    async def stream(self, prompt: str | list):
+        yield await self.generate(prompt, prompt_kind='chat')
+
 
 def get_llm_client(
     mode: str = 'mock',
@@ -22,6 +25,11 @@ def get_llm_client(
     model: str = '',
     max_tokens: int = 256,
     temperature: float = 0.2,
+    api_key: str | None = None,
+    api_key_env: str = 'LLM_API_KEY',
+    timeout: float = 30.0,
+    force_chat: bool | None = None,
+    enable_stop: bool = False,
 ) -> LLMClientBase:
     """Return an LLM client for the requested mode.
 
@@ -61,6 +69,11 @@ def get_llm_client(
             model=model,
             max_tokens=max_tokens,
             temperature=temperature,
+            api_key=api_key,
+            api_key_env=api_key_env,
+            timeout=timeout,
+            force_chat=force_chat,
+            enable_stop=enable_stop,
         )
 
     raise ValueError(

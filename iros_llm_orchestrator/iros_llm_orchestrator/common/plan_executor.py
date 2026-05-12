@@ -167,15 +167,30 @@ def _collect_leaves(node: dict) -> list[dict]:
 
 SendFn = Callable[[dict], Awaitable[bool]]
 LogFn  = Callable[[str], None]
+# Returns a ``mapf`` leaf to run before the given formation leaf, or None to
+# skip staging. Used to inject server-side staging when the LLM emits a bare
+# ``formation`` leaf with followers out of position.
+PrestageHook = Callable[[dict], dict | None]
 
 
 class PlanExecutor:
-    def __init__(self, send_fn: SendFn, log_fn: LogFn | None = None):
+    def __init__(
+        self,
+        send_fn: SendFn,
+        log_fn: LogFn | None = None,
+        *,
+        formation_prestage_hook: PrestageHook | None = None,
+    ):
         self._send  = send_fn
         self._log   = log_fn or (lambda _: None)
         self._depth = 0
+        self._prestage_hook = formation_prestage_hook
+        # Set to the leaf node that produced a False return; remediation
+        # callers use this to brief the LLM about which step broke.
+        self.failed_leaf: dict | None = None
 
     async def run(self, plan: dict) -> bool:
+        self.failed_leaf = None
         return await self._execute(plan)
 
     async def _execute(self, node: dict) -> bool:
@@ -231,7 +246,29 @@ class PlanExecutor:
             n = len(node.get('robot_ids', []))
             self._log(f"{ind}🚀 mapf {n} robot{'s' if n!=1 else ''}: {node.get('reason','')}")
         elif t == 'formation':
+            # Server-side staging safety net: even when the LLM ignores the
+            # MANDATORY prompt rule and emits a bare formation leaf with
+            # followers out of position, run the implied mapf staging step
+            # first. Skips silently when no hook is configured or when the
+            # hook says staging is unnecessary.
+            if self._prestage_hook is not None:
+                staging = self._prestage_hook(node)
+                if staging is not None:
+                    n = len(staging.get('robot_ids', []))
+                    self._log(
+                        f"{ind}🔧 auto-stage {n} follower"
+                        f"{'s' if n!=1 else ''} before "
+                        f"{node.get('formation_id','')}: "
+                        f"{staging.get('reason','')}")
+                    ok = await self._send(staging)
+                    if not ok:
+                        if self.failed_leaf is None:
+                            self.failed_leaf = staging
+                        return False
             self._log(
                 f"{ind}🔷 formation {node.get('formation_id','')} "
                 f"leader={node.get('leader_ns','')}: {node.get('reason','')}")
-        return await self._send(node)
+        ok = await self._send(node)
+        if not ok and self.failed_leaf is None:
+            self.failed_leaf = node
+        return ok

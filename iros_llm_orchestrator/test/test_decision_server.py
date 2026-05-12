@@ -74,12 +74,8 @@ def running_server():
     rclpy.init()
     tmp_dir = tempfile.mkdtemp(prefix='llm_decisions_')
 
-    # Override default_on_error and dataset_path via override params.
-    # LlmDecisionServer reads its ros__parameters during __init__, so we
-    # patch after creation for the mock path + dataset dir.
     server = LlmDecisionServer()
-    server.llm.mode = 'mock'
-    server.logger_.path = tmp_dir
+    server._logger_ds.path = tmp_dir
     os.makedirs(tmp_dir, exist_ok=True)
 
     executor = MultiThreadedExecutor(num_threads=2)

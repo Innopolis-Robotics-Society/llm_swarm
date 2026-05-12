@@ -14,7 +14,6 @@ setup(
         (os.path.join('share', package_name, 'launch'), glob('launch/*.launch.py')),
         (os.path.join('share', package_name, 'config'), glob('config/*.yaml')),
         (os.path.join('share', package_name, 'prompts'), glob('prompts/*.txt')),
-        (os.path.join('share', package_name, 'prompts', 'maps'), glob('prompts/maps/*.yaml')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -27,6 +26,8 @@ setup(
             'decision_server  = iros_llm_orchestrator.decision_server:main',
             'passive_observer = iros_llm_orchestrator.passive_observer:main',
             'user_chat        = iros_llm_orchestrator.user_chat_node:main',
+            'chat_server      = iros_llm_orchestrator.chat_server:main',
+            'execute_server   = iros_llm_orchestrator.execute_server:main',
         ],
     },
 )

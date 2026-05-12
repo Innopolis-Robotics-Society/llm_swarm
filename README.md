@@ -35,7 +35,7 @@ ros2 launch iros_llm_swarm_bringup swarm_lns.launch.py
 
 | Argument       | Default           | Description                                                                                        |
 | -------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
-| `scenario`     | `cave`            | Defines the map and configuration of robots for operation. Acceptable parameters:<br>- `large_cave`: A giant `cave` map, not recommended for running on default settings due to large distances.<br>- `cave`: A medium-sized `cave` map.<br>- `warehouse_2`: A standard `warehouse` map with shelving, robots arranged in two groups in the lower left and upper right corners.<br>- `warehouse_4`: A standard `warehouse` map with shelving, robots arranged in four groups in the four corners. |
+| `scenario`     | `cave`            | Defines the map and configuration of robots for operation. Acceptable parameters:<br>- `large_cave`: A giant `cave` map, not recommended for running on default settings due to large distances.<br>- `cave`: A medium-sized `cave` map.<br>- `warehouse_2`: A standard `warehouse` map with shelving, robots arranged in two groups in the lower left and upper right corners.<br>- `warehouse_4`: A standard `warehouse` map with shelving, robots arranged in four groups in the four corners.<br>- `amongus`: Among Us-style map with named rooms and corridor doors preloaded from the scenario YAML. |
 | `num_robots`   | `20`              | Number of robots to controll by system (still spawn as many robots as there are in the world file) |
 | `world_file`   | `warehouse.world` | Stage world file path                                                                              |
 | `rviz_cfg`     | `swarm_20.rviz`   | common RViz config for 20 robots                                                                   |
@@ -180,6 +180,8 @@ Top-level launch orchestrator. `swarm_warehouse.launch.py` brings up the full st
 
 2D simulation layer based on Stage (`stage_ros2`). Contains the warehouse world file, map files (`.pgm` / `.yaml`), and robot model description (`warehouse_robot.inc`). Stage runs with a unified TF tree (`one_tf_tree: true`) and namespace-enforced prefixes.
 
+Each map YAML can optionally reference a **zone map** via the `zone_map` field (e.g. `zone_map: warehouse_zones.pgm`). Zone maps are grayscale PGMs where darker pixels indicate higher traversal cost: pixel value 0 = maximum cost (`max_zone_cost`), 255 = free. The PBS planner reads zone costs from the published `/map` (OccupancyGrid values 1–99) and inflates them outward to guide routing without hard-blocking cells.
+
 ### `iros_llm_swarm_local_nav`
 
 Per-robot Nav2 navigation stack. For each robot spawns:
@@ -195,7 +197,10 @@ Robots are launched with staggered timers (0.3 s interval) to avoid startup race
 
 ### `iros_llm_swarm_costmap_plugins`
 
-Custom Nav2 costmap layer plugin. Provides `ResettingObstacleLayer` — a drop-in replacement for `nav2_costmap_2d::ObstacleLayer` that resets its internal grid every cycle before marking. Fixes ghost obstacle trails caused by cells between LiDAR rays never being cleared via raytracing.
+Custom Nav2 costmap components:
+
+- **`ResettingObstacleLayer`** — drop-in replacement for `nav2_costmap_2d::ObstacleLayer` that resets its internal grid every cycle before marking. Fixes ghost obstacle trails caused by cells between LiDAR rays never being cleared via raytracing.
+- **`zone_map_server`** — drop-in replacement for `nav2_map_server`'s `map_server` executable. Reads the standard map YAML, then overlays a grayscale zone PGM (referenced by the `zone_map` field in the YAML) onto the OccupancyGrid before publishing. Darker pixels in the zone PGM become non-zero OccupancyGrid values (1–99), which the PBS planner interprets as traversal costs. Walls (value 100) are never overwritten.
 
 ### `iros_llm_swarm_mapf`
 
@@ -222,6 +227,8 @@ cost = urgency * max_speed * time_step_sec   (time: opportunity cost of not movi
      + wall_penalty_sum * resolution          (wall gradient, normalized)
      + agent_proximity_penalty                (from reservation table)
 ```
+
+`wall_penalty_sum` accumulates over all cells traced by the move (Bresenham line) and includes both wall-proximity gradient **and zone costs**. Zone costs are skipped for wait moves (staying in place incurs no zone penalty).
 
 The `urgency` coefficient (default 1.0) controls time-vs-distance tradeoff. At 1.0, one timestep of waiting costs as much as the distance the robot could have covered at max speed. Values below 1.0 are not recommended.
 
@@ -366,6 +373,7 @@ PBS failed (2709.9 ms, 1 expansions)
 | `max_astar_expansions` | 100000 (launch) | Per-A\* expansion limit (root planning uncapped)                           |
 | `time_step_sec`        | 0.1             | Seconds per PBS grid step                                                  |
 | `max_speed`            | 0.5             | Max robot speed (m/s), determines movement connectivity with time_step_sec |
+| `max_zone_cost`        | 10              | OccupancyGrid value 99 maps to this wall_cost; zone costs scale linearly in [1, max_zone_cost] |
 | `urgency`              | 1.0             | Time cost coefficient: 1 = balanced, >1 = rush. Below 1.0 not recommended  |
 | `replan_check_hz`      | 2.0             | Schedule deviation check rate (Hz)                                         |
 | `replan_threshold_m`   | 1.0             | Deviation distance to trigger replan (m)                                   |
@@ -639,6 +647,58 @@ ros2 service call /formation/save iros_llm_swarm_interfaces/srv/SaveFormations \
 "{file_path: '/path/to/formations.yaml', only_active: false}"
 ```
 
+### `iros_llm_swarm_obstacles`
+
+Dynamic obstacle manager. Loads doors declared in the scenario YAML (`obstacles.doors`) at startup and provides a runtime API to add/remove/list obstacles and toggle doors.
+
+#### Topics
+
+- `/obstacles/markers` — `visualization_msgs/MarkerArray`, transient_local QoS. Publishes cylinder/cube/flat-box markers for all active obstacles. Subscribe in RViz to see obstacles overlaid on the map.
+
+#### Services
+
+| Service | Description |
+| --- | --- |
+| `/obstacles/add_circle` | Add a circle obstacle (id, position, radius) |
+| `/obstacles/add_rectangle` | Add a rectangle obstacle (id, position, width, height) |
+| `/obstacles/add_door` | Add a door obstacle (id, position, width, height, is_open) |
+| `/obstacles/remove` | Remove an obstacle by id |
+| `/obstacles/list` | List all active circles, rectangles, and doors |
+| `/doors/open` | Open a door by id (clears its map footprint) |
+| `/doors/close` | Close a door by id (adds its footprint back) |
+
+#### Scenario YAML preloading
+
+Doors can be declared in `common_scenarios.yaml` under `obstacles.doors` and are created automatically at node startup:
+
+```yaml
+obstacles:
+  doors:
+    - id: corridor_center
+      position: [15.0, 14.5]
+      width: 3.5
+      height: 0.2
+      default_open: true
+```
+
+#### RViz tools (`iros_llm_rviz_tool`)
+
+Two RViz2 tool plugins for interactive obstacle management:
+
+- **PlaceObstacleTool** (`b`) — left-click to place a circle, rectangle, or door (shape/size set in the tool properties panel); right-click to remove the nearest obstacle.
+- **DoorTool** (`d`) — left-click near a door to toggle it open/closed.
+
+```bash
+# CLI examples
+ros2 service call /obstacles/add_circle iros_llm_swarm_interfaces/srv/AddCircle \
+  "{id: 'box1', position: {x: 10.0, y: 5.0, z: 0.0}, radius: 0.5}"
+
+ros2 service call /doors/close iros_llm_swarm_interfaces/srv/CloseDoor \
+  "{door_id: 'corridor_center'}"
+
+ros2 service call /obstacles/list iros_llm_swarm_interfaces/srv/ListObstacles "{}"
+```
+
 ### `iros_llm_swarm_interfaces`
 
 Custom ROS 2 messages, services, and actions.
@@ -670,6 +730,8 @@ DDS and performance tuning scripts are in `src/scripts/`:
 - [x] MAPF with PBS planner, gradient inflation, and action API
 - [x] N-connected Euclidean A\* with capsule-based conflict detection
 - [x] Schedule-based replanning with static cooldown
+- [x] Zone maps — grayscale PGM overlays that bias PBS routing without hard-blocking cells (corridor lane costs, soft one-way guidance)
+- [x] Dynamic obstacles — runtime circle/rectangle/door obstacles; scenario YAML preloading; RViz PlaceObstacleTool + DoorTool
 - [x] Formation control (leader-follower with PD controllers)
 - [x] Long-lived MAPF action (plan-execute-arrive lifecycle with feedback)
 - [ ] BT integration
