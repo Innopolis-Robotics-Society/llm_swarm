@@ -39,6 +39,19 @@ What the project does
 * Provides a small set of **BehaviorTree.CPP** action nodes that wrap the
   MAPF and formation interfaces, ready to be composed into higher-level
   mission trees.
+* Ships an **LLM advisory layer** (``iros_llm_orchestrator``) with three
+  independent channels — reactive (``/llm/decision`` action called from
+  BT nodes on WARN/ERROR), proactive (``passive_observer`` watches
+  ``/bt/state`` and pushes commands), and an operator chat
+  (``/llm/chat`` driven from the RViz panel, with a remediation loop and
+  optional read-only MCP context).
+* Adds an **operator surface in RViz** (``iros_llm_rviz_panel`` plus the
+  click-to-command tools in ``iros_llm_rviz_tool``) for chat,
+  per-robot status, BT state, event log, STOP-ALL, and direct
+  goal / obstacle / door manipulation.
+* Includes a **dynamic obstacle layer** (``iros_llm_swarm_obstacles``)
+  that overlays runtime-added circles, rectangles, and stateful doors
+  on top of the static map and republishes the merged grid on ``/map``.
 
 Design goals
 ------------
@@ -51,10 +64,15 @@ Design goals
 * **Safe primitives, simple glue.** Conflict detection, inflation, and
   schedule monitoring live inside the planner. The behavior tree only
   decides *which* mission to run, not *how* to keep robots from colliding.
-* **Pluggable LLM reasoning.** The behavior tree layer is structured so
-  that an external LLM agent can be inserted as the high-level decision
-  maker over the existing primitives. The current release does not ship
-  the LLM agent itself, but the message types and BT nodes are in place.
+* **Pluggable LLM reasoning.** The current release ships
+  ``iros_llm_orchestrator`` with three channels (reactive, proactive,
+  operator chat) and a backend factory that selects between a mock
+  client, a local Ollama instance, an OpenAI-compatible HTTP endpoint,
+  and an in-process HuggingFace Transformers backend without changing
+  any node code. The LLM never executes outside the BT/Nav2 primitives —
+  it produces decisions and plan JSON which are then dispatched through
+  the same ``/swarm/set_goals`` and ``/llm/command`` interfaces used by
+  the rest of the stack.
 
 Scope and known limits
 ----------------------

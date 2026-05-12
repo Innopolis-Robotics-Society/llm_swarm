@@ -66,20 +66,25 @@ The supported scenarios all live in ``iros_llm_swarm_bringup``:
        the MAPF layer.
    * - ``swarm_mapf.launch.py``
      - Stage + Nav2 + PBS planner + per-robot followers
-       (``motion_controller_node``).
+       (``pbs_motion_controller``).
    * - ``swarm_lns.launch.py``
      - Stage + Nav2 + LNS2 planner + per-robot followers
-       (``path_follower_node``).
+       (``lns_motion_controller``).
    * - ``swarm_mapf_formation.launch.py``
      - PBS planner with formation manager / monitor.
    * - ``swarm_lns_formation.launch.py``
      - LNS2 planner with formation manager / monitor.
+   * - ``swarm_full_demo.launch.py``
+     - Full stack: simulator + Nav2 + selectable planner + optional
+       formation + BT runner + LLM orchestrator (chat / decision /
+       execute / passive observer) + optional rosbridge. The
+       operator-facing launch file.
 
 Example::
 
     ros2 launch iros_llm_swarm_bringup swarm_lns.launch.py
 
-Useful launch arguments (all four files):
+Useful launch arguments (shared across the bringup files):
 
 .. list-table::
    :header-rows: 1
@@ -89,22 +94,55 @@ Useful launch arguments (all four files):
      - Default
      - Description
    * - ``scenario``
-     - ``cave``
+     - ``cave`` (``amongus`` for ``swarm_full_demo``)
      - World preset: ``cave``, ``large_cave``, ``warehouse_2``,
-       ``warehouse_4``.
+       ``warehouse_4``, ``amongus``. Maps to a ``.world`` file via
+       ``iros_llm_swarm_simulation_lite/scenario/common_scenarios.yaml``.
    * - ``num_robots``
      - ``20``
      - Number of robots controlled by the planner. The world always
        spawns its full robot set; this caps how many receive goals.
    * - ``world_file``
-     - ``warehouse.world``
-     - Stage world file.
+     - scenario-dependent
+     - Override the Stage world file directly.
    * - ``rviz_cfg``
      - ``swarm_20.rviz``
-     - RViz config file.
+     - RViz config file (loads the LLM panel and click-to-command
+       tools when running ``swarm_full_demo``).
    * - ``use_sim_time``
      - ``true``
      - Use the simulator clock.
+
+``swarm_full_demo.launch.py`` adds a few more arguments:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 24 16 60
+
+   * - Argument
+     - Default
+     - Description
+   * - ``planner``
+     - ``lns``
+     - Planner backend: ``lns`` or ``pbs``.
+   * - ``enable_formation``
+     - ``true``
+     - Start ``formation_manager`` + ``formation_monitor``.
+   * - ``enable_passive_observer``
+     - ``false``
+     - Start the channel-2 observer that watches ``/bt/state`` and
+       pushes ``LlmCommand`` autonomously. Channel 1 (reactive
+       ``/llm/decision``) is always on.
+   * - ``enable_rosbridge``
+     - ``true``
+     - Start ``rosbridge_server`` (used by the MCP context provider).
+   * - ``llm_backend``
+     - ``http``
+     - LLM backend: ``http`` (OpenAI-compatible), ``ollama``,
+       ``mock``, or ``local`` (HuggingFace Transformers).
+   * - ``llm_endpoint`` / ``llm_model``
+     - empty
+     - Override the YAML defaults in ``orchestrator.yaml``.
 
 Send a mission
 --------------
@@ -158,9 +196,39 @@ This loads ``behavior_trees/swarm_navigate_to_pose.xml`` and exercises
 the ``MapfPlan`` / ``SetFormation`` / ``DisableFormation`` /
 ``CheckMode`` action nodes against a running stack.
 
+Operator chat (LLM)
+-------------------
+
+When running ``swarm_full_demo.launch.py``, the RViz instance loads
+``iros_llm_rviz_panel`` (Panels → Add New Panel →
+``iros_llm_rviz_panel/LLM-Panel``). Type a free-form command in the
+**Chat** tab and press *Send* — the panel calls ``/llm/chat``, streams
+the reply back chunk-by-chunk, and (if *Preview* is checked) shows the
+parsed plan as a tree before executing it via ``/llm/execute_plan``.
+The red **STOP ALL** button bypasses the LLM and halts every robot
+through ``/llm/command{mode=idle}``.
+
+Three click-to-command tools from ``iros_llm_rviz_tool`` are also
+loaded:
+
+* **g** — ``SendLlmGoalTool``: pick a robot group, click on the map,
+  goals are spread around the click and dispatched to ``/llm/command``.
+* **b** — ``PlaceObstacleTool``: left-click adds an obstacle, right-
+  click removes the nearest. Talks to ``/obstacles/*`` (requires
+  ``iros_llm_swarm_obstacles`` to be running).
+* **d** — ``DoorTool``: left-click opens, right-click closes a door
+  by id.
+
+Every LLM call is appended to ``~/.ros/llm_decisions/`` (channel 1) and
+``~/.ros/llm_commands/`` (channel 2) as one JSONL record per call.
+
 Where to go next
 ----------------
 
+* :doc:`examples` — operator usage guide for the LLM panel: chat
+  patterns, robot groups and locations, plan structure, formation
+  staging, click-to-command tools, channel 1 / 2 / 3 triggers,
+  dataset inspection, backend selection, debugging.
 * :doc:`packages` — pick a package and dive into its API and parameters.
 * The per-package documentation linked from :doc:`index` covers internals
   not repeated here (planner cost models, BT XML schema, formation YAML

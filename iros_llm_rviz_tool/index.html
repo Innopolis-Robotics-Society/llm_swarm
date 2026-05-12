@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>iros_llm_rviz_tool &mdash; iros_llm_rviz_tool 0.0.1 documentation</title>
+  <title>iros_llm_rviz_tool &mdash; iros_llm_rviz_tool</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="_static/collapsible-lists/css/tree_view.css?v=a885cde7" />
@@ -21,8 +21,7 @@
       <script src="_static/collapsible-lists/js/apply-collapsible-lists.js?v=660e4f45"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="C++ API" href="generated/index.html" /> 
+    <link rel="search" title="Search" href="search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -44,50 +43,18 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul>
-<li class="toctree-l1"><a class="reference internal" href="generated/index.html">C++ API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="generated/index.html#class-hierarchy">Class Hierarchy</a></li>
-<li class="toctree-l2"><a class="reference internal" href="generated/index.html#file-hierarchy">File Hierarchy</a></li>
-<li class="toctree-l2"><a class="reference internal" href="generated/index.html#full-c-api">Full C++ API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="generated/index.html#namespaces">Namespaces</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/namespace_iros_llm_rviz_tool.html">Namespace iros_llm_rviz_tool</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/namespace_rviz_common.html">Namespace rviz_common</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/namespace_rviz_default_plugins.html">Namespace rviz_default_plugins</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/namespace_rviz_default_plugins__tools.html">Namespace rviz_default_plugins::tools</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="generated/index.html#classes-and-structs">Classes and Structs</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/structiros__llm__rviz__tool_1_1MapBounds.html">Struct MapBounds</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/structiros__llm__rviz__tool_1_1RobotGroup.html">Struct RobotGroup</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/classiros__llm__rviz__tool_1_1DoorTool.html">Class DoorTool</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/classiros__llm__rviz__tool_1_1PlaceObstacleTool.html">Class PlaceObstacleTool</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/classiros__llm__rviz__tool_1_1SendLlmGoalTool.html">Class SendLlmGoalTool</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="generated/index.html#directories">Directories</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/dir_include.html">Directory include</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/dir_include_iros_llm_rviz_tool.html">Directory iros_llm_rviz_tool</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="generated/index.html#files">Files</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="generated/file_include_iros_llm_rviz_tool_door_tool.hpp.html">File door_tool.hpp</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/file_include_iros_llm_rviz_tool_place_obstacle_tool.hpp.html">File place_obstacle_tool.hpp</a></li>
-<li class="toctree-l4"><a class="reference internal" href="generated/file_include_iros_llm_rviz_tool_send_llm_goal_tool.hpp.html">File send_llm_goal_tool.hpp</a></li>
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">iros_llm_rviz_tool</a><ul>
+<li><a class="reference internal" href="#plugins">Plugins</a></li>
+<li><a class="reference internal" href="#ros-interfaces">ROS interfaces</a></li>
+<li><a class="reference internal" href="#source-layout">Source layout</a></li>
+<li><a class="reference internal" href="#build-and-registration">Build and registration</a></li>
+<li><a class="reference internal" href="#loading-at-runtime">Loading at runtime</a></li>
 </ul>
 </li>
 </ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="standards.html">Standard Documents</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="standard_docs/PACKAGE.html">PACKAGE</a></li>
-</ul>
-</li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
-</ul>
-
+</div>
         </div>
       </div>
     </nav>
@@ -112,43 +79,120 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="iros-llm-rviz-tool">
+  <p style="margin: 0 0 1em 0;">
+  <a href="../iros_llm_swarm_docs/index.html">&laquo; IROS LLM Swarm — back to overview</a>
+</p><section id="iros-llm-rviz-tool">
 <h1>iros_llm_rviz_tool<a class="headerlink" href="#iros-llm-rviz-tool" title="Link to this heading"></a></h1>
-<dl class="simple">
-<dt>RViz2 Tool plugin: click-to-send LLM goals. Operator picks a robot</dt><dd><p>group from a popup, the click point becomes the MAPF goal, and a
-LlmCommand{mode=mapf} is dispatched on /llm/command — no LLM in the
-loop. Uses map YAML from iros_llm_orchestrator for group/bounds info.</p>
-</dd>
-</dl>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="generated/index.html">C++ API</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="generated/index.html#class-hierarchy">Class Hierarchy</a></li>
-<li class="toctree-l2"><a class="reference internal" href="generated/index.html#file-hierarchy">File Hierarchy</a></li>
-<li class="toctree-l2"><a class="reference internal" href="generated/index.html#full-c-api">Full C++ API</a></li>
+<p>Three RViz2 <code class="docutils literal notranslate"><span class="pre">Tool</span></code> plugins for click-to-command operation. None of
+them call the LLM — they translate a mouse click directly into a ROS
+service or action call.</p>
+<section id="plugins">
+<h2>Plugins<a class="headerlink" href="#plugins" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 12.0%" />
+<col style="width: 68.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Plugin</p></th>
+<th class="head"><p>Shortcut</p></th>
+<th class="head"><p>What it does</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SendLlmGoalTool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">g</span></code></p></td>
+<td><p>Inherits <code class="docutils literal notranslate"><span class="pre">rviz_default_plugins::tools::PoseTool</span></code>. After the
+click pose is set, the tool loads the map YAML from
+<code class="docutils literal notranslate"><span class="pre">iros_llm_orchestrator</span></code>, pops a <code class="docutils literal notranslate"><span class="pre">QInputDialog::getItem</span></code> to
+pick a robot group (e.g. <code class="docutils literal notranslate"><span class="pre">cyan</span></code>, <code class="docutils literal notranslate"><span class="pre">magenta</span></code>), spreads N goals
+around the click point at 1.5 m spacing, and dispatches them as
+a single <code class="docutils literal notranslate"><span class="pre">LlmCommand{mode=mapf,</span> <span class="pre">robot_ids=[...],</span> <span class="pre">goals=[...]}</span></code>
+on <code class="docutils literal notranslate"><span class="pre">/llm/command</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PlaceObstacleTool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">b</span></code></p></td>
+<td><p>Inherits <code class="docutils literal notranslate"><span class="pre">rviz_common::Tool</span></code>. Shape (Circle / Rectangle / Door),
+radius / width / height, and door-open default come from the
+Tool Properties panel. <strong>Left-click</strong> raycasts to the ground
+plane and calls <code class="docutils literal notranslate"><span class="pre">/obstacles/add_circle</span></code>,
+<code class="docutils literal notranslate"><span class="pre">/obstacles/add_rectangle</span></code>, or <code class="docutils literal notranslate"><span class="pre">/obstacles/add_door</span></code> with
+the click position. <strong>Right-click</strong> calls <code class="docutils literal notranslate"><span class="pre">/obstacles/list</span></code>,
+finds the nearest obstacle to the click, and calls
+<code class="docutils literal notranslate"><span class="pre">/obstacles/remove</span></code> with its id.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DoorTool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">d</span></code></p></td>
+<td><p>Inherits <code class="docutils literal notranslate"><span class="pre">rviz_common::Tool</span></code>. The door id comes from the Tool
+Properties panel. <strong>Left-click</strong> calls <code class="docutils literal notranslate"><span class="pre">/doors/open</span></code>;
+<strong>right-click</strong> calls <code class="docutils literal notranslate"><span class="pre">/doors/close</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The <code class="docutils literal notranslate"><span class="pre">PlaceObstacleTool</span></code> and <code class="docutils literal notranslate"><span class="pre">DoorTool</span></code> need
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_obstacles</span></code> running — they are no-ops if the obstacle
+manager is not in the graph.</p>
+</section>
+<section id="ros-interfaces">
+<h2>ROS interfaces<a class="headerlink" href="#ros-interfaces" title="Link to this heading"></a></h2>
+<p><strong>Action client (``SendLlmGoalTool``):</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/llm/command</span></code> (<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces/action/LlmCommand</span></code>)</p></li>
 </ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="standards.html">Standard Documents</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="standard_docs/PACKAGE.html">PACKAGE</a></li>
+<p><strong>Service clients (``PlaceObstacleTool``):</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/obstacles/add_circle</span></code> (<code class="docutils literal notranslate"><span class="pre">AddCircle</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/obstacles/add_rectangle</span></code> (<code class="docutils literal notranslate"><span class="pre">AddRectangle</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/obstacles/add_door</span></code> (<code class="docutils literal notranslate"><span class="pre">AddDoor</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/obstacles/list</span></code> (<code class="docutils literal notranslate"><span class="pre">ListObstacles</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/obstacles/remove</span></code> (<code class="docutils literal notranslate"><span class="pre">RemoveObstacle</span></code>)</p></li>
 </ul>
-</li>
+<p><strong>Service clients (``DoorTool``):</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/obstacles/list</span></code> (<code class="docutils literal notranslate"><span class="pre">ListObstacles</span></code>) — to enumerate ids.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/doors/open</span></code> (<code class="docutils literal notranslate"><span class="pre">OpenDoor</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/doors/close</span></code> (<code class="docutils literal notranslate"><span class="pre">CloseDoor</span></code>)</p></li>
 </ul>
-</div>
-<div class="toctree-wrapper compound">
-</div>
+</section>
+<section id="source-layout">
+<h2>Source layout<a class="headerlink" href="#source-layout" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">include/send_llm_goal_tool.hpp</span></code> / <code class="docutils literal notranslate"><span class="pre">src/send_llm_goal_tool.cpp</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">include/place_obstacle_tool.hpp</span></code> / <code class="docutils literal notranslate"><span class="pre">src/place_obstacle_tool.cpp</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">include/door_tool.hpp</span></code> / <code class="docutils literal notranslate"><span class="pre">src/door_tool.cpp</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">icons/send_llm_goal.svg</span></code> — toolbar icon shared by the tools.</p></li>
+</ul>
+</section>
+<section id="build-and-registration">
+<h2>Build and registration<a class="headerlink" href="#build-and-registration" title="Link to this heading"></a></h2>
+<p>The three classes are registered with pluginlib through
+<code class="docutils literal notranslate"><span class="pre">plugin_description.xml</span></code> (<code class="docutils literal notranslate"><span class="pre">iros_llm_rviz_tool/SendLlmGoalTool</span></code>,
+<code class="docutils literal notranslate"><span class="pre">iros_llm_rviz_tool/PlaceObstacle</span></code>, <code class="docutils literal notranslate"><span class="pre">iros_llm_rviz_tool/DoorControl</span></code>)
+and exposed at install time via
+<code class="docutils literal notranslate"><span class="pre">pluginlib_export_plugin_description_file(rviz_common</span>
+<span class="pre">plugin_description.xml)</span></code>. Tools run on the RViz render / GUI thread;
+service and action calls are made through the shared RViz node
+abstraction. Icons install to
+<code class="docutils literal notranslate"><span class="pre">share/iros_llm_rviz_tool/icons</span></code>.</p>
+</section>
+<section id="loading-at-runtime">
+<h2>Loading at runtime<a class="headerlink" href="#loading-at-runtime" title="Link to this heading"></a></h2>
+<p>In RViz2: <strong>Tools panel → ``+`` → pick a tool from the list</strong>, or use
+the keyboard shortcut listed above when the render area has focus. The
+bundled <code class="docutils literal notranslate"><span class="pre">swarm_20.rviz</span></code> config preloads all three.</p>
+</section>
 </section>
 
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="generated/index.html" class="btn btn-neutral float-right" title="C++ API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright The &lt;iros_llm_rviz_tool&gt; Contributors. License: Apache-2.0.</p>
+    <p>&#169; Copyright .</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

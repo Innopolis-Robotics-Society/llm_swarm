@@ -43,6 +43,7 @@
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../overview.html">Project Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples and Usage Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../architecture.html">System Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../packages.html">Package Map</a></li>
 </ul>
@@ -55,9 +56,13 @@
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_local_nav/index.html#http://">iros_llm_swarm_local_nav</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_mapf/index.html#http://">iros_llm_swarm_mapf</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_mapf_lns/index.html#http://">iros_llm_swarm_mapf_lns</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_obstacles/index.html#http://">iros_llm_swarm_obstacles</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_robot/index.html#http://">iros_llm_swarm_robot</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_simulation/index.html#http://">iros_llm_swarm_simulation</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_simulation_lite/index.html#http://">iros_llm_swarm_simulation_lite</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_orchestrator/index.html#http://">iros_llm_orchestrator</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_rviz_panel/index.html#http://">iros_llm_rviz_panel</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_rviz_tool/index.html#http://">iros_llm_rviz_tool</a></li>
 </ul>
 
         </div>
@@ -88,12 +93,17 @@
 <h1>IROS LLM Swarm Documentation<a class="headerlink" href="#iros-llm-swarm-documentation" title="Link to this heading"></a></h1>
 <p>A ROS 2 Humble research stack for orchestrating 20 differential-drive
 robots in a 2D Stage simulation: fleet-level MAPF planning, per-robot
-Nav2 navigation, leader-follower formations, and a behavior-tree
-front-end — all behind a single <code class="docutils literal notranslate"><span class="pre">/swarm/set_goals</span></code> action.</p>
+Nav2 navigation, leader-follower formations, a behavior-tree
+front-end behind a single <code class="docutils literal notranslate"><span class="pre">/swarm/set_goals</span></code> action, and an LLM
+advisory layer with three channels (reactive, proactive, operator
+chat) plus an RViz operator panel and click-to-command tools.</p>
 <p>Start with <a class="reference internal" href="overview.html"><span class="doc">Project Overview</span></a> for a tour of what the project does and why,
-then move on to <a class="reference internal" href="getting_started.html"><span class="doc">Getting Started</span></a> to bring the stack up. The
-<a class="reference internal" href="architecture.html"><span class="doc">System Architecture</span></a> and <a class="reference internal" href="packages.html"><span class="doc">Package Map</span></a> pages are the reference for how
-the pieces fit together.</p>
+then move on to <a class="reference internal" href="getting_started.html"><span class="doc">Getting Started</span></a> to bring the stack up. Once the
+demo is running, <a class="reference internal" href="examples.html"><span class="doc">Examples and Usage Guide</span></a> walks through the operator workflow —
+talking to the LLM via the RViz panel, sending robots, formations,
+dynamic obstacles, channel triggers, dataset inspection, and the
+fallbacks. The <a class="reference internal" href="architecture.html"><span class="doc">System Architecture</span></a> and <a class="reference internal" href="packages.html"><span class="doc">Package Map</span></a> pages are the
+reference for how the pieces fit together.</p>
 <section id="project-overview">
 <h2>Project overview<a class="headerlink" href="#project-overview" title="Link to this heading"></a></h2>
 <div class="toctree-wrapper compound">
@@ -114,7 +124,30 @@ the pieces fit together.</p>
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#send-a-mission">Send a mission</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#local-nav-only-smoke-test">Local-nav-only smoke test</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#behavior-tree-smoke-test">Behavior tree smoke test</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#operator-chat-llm">Operator chat (LLM)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples and Usage Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#bringing-the-panel-up">Bringing the panel up</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#anatomy-of-a-chat-turn">Anatomy of a chat turn</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#robot-vocabulary-among-us-scenario">Robot vocabulary (Among Us scenario)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#your-first-chat-command">Your first chat command</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#plan-structure-cheat-sheet">Plan structure cheat sheet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#common-patterns">Common patterns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#formation-deep-dive">Formation deep dive</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#preview-execute-cancel">Preview, Execute, Cancel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#stop-all-vs-idle">STOP ALL vs. <code class="docutils literal notranslate"><span class="pre">idle</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#click-to-command-tools-no-llm">Click-to-command tools (no LLM)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#dynamic-obstacles-and-doors-via-cli">Dynamic obstacles and doors via CLI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#channel-1-reactive">Channel 1 — reactive</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#channel-2-proactive">Channel 2 — proactive</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#cli-alternatives">CLI alternatives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#inspecting-the-dataset">Inspecting the dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#backend-selection">Backend selection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#the-mcp-context-provider">The MCP context provider</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#failure-modes-and-what-to-do">Failure modes and what to do</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#see-also">See also</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">System Architecture</a><ul>
@@ -122,9 +155,12 @@ the pieces fit together.</p>
 <li class="toctree-l2"><a class="reference internal" href="architecture.html#topic-graph">Topic graph</a></li>
 <li class="toctree-l2"><a class="reference internal" href="architecture.html#actions">Actions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="architecture.html#formation-services">Formation services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#dynamic-obstacle-services">Dynamic-obstacle services</a></li>
 <li class="toctree-l2"><a class="reference internal" href="architecture.html#tf-tree">TF tree</a></li>
 <li class="toctree-l2"><a class="reference internal" href="architecture.html#mission-lifecycle">Mission lifecycle</a></li>
 <li class="toctree-l2"><a class="reference internal" href="architecture.html#per-robot-follower">Per-robot follower</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#llm-orchestrator">LLM orchestrator</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#operator-surface-rviz">Operator surface (RViz)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="architecture.html#startup-sequence">Startup sequence</a></li>
 <li class="toctree-l2"><a class="reference internal" href="architecture.html#environment-notes">Environment notes</a></li>
 </ul>
@@ -151,9 +187,13 @@ alongside this aggregator.</p>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_local_nav/index.html#http://">iros_llm_swarm_local_nav</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_mapf/index.html#http://">iros_llm_swarm_mapf</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_mapf_lns/index.html#http://">iros_llm_swarm_mapf_lns</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_obstacles/index.html#http://">iros_llm_swarm_obstacles</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_robot/index.html#http://">iros_llm_swarm_robot</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_simulation/index.html#http://">iros_llm_swarm_simulation</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_simulation_lite/index.html#http://">iros_llm_swarm_simulation_lite</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_orchestrator/index.html#http://">iros_llm_orchestrator</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_rviz_panel/index.html#http://">iros_llm_rviz_panel</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_rviz_tool/index.html#http://">iros_llm_rviz_tool</a></li>
 </ul>
 </div>
 </section>

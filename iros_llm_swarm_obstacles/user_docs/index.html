@@ -1,0 +1,292 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iros_llm_swarm_obstacles &mdash; iros_llm_swarm_obstacles</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=7026087e"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            iros_llm_swarm_obstacles
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">iros_llm_swarm_obstacles</a><ul>
+<li><a class="reference internal" href="#node">Node</a></li>
+<li><a class="reference internal" href="#ros-interfaces">ROS interfaces</a></li>
+<li><a class="reference internal" href="#parameters">Parameters</a></li>
+<li><a class="reference internal" href="#algorithms">Algorithms</a></li>
+<li><a class="reference internal" href="#integration-notes">Integration notes</a></li>
+<li><a class="reference internal" href="#source-layout">Source layout</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">iros_llm_swarm_obstacles</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">iros_llm_swarm_obstacles</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/user_docs/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <p style="margin: 0 0 1em 0;">
+  <a href="../iros_llm_swarm_docs/index.html">&laquo; IROS LLM Swarm — back to overview</a>
+</p><section id="iros-llm-swarm-obstacles">
+<h1>iros_llm_swarm_obstacles<a class="headerlink" href="#iros-llm-swarm-obstacles" title="Link to this heading"></a></h1>
+<p>Dynamic-obstacle layer for the swarm. The single C++ node
+<code class="docutils literal notranslate"><span class="pre">dynamic_obstacle_manager</span></code> overlays runtime-added circles,
+rectangles, and stateful doors onto the static map produced by
+<code class="docutils literal notranslate"><span class="pre">map_server</span></code> / <code class="docutils literal notranslate"><span class="pre">zone_map_server</span></code> and republishes the merged grid on
+<code class="docutils literal notranslate"><span class="pre">/map</span></code> with <code class="docutils literal notranslate"><span class="pre">TRANSIENT_LOCAL</span></code> QoS — so any planner or Nav2 costmap
+that joins late automatically receives the latest state.</p>
+<p>The package is <strong>not yet wired into the bringup launches</strong>. To use it,
+either compose it into a custom launch file or run it directly with the
+parameters described below; the click-to-edit tools in
+<code class="docutils literal notranslate"><span class="pre">iros_llm_rviz_tool</span></code> already speak its service API.</p>
+<section id="node">
+<h2>Node<a class="headerlink" href="#node" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 28.0%" />
+<col style="width: 28.0%" />
+<col style="width: 44.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Executable</p></th>
+<th class="head"><p>Class</p></th>
+<th class="head"><p>Role</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dynamic_obstacle_manager</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DynamicObstacleManager</span></code></p></td>
+<td><p>Maintains the obstacle list, merges into the base map, hosts the
+<code class="docutils literal notranslate"><span class="pre">/obstacles/*</span></code> and <code class="docutils literal notranslate"><span class="pre">/doors/*</span></code> services.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="ros-interfaces">
+<h2>ROS interfaces<a class="headerlink" href="#ros-interfaces" title="Link to this heading"></a></h2>
+<p><strong>Publishers:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/map</span></code> (<code class="docutils literal notranslate"><span class="pre">nav_msgs/OccupancyGrid</span></code>, <code class="docutils literal notranslate"><span class="pre">TRANSIENT_LOCAL</span></code>, depth 1) —
+merged occupancy grid (base + obstacles).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/obstacles/markers</span></code> (<code class="docutils literal notranslate"><span class="pre">visualization_msgs/MarkerArray</span></code>,
+<code class="docutils literal notranslate"><span class="pre">TRANSIENT_LOCAL</span></code>, depth 1) — RViz visualisation. Circles render as
+<code class="docutils literal notranslate"><span class="pre">CYLINDER</span></code>, rectangles as <code class="docutils literal notranslate"><span class="pre">CUBE</span></code>, doors as <code class="docutils literal notranslate"><span class="pre">CUBE</span></code> with colour
+encoding state (red = closed, green = open).</p></li>
+</ul>
+<p><strong>Subscriber:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/raw_map</span></code> (<code class="docutils literal notranslate"><span class="pre">nav_msgs/OccupancyGrid</span></code>, <code class="docutils literal notranslate"><span class="pre">TRANSIENT_LOCAL</span></code>) — the
+static base map. The topic name is configurable via
+<code class="docutils literal notranslate"><span class="pre">raw_map_topic</span></code>.</p></li>
+</ul>
+<p><strong>Services:</strong></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 32.0%" />
+<col style="width: 32.0%" />
+<col style="width: 36.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Service</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Effect</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/obstacles/add_circle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">AddCircle</span></code></p></td>
+<td><p>Add a circular obstacle (id, position, radius).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/obstacles/add_rectangle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">AddRectangle</span></code></p></td>
+<td><p>Add a rectangular obstacle (id, position, width, height).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/obstacles/add_door</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">AddDoor</span></code></p></td>
+<td><p>Add a door (id, position, width, height, <code class="docutils literal notranslate"><span class="pre">is_open</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/obstacles/remove</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RemoveObstacle</span></code></p></td>
+<td><p>Remove any obstacle by id.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/obstacles/list</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ListObstacles</span></code></p></td>
+<td><p>Read all current obstacles (circles, rectangles, doors).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">/doors/open</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">OpenDoor</span></code></p></td>
+<td><p>Set door <code class="docutils literal notranslate"><span class="pre">is_open=true</span></code> (does not block cells).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">/doors/close</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">CloseDoor</span></code></p></td>
+<td><p>Set door <code class="docutils literal notranslate"><span class="pre">is_open=false</span></code> (blocks cells).</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="parameters">
+<h2>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 22.0%" />
+<col style="width: 22.0%" />
+<col style="width: 56.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">raw_map_topic</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/raw_map</span></code></p></td>
+<td><p>Topic for the base static map.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">scenario_file</span></code></p></td>
+<td><p>empty</p></td>
+<td><p>Path to a YAML file defining one or more scenarios. If empty, no
+scenario is loaded.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scenario_name</span></code></p></td>
+<td><p>empty</p></td>
+<td><p>Name of the scenario inside <code class="docutils literal notranslate"><span class="pre">scenario_file</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">cave</span></code>,
+<code class="docutils literal notranslate"><span class="pre">warehouse_4</span></code>). If empty, no scenario is loaded.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Scenario YAML schema:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">scenarios</span><span class="p">:</span>
+  <span class="o">&lt;</span><span class="n">scenario_name</span><span class="o">&gt;</span><span class="p">:</span>
+    <span class="n">obstacles</span><span class="p">:</span>
+      <span class="n">circles</span><span class="p">:</span>
+        <span class="o">-</span> <span class="p">{</span> <span class="nb">id</span><span class="p">:</span> <span class="n">c1</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="mf">5.0</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="mf">7.0</span><span class="p">,</span> <span class="n">radius</span><span class="p">:</span> <span class="mf">0.4</span> <span class="p">}</span>
+      <span class="n">rectangles</span><span class="p">:</span>
+        <span class="o">-</span> <span class="p">{</span> <span class="nb">id</span><span class="p">:</span> <span class="n">r1</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="mf">12.0</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="mf">4.5</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">height</span><span class="p">:</span> <span class="mf">2.0</span> <span class="p">}</span>
+      <span class="n">doors</span><span class="p">:</span>
+        <span class="o">-</span> <span class="p">{</span> <span class="nb">id</span><span class="p">:</span> <span class="n">d1</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="mf">9.0</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="mf">6.0</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="mf">1.5</span><span class="p">,</span> <span class="n">height</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span>
+            <span class="n">default_open</span><span class="p">:</span> <span class="n">true</span> <span class="p">}</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">default_open</span></code> is optional and defaults to <code class="docutils literal notranslate"><span class="pre">true</span></code> when omitted.</p>
+</section>
+<section id="algorithms">
+<h2>Algorithms<a class="headerlink" href="#algorithms" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Circle blocking.</strong> Iterate cells inside the AABB of the circle;
+mark a cell occupied when the world-frame distance from the cell
+centre to the circle centre is ≤ radius.</p></li>
+<li><p><strong>Rectangle blocking.</strong> Clip the AABB to the grid bounds; mark every
+cell in the resulting range as <code class="docutils literal notranslate"><span class="pre">100</span></code>.</p></li>
+<li><p><strong>Door state.</strong> Closed doors block their cells; open doors do not.</p></li>
+<li><p><strong>Marker lifecycle.</strong> A <code class="docutils literal notranslate"><span class="pre">DELETEALL</span></code> marker is published before each
+refresh so RViz drops stale geometry.</p></li>
+<li><p><strong>Scenario load.</strong> YAML root → <code class="docutils literal notranslate"><span class="pre">scenarios</span></code> → <code class="docutils literal notranslate"><span class="pre">&lt;scenario_name&gt;</span></code> →
+<code class="docutils literal notranslate"><span class="pre">obstacles</span></code> → <code class="docutils literal notranslate"><span class="pre">{circles[],</span> <span class="pre">rectangles[],</span> <span class="pre">doors[]}</span></code>.</p></li>
+</ul>
+</section>
+<section id="integration-notes">
+<h2>Integration notes<a class="headerlink" href="#integration-notes" title="Link to this heading"></a></h2>
+<p>The manager publishes on the same <code class="docutils literal notranslate"><span class="pre">/map</span></code> topic as <code class="docutils literal notranslate"><span class="pre">map_server</span></code> and
+<code class="docutils literal notranslate"><span class="pre">zone_map_server</span></code> with the same QoS; only one of those should be
+active for <code class="docutils literal notranslate"><span class="pre">/map</span></code> at a time. The intended pattern is:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">map_server</span></code> (or <code class="docutils literal notranslate"><span class="pre">zone_map_server</span></code>) publishes the static base on
+<code class="docutils literal notranslate"><span class="pre">/raw_map</span></code> (or <code class="docutils literal notranslate"><span class="pre">/map_server/map</span></code>) instead of <code class="docutils literal notranslate"><span class="pre">/map</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dynamic_obstacle_manager</span></code> subscribes to that topic and publishes
+the merged grid on <code class="docutils literal notranslate"><span class="pre">/map</span></code>.</p></li>
+<li><p>Nav2 costmaps and the MAPF planners continue to subscribe to
+<code class="docutils literal notranslate"><span class="pre">/map</span></code> and pick up dynamic obstacles transparently.</p></li>
+</ol>
+</section>
+<section id="source-layout">
+<h2>Source layout<a class="headerlink" href="#source-layout" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">src/dynamic_obstacle_manager.cpp</span></code> — single-file implementation:
+map ingestion, cell blocking for circles and rectangles, marker
+publication, the seven service handlers, and YAML scenario loading.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -44,6 +44,7 @@
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="overview.html">Project Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples and Usage Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">System Architecture</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Package Map</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#overview-table">Overview table</a></li>
@@ -56,6 +57,10 @@
 <li class="toctree-l3"><a class="reference internal" href="#iros-llm-swarm-bt">iros_llm_swarm_bt</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#iros-llm-swarm-local-nav">iros_llm_swarm_local_nav</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#iros-llm-swarm-costmap-plugins">iros_llm_swarm_costmap_plugins</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#iros-llm-swarm-obstacles">iros_llm_swarm_obstacles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#iros-llm-orchestrator">iros_llm_orchestrator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#iros-llm-rviz-panel">iros_llm_rviz_panel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#iros-llm-rviz-tool">iros_llm_rviz_tool</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#iros-llm-swarm-simulation-lite">iros_llm_swarm_simulation_lite</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#iros-llm-swarm-simulation">iros_llm_swarm_simulation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#iros-llm-swarm-bringup">iros_llm_swarm_bringup</a></li>
@@ -74,9 +79,13 @@
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_local_nav/index.html#http://">iros_llm_swarm_local_nav</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_mapf/index.html#http://">iros_llm_swarm_mapf</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_mapf_lns/index.html#http://">iros_llm_swarm_mapf_lns</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_obstacles/index.html#http://">iros_llm_swarm_obstacles</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_robot/index.html#http://">iros_llm_swarm_robot</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_simulation/index.html#http://">iros_llm_swarm_simulation</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_simulation_lite/index.html#http://">iros_llm_swarm_simulation_lite</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_orchestrator/index.html#http://">iros_llm_orchestrator</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_rviz_panel/index.html#http://">iros_llm_rviz_panel</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_rviz_tool/index.html#http://">iros_llm_rviz_tool</a></li>
 </ul>
 
         </div>
@@ -126,7 +135,8 @@ parameters, and internals.</p>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces</span></code></p></td>
 <td><p>msg / srv / action</p></td>
-<td><p>Shared ROS 2 type definitions used by every other package.</p></td>
+<td><p>Shared ROS 2 type definitions used by every other package
+(MAPF, formation, LLM, dynamic obstacles, BT state).</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf</span></code></p></td>
 <td><p>C++17</p></td>
@@ -140,9 +150,9 @@ PBS, sharing the same action interface.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_robot</span></code></p></td>
 <td><p>C++17</p></td>
-<td><p>Per-robot dual-mode follower paired with the legacy PBS
-planner (<code class="docutils literal notranslate"><span class="pre">motion_controller_node</span></code>). LNS2 uses its own
-follower from <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns</span></code>.</p></td>
+<td><p>Per-robot dual-mode followers shared by both planners:
+<code class="docutils literal notranslate"><span class="pre">pbs_motion_controller</span></code> (PBS) and <code class="docutils literal notranslate"><span class="pre">lns_motion_controller</span></code>
+(LNS2).</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_formation</span></code></p></td>
 <td><p>Python</p></td>
@@ -151,7 +161,7 @@ follower from <code class="docutils literal notranslate"><span class="pre">iros_
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_bt</span></code></p></td>
 <td><p>C++17</p></td>
 <td><p>BehaviorTree.CPP v3 action nodes wrapping the MAPF and formation
-interfaces.</p></td>
+interfaces, plus the BT runner and <code class="docutils literal notranslate"><span class="pre">LlmCommandReceiver</span></code>.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_local_nav</span></code></p></td>
 <td><p>Python</p></td>
@@ -159,7 +169,29 @@ interfaces.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_costmap_plugins</span></code></p></td>
 <td><p>C++17</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">ResettingObstacleLayer</span></code> Nav2 costmap plugin.</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ResettingObstacleLayer</span></code> Nav2 costmap plugin and
+<code class="docutils literal notranslate"><span class="pre">zone_map_server</span></code> (the project’s map server).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_obstacles</span></code></p></td>
+<td><p>C++17</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dynamic_obstacle_manager</span></code> — overlays runtime-added circles,
+rectangles, and stateful doors onto the static map.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_orchestrator</span></code></p></td>
+<td><p>Python</p></td>
+<td><p>Three-channel LLM advisory layer (reactive <code class="docutils literal notranslate"><span class="pre">/llm/decision</span></code>,
+proactive <code class="docutils literal notranslate"><span class="pre">passive_observer</span></code>, operator <code class="docutils literal notranslate"><span class="pre">chat_server</span></code> with
+MCP-grounded context and a remediation loop).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_rviz_panel</span></code></p></td>
+<td><p>C++ / Qt</p></td>
+<td><p>RViz2 operator panel — chat, MAPF status, BT state, events log,
+STOP-ALL.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_rviz_tool</span></code></p></td>
+<td><p>C++ / Qt</p></td>
+<td><p>RViz2 tool plugins — click-to-send goals, place obstacles, and
+toggle doors.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation_lite</span></code></p></td>
 <td><p>Python</p></td>
@@ -185,10 +217,24 @@ interfaces.</p></td>
 <section id="iros-llm-swarm-interfaces">
 <h3>iros_llm_swarm_interfaces<a class="headerlink" href="#iros-llm-swarm-interfaces" title="Link to this heading"></a></h3>
 <p>Type-only package. Defines every custom <code class="docutils literal notranslate"><span class="pre">msg</span></code>, <code class="docutils literal notranslate"><span class="pre">srv</span></code>, and <code class="docutils literal notranslate"><span class="pre">action</span></code>
-shared across the swarm: <code class="docutils literal notranslate"><span class="pre">SetGoals.action</span></code>, <code class="docutils literal notranslate"><span class="pre">FormationsConfig.msg</span></code>,
-<code class="docutils literal notranslate"><span class="pre">FollowerStatus.msg</span></code>, the <code class="docutils literal notranslate"><span class="pre">/formation/*</span></code> service definitions, and so
-on. <strong>Build this package first</strong> when adding new types — the C++ and
-Python packages depend on its generated headers and modules.</p>
+shared across the swarm:</p>
+<ul class="simple">
+<li><p><strong>Actions:</strong> <code class="docutils literal notranslate"><span class="pre">SetGoals</span></code> (the fleet-level MAPF action), <code class="docutils literal notranslate"><span class="pre">LlmDecision</span></code>
+(channel 1), <code class="docutils literal notranslate"><span class="pre">LlmCommand</span></code> (channels 2 + RViz STOP-ALL),
+<code class="docutils literal notranslate"><span class="pre">LlmChat</span></code> (channel 3 streaming), <code class="docutils literal notranslate"><span class="pre">LlmExecutePlan</span></code> (operator-
+confirmed plan replay).</p></li>
+<li><p><strong>Messages:</strong> <code class="docutils literal notranslate"><span class="pre">MAPFPlan</span></code> / <code class="docutils literal notranslate"><span class="pre">MAPFStep</span></code> (LNS2 follower contract),
+<code class="docutils literal notranslate"><span class="pre">FollowerStatus</span></code>, <code class="docutils literal notranslate"><span class="pre">BTState</span></code>, <code class="docutils literal notranslate"><span class="pre">LlmEvent</span></code>, <code class="docutils literal notranslate"><span class="pre">FormationConfig</span></code> /
+<code class="docutils literal notranslate"><span class="pre">FormationsConfig</span></code> / <code class="docutils literal notranslate"><span class="pre">FormationStatus</span></code> / <code class="docutils literal notranslate"><span class="pre">FormationsStatus</span></code>,
+obstacle messages (<code class="docutils literal notranslate"><span class="pre">CircleObstacle</span></code>, <code class="docutils literal notranslate"><span class="pre">RectangleObstacle</span></code>,
+<code class="docutils literal notranslate"><span class="pre">Door</span></code>).</p></li>
+<li><p><strong>Services:</strong> the <code class="docutils literal notranslate"><span class="pre">/formation/*</span></code> CRUD set, plus the obstacle and
+door services consumed by <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_obstacles</span></code>
+(<code class="docutils literal notranslate"><span class="pre">AddCircle</span></code>, <code class="docutils literal notranslate"><span class="pre">AddRectangle</span></code>, <code class="docutils literal notranslate"><span class="pre">AddDoor</span></code>, <code class="docutils literal notranslate"><span class="pre">RemoveObstacle</span></code>,
+<code class="docutils literal notranslate"><span class="pre">ListObstacles</span></code>, <code class="docutils literal notranslate"><span class="pre">OpenDoor</span></code>, <code class="docutils literal notranslate"><span class="pre">CloseDoor</span></code>).</p></li>
+</ul>
+<p><strong>Build this package first</strong> when adding new types — every other
+package depends on its generated headers and Python modules.</p>
 </section>
 <section id="iros-llm-swarm-mapf">
 <h3>iros_llm_swarm_mapf<a class="headerlink" href="#iros-llm-swarm-mapf" title="Link to this heading"></a></h3>
@@ -199,7 +245,8 @@ conflict detection. Hosts the <code class="docutils literal notranslate"><span c
 publishes time-indexed paths to <code class="docutils literal notranslate"><span class="pre">/robot_*/mapf_path</span></code>. Includes a
 schedule monitor that triggers replanning when robots deviate beyond a
 configurable threshold.</p>
-<p>Entry point: <code class="docutils literal notranslate"><span class="pre">src/mapf_planner_node.cpp</span></code>.</p>
+<p>Entry point: <code class="docutils literal notranslate"><span class="pre">src/mapf_planner_node.cpp</span></code> (executable
+<code class="docutils literal notranslate"><span class="pre">mapf_planner_node</span></code>).</p>
 </section>
 <section id="iros-llm-swarm-mapf-lns">
 <h3>iros_llm_swarm_mapf_lns<a class="headerlink" href="#iros-llm-swarm-mapf-lns" title="Link to this heading"></a></h3>
@@ -208,26 +255,39 @@ fleet-level <code class="docutils literal notranslate"><span class="pre">/swarm/
 but uses Large Neighborhood Search (LNS2) internally — ALNS-style
 destroy/repair operators, soft-constraint A* (collision penalties
 rather than hard blocks), and warm-start from the previous plan on
-replan. <code class="docutils literal notranslate"><span class="pre">path_follower_node</span></code> is the per-robot follower for this
-stack; it consumes <code class="docutils literal notranslate"><span class="pre">MAPFPlan</span></code> (with explicit <code class="docutils literal notranslate"><span class="pre">hold_sec</span></code> and a
-<code class="docutils literal notranslate"><span class="pre">plan_id</span></code> echo via <code class="docutils literal notranslate"><span class="pre">FollowerStatus</span></code>) and is the LNS-side
-counterpart to <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_robot</span></code>’s <code class="docutils literal notranslate"><span class="pre">motion_controller_node</span></code>.</p>
-<p>Entry points: <code class="docutils literal notranslate"><span class="pre">src/mapf_lns2_node.cpp</span></code>, <code class="docutils literal notranslate"><span class="pre">src/path_follower_node.cpp</span></code>.</p>
+replan. The follower contract is <code class="docutils literal notranslate"><span class="pre">MAPFPlan</span></code> on
+<code class="docutils literal notranslate"><span class="pre">/&lt;ns&gt;/mapf_plan</span></code>, with explicit <code class="docutils literal notranslate"><span class="pre">hold_sec</span></code> per step and a
+<code class="docutils literal notranslate"><span class="pre">plan_id</span></code> echo via <code class="docutils literal notranslate"><span class="pre">FollowerStatus</span></code>. The corresponding follower
+executable lives in <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_robot</span></code> (<code class="docutils literal notranslate"><span class="pre">lns_motion_controller</span></code>).</p>
+<p>Entry points: <code class="docutils literal notranslate"><span class="pre">src/mapf_lns2_node.cpp</span></code> and supporting
+<code class="docutils literal notranslate"><span class="pre">plan_publisher</span></code> / <code class="docutils literal notranslate"><span class="pre">robot_lifecycle</span></code> translation units. Launch
+helper: <code class="docutils literal notranslate"><span class="pre">launch/mapf_lns2.launch.py</span></code> (used by <code class="docutils literal notranslate"><span class="pre">swarm_lns*</span></code>
+bringup).</p>
 </section>
 <section id="iros-llm-swarm-robot">
 <h3>iros_llm_swarm_robot<a class="headerlink" href="#iros-llm-swarm-robot" title="Link to this heading"></a></h3>
-<p>Per-robot dual-mode follower paired with the <strong>legacy PBS planner</strong>
-(<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf</span></code>). In <strong>AUTONOMOUS</strong> mode it consumes
-<code class="docutils literal notranslate"><span class="pre">nav_msgs/Path</span></code> on <code class="docutils literal notranslate"><span class="pre">/&lt;ns&gt;/mapf_path</span></code> and dispatches it to Nav2’s
-<code class="docutils literal notranslate"><span class="pre">follow_path</span></code> action in chunks bounded by
-<code class="docutils literal notranslate"><span class="pre">schedule_tolerance_sec</span></code>, so the robot stays close to the PBS
-schedule. In <strong>FORMATION_FOLLOWER</strong> mode a PD controller tracks the
-leader’s body-frame offset directly via <code class="docutils literal notranslate"><span class="pre">cmd_vel</span></code>. Mode switching is
-event-driven by <code class="docutils literal notranslate"><span class="pre">/formations/config</span></code>; the node does not restart.</p>
-<p>Entry point: <code class="docutils literal notranslate"><span class="pre">src/motion_controller_node.cpp</span></code>. Spawned by
-<code class="docutils literal notranslate"><span class="pre">swarm_mapf*.launch.py</span></code>. Does <strong>not</strong> publish <code class="docutils literal notranslate"><span class="pre">FollowerStatus</span></code> —
-the PBS planner detects deviation by polling odometry. The LNS2 stack
-uses a different follower; see <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns</span></code>.</p>
+<p>Per-robot dual-mode follower <strong>shared by both planners</strong>. Two
+executables are built from this single package:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">pbs_motion_controller</span></code> (<code class="docutils literal notranslate"><span class="pre">src/pbs_motion_controller.cpp</span></code>) — paired
+with the PBS planner. Consumes <code class="docutils literal notranslate"><span class="pre">nav_msgs/Path</span></code> on
+<code class="docutils literal notranslate"><span class="pre">/&lt;ns&gt;/mapf_path</span></code> and dispatches it to Nav2’s <code class="docutils literal notranslate"><span class="pre">follow_path</span></code>
+action in chunks bounded by <code class="docutils literal notranslate"><span class="pre">schedule_tolerance_sec</span></code>, so the robot
+stays close to the PBS schedule. Does <strong>not</strong> publish
+<code class="docutils literal notranslate"><span class="pre">FollowerStatus</span></code> — the PBS planner detects deviation by polling
+odometry.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">lns_motion_controller</span></code> (<code class="docutils literal notranslate"><span class="pre">src/lns_motion_controller.cpp</span></code>) — paired
+with the LNS2 planner. Consumes <code class="docutils literal notranslate"><span class="pre">MAPFPlan</span></code> on <code class="docutils literal notranslate"><span class="pre">/&lt;ns&gt;/mapf_plan</span></code>
+with explicit <code class="docutils literal notranslate"><span class="pre">hold_sec</span></code> per step, executes hold-then-go, and
+publishes <code class="docutils literal notranslate"><span class="pre">FollowerStatus</span></code> with state, current step, <code class="docutils literal notranslate"><span class="pre">plan_id</span></code>,
+hold countdown, and Nav2 failure count.</p></li>
+</ul>
+<p>Both executables share the <strong>FORMATION_FOLLOWER</strong> code path: a PD
+controller tracks the leader’s body-frame offset directly via
+<code class="docutils literal notranslate"><span class="pre">cmd_vel</span></code>. Mode switching is event-driven by <code class="docutils literal notranslate"><span class="pre">/formations/config</span></code>;
+the node does not restart. Launch helper:
+<code class="docutils literal notranslate"><span class="pre">motion_controllers.launch.py</span></code> selects the executable via the
+<code class="docutils literal notranslate"><span class="pre">controller_type</span></code> argument.</p>
 </section>
 <section id="iros-llm-swarm-formation">
 <h3>iros_llm_swarm_formation<a class="headerlink" href="#iros-llm-swarm-formation" title="Link to this heading"></a></h3>
@@ -244,13 +304,16 @@ publishes a state machine
 <p>BehaviorTree.CPP v3 action nodes that wrap the swarm’s ROS 2 interfaces:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">MapfPlan</span></code> — async client for <code class="docutils literal notranslate"><span class="pre">/swarm/set_goals</span></code> with optional LLM
-callback hook.</p></li>
+callback hook (<code class="docutils literal notranslate"><span class="pre">/llm/decision</span></code>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">SetFormation</span></code> / <code class="docutils literal notranslate"><span class="pre">DisableFormation</span></code> — formation service wrappers.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">CheckMode</span></code> — blackboard mode-transition checks.</p></li>
 </ul>
-<p>Reference tree: <code class="docutils literal notranslate"><span class="pre">behavior_trees/swarm_navigate_to_pose.xml</span></code>. The BT
-runner is intended as the integration point for higher-level mission
-logic (including future LLM agents).</p>
+<p>The package also ships the <code class="docutils literal notranslate"><span class="pre">test_bt_runner</span></code> executable (loads a tree
+and publishes <code class="docutils literal notranslate"><span class="pre">/bt/state</span></code>), the <code class="docutils literal notranslate"><span class="pre">fleet_cmd</span></code> CLI helper
+(<code class="docutils literal notranslate"><span class="pre">simple|stress|unreachable|idle</span></code> scenarios), and an
+<code class="docutils literal notranslate"><span class="pre">LlmCommandReceiver</span></code> that applies channel-2 commands onto the BT
+blackboard. Reference tree:
+<code class="docutils literal notranslate"><span class="pre">behavior_trees/swarm_navigate_to_pose.xml</span></code>.</p>
 </section>
 <section id="iros-llm-swarm-local-nav">
 <h3>iros_llm_swarm_local_nav<a class="headerlink" href="#iros-llm-swarm-local-nav" title="Link to this heading"></a></h3>
@@ -259,28 +322,124 @@ logic (including future LLM agents).</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">controller_server</span></code> for local trajectory tracking.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">behavior_server</span></code> for recovery actions.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">lifecycle_manager</span></code> for the above.</p></li>
-<li><p>A static <code class="docutils literal notranslate"><span class="pre">map</span> <span class="pre">→</span> <span class="pre">robot_N/odom</span></code> transform (AMCL is disabled).</p></li>
+<li><p>A static <code class="docutils literal notranslate"><span class="pre">map</span> <span class="pre">→</span> <span class="pre">robot_N/odom</span></code> transform (AMCL is intentionally
+disabled — at 20 robots, cross-robot LiDAR interference makes
+localization drift).</p></li>
 </ul>
-<p>A single shared <code class="docutils literal notranslate"><span class="pre">map_server</span></code> serves all robots. Per-robot launches are
-staggered (~0.3 s apart) to avoid startup race conditions, and Nav2
-parameter files are routed through <code class="docutils literal notranslate"><span class="pre">ReplaceString</span></code> and
+<p>A single shared <code class="docutils literal notranslate"><span class="pre">zone_map_server</span></code> (from
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_costmap_plugins</span></code>) serves all robots. Per-robot
+launches are staggered (~0.3 s apart) to avoid startup race conditions,
+and Nav2 parameter files are routed through <code class="docutils literal notranslate"><span class="pre">ReplaceString</span></code> and
 <code class="docutils literal notranslate"><span class="pre">RewrittenYaml</span></code> so the same templates work for every namespace.</p>
 </section>
 <section id="iros-llm-swarm-costmap-plugins">
 <h3>iros_llm_swarm_costmap_plugins<a class="headerlink" href="#iros-llm-swarm-costmap-plugins" title="Link to this heading"></a></h3>
-<p>Custom Nav2 costmap layer: <code class="docutils literal notranslate"><span class="pre">ResettingObstacleLayer</span></code>. A drop-in
-replacement for <code class="docutils literal notranslate"><span class="pre">nav2_costmap_2d::ObstacleLayer</span></code> that resets its
-internal grid every <code class="docutils literal notranslate"><span class="pre">updateBounds()</span></code> call before re-marking. This
-fixes ghost-obstacle trails caused by laser cells that fall <em>between</em>
-rays and are never explicitly cleared via raytracing.</p>
+<p>Two C++ artefacts:</p>
+<ul class="simple">
+<li><p><strong>``ResettingObstacleLayer``</strong> — a Nav2 costmap layer plugin
+registered through <code class="docutils literal notranslate"><span class="pre">costmap_plugins.xml</span></code>. A drop-in replacement for
+<code class="docutils literal notranslate"><span class="pre">nav2_costmap_2d::ObstacleLayer</span></code> that resets its internal grid every
+<code class="docutils literal notranslate"><span class="pre">updateBounds()</span></code> call before re-marking. This fixes ghost-obstacle
+trails caused by laser cells that fall <em>between</em> rays and are never
+explicitly cleared via raytracing.</p></li>
+<li><p><strong>``zone_map_server``</strong> — a small subclass of
+<code class="docutils literal notranslate"><span class="pre">nav2_map_server::MapServer</span></code> used in place of the stock
+<code class="docutils literal notranslate"><span class="pre">map_server</span></code> in <code class="docutils literal notranslate"><span class="pre">robot_local_nav.launch.py</span></code>. It is the actual map
+publisher in the per-robot Nav2 launch.</p></li>
+</ul>
+</section>
+<section id="iros-llm-swarm-obstacles">
+<h3>iros_llm_swarm_obstacles<a class="headerlink" href="#iros-llm-swarm-obstacles" title="Link to this heading"></a></h3>
+<p>Dynamic-obstacle layer for runtime scenario edits. The single node
+<code class="docutils literal notranslate"><span class="pre">dynamic_obstacle_manager</span></code> subscribes to <code class="docutils literal notranslate"><span class="pre">/raw_map</span></code> (the static
+occupancy grid produced by <code class="docutils literal notranslate"><span class="pre">map_server</span></code> / <code class="docutils literal notranslate"><span class="pre">zone_map_server</span></code>), keeps
+an in-memory list of circles, rectangles, and stateful doors, and
+republishes the merged grid on <code class="docutils literal notranslate"><span class="pre">/map</span></code> with <code class="docutils literal notranslate"><span class="pre">TRANSIENT_LOCAL</span></code> QoS.
+At startup the obstacle list can be hydrated from a YAML scenario file
+via the <code class="docutils literal notranslate"><span class="pre">scenario_file</span></code> and <code class="docutils literal notranslate"><span class="pre">scenario_name</span></code> parameters; at runtime
+it can be edited through eight services:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/obstacles/add_circle</span></code> / <code class="docutils literal notranslate"><span class="pre">/obstacles/add_rectangle</span></code> /
+<code class="docutils literal notranslate"><span class="pre">/obstacles/add_door</span></code> — add by id with geometry.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/obstacles/remove</span></code> — remove by id.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/obstacles/list</span></code> — read all current obstacles.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/doors/open</span></code> / <code class="docutils literal notranslate"><span class="pre">/doors/close</span></code> — toggle door state. Open doors do
+not block cells; closed doors do.</p></li>
+</ul>
+<p>A debug <code class="docutils literal notranslate"><span class="pre">MarkerArray</span></code> is published on <code class="docutils literal notranslate"><span class="pre">/obstacles/markers</span></code> for RViz
+visualisation. The package is <strong>not yet wired into the bringup
+launches</strong>; activate it manually or compose it into a custom launch
+file. <code class="docutils literal notranslate"><span class="pre">iros_llm_rviz_tool</span></code> already exposes click-to-edit tools that
+talk to these services.</p>
+</section>
+<section id="iros-llm-orchestrator">
+<h3>iros_llm_orchestrator<a class="headerlink" href="#iros-llm-orchestrator" title="Link to this heading"></a></h3>
+<p>The LLM advisory layer. Five Python nodes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">decision_server</span></code> — channel 1, <code class="docutils literal notranslate"><span class="pre">/llm/decision</span></code> action server. BT
+nodes call it on WARN/ERROR; returns <code class="docutils literal notranslate"><span class="pre">wait</span> <span class="pre">|</span> <span class="pre">abort</span> <span class="pre">|</span> <span class="pre">replan</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">passive_observer</span></code> — channel 2, watches <code class="docutils literal notranslate"><span class="pre">/bt/state</span></code> and pushes
+<code class="docutils literal notranslate"><span class="pre">LlmCommand</span></code> on <code class="docutils literal notranslate"><span class="pre">/llm/command</span></code> when intervention is warranted
+(cooldown-gated, opt-in via <code class="docutils literal notranslate"><span class="pre">enabled:=true</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">chat_server</span></code> — channel 3, <code class="docutils literal notranslate"><span class="pre">/llm/chat</span></code> action server. Streams
+replies, parses JSON plans, runs a remediation loop (default 2
+retries) on execution failure. Supports formation auto-staging and an
+MCP read-only context provider.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">execute_server</span></code> — replays a plan JSON via <code class="docutils literal notranslate"><span class="pre">/llm/execute_plan</span></code> so
+the operator can preview-then-confirm in RViz.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">user_chat</span></code> — CLI chatbot for offline testing of the channel-3
+pipeline.</p></li>
+</ul>
+<p>Backends are selected by the <code class="docutils literal notranslate"><span class="pre">llm_backend</span></code> argument
+(<code class="docutils literal notranslate"><span class="pre">mock</span> <span class="pre">|</span> <span class="pre">ollama</span> <span class="pre">|</span> <span class="pre">http</span> <span class="pre">|</span> <span class="pre">local</span></code>); the HTTP backend is OpenAI-
+compatible. All decisions and commands are appended to JSONL files
+under <code class="docutils literal notranslate"><span class="pre">~/.ros/llm_decisions/</span></code> and <code class="docutils literal notranslate"><span class="pre">~/.ros/llm_commands/</span></code> for SFT
+dataset collection. Launch helper: <code class="docutils literal notranslate"><span class="pre">launch/orchestrator.launch.py</span></code>.</p>
+</section>
+<section id="iros-llm-rviz-panel">
+<h3>iros_llm_rviz_panel<a class="headerlink" href="#iros-llm-rviz-panel" title="Link to this heading"></a></h3>
+<p>Single RViz2 <code class="docutils literal notranslate"><span class="pre">Panel</span></code> plugin (<code class="docutils literal notranslate"><span class="pre">iros_llm_rviz_panel/LLM-Panel</span></code>) with
+five tabs:</p>
+<ul class="simple">
+<li><p><strong>Chat</strong> — drives <code class="docutils literal notranslate"><span class="pre">/llm/chat</span></code> and previews the parsed plan as a
+tree; the <strong>Execute</strong> button confirms the plan via
+<code class="docutils literal notranslate"><span class="pre">/llm/execute_plan</span></code>.</p></li>
+<li><p><strong>MAPF</strong> — per-robot arrival progress, active counts, sparklines from
+the <code class="docutils literal notranslate"><span class="pre">action_summary</span></code> tail of <code class="docutils literal notranslate"><span class="pre">/bt/state</span></code>.</p></li>
+<li><p><strong>Events</strong> — live tail of <code class="docutils literal notranslate"><span class="pre">/llm/events</span></code> with channel filters.</p></li>
+<li><p><strong>BT</strong> — current <code class="docutils literal notranslate"><span class="pre">/bt/state</span></code> row by row, plus a transition log.</p></li>
+<li><p><strong>Info</strong> — async-refreshed parameter snapshot.</p></li>
+</ul>
+<p>A sticky status bar at the top exposes the <strong>STOP ALL</strong> button, which
+publishes <code class="docutils literal notranslate"><span class="pre">LlmCommand{mode=idle}</span></code> directly to <code class="docutils literal notranslate"><span class="pre">/llm/command</span></code> with
+no LLM in the loop. All ROS callbacks marshal into Qt slots via
+<code class="docutils literal notranslate"><span class="pre">Qt::QueuedConnection</span></code> — never touch widgets from an executor thread.
+Goal markers are published on <code class="docutils literal notranslate"><span class="pre">/llm_panel/markers</span></code> at 30 Hz when
+<code class="docutils literal notranslate"><span class="pre">mode=mapf</span></code>.</p>
+</section>
+<section id="iros-llm-rviz-tool">
+<h3>iros_llm_rviz_tool<a class="headerlink" href="#iros-llm-rviz-tool" title="Link to this heading"></a></h3>
+<p>Three RViz2 <code class="docutils literal notranslate"><span class="pre">Tool</span></code> plugins, all click-to-command (no LLM in the loop):</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">SendLlmGoalTool</span></code> (shortcut <code class="docutils literal notranslate"><span class="pre">g</span></code>) — pick a robot group, click on
+the map, and N goals are spread around the click point and sent to
+<code class="docutils literal notranslate"><span class="pre">/llm/command</span></code> as a <code class="docutils literal notranslate"><span class="pre">mode=mapf</span></code> goal.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">PlaceObstacleTool</span></code> (shortcut <code class="docutils literal notranslate"><span class="pre">b</span></code>) — left-click adds a circle,
+rectangle, or door (shape/size from the Tool Properties panel);
+right-click removes the nearest obstacle.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DoorTool</span></code> (shortcut <code class="docutils literal notranslate"><span class="pre">d</span></code>) — left-click opens, right-click closes
+the door whose ID is set in the Tool Properties panel.</p></li>
+</ul>
 </section>
 <section id="iros-llm-swarm-simulation-lite">
 <h3>iros_llm_swarm_simulation_lite<a class="headerlink" href="#iros-llm-swarm-simulation-lite" title="Link to this heading"></a></h3>
 <p>The supported 2D simulation backend. Wraps <code class="docutils literal notranslate"><span class="pre">stage_ros2</span></code> with project
-world files (<code class="docutils literal notranslate"><span class="pre">cave</span></code>, <code class="docutils literal notranslate"><span class="pre">warehouse_2</span></code>, <code class="docutils literal notranslate"><span class="pre">warehouse_4</span></code>, <code class="docutils literal notranslate"><span class="pre">large_cave</span></code>),
-<code class="docutils literal notranslate"><span class="pre">.pgm</span></code> / <code class="docutils literal notranslate"><span class="pre">.yaml</span></code> map files, and the differential-drive robot model
-(<code class="docutils literal notranslate"><span class="pre">warehouse_robot.inc</span></code>). Stage runs with a unified TF tree and
-namespace-enforced prefixes so all robots coexist in the same TF graph.</p>
+world files (<code class="docutils literal notranslate"><span class="pre">cave</span></code>, <code class="docutils literal notranslate"><span class="pre">large_cave</span></code>, <code class="docutils literal notranslate"><span class="pre">warehouse</span></code>, <code class="docutils literal notranslate"><span class="pre">warehouse_four</span></code>,
+<code class="docutils literal notranslate"><span class="pre">amongus</span></code>), <code class="docutils literal notranslate"><span class="pre">.pgm</span></code> / <code class="docutils literal notranslate"><span class="pre">.yaml</span></code> map files, and the differential-drive
+robot model (<code class="docutils literal notranslate"><span class="pre">warehouse_robot.inc</span></code>). Stage runs with a unified TF tree
+and namespace-enforced prefixes so all robots coexist in the same TF
+graph. The launch <code class="docutils literal notranslate"><span class="pre">scenario</span></code> argument is mapped to the corresponding
+world file via <code class="docutils literal notranslate"><span class="pre">scenario/common_scenarios.yaml</span></code>.</p>
 </section>
 <section id="iros-llm-swarm-simulation">
 <h3>iros_llm_swarm_simulation<a class="headerlink" href="#iros-llm-swarm-simulation" title="Link to this heading"></a></h3>
@@ -292,15 +451,20 @@ guaranteed. Kept in tree as the target for future work; use
 </section>
 <section id="iros-llm-swarm-bringup">
 <h3>iros_llm_swarm_bringup<a class="headerlink" href="#iros-llm-swarm-bringup" title="Link to this heading"></a></h3>
-<p>Top-level launch orchestration only — no node code lives here. Provides
-the four primary launch files:</p>
+<p>Top-level launch orchestration only — no node code lives here. Six
+launch files cover the supported scenarios:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">swarm_mapf.launch.py</span></code> — PBS planner stack.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">swarm_lns.launch.py</span></code> — LNS2 planner stack.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">swarm_mapf_formation.launch.py</span></code> — PBS + formation layer.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">swarm_lns_formation.launch.py</span></code> — LNS2 + formation layer.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">swarm_warehouse.launch.py</span></code> — base scenario without the MAPF
 layer (simulator + Nav2 + RViz only).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">swarm_mapf.launch.py</span></code> — PBS planner stack.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">swarm_lns.launch.py</span></code> — LNS2 planner stack (delegates the planner
+to <code class="docutils literal notranslate"><span class="pre">mapf_lns2.launch.py</span></code> from <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_mapf_lns</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">swarm_mapf_formation.launch.py</span></code> — PBS + formation layer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">swarm_lns_formation.launch.py</span></code> — LNS2 + formation layer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">swarm_full_demo.launch.py</span></code> — full stack: simulator + Nav2 +
+selectable planner (<code class="docutils literal notranslate"><span class="pre">planner:=pbs|lns</span></code>) + optional formation +
+BT runner + LLM orchestrator (channel 1 always on; channel 2
+opt-in via <code class="docutils literal notranslate"><span class="pre">enable_passive_observer:=true</span></code>) + optional rosbridge.</p></li>
 </ul>
 <p>Each one composes the simulator, Nav2, planner, per-robot followers,
 and (optionally) the formation manager / monitor with the staggered

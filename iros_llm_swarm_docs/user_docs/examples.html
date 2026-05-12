@@ -1,0 +1,946 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Examples and Usage Guide &mdash; IROS LLM Swarm Documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            IROS LLM Swarm Documentation
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">Project Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples and Usage Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture.html">System Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../packages.html">Package Map</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_bringup/index.html#http://">iros_llm_swarm_bringup</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_bt/index.html#http://">iros_llm_swarm_bt</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_costmap_plugins/index.html#http://">iros_llm_swarm_costmap_plugins</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_formation/index.html#http://">iros_llm_swarm_formation</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_interfaces/index.html#http://">iros_llm_swarm_interfaces</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_local_nav/index.html#http://">iros_llm_swarm_local_nav</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_mapf/index.html#http://">iros_llm_swarm_mapf</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_mapf_lns/index.html#http://">iros_llm_swarm_mapf_lns</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_obstacles/index.html#http://">iros_llm_swarm_obstacles</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_robot/index.html#http://">iros_llm_swarm_robot</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_simulation/index.html#http://">iros_llm_swarm_simulation</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_simulation_lite/index.html#http://">iros_llm_swarm_simulation_lite</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_orchestrator/index.html#http://">iros_llm_orchestrator</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_rviz_panel/index.html#http://">iros_llm_rviz_panel</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_rviz_tool/index.html#http://">iros_llm_rviz_tool</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">IROS LLM Swarm Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Examples and Usage Guide</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/user_docs/examples.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="examples-and-usage-guide">
+<h1>Examples and Usage Guide<a class="headerlink" href="#examples-and-usage-guide" title="Link to this heading"></a></h1>
+<p>This page is a tour of the operator-facing surface of the swarm: how to
+talk to the LLM through the RViz panel, what the system actually does
+with each command, the patterns the LLM is trained against, and the
+fallbacks (click-to-command tools, CLI, dataset inspection) when the
+panel is not the right tool.</p>
+<p>It assumes the stack is already built and you can launch the full demo.
+For the build / launch mechanics see <a class="reference internal" href="getting_started.html"><span class="doc">Getting Started</span></a>. For the
+component-level reference see <a class="reference internal" href="architecture.html"><span class="doc">System Architecture</span></a> and <a class="reference internal" href="packages.html"><span class="doc">Package Map</span></a>.</p>
+<nav class="contents local" id="on-this-page">
+<p class="topic-title">On this page</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#bringing-the-panel-up" id="id1">Bringing the panel up</a></p></li>
+<li><p><a class="reference internal" href="#anatomy-of-a-chat-turn" id="id2">Anatomy of a chat turn</a></p></li>
+<li><p><a class="reference internal" href="#robot-vocabulary-among-us-scenario" id="id3">Robot vocabulary (Among Us scenario)</a></p></li>
+<li><p><a class="reference internal" href="#your-first-chat-command" id="id4">Your first chat command</a></p></li>
+<li><p><a class="reference internal" href="#plan-structure-cheat-sheet" id="id5">Plan structure cheat sheet</a></p></li>
+<li><p><a class="reference internal" href="#common-patterns" id="id6">Common patterns</a></p></li>
+<li><p><a class="reference internal" href="#formation-deep-dive" id="id7">Formation deep dive</a></p></li>
+<li><p><a class="reference internal" href="#preview-execute-cancel" id="id8">Preview, Execute, Cancel</a></p></li>
+<li><p><a class="reference internal" href="#stop-all-vs-idle" id="id9">STOP ALL vs. <code class="docutils literal notranslate"><span class="pre">idle</span></code></a></p></li>
+<li><p><a class="reference internal" href="#click-to-command-tools-no-llm" id="id10">Click-to-command tools (no LLM)</a></p></li>
+<li><p><a class="reference internal" href="#dynamic-obstacles-and-doors-via-cli" id="id11">Dynamic obstacles and doors via CLI</a></p></li>
+<li><p><a class="reference internal" href="#channel-1-reactive" id="id12">Channel 1 — reactive</a></p></li>
+<li><p><a class="reference internal" href="#channel-2-proactive" id="id13">Channel 2 — proactive</a></p></li>
+<li><p><a class="reference internal" href="#cli-alternatives" id="id14">CLI alternatives</a></p></li>
+<li><p><a class="reference internal" href="#inspecting-the-dataset" id="id15">Inspecting the dataset</a></p></li>
+<li><p><a class="reference internal" href="#backend-selection" id="id16">Backend selection</a></p></li>
+<li><p><a class="reference internal" href="#the-mcp-context-provider" id="id17">The MCP context provider</a></p></li>
+<li><p><a class="reference internal" href="#failure-modes-and-what-to-do" id="id18">Failure modes and what to do</a></p></li>
+<li><p><a class="reference internal" href="#see-also" id="id19">See also</a></p></li>
+</ul>
+</nav>
+<section id="bringing-the-panel-up">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Bringing the panel up</a><a class="headerlink" href="#bringing-the-panel-up" title="Link to this heading"></a></h2>
+<p>Inside the dev container:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_bringup</span> <span class="n">swarm_full_demo</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span> \
+    <span class="n">scenario</span><span class="o">:=</span><span class="n">amongus</span> \
+    <span class="n">planner</span><span class="o">:=</span><span class="n">lns</span> \
+    <span class="n">enable_passive_observer</span><span class="o">:=</span><span class="n">false</span> \
+    <span class="n">llm_backend</span><span class="o">:=</span><span class="n">http</span>
+</pre></div>
+</div>
+<p>Wait for the <code class="docutils literal notranslate"><span class="pre">====</span> <span class="pre">Full</span> <span class="pre">demo</span> <span class="pre">ready</span> <span class="pre">====</span></code> line (~20 s). RViz comes up
+with the bundled <code class="docutils literal notranslate"><span class="pre">swarm_20.rviz</span></code> config, which preloads the operator
+panel and the three click-to-command tools.</p>
+<p>If the panel is not visible: <strong>Panels → Add New Panel →
+``iros_llm_rviz_panel/LLM-Panel``</strong>. Drag it to the right side of the
+RViz window; the dock split that the bundled config uses puts the panel
+beside the 3D view.</p>
+<p>Channel 1 (reactive <code class="docutils literal notranslate"><span class="pre">/llm/decision</span></code>) is always on. Add
+<code class="docutils literal notranslate"><span class="pre">enable_passive_observer:=true</span></code> to also enable channel 2 — both run
+in parallel without colliding (channel 2 checks the <code class="docutils literal notranslate"><span class="pre">llm_thinking</span></code>
+flag on <code class="docutils literal notranslate"><span class="pre">/bt/state</span></code> and skips while channel 1 is busy). Channel 3
+(operator chat) is the panel’s <em>Chat</em> tab and is always available.</p>
+</section>
+<section id="anatomy-of-a-chat-turn">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Anatomy of a chat turn</a><a class="headerlink" href="#anatomy-of-a-chat-turn" title="Link to this heading"></a></h2>
+<p>When you press <strong>Send</strong> in the <em>Chat</em> tab, this is what happens
+end-to-end:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>┌─────────────┐  text  ┌────────────┐  prompt   ┌──────────┐
+│ RViz panel  │───────▶│ chat_server│──────────▶│   LLM    │
+│ (Chat tab)  │        │ (channel 3)│           │ backend  │
+└─────────────┘        └────────────┘           └────┬─────┘
+       ▲                      │ stream chunks         │ token stream
+       │ feedback             │                       │
+       │  (stage, chunk,      │ parse two-line        │
+       │   detail)            │ output → reply +      │
+       │                      │ plan JSON             │
+       │                      ▼
+       │              ┌──────────────────┐  /llm/command
+       │              │  PlanExecutor    │──────────────▶  BT runner
+       │              │  (sequence /     │
+       │              │   parallel /     │
+       │              │   leaves)        │
+       │              └──────────────────┘
+       │                      │
+       │                      │ on failure: refresh runtime
+       │                      │ context (MCP read-only) + retry
+       │                      │ up to max_remediation_attempts
+       │                      ▼
+       │              result: final_reply,
+       │              plan_json, success,
+       │              plan_executed
+       ▼
+LlmEvent on /llm/events
+JSONL append in ~/.ros/llm_commands/
+</pre></div>
+</div>
+<p>Feedback stages on <code class="docutils literal notranslate"><span class="pre">/llm/chat</span></code> (visible in the Events tab and consumed
+by the panel for the streaming reply):</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 18.0%" />
+<col style="width: 82.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Stage</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">thinking</span></code></p></td>
+<td><p>Request sent, waiting for the first token from the LLM.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">streaming</span></code></p></td>
+<td><p>Each <code class="docutils literal notranslate"><span class="pre">streaming</span></code> feedback carries one <code class="docutils literal notranslate"><span class="pre">chunk</span></code> of the reply
+text. The Chat tab appends the chunk to the conversation view.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">parsed</span></code></p></td>
+<td><p>Plan JSON ready. <code class="docutils literal notranslate"><span class="pre">detail</span></code> carries the JSON; the Chat tab fills
+the plan tree if <em>Preview</em> is on.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">executing</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PlanExecutor</span></code> is walking the plan tree. <code class="docutils literal notranslate"><span class="pre">detail</span></code> describes
+the current leaf (<code class="docutils literal notranslate"><span class="pre">mapf</span> <span class="pre">robot_ids=[...]</span></code>,
+<code class="docutils literal notranslate"><span class="pre">formation</span> <span class="pre">cyan_line</span></code>, <code class="docutils literal notranslate"><span class="pre">idle</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">done</span></code> / <code class="docutils literal notranslate"><span class="pre">error</span></code></p></td>
+<td><p>Terminal. <code class="docutils literal notranslate"><span class="pre">Result.success</span></code> mirrors the stage.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="robot-vocabulary-among-us-scenario">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Robot vocabulary (Among Us scenario)</a><a class="headerlink" href="#robot-vocabulary-among-us-scenario" title="Link to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">amongus</span></code> scenario maps the 20 robots into 5 colour groups, each
+spawned in a different room. The system prompt and the runtime context
+both reference these groups, so the LLM understands “yellow”,
+“жёлтые”, “циан”, and so on without further hints. Definitions live in
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation_lite/map_descriptions/amongus_description.yaml</span></code>.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 12.0%" />
+<col style="width: 12.0%" />
+<col style="width: 26.0%" />
+<col style="width: 26.0%" />
+<col style="width: 24.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Group</p></th>
+<th class="head"><p>Robot ids</p></th>
+<th class="head"><p>Spawn / home</p></th>
+<th class="head"><p>Aliases</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>cyan</p></td>
+<td><p>0, 1, 2, 3</p></td>
+<td><p>Upper Engine <code class="docutils literal notranslate"><span class="pre">(-21.9,</span> <span class="pre">9.9)</span></code></p></td>
+<td><p>cyan, голубые, циан</p></td>
+<td><p>Top-left dead-end spur.</p></td>
+</tr>
+<tr class="row-odd"><td><p>magenta</p></td>
+<td><p>4, 5, 6, 7</p></td>
+<td><p>Electrical <code class="docutils literal notranslate"><span class="pre">(-8.7,</span> <span class="pre">-5.9)</span></code></p></td>
+<td><p>magenta, розовые, магента</p></td>
+<td><p>Lower-center-left.</p></td>
+</tr>
+<tr class="row-even"><td><p>green</p></td>
+<td><p>8, 9, 10, 11</p></td>
+<td><p>Navigation <code class="docutils literal notranslate"><span class="pre">(28.5,</span> <span class="pre">1.9)</span></code></p></td>
+<td><p>green, зелёные, зеленые</p></td>
+<td><p>Far east dead-end spur.</p></td>
+</tr>
+<tr class="row-odd"><td><p>orange</p></td>
+<td><p>12, 13, 14, 15</p></td>
+<td><p>Storage <code class="docutils literal notranslate"><span class="pre">(0.6,</span> <span class="pre">-10.9)</span></code></p></td>
+<td><p>orange, оранжевые</p></td>
+<td><p>Bottom-center; ~3 m formation room.</p></td>
+</tr>
+<tr class="row-even"><td><p>yellow</p></td>
+<td><p>16, 17, 18, 19</p></td>
+<td><p>Weapons <code class="docutils literal notranslate"><span class="pre">(17.6,</span> <span class="pre">10.7)</span></code></p></td>
+<td><p>yellow, жёлтые, желтые</p></td>
+<td><p>Top-right dead-end spur.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Named locations (subset — see the YAML for the full 14):
+<code class="docutils literal notranslate"><span class="pre">cafeteria</span> <span class="pre">(2.7,</span> <span class="pre">10.1)</span></code>, <code class="docutils literal notranslate"><span class="pre">reactor</span> <span class="pre">(-28.4,</span> <span class="pre">0.9)</span></code>,
+<code class="docutils literal notranslate"><span class="pre">medbay</span> <span class="pre">(-9.5,</span> <span class="pre">4.0)</span></code>, <code class="docutils literal notranslate"><span class="pre">admin</span> <span class="pre">(4.0,</span> <span class="pre">0.0)</span></code>,
+<code class="docutils literal notranslate"><span class="pre">navigation</span> <span class="pre">(29.5,</span> <span class="pre">1.9)</span></code>, <code class="docutils literal notranslate"><span class="pre">electrical</span> <span class="pre">(-8.7,</span> <span class="pre">-5.9)</span></code>,
+<code class="docutils literal notranslate"><span class="pre">storage</span> <span class="pre">(0.6,</span> <span class="pre">-10.9)</span></code>, <code class="docutils literal notranslate"><span class="pre">communications</span> <span class="pre">(17.6,</span> <span class="pre">-9.7)</span></code>.</p>
+<p>English aliases include <code class="docutils literal notranslate"><span class="pre">cafe</span></code>, <code class="docutils literal notranslate"><span class="pre">caf</span></code>, <code class="docutils literal notranslate"><span class="pre">med</span> <span class="pre">bay</span></code>, <code class="docutils literal notranslate"><span class="pre">nav</span></code>,
+<code class="docutils literal notranslate"><span class="pre">comms</span></code>, <code class="docutils literal notranslate"><span class="pre">elec</span></code>, <code class="docutils literal notranslate"><span class="pre">upper</span></code>, <code class="docutils literal notranslate"><span class="pre">lower</span></code>. Russian aliases include
+<code class="docutils literal notranslate"><span class="pre">кафетерий</span></code>, <code class="docutils literal notranslate"><span class="pre">столовая</span></code>, <code class="docutils literal notranslate"><span class="pre">оружейная</span></code>, <code class="docutils literal notranslate"><span class="pre">навигация</span></code>, <code class="docutils literal notranslate"><span class="pre">связь</span></code>,
+<code class="docutils literal notranslate"><span class="pre">склад</span></code>, <code class="docutils literal notranslate"><span class="pre">админ</span></code>, <code class="docutils literal notranslate"><span class="pre">медотсек</span></code>, <code class="docutils literal notranslate"><span class="pre">реактор</span></code>.</p>
+<p>Other scenarios (<code class="docutils literal notranslate"><span class="pre">cave</span></code>, <code class="docutils literal notranslate"><span class="pre">warehouse_2</span></code>, <code class="docutils literal notranslate"><span class="pre">warehouse_4</span></code>,
+<code class="docutils literal notranslate"><span class="pre">large_cave</span></code>) define their own groups, locations, and aliases in the
+matching <code class="docutils literal notranslate"><span class="pre">*_description.yaml</span></code>.</p>
+</section>
+<section id="your-first-chat-command">
+<h2><a class="toc-backref" href="#id4" role="doc-backlink">Your first chat command</a><a class="headerlink" href="#your-first-chat-command" title="Link to this heading"></a></h2>
+<p>Type into the Chat tab:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">yellow</span> <span class="n">to</span> <span class="n">weapons</span>
+</pre></div>
+</div>
+<p>Press <strong>Send</strong>. Within ~1–3 s of “thinking”, the conversation view
+streams:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Sending</span> <span class="n">yellow</span> <span class="n">group</span> <span class="n">to</span> <span class="n">Weapons</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>Open the <em>BT</em> tab — the <code class="docutils literal notranslate"><span class="pre">mode</span></code> row flips from <code class="docutils literal notranslate"><span class="pre">idle</span></code> to <code class="docutils literal notranslate"><span class="pre">mapf</span></code> and
+<code class="docutils literal notranslate"><span class="pre">active_action</span></code> becomes <code class="docutils literal notranslate"><span class="pre">MapfPlan</span></code>. The <em>MAPF</em> tab shows the four
+yellow robots as <code class="docutils literal notranslate"><span class="pre">active</span></code>; the progress bar grows as they arrive.
+Inspect the actual plan emitted by the LLM with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ros2</span> <span class="n">topic</span> <span class="n">echo</span> <span class="o">--</span><span class="n">once</span> <span class="o">/</span><span class="n">llm</span><span class="o">/</span><span class="n">events</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">output</span></code> field carries the parsed JSON:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;mapf&quot;</span><span class="p">,</span>
+ <span class="s2">&quot;robot_ids&quot;</span><span class="p">:[</span><span class="mi">16</span><span class="p">,</span><span class="mi">17</span><span class="p">,</span><span class="mi">18</span><span class="p">,</span><span class="mi">19</span><span class="p">],</span>
+ <span class="s2">&quot;goals&quot;</span><span class="p">:[[</span><span class="mf">17.6</span><span class="p">,</span><span class="mf">10.7</span><span class="p">],[</span><span class="mf">17.6</span><span class="p">,</span><span class="mf">10.7</span><span class="p">],[</span><span class="mf">17.6</span><span class="p">,</span><span class="mf">10.7</span><span class="p">],[</span><span class="mf">17.6</span><span class="p">,</span><span class="mf">10.7</span><span class="p">]],</span>
+ <span class="s2">&quot;reason&quot;</span><span class="p">:</span><span class="s2">&quot;yellow to weapons&quot;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>The PlanExecutor walks the tree (here a single <code class="docutils literal notranslate"><span class="pre">mapf</span></code> leaf), packages
+it as an <code class="docutils literal notranslate"><span class="pre">LlmCommand{mode=mapf,</span> <span class="pre">robot_ids=[16,17,18,19],</span> <span class="pre">goals=[…]}</span></code>
+and calls <code class="docutils literal notranslate"><span class="pre">/llm/command</span></code>. <code class="docutils literal notranslate"><span class="pre">LlmCommandReceiver</span></code> (in the BT runner)
+applies it to the BT blackboard, <code class="docutils literal notranslate"><span class="pre">ModeDispatch</span></code> ticks <code class="docutils literal notranslate"><span class="pre">MapfPlan</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">MapfPlan</span></code> calls <code class="docutils literal notranslate"><span class="pre">/swarm/set_goals</span></code> on the active planner
+(<code class="docutils literal notranslate"><span class="pre">mapf_lns2_node</span></code> for <code class="docutils literal notranslate"><span class="pre">planner:=lns</span></code>). The planner spreads the four
+identical goals into a 1 m grid around the click and produces
+collision-free time-indexed plans on <code class="docutils literal notranslate"><span class="pre">/robot_*/mapf_plan</span></code>. The LNS2
+follower (<code class="docutils literal notranslate"><span class="pre">lns_motion_controller</span></code>) starts publishing
+<code class="docutils literal notranslate"><span class="pre">FollowerStatus</span></code>; the planner’s schedule monitor watches deviation;
+the action stays alive until every robot is within <code class="docutils literal notranslate"><span class="pre">goal_reached_m</span></code>.</p>
+</section>
+<section id="plan-structure-cheat-sheet">
+<h2><a class="toc-backref" href="#id5" role="doc-backlink">Plan structure cheat sheet</a><a class="headerlink" href="#plan-structure-cheat-sheet" title="Link to this heading"></a></h2>
+<p>Leaf nodes:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 18.0%" />
+<col style="width: 82.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Body</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mapf</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{&quot;type&quot;:&quot;mapf&quot;,</span> <span class="pre">&quot;robot_ids&quot;:[...],</span> <span class="pre">&quot;goals&quot;:[[x,y],...],</span> <span class="pre">&quot;reason&quot;:&quot;...&quot;}</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">formation</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{&quot;type&quot;:&quot;formation&quot;,</span> <span class="pre">&quot;formation_id&quot;:&quot;&lt;name&gt;&quot;,</span>
+<span class="pre">&quot;leader_ns&quot;:&quot;robot_N&quot;,</span> <span class="pre">&quot;follower_ns&quot;:[...],</span>
+<span class="pre">&quot;offsets_x&quot;:[...],</span> <span class="pre">&quot;offsets_y&quot;:[...],</span> <span class="pre">&quot;reason&quot;:&quot;...&quot;}</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">idle</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{&quot;type&quot;:&quot;idle&quot;,</span> <span class="pre">&quot;reason&quot;:&quot;...&quot;}</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>Containers:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 18.0%" />
+<col style="width: 82.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Body</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sequence</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{&quot;type&quot;:&quot;sequence&quot;,</span> <span class="pre">&quot;steps&quot;:[...]}</span></code> — execute children one by
+one in order.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">parallel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{&quot;type&quot;:&quot;parallel&quot;,</span> <span class="pre">&quot;steps&quot;:[...]}</span></code> — execute children at the
+same time, wait for all.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Nesting is allowed. The system prompt also defines a few reason
+prefixes on <code class="docutils literal notranslate"><span class="pre">idle</span></code> leaves that have special meaning:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">reply_only:</span></code> — factual answer, no robot motion.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">operator</span> <span class="pre">stop</span></code> — operator-requested stop.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">needs_help:</span> <span class="pre">&lt;q&gt;</span></code> — the LLM cannot decide; the question is in
+<code class="docutils literal notranslate"><span class="pre">reply</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">clarify:</span> <span class="pre">&lt;q&gt;</span></code> — the LLM picked a default but wants confirmation.</p></li>
+</ul>
+</section>
+<section id="common-patterns">
+<h2><a class="toc-backref" href="#id6" role="doc-backlink">Common patterns</a><a class="headerlink" href="#common-patterns" title="Link to this heading"></a></h2>
+<p>The system prompt is trained on the patterns below. Adapt them to your
+own scenarios; the LLM understands the underlying intent (parallel vs.
+sequence, single-group vs. multi-group, formation vs. autonomous, stop)
+in both English and Russian.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 32.0%" />
+<col style="width: 68.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Operator phrase</p></th>
+<th class="head"><p>Plan</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">yellow</span> <span class="pre">to</span> <span class="pre">weapons</span></code></p></td>
+<td><p>Single <code class="docutils literal notranslate"><span class="pre">mapf</span></code> leaf, four ids at one cluster goal.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">yellow</span> <span class="pre">to</span> <span class="pre">east,</span> <span class="pre">green</span> <span class="pre">to</span> <span class="pre">west</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">parallel</span></code> with two <code class="docutils literal notranslate"><span class="pre">mapf</span></code> leaves.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cyan</span> <span class="pre">to</span> <span class="pre">hub,</span> <span class="pre">then</span> <span class="pre">form</span> <span class="pre">a</span> <span class="pre">wedge</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sequence</span></code>: cluster <code class="docutils literal notranslate"><span class="pre">mapf</span></code> (no formation yet, all 4 ids), then
+<code class="docutils literal notranslate"><span class="pre">formation</span></code> leaf with <code class="docutils literal notranslate"><span class="pre">cyan_wedge</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cyan</span> <span class="pre">and</span> <span class="pre">magenta</span> <span class="pre">to</span> <span class="pre">hub,</span> <span class="pre">then</span> <span class="pre">cyan</span> <span class="pre">forms</span> <span class="pre">a</span> <span class="pre">line</span> <span class="pre">while</span> <span class="pre">magenta</span> <span class="pre">goes</span> <span class="pre">home</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sequence</span></code> of two <code class="docutils literal notranslate"><span class="pre">parallel</span></code> blocks.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">magenta</span> <span class="pre">домой</span></code></p></td>
+<td><p>Single <code class="docutils literal notranslate"><span class="pre">mapf</span></code> leaf with <code class="docutils literal notranslate"><span class="pre">goals</span></code> set to spawn coordinates from
+<code class="docutils literal notranslate"><span class="pre">robot_groups.magenta.home</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">stop</span></code> / <code class="docutils literal notranslate"><span class="pre">стоп</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{&quot;type&quot;:&quot;idle&quot;,</span> <span class="pre">&quot;reason&quot;:&quot;operator</span> <span class="pre">stop&quot;}</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">where</span> <span class="pre">is</span> <span class="pre">robot</span> <span class="pre">7?</span></code></p></td>
+<td><p>Reply-only; <code class="docutils literal notranslate"><span class="pre">{&quot;type&quot;:&quot;idle&quot;,</span> <span class="pre">&quot;reason&quot;:&quot;reply_only:</span> <span class="pre">...&quot;}</span></code>. The
+reply field carries the answer; no robots move.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The system prompt also contains worked examples for the trickier
+formation cases — see the next section.</p>
+</section>
+<section id="formation-deep-dive">
+<h2><a class="toc-backref" href="#id7" role="doc-backlink">Formation deep dive</a><a class="headerlink" href="#formation-deep-dive" title="Link to this heading"></a></h2>
+<p>Formations are leader-follower. The <code class="docutils literal notranslate"><span class="pre">formation_manager</span></code> activates a
+formation <strong>only when every follower is within 0.5 m of</strong>
+<code class="docutils literal notranslate"><span class="pre">leader_xy</span> <span class="pre">+</span> <span class="pre">(offset_x,</span> <span class="pre">offset_y)</span></code>. A bare <code class="docutils literal notranslate"><span class="pre">formation</span></code> leaf sent
+while followers are out of position will be <strong>rejected</strong>, no robot
+moves, and the chat turn fails. The system prompt enforces a mandatory
+pre-check that the LLM applies before emitting any formation leaf.</p>
+<p>Common offset patterns (leader faces +x by default; +x = forward,
++y = left in the leader’s body frame):</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 24.0%" />
+<col style="width: 38.0%" />
+<col style="width: 38.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Pattern</p></th>
+<th class="head"><p>offsets_x</p></th>
+<th class="head"><p>offsets_y</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Line behind (3 followers)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[-1.5,</span> <span class="pre">-3.0,</span> <span class="pre">-4.5]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0]</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Wedge (2 followers)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[-1.0,</span> <span class="pre">-1.0]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[0.6,</span> <span class="pre">-0.6]</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Echelon left (2 followers)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[-1.5,</span> <span class="pre">-3.0]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[1.0,</span> <span class="pre">2.0]</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Abreast (2 followers)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[0.0,</span> <span class="pre">0.0]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[1.5,</span> <span class="pre">-1.5]</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Staging rule.</strong> Worked example with magenta (ids 4–7) currently
+spread out:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Operator: &quot;magenta form a line&quot;
+
+runtime_context.robots:
+  &quot;4&quot;: { &quot;x&quot;:-9.45, &quot;y&quot;:-6.65, &quot;yaw&quot;:0.0, &quot;stale_ms&quot;:48 }
+  &quot;5&quot;: { &quot;x&quot;:-7.95, &quot;y&quot;:-6.65, ... }
+  &quot;6&quot;: { &quot;x&quot;:-9.45, &quot;y&quot;:-5.15, ... }
+  &quot;7&quot;: { &quot;x&quot;:-7.95, &quot;y&quot;:-5.15, ... }
+
+Pre-check (offsets behind robot_4 = leader):
+  target_5 = (-9.45 - 1.5, -6.65) = (-10.95, -6.65)   distance 3.00 m
+  target_6 = (-9.45 - 3.0, -6.65) = (-12.45, -6.65)   distance 3.35 m
+  target_7 = (-9.45 - 4.5, -6.65) = (-13.95, -6.65)   distance 6.18 m
+
+All &gt; 0.5 m → stage first.
+</pre></div>
+</div>
+<p>The LLM emits a sequence:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">&quot;reply&quot;</span><span class="p">:</span><span class="s2">&quot;Staging magenta followers behind robot_4, then forming a line.&quot;</span><span class="p">,</span>
+ <span class="s2">&quot;plan&quot;</span><span class="p">:{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;sequence&quot;</span><span class="p">,</span><span class="s2">&quot;steps&quot;</span><span class="p">:[</span>
+   <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;mapf&quot;</span><span class="p">,</span><span class="s2">&quot;robot_ids&quot;</span><span class="p">:[</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">],</span>
+    <span class="s2">&quot;goals&quot;</span><span class="p">:[[</span><span class="o">-</span><span class="mf">10.95</span><span class="p">,</span><span class="o">-</span><span class="mf">6.65</span><span class="p">],[</span><span class="o">-</span><span class="mf">12.45</span><span class="p">,</span><span class="o">-</span><span class="mf">6.65</span><span class="p">],[</span><span class="o">-</span><span class="mf">13.95</span><span class="p">,</span><span class="o">-</span><span class="mf">6.65</span><span class="p">]],</span>
+    <span class="s2">&quot;reason&quot;</span><span class="p">:</span><span class="s2">&quot;stage magenta followers at line offsets&quot;</span><span class="p">},</span>
+   <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;formation&quot;</span><span class="p">,</span><span class="s2">&quot;formation_id&quot;</span><span class="p">:</span><span class="s2">&quot;magenta_line&quot;</span><span class="p">,</span><span class="s2">&quot;leader_ns&quot;</span><span class="p">:</span><span class="s2">&quot;robot_4&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;follower_ns&quot;</span><span class="p">:[</span><span class="s2">&quot;robot_5&quot;</span><span class="p">,</span><span class="s2">&quot;robot_6&quot;</span><span class="p">,</span><span class="s2">&quot;robot_7&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;offsets_x&quot;</span><span class="p">:[</span><span class="o">-</span><span class="mf">1.5</span><span class="p">,</span><span class="o">-</span><span class="mf">3.0</span><span class="p">,</span><span class="o">-</span><span class="mf">4.5</span><span class="p">],</span><span class="s2">&quot;offsets_y&quot;</span><span class="p">:[</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="mf">0.0</span><span class="p">],</span>
+    <span class="s2">&quot;reason&quot;</span><span class="p">:</span><span class="s2">&quot;line behind robot_4&quot;</span><span class="p">}</span>
+ <span class="p">]}}</span>
+</pre></div>
+</div>
+<p><strong>Movement rule.</strong> Once a formation is active, followers run in
+<code class="docutils literal notranslate"><span class="pre">FORMATION_FOLLOWER</span></code> mode and ignore their own MAPF goals. To move the
+formation as a unit, the <code class="docutils literal notranslate"><span class="pre">mapf</span></code> leaf must contain <strong>only the
+leader’s id</strong>. The followers chase the leader’s pose via
+<code class="docutils literal notranslate"><span class="pre">/formations/config</span></code>. Operator phrasings that mean this:
+“send the line to X”, “move the wedge to Y”, “формация magenta к
+центру”, “&lt;color&gt; line, head to &lt;place&gt;”:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Operator</span><span class="p">:</span> <span class="s2">&quot;send the magenta line to the central hub&quot;</span>
+<span class="n">runtime_context</span><span class="o">.</span><span class="n">formations</span><span class="p">:</span>
+  <span class="p">[</span> <span class="p">{</span><span class="n">formation_id</span><span class="p">:</span><span class="s2">&quot;magenta_line&quot;</span><span class="p">,</span> <span class="n">leader_ns</span><span class="p">:</span><span class="s2">&quot;robot_4&quot;</span><span class="p">,</span>
+     <span class="n">followers</span><span class="p">:[</span><span class="s2">&quot;robot_5&quot;</span><span class="p">,</span><span class="s2">&quot;robot_6&quot;</span><span class="p">,</span><span class="s2">&quot;robot_7&quot;</span><span class="p">],</span> <span class="n">status</span><span class="p">:</span><span class="s2">&quot;STABLE&quot;</span><span class="p">}</span> <span class="p">]</span>
+
+<span class="p">{</span><span class="s2">&quot;reply&quot;</span><span class="p">:</span><span class="s2">&quot;Moving robot_4 to the central hub — the magenta line follows.&quot;</span><span class="p">,</span>
+ <span class="s2">&quot;plan&quot;</span><span class="p">:{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span><span class="s2">&quot;mapf&quot;</span><span class="p">,</span><span class="s2">&quot;robot_ids&quot;</span><span class="p">:[</span><span class="mi">4</span><span class="p">],</span><span class="s2">&quot;goals&quot;</span><span class="p">:[[</span><span class="o">-</span><span class="mf">6.0</span><span class="p">,</span><span class="mf">2.0</span><span class="p">]],</span>
+         <span class="s2">&quot;reason&quot;</span><span class="p">:</span><span class="s2">&quot;move magenta_line leader to central_hub&quot;</span><span class="p">}}</span>
+</pre></div>
+</div>
+<p>If the operator asks to <em>form X and go to Y</em> in the same turn, the LLM
+emits a three-step sequence: stage followers → activate formation →
+move leader.</p>
+</section>
+<section id="preview-execute-cancel">
+<h2><a class="toc-backref" href="#id8" role="doc-backlink">Preview, Execute, Cancel</a><a class="headerlink" href="#preview-execute-cancel" title="Link to this heading"></a></h2>
+<p>The Chat tab has a <strong>Preview</strong> checkbox above the input. When it is on,
+the panel still calls <code class="docutils literal notranslate"><span class="pre">/llm/chat</span></code> but with
+<code class="docutils literal notranslate"><span class="pre">execute_after_planning=false</span></code>. The orchestrator generates the reply
+and the plan, but <strong>does not</strong> dispatch leaves; instead it returns the
+plan JSON in the action result.</p>
+<p>The panel parses the JSON and renders it as a tree under the
+conversation view (one row per node, with type and key fields shown
+inline). The bottom row exposes:</p>
+<ul class="simple">
+<li><p><strong>Execute</strong> — sends the buffered plan JSON to <code class="docutils literal notranslate"><span class="pre">/llm/execute_plan</span></code>.
+<code class="docutils literal notranslate"><span class="pre">execute_server</span></code> replays the plan deterministically (no second LLM
+call). Use this when you want to read the LLM’s intent before it
+touches the robots.</p></li>
+<li><p><strong>Cancel</strong> — drops the buffered plan and clears the tree. The robots
+do nothing.</p></li>
+</ul>
+<p>When <em>Preview</em> is off, the LLM call and execution are atomic — the
+plan dispatches as soon as the LLM emits <code class="docutils literal notranslate"><span class="pre">parsed</span></code> and the
+PlanExecutor walks it; the tree is shown only as a record.</p>
+</section>
+<section id="stop-all-vs-idle">
+<h2><a class="toc-backref" href="#id9" role="doc-backlink">STOP ALL vs. <code class="docutils literal notranslate"><span class="pre">idle</span></code></a><a class="headerlink" href="#stop-all-vs-idle" title="Link to this heading"></a></h2>
+<p>Two ways to halt the swarm; they look similar but go through different
+code paths.</p>
+<ul class="simple">
+<li><p><strong>STOP ALL button</strong> (top-right of the panel) — bypasses the LLM
+entirely. The panel publishes
+<code class="docutils literal notranslate"><span class="pre">LlmCommand{mode=&quot;idle&quot;,</span> <span class="pre">reason=&quot;rviz_stop_all&quot;}</span></code> to <code class="docutils literal notranslate"><span class="pre">/llm/command</span></code>
+directly. <code class="docutils literal notranslate"><span class="pre">LlmCommandReceiver</span></code> applies it to the BT blackboard;
+<code class="docutils literal notranslate"><span class="pre">ModeDispatch</span></code> switches to the idle branch on the next tick;
+<code class="docutils literal notranslate"><span class="pre">DisableFormation</span></code> deactivates any active formation; running MAPF
+goals are cancelled and <code class="docutils literal notranslate"><span class="pre">/swarm/set_goals</span></code> returns <code class="docutils literal notranslate"><span class="pre">CANCELLED</span></code>.
+No JSONL record is written for channel 3 because no LLM call was
+made.</p></li>
+<li><p><strong>Typing “stop” / “стоп” in chat</strong> — goes through the LLM, which
+returns
+<code class="docutils literal notranslate"><span class="pre">{&quot;reply&quot;:&quot;Stopping</span> <span class="pre">all</span> <span class="pre">robots.&quot;,</span> <span class="pre">&quot;plan&quot;:{&quot;type&quot;:&quot;idle&quot;,&quot;reason&quot;:&quot;operator</span> <span class="pre">stop&quot;}}</span></code>.
+The PlanExecutor turns the <code class="docutils literal notranslate"><span class="pre">idle</span></code> leaf into the same
+<code class="docutils literal notranslate"><span class="pre">LlmCommand{mode=idle}</span></code> call as STOP ALL, plus a JSONL record on
+<code class="docutils literal notranslate"><span class="pre">~/.ros/llm_commands/</span></code>. Slower (one LLM round-trip), but creates a
+training datum. Prefer STOP ALL for emergencies.</p></li>
+</ul>
+</section>
+<section id="click-to-command-tools-no-llm">
+<h2><a class="toc-backref" href="#id10" role="doc-backlink">Click-to-command tools (no LLM)</a><a class="headerlink" href="#click-to-command-tools-no-llm" title="Link to this heading"></a></h2>
+<p>When you want a deterministic, scriptable, non-LLM command path —
+demos, ground-truth comparisons, tests — use the three RViz tools
+from <code class="docutils literal notranslate"><span class="pre">iros_llm_rviz_tool</span></code>:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14.0%" />
+<col style="width: 16.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Tool</p></th>
+<th class="head"><p>Workflow</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">g</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">SendLlmGoalTool</span></code></p></td>
+<td><p>Click on the map → group picker dialog → N goals are spread
+around the click point at 1.5 m spacing → dispatched as
+<code class="docutils literal notranslate"><span class="pre">LlmCommand{mode=mapf}</span></code> to <code class="docutils literal notranslate"><span class="pre">/llm/command</span></code> → BT picks it up.
+No <code class="docutils literal notranslate"><span class="pre">/llm/chat</span></code> call, no JSONL record on the chat dataset.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">b</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">PlaceObstacleTool</span></code></p></td>
+<td><p>Choose <strong>Shape</strong> (Circle / Rectangle / Door) and the size in the
+Tool Properties panel. Left-click adds the obstacle at the
+clicked ground-plane point; right-click removes the nearest
+obstacle. Talks to <code class="docutils literal notranslate"><span class="pre">/obstacles/{add_*,</span> <span class="pre">list,</span> <span class="pre">remove}</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">d</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DoorTool</span></code></p></td>
+<td><p>Set the <strong>Door ID</strong> in the Tool Properties panel. Left-click
+calls <code class="docutils literal notranslate"><span class="pre">/doors/open</span></code>; right-click calls <code class="docutils literal notranslate"><span class="pre">/doors/close</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+<p>These tools require <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_obstacles</span></code> to be running for
+<code class="docutils literal notranslate"><span class="pre">b</span></code> / <code class="docutils literal notranslate"><span class="pre">d</span></code>. The full demo does not yet wire it in by default —
+launch <code class="docutils literal notranslate"><span class="pre">dynamic_obstacle_manager</span></code> separately or compose it into a
+custom launch:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>ros2 run iros_llm_swarm_obstacles dynamic_obstacle_manager \
+    --ros-args \
+        -p raw_map_topic:=/raw_map \
+        -p scenario_file:=$(ros2 pkg prefix iros_llm_swarm_simulation_lite)/share/iros_llm_swarm_simulation_lite/scenario/common_scenarios.yaml \
+        -p scenario_name:=amongus
+</pre></div>
+</div>
+<p>(Repoint the static map server to publish on <code class="docutils literal notranslate"><span class="pre">/raw_map</span></code> first;
+<code class="docutils literal notranslate"><span class="pre">zone_map_server</span></code> and <code class="docutils literal notranslate"><span class="pre">dynamic_obstacle_manager</span></code> cannot both own
+<code class="docutils literal notranslate"><span class="pre">/map</span></code> simultaneously — see <a class="reference internal" href="packages.html"><span class="doc">Package Map</span></a> for the integration
+note.)</p>
+</section>
+<section id="dynamic-obstacles-and-doors-via-cli">
+<h2><a class="toc-backref" href="#id11" role="doc-backlink">Dynamic obstacles and doors via CLI</a><a class="headerlink" href="#dynamic-obstacles-and-doors-via-cli" title="Link to this heading"></a></h2>
+<p>If RViz is not the right tool — scripted scenarios, automated tests,
+remote operation — call the services directly:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Block a corridor with a 0.5 m circle</span>
+<span class="n">ros2</span> <span class="n">service</span> <span class="n">call</span> <span class="o">/</span><span class="n">obstacles</span><span class="o">/</span><span class="n">add_circle</span> \
+    <span class="n">iros_llm_swarm_interfaces</span><span class="o">/</span><span class="n">srv</span><span class="o">/</span><span class="n">AddCircle</span> \
+    <span class="s2">&quot;{id: &#39;box1&#39;, position: {x: 10.0, y: 5.0, z: 0.0}, radius: 0.5}&quot;</span>
+
+<span class="c1"># Drop a 1 × 2 m wall</span>
+<span class="n">ros2</span> <span class="n">service</span> <span class="n">call</span> <span class="o">/</span><span class="n">obstacles</span><span class="o">/</span><span class="n">add_rectangle</span> \
+    <span class="n">iros_llm_swarm_interfaces</span><span class="o">/</span><span class="n">srv</span><span class="o">/</span><span class="n">AddRectangle</span> \
+    <span class="s2">&quot;{id: &#39;wall1&#39;, position: {x: -3.0, y: 0.0, z: 0.0}, width: 1.0, height: 2.0}&quot;</span>
+
+<span class="c1"># Close a door declared in the scenario</span>
+<span class="n">ros2</span> <span class="n">service</span> <span class="n">call</span> <span class="o">/</span><span class="n">doors</span><span class="o">/</span><span class="n">close</span> \
+    <span class="n">iros_llm_swarm_interfaces</span><span class="o">/</span><span class="n">srv</span><span class="o">/</span><span class="n">CloseDoor</span> \
+    <span class="s2">&quot;{door_id: &#39;corridor_center&#39;}&quot;</span>
+
+<span class="c1"># Read state</span>
+<span class="n">ros2</span> <span class="n">service</span> <span class="n">call</span> <span class="o">/</span><span class="n">obstacles</span><span class="o">/</span><span class="nb">list</span> \
+    <span class="n">iros_llm_swarm_interfaces</span><span class="o">/</span><span class="n">srv</span><span class="o">/</span><span class="n">ListObstacles</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span>
+
+<span class="c1"># Remove</span>
+<span class="n">ros2</span> <span class="n">service</span> <span class="n">call</span> <span class="o">/</span><span class="n">obstacles</span><span class="o">/</span><span class="n">remove</span> \
+    <span class="n">iros_llm_swarm_interfaces</span><span class="o">/</span><span class="n">srv</span><span class="o">/</span><span class="n">RemoveObstacle</span> <span class="s2">&quot;{id: &#39;box1&#39;}&quot;</span>
+</pre></div>
+</div>
+<p>The merged map is republished on <code class="docutils literal notranslate"><span class="pre">/map</span></code> with <code class="docutils literal notranslate"><span class="pre">TRANSIENT_LOCAL</span></code> QoS
+so any planner / costmap that joins late picks up the latest state.</p>
+</section>
+<section id="channel-1-reactive">
+<h2><a class="toc-backref" href="#id12" role="doc-backlink">Channel 1 — reactive</a><a class="headerlink" href="#channel-1-reactive" title="Link to this heading"></a></h2>
+<p>Channel 1 fires when a BT action node produces a WARN or ERROR while it
+is active. The most frequent triggers are MAPF planner failures and
+formation rejection.</p>
+<p>Trace one through the system:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Provoke a stress scenario from another shell</span>
+<span class="n">ros2</span> <span class="n">run</span> <span class="n">iros_llm_swarm_bt</span> <span class="n">fleet_cmd</span> <span class="o">--</span><span class="n">scenario</span> <span class="n">stress</span>
+</pre></div>
+</div>
+<p>You should see in the launch log:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[test_bt_runner] MapfPlan: action accepted
+[mapf_lns2_node] LNS2 timed out at iter 12 (4500 ms)
+[test_bt_runner] MapfPlan: status=WARN replans_done=2
+[decision_server] /llm/decision call (channel 1) — trigger: stress, status=WARN
+[decision_server] reply: replan
+[test_bt_runner] applying decision: replan
+</pre></div>
+</div>
+<p>In the panel’s <em>BT</em> tab, <code class="docutils literal notranslate"><span class="pre">llm_thinking</span></code> flips to <code class="docutils literal notranslate"><span class="pre">true</span></code> for the
+duration of the LLM call, then back to <code class="docutils literal notranslate"><span class="pre">false</span></code> once a verdict
+arrives. The <em>Events</em> tab shows one row with <code class="docutils literal notranslate"><span class="pre">channel=1</span></code>,
+<code class="docutils literal notranslate"><span class="pre">trigger=&quot;stress</span> <span class="pre">/</span> <span class="pre">status=WARN</span> <span class="pre">...&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">output=&quot;replan&quot;</span></code>, and the
+LLM’s <code class="docutils literal notranslate"><span class="pre">reason</span></code> text. The decision is also appended to
+<code class="docutils literal notranslate"><span class="pre">~/.ros/llm_decisions/decisions_YYYYMMDD.jsonl</span></code>.</p>
+</section>
+<section id="channel-2-proactive">
+<h2><a class="toc-backref" href="#id13" role="doc-backlink">Channel 2 — proactive</a><a class="headerlink" href="#channel-2-proactive" title="Link to this heading"></a></h2>
+<p>Channel 2 watches <code class="docutils literal notranslate"><span class="pre">/bt/state</span></code> continuously. It fires when:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">action_status</span></code> transitions OK → WARN/ERROR, <strong>and</strong></p></li>
+<li><p>the cooldown (<code class="docutils literal notranslate"><span class="pre">cooldown_sec</span></code>, default 10 s) has elapsed since the
+last channel-2 call, <strong>and</strong></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">llm_thinking</span></code> is <code class="docutils literal notranslate"><span class="pre">false</span></code> (channel 1 is not currently consulting
+the LLM).</p></li>
+</ul>
+<p>Enable it with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_bringup</span> <span class="n">swarm_full_demo</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span> \
+    <span class="n">enable_passive_observer</span><span class="o">:=</span><span class="n">true</span>
+</pre></div>
+</div>
+<p>Confirm the node is awake (not silent-mode) in the launch log:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">llm_passive_observer</span><span class="p">]</span> <span class="n">PassiveObserver</span> <span class="n">up</span><span class="p">:</span> <span class="n">mode</span><span class="o">=</span><span class="n">http</span><span class="p">,</span> <span class="n">cooldown</span><span class="o">=</span><span class="mf">10.0</span><span class="n">s</span><span class="p">,</span>
+    <span class="n">trigger</span><span class="o">=</span><span class="n">warn_or_error_or_formation_unhealthy</span>
+</pre></div>
+</div>
+<p>When it fires, it pushes an <code class="docutils literal notranslate"><span class="pre">LlmCommand</span></code> to <code class="docutils literal notranslate"><span class="pre">/llm/command</span></code> (mode
+choice and arguments depend on the LLM’s reasoning). The panel’s
+<em>Events</em> tab shows <code class="docutils literal notranslate"><span class="pre">channel=2</span></code> rows; the JSONL goes to
+<code class="docutils literal notranslate"><span class="pre">~/.ros/llm_commands/</span></code> (same directory as channel-3 chat).</p>
+<p>Useful contrast with channel 1: channel 1 is a <em>point verdict</em> on a
+specific BT node (“what should I, <code class="docutils literal notranslate"><span class="pre">MapfPlan</span></code>, do about this WARN —
+wait, abort, or replan?”). Channel 2 is a <em>mode change</em> on the whole
+tree (“the formation has been DEGRADED for 12 s, take everyone idle
+and resend MAPF goals”). They never collide — the cooldown plus the
+<code class="docutils literal notranslate"><span class="pre">llm_thinking</span></code> gate keep them in different time windows.</p>
+</section>
+<section id="cli-alternatives">
+<h2><a class="toc-backref" href="#id14" role="doc-backlink">CLI alternatives</a><a class="headerlink" href="#cli-alternatives" title="Link to this heading"></a></h2>
+<p>For repeatable scenarios — CI, demos, regression — bypass the panel:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ros2</span> <span class="pre">run</span> <span class="pre">iros_llm_orchestrator</span> <span class="pre">user_chat</span></code> — the same channel-3
+pipeline driven from stdin. Reads a prompt, prints the streamed
+reply, executes the plan exactly like the panel. Useful for headless
+servers and scripted prompts (<code class="docutils literal notranslate"><span class="pre">echo</span> <span class="pre">'yellow</span> <span class="pre">to</span> <span class="pre">weapons'</span> <span class="pre">|</span> <span class="pre">user_chat</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ros2</span> <span class="pre">run</span> <span class="pre">iros_llm_swarm_bt</span> <span class="pre">fleet_cmd</span> <span class="pre">--scenario</span> <span class="pre">{simple|stress|unreachable|idle}</span></code>
+— direct <code class="docutils literal notranslate"><span class="pre">LlmCommand</span></code> injection without the LLM. Used to provoke
+channel-1 / channel-2 reactions deterministically.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ros2</span> <span class="pre">run</span> <span class="pre">iros_llm_swarm_mapf</span> <span class="pre">test_send_goals</span> <span class="pre">--json-file</span> <span class="pre">goals.json</span></code>
+— direct <code class="docutils literal notranslate"><span class="pre">/swarm/set_goals</span></code> action call. Bypasses the BT and the
+LLM entirely. The lowest layer you can drive from outside.</p></li>
+</ul>
+</section>
+<section id="inspecting-the-dataset">
+<h2><a class="toc-backref" href="#id15" role="doc-backlink">Inspecting the dataset</a><a class="headerlink" href="#inspecting-the-dataset" title="Link to this heading"></a></h2>
+<p>Every LLM call lands in a JSONL file, one record per call, one file per
+UTC day:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">~/.</span><span class="n">ros</span><span class="o">/</span><span class="n">llm_decisions</span><span class="o">/</span><span class="n">decisions_YYYYMMDD</span><span class="o">.</span><span class="n">jsonl</span>   <span class="c1"># channel 1</span>
+<span class="o">~/.</span><span class="n">ros</span><span class="o">/</span><span class="n">llm_commands</span><span class="o">/</span><span class="n">decisions_YYYYMMDD</span><span class="o">.</span><span class="n">jsonl</span>    <span class="c1"># channels 2 + 3</span>
+</pre></div>
+</div>
+<p>Schema (each line is a JSON object):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+  <span class="s2">&quot;timestamp&quot;</span><span class="p">:</span> <span class="s2">&quot;2026-05-12T14:23:11.481Z&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;level&quot;</span><span class="p">:</span>     <span class="s2">&quot;WARN&quot;</span><span class="p">,</span>                   <span class="c1"># channel 1: BT level; ch 2/3: trigger label</span>
+  <span class="s2">&quot;event&quot;</span><span class="p">:</span>     <span class="s2">&quot;stress: replans=3 stalled=4&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;log_buffer&quot;</span><span class="p">:</span> <span class="s2">&quot;...recent log lines, channel 1 only...&quot;</span><span class="p">,</span>
+  <span class="s2">&quot;decision&quot;</span><span class="p">:</span>  <span class="s2">&quot;replan&quot;</span><span class="p">,</span>                 <span class="c1"># ch 1: verdict; ch 2/3: command mode</span>
+  <span class="s2">&quot;reason&quot;</span><span class="p">:</span>    <span class="s2">&quot;robots stalled in central corridor; replan around&quot;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Quick inspection:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span># Count today&#39;s decisions by verdict
+jq -r .decision ~/.ros/llm_decisions/decisions_*.jsonl | sort | uniq -c
+
+# Pull the last 5 chat-driven commands
+tail -n 5 ~/.ros/llm_commands/decisions_$(date -u +%Y%m%d).jsonl | jq .
+</pre></div>
+</div>
+<p>Channel 3 also publishes the parsed plan JSON to
+<code class="docutils literal notranslate"><span class="pre">/llm/events.output</span></code>, so you can stream live commands without
+touching the JSONL files:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ros2</span> <span class="n">topic</span> <span class="n">echo</span> <span class="o">/</span><span class="n">llm</span><span class="o">/</span><span class="n">events</span> <span class="o">--</span><span class="nb">filter</span> <span class="s2">&quot;m.channel == 3&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="backend-selection">
+<h2><a class="toc-backref" href="#id16" role="doc-backlink">Backend selection</a><a class="headerlink" href="#backend-selection" title="Link to this heading"></a></h2>
+<p>The orchestrator chooses the LLM client by the <code class="docutils literal notranslate"><span class="pre">llm_mode</span></code> parameter
+(or the equivalent <code class="docutils literal notranslate"><span class="pre">llm_backend</span></code> launch argument).</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 14.0%" />
+<col style="width: 86.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Mode</p></th>
+<th class="head"><p>When to use</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mock</span></code></p></td>
+<td><p>Offline development. Heuristic keyword matcher returns a
+hard-coded plan for a small set of known phrases. No network.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ollama</span></code></p></td>
+<td><p>Local Ollama server (<code class="docutils literal notranslate"><span class="pre">http://localhost:11434</span></code>) running a
+model like <code class="docutils literal notranslate"><span class="pre">llama3.2</span></code> or <code class="docutils literal notranslate"><span class="pre">qwen2.5</span></code>. Streaming chat. No API
+key.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">http</span></code></p></td>
+<td><p>Any OpenAI-compatible endpoint —
+<code class="docutils literal notranslate"><span class="pre">https://api.openai.com/v1/chat/completions</span></code>,
+<code class="docutils literal notranslate"><span class="pre">https://generativelanguage.googleapis.com</span></code>, vLLM,
+LM Studio, etc. Reads the API key from the env var named by
+<code class="docutils literal notranslate"><span class="pre">llm_api_key_env</span></code> (default <code class="docutils literal notranslate"><span class="pre">LLM_API_KEY</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">local</span></code></p></td>
+<td><p>In-process HuggingFace Transformers inference. Heaviest;
+suitable for benchmarking, not for interactive operation on
+modest hardware.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Examples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Talk to a local Ollama server</span>
+<span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_bringup</span> <span class="n">swarm_full_demo</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span> \
+    <span class="n">llm_backend</span><span class="o">:=</span><span class="n">ollama</span> \
+    <span class="n">llm_endpoint</span><span class="o">:=</span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">localhost</span><span class="p">:</span><span class="mi">11434</span> \
+    <span class="n">llm_model</span><span class="o">:=</span><span class="n">qwen2</span><span class="mf">.5</span><span class="p">:</span><span class="mi">7</span><span class="n">b</span><span class="o">-</span><span class="n">instruct</span>
+
+<span class="c1"># Talk to OpenAI</span>
+<span class="n">export</span> <span class="n">LLM_API_KEY</span><span class="o">=</span><span class="n">sk</span><span class="o">-...</span>
+<span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_bringup</span> <span class="n">swarm_full_demo</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span> \
+    <span class="n">llm_backend</span><span class="o">:=</span><span class="n">http</span> \
+    <span class="n">llm_endpoint</span><span class="o">:=</span><span class="n">https</span><span class="p">:</span><span class="o">//</span><span class="n">api</span><span class="o">.</span><span class="n">openai</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">v1</span><span class="o">/</span><span class="n">chat</span><span class="o">/</span><span class="n">completions</span> \
+    <span class="n">llm_model</span><span class="o">:=</span><span class="n">gpt</span><span class="o">-</span><span class="mi">4</span><span class="n">o</span><span class="o">-</span><span class="n">mini</span>
+
+<span class="c1"># Offline smoke test</span>
+<span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_bringup</span> <span class="n">swarm_full_demo</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span> \
+    <span class="n">llm_backend</span><span class="o">:=</span><span class="n">mock</span>
+</pre></div>
+</div>
+</section>
+<section id="the-mcp-context-provider">
+<h2><a class="toc-backref" href="#id17" role="doc-backlink">The MCP context provider</a><a class="headerlink" href="#the-mcp-context-provider" title="Link to this heading"></a></h2>
+<p>The chat channel can ground its prompts in live system state through a
+read-only MCP subprocess (<code class="docutils literal notranslate"><span class="pre">uvx</span> <span class="pre">ros-mcp</span> <span class="pre">--transport=stdio</span></code>). It is on
+by default (<code class="docutils literal notranslate"><span class="pre">context_provider:</span> <span class="pre">mcp_readonly</span></code>). What it adds to each
+prompt:</p>
+<ul class="simple">
+<li><p>Map summary (bounds, named locations, obstacles).</p></li>
+<li><p>Live robot poses (<code class="docutils literal notranslate"><span class="pre">robots[id]</span> <span class="pre">=</span> <span class="pre">{x,</span> <span class="pre">y,</span> <span class="pre">yaw,</span> <span class="pre">stale_ms,</span> <span class="pre">stale}</span></code>).
+Stale entries are flagged so the LLM does not act on them.</p></li>
+<li><p>Active formations from <code class="docutils literal notranslate"><span class="pre">/formations/status</span></code> (state, leader,
+followers, errors).</p></li>
+<li><p>Recent <code class="docutils literal notranslate"><span class="pre">LlmEvent</span></code> tail from <code class="docutils literal notranslate"><span class="pre">/llm/events</span></code>.</p></li>
+</ul>
+<p>The provider is locked to a read-only allowlist
+(<code class="docutils literal notranslate"><span class="pre">mcp_tool_allowlist</span></code> in <code class="docutils literal notranslate"><span class="pre">orchestrator.yaml</span></code>):
+<code class="docutils literal notranslate"><span class="pre">get_topics</span></code>, <code class="docutils literal notranslate"><span class="pre">get_topic_type</span></code>, <code class="docutils literal notranslate"><span class="pre">subscribe_once</span></code>, <code class="docutils literal notranslate"><span class="pre">get_nodes</span></code>,
+<code class="docutils literal notranslate"><span class="pre">get_services</span></code>, <code class="docutils literal notranslate"><span class="pre">get_actions</span></code> and similar. <strong>No execute or write
+tools</strong> ever reach the LLM — the LLM never sees the MCP tool list,
+only the bounded snapshot the provider builds on its behalf.</p>
+<p>On execution failure the chat channel calls
+<code class="docutils literal notranslate"><span class="pre">_get_targeted_runtime_context(failure)</span></code>, which refreshes only the
+tools relevant to the failure (e.g. formation issues re-subscribe to
+<code class="docutils literal notranslate"><span class="pre">/formations/status</span></code>). If the targeted refresh times out, the
+provider falls back to the cached snapshot with an
+<code class="docutils literal notranslate"><span class="pre">mcp_stale:</span> <span class="pre">true</span></code> warning so the LLM knows the data is old.</p>
+<p>Disable the provider entirely with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_orchestrator</span> <span class="n">orchestrator</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span> \
+    <span class="o">--</span><span class="n">ros</span><span class="o">-</span><span class="n">args</span> <span class="o">-</span><span class="n">p</span> <span class="n">chat_server</span><span class="o">.</span><span class="n">context_provider</span><span class="o">:=</span><span class="n">none</span>
+</pre></div>
+</div>
+</section>
+<section id="failure-modes-and-what-to-do">
+<h2><a class="toc-backref" href="#id18" role="doc-backlink">Failure modes and what to do</a><a class="headerlink" href="#failure-modes-and-what-to-do" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 38.0%" />
+<col style="width: 62.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Symptom</p></th>
+<th class="head"><p>Likely cause / fix</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Chat tab streams nothing for &gt; 30 s, no error.</p></td>
+<td><p>LLM backend is unreachable. Check <code class="docutils literal notranslate"><span class="pre">llm_endpoint</span></code>, network,
+<code class="docutils literal notranslate"><span class="pre">LLM_API_KEY</span></code>. Channel 3 timeout is 60 s; after that the
+Result returns <code class="docutils literal notranslate"><span class="pre">success=False</span></code> with the underlying error in
+<code class="docutils literal notranslate"><span class="pre">info</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Reply arrives but plan is empty (<code class="docutils literal notranslate"><span class="pre">plan_json:</span> <span class="pre">&quot;&quot;</span></code>).</p></td>
+<td><p>LLM returned malformed output (missing the JSON line, broken
+JSON). The Events tab shows <code class="docutils literal notranslate"><span class="pre">output:</span> <span class="pre">&quot;&quot;</span></code>. Re-prompt with a
+simpler phrasing or switch the model.</p></td>
+</tr>
+<tr class="row-even"><td><p>Plan parses, leaves dispatch, but BT goes <code class="docutils literal notranslate"><span class="pre">ERROR</span></code> immediately
+on a <code class="docutils literal notranslate"><span class="pre">formation</span></code> leaf with <code class="docutils literal notranslate"><span class="pre">formation_max_error_m</span> <span class="pre">&gt;</span> <span class="pre">0.5</span></code>.</p></td>
+<td><p>Followers were not pre-staged. Either (a) the LLM skipped the
+staging step (re-prompt), or (b) the followers’ poses were stale
+and the staging math used wrong positions. Re-issue the command
+once odom updates land.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Channel 2 never fires even with <code class="docutils literal notranslate"><span class="pre">enable_passive_observer:=true</span></code>.</p></td>
+<td><p>Either the cooldown is hiding it (wait &gt; 10 s), or
+<code class="docutils literal notranslate"><span class="pre">llm_thinking</span></code> is stuck high (channel 1 hung; check
+<code class="docutils literal notranslate"><span class="pre">decision_server</span></code> log), or no WARN/ERROR ever transitions
+<code class="docutils literal notranslate"><span class="pre">action_status</span></code>. Drive a deliberate failure with
+<code class="docutils literal notranslate"><span class="pre">fleet_cmd</span> <span class="pre">--scenario</span> <span class="pre">stress</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p>Click-to-command tools have no effect.</p></td>
+<td><p>For <code class="docutils literal notranslate"><span class="pre">g</span></code>: the BT must be running. For <code class="docutils literal notranslate"><span class="pre">b</span></code>/<code class="docutils literal notranslate"><span class="pre">d</span></code>: the
+<code class="docutils literal notranslate"><span class="pre">dynamic_obstacle_manager</span></code> must be running. Check
+<code class="docutils literal notranslate"><span class="pre">ros2</span> <span class="pre">node</span> <span class="pre">list</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>“STOP ALL” button is greyed / no effect.</p></td>
+<td><p>The panel cannot connect to the <code class="docutils literal notranslate"><span class="pre">/llm/command</span></code> action server.
+<code class="docutils literal notranslate"><span class="pre">LlmCommandReceiver</span></code> lives in <code class="docutils literal notranslate"><span class="pre">test_bt_runner</span></code>; restart the
+BT runner.</p></td>
+</tr>
+<tr class="row-even"><td><p>MCP context times out (<code class="docutils literal notranslate"><span class="pre">mcp_stale:</span> <span class="pre">true</span></code> in events).</p></td>
+<td><p>The subprocess is slow or misconfigured. Reduce
+<code class="docutils literal notranslate"><span class="pre">context_max_chars</span></code> or set <code class="docutils literal notranslate"><span class="pre">context_provider:</span> <span class="pre">ros_readonly</span></code>
+to skip MCP and use direct ROS introspection instead.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="see-also">
+<h2><a class="toc-backref" href="#id19" role="doc-backlink">See also</a><a class="headerlink" href="#see-also" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="getting_started.html"><span class="doc">Getting Started</span></a> — bring-up steps and launch arguments.</p></li>
+<li><p><a class="reference internal" href="architecture.html"><span class="doc">System Architecture</span></a> — full topic / action / service map.</p></li>
+<li><p><a class="reference internal" href="packages.html"><span class="doc">Package Map</span></a> — the package map and per-package roles.</p></li>
+<li><p>The per-package generated documentation linked from <a class="reference internal" href="index.html"><span class="doc">IROS LLM Swarm Documentation</span></a>
+(<code class="docutils literal notranslate"><span class="pre">iros_llm_orchestrator</span></code>, <code class="docutils literal notranslate"><span class="pre">iros_llm_rviz_panel</span></code>,
+<code class="docutils literal notranslate"><span class="pre">iros_llm_rviz_tool</span></code>, <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_obstacles</span></code>).</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

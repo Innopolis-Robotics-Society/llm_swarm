@@ -19,7 +19,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="System Architecture" href="architecture.html" />
+    <link rel="next" title="Examples and Usage Guide" href="examples.html" />
     <link rel="prev" title="Project Overview" href="overview.html" /> 
 </head>
 
@@ -52,9 +52,11 @@
 <li class="toctree-l2"><a class="reference internal" href="#send-a-mission">Send a mission</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#local-nav-only-smoke-test">Local-nav-only smoke test</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#behavior-tree-smoke-test">Behavior tree smoke test</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#operator-chat-llm">Operator chat (LLM)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#where-to-go-next">Where to go next</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples and Usage Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">System Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="packages.html">Package Map</a></li>
 </ul>
@@ -67,9 +69,13 @@
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_local_nav/index.html#http://">iros_llm_swarm_local_nav</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_mapf/index.html#http://">iros_llm_swarm_mapf</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_mapf_lns/index.html#http://">iros_llm_swarm_mapf_lns</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_obstacles/index.html#http://">iros_llm_swarm_obstacles</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_robot/index.html#http://">iros_llm_swarm_robot</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_simulation/index.html#http://">iros_llm_swarm_simulation</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_simulation_lite/index.html#http://">iros_llm_swarm_simulation_lite</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_orchestrator/index.html#http://">iros_llm_orchestrator</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_rviz_panel/index.html#http://">iros_llm_rviz_panel</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_rviz_tool/index.html#http://">iros_llm_rviz_tool</a></li>
 </ul>
 
         </div>
@@ -166,11 +172,11 @@ the MAPF layer.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_mapf.launch.py</span></code></p></td>
 <td><p>Stage + Nav2 + PBS planner + per-robot followers
-(<code class="docutils literal notranslate"><span class="pre">motion_controller_node</span></code>).</p></td>
+(<code class="docutils literal notranslate"><span class="pre">pbs_motion_controller</span></code>).</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_lns.launch.py</span></code></p></td>
 <td><p>Stage + Nav2 + LNS2 planner + per-robot followers
-(<code class="docutils literal notranslate"><span class="pre">path_follower_node</span></code>).</p></td>
+(<code class="docutils literal notranslate"><span class="pre">lns_motion_controller</span></code>).</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_mapf_formation.launch.py</span></code></p></td>
 <td><p>PBS planner with formation manager / monitor.</p></td>
@@ -178,13 +184,19 @@ the MAPF layer.</p></td>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_lns_formation.launch.py</span></code></p></td>
 <td><p>LNS2 planner with formation manager / monitor.</p></td>
 </tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">swarm_full_demo.launch.py</span></code></p></td>
+<td><p>Full stack: simulator + Nav2 + selectable planner + optional
+formation + BT runner + LLM orchestrator (chat / decision /
+execute / passive observer) + optional rosbridge. The
+operator-facing launch file.</p></td>
+</tr>
 </tbody>
 </table>
 <p>Example:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_bringup</span> <span class="n">swarm_lns</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span>
 </pre></div>
 </div>
-<p>Useful launch arguments (all four files):</p>
+<p>Useful launch arguments (shared across the bringup files):</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 18.0%" />
@@ -199,9 +211,10 @@ the MAPF layer.</p></td>
 </thead>
 <tbody>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scenario</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">cave</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cave</span></code> (<code class="docutils literal notranslate"><span class="pre">amongus</span></code> for <code class="docutils literal notranslate"><span class="pre">swarm_full_demo</span></code>)</p></td>
 <td><p>World preset: <code class="docutils literal notranslate"><span class="pre">cave</span></code>, <code class="docutils literal notranslate"><span class="pre">large_cave</span></code>, <code class="docutils literal notranslate"><span class="pre">warehouse_2</span></code>,
-<code class="docutils literal notranslate"><span class="pre">warehouse_4</span></code>.</p></td>
+<code class="docutils literal notranslate"><span class="pre">warehouse_4</span></code>, <code class="docutils literal notranslate"><span class="pre">amongus</span></code>. Maps to a <code class="docutils literal notranslate"><span class="pre">.world</span></code> file via
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_simulation_lite/scenario/common_scenarios.yaml</span></code>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_robots</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">20</span></code></p></td>
@@ -209,16 +222,60 @@ the MAPF layer.</p></td>
 spawns its full robot set; this caps how many receive goals.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">world_file</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">warehouse.world</span></code></p></td>
-<td><p>Stage world file.</p></td>
+<td><p>scenario-dependent</p></td>
+<td><p>Override the Stage world file directly.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rviz_cfg</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">swarm_20.rviz</span></code></p></td>
-<td><p>RViz config file.</p></td>
+<td><p>RViz config file (loads the LLM panel and click-to-command
+tools when running <code class="docutils literal notranslate"><span class="pre">swarm_full_demo</span></code>).</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">use_sim_time</span></code></p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
 <td><p>Use the simulator clock.</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">swarm_full_demo.launch.py</span></code> adds a few more arguments:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 24.0%" />
+<col style="width: 16.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Argument</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">planner</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">lns</span></code></p></td>
+<td><p>Planner backend: <code class="docutils literal notranslate"><span class="pre">lns</span></code> or <code class="docutils literal notranslate"><span class="pre">pbs</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">enable_formation</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>Start <code class="docutils literal notranslate"><span class="pre">formation_manager</span></code> + <code class="docutils literal notranslate"><span class="pre">formation_monitor</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">enable_passive_observer</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>Start the channel-2 observer that watches <code class="docutils literal notranslate"><span class="pre">/bt/state</span></code> and
+pushes <code class="docutils literal notranslate"><span class="pre">LlmCommand</span></code> autonomously. Channel 1 (reactive
+<code class="docutils literal notranslate"><span class="pre">/llm/decision</span></code>) is always on.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">enable_rosbridge</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>Start <code class="docutils literal notranslate"><span class="pre">rosbridge_server</span></code> (used by the MCP context provider).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">llm_backend</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">http</span></code></p></td>
+<td><p>LLM backend: <code class="docutils literal notranslate"><span class="pre">http</span></code> (OpenAI-compatible), <code class="docutils literal notranslate"><span class="pre">ollama</span></code>,
+<code class="docutils literal notranslate"><span class="pre">mock</span></code>, or <code class="docutils literal notranslate"><span class="pre">local</span></code> (HuggingFace Transformers).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">llm_endpoint</span></code> / <code class="docutils literal notranslate"><span class="pre">llm_model</span></code></p></td>
+<td><p>empty</p></td>
+<td><p>Override the YAML defaults in <code class="docutils literal notranslate"><span class="pre">orchestrator.yaml</span></code>.</p></td>
 </tr>
 </tbody>
 </table>
@@ -272,9 +329,37 @@ is what makes the swarm coherent.</p>
 the <code class="docutils literal notranslate"><span class="pre">MapfPlan</span></code> / <code class="docutils literal notranslate"><span class="pre">SetFormation</span></code> / <code class="docutils literal notranslate"><span class="pre">DisableFormation</span></code> /
 <code class="docutils literal notranslate"><span class="pre">CheckMode</span></code> action nodes against a running stack.</p>
 </section>
+<section id="operator-chat-llm">
+<h2>Operator chat (LLM)<a class="headerlink" href="#operator-chat-llm" title="Link to this heading"></a></h2>
+<p>When running <code class="docutils literal notranslate"><span class="pre">swarm_full_demo.launch.py</span></code>, the RViz instance loads
+<code class="docutils literal notranslate"><span class="pre">iros_llm_rviz_panel</span></code> (Panels → Add New Panel →
+<code class="docutils literal notranslate"><span class="pre">iros_llm_rviz_panel/LLM-Panel</span></code>). Type a free-form command in the
+<strong>Chat</strong> tab and press <em>Send</em> — the panel calls <code class="docutils literal notranslate"><span class="pre">/llm/chat</span></code>, streams
+the reply back chunk-by-chunk, and (if <em>Preview</em> is checked) shows the
+parsed plan as a tree before executing it via <code class="docutils literal notranslate"><span class="pre">/llm/execute_plan</span></code>.
+The red <strong>STOP ALL</strong> button bypasses the LLM and halts every robot
+through <code class="docutils literal notranslate"><span class="pre">/llm/command{mode=idle}</span></code>.</p>
+<p>Three click-to-command tools from <code class="docutils literal notranslate"><span class="pre">iros_llm_rviz_tool</span></code> are also
+loaded:</p>
+<ul class="simple">
+<li><p><strong>g</strong> — <code class="docutils literal notranslate"><span class="pre">SendLlmGoalTool</span></code>: pick a robot group, click on the map,
+goals are spread around the click and dispatched to <code class="docutils literal notranslate"><span class="pre">/llm/command</span></code>.</p></li>
+<li><p><strong>b</strong> — <code class="docutils literal notranslate"><span class="pre">PlaceObstacleTool</span></code>: left-click adds an obstacle, right-
+click removes the nearest. Talks to <code class="docutils literal notranslate"><span class="pre">/obstacles/*</span></code> (requires
+<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_obstacles</span></code> to be running).</p></li>
+<li><p><strong>d</strong> — <code class="docutils literal notranslate"><span class="pre">DoorTool</span></code>: left-click opens, right-click closes a door
+by id.</p></li>
+</ul>
+<p>Every LLM call is appended to <code class="docutils literal notranslate"><span class="pre">~/.ros/llm_decisions/</span></code> (channel 1) and
+<code class="docutils literal notranslate"><span class="pre">~/.ros/llm_commands/</span></code> (channel 2) as one JSONL record per call.</p>
+</section>
 <section id="where-to-go-next">
 <h2>Where to go next<a class="headerlink" href="#where-to-go-next" title="Link to this heading"></a></h2>
 <ul class="simple">
+<li><p><a class="reference internal" href="examples.html"><span class="doc">Examples and Usage Guide</span></a> — operator usage guide for the LLM panel: chat
+patterns, robot groups and locations, plan structure, formation
+staging, click-to-command tools, channel 1 / 2 / 3 triggers,
+dataset inspection, backend selection, debugging.</p></li>
 <li><p><a class="reference internal" href="packages.html"><span class="doc">Package Map</span></a> — pick a package and dive into its API and parameters.</p></li>
 <li><p>The per-package documentation linked from <a class="reference internal" href="index.html"><span class="doc">IROS LLM Swarm Documentation</span></a> covers internals
 not repeated here (planner cost models, BT XML schema, formation YAML
@@ -288,7 +373,7 @@ layout, costmap plugin parameters, …).</p></li>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="overview.html" class="btn btn-neutral float-left" title="Project Overview" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="architecture.html" class="btn btn-neutral float-right" title="System Architecture" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="examples.html" class="btn btn-neutral float-right" title="Examples and Usage Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

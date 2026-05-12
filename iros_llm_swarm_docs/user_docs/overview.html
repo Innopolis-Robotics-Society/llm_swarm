@@ -43,6 +43,7 @@
               <ul>
 <li class="toctree-l1"><a class="reference internal" href="../overview.html">Project Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples.html">Examples and Usage Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../architecture.html">System Architecture</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../packages.html">Package Map</a></li>
 </ul>
@@ -55,9 +56,13 @@
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_local_nav/index.html#http://">iros_llm_swarm_local_nav</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_mapf/index.html#http://">iros_llm_swarm_mapf</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_mapf_lns/index.html#http://">iros_llm_swarm_mapf_lns</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_obstacles/index.html#http://">iros_llm_swarm_obstacles</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_robot/index.html#http://">iros_llm_swarm_robot</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_simulation/index.html#http://">iros_llm_swarm_simulation</a></li>
 <li class="toctree-l1"><a class="reference external" href="../iros_llm_swarm_simulation_lite/index.html#http://">iros_llm_swarm_simulation_lite</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_orchestrator/index.html#http://">iros_llm_orchestrator</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_rviz_panel/index.html#http://">iros_llm_rviz_panel</a></li>
+<li class="toctree-l1"><a class="reference external" href="../iros_llm_rviz_tool/index.html#http://">iros_llm_rviz_tool</a></li>
 </ul>
 
         </div>
@@ -123,6 +128,19 @@ navigation as one atomic operation.</p></li>
 <li><p>Provides a small set of <strong>BehaviorTree.CPP</strong> action nodes that wrap the
 MAPF and formation interfaces, ready to be composed into higher-level
 mission trees.</p></li>
+<li><p>Ships an <strong>LLM advisory layer</strong> (<code class="docutils literal notranslate"><span class="pre">iros_llm_orchestrator</span></code>) with three
+independent channels — reactive (<code class="docutils literal notranslate"><span class="pre">/llm/decision</span></code> action called from
+BT nodes on WARN/ERROR), proactive (<code class="docutils literal notranslate"><span class="pre">passive_observer</span></code> watches
+<code class="docutils literal notranslate"><span class="pre">/bt/state</span></code> and pushes commands), and an operator chat
+(<code class="docutils literal notranslate"><span class="pre">/llm/chat</span></code> driven from the RViz panel, with a remediation loop and
+optional read-only MCP context).</p></li>
+<li><p>Adds an <strong>operator surface in RViz</strong> (<code class="docutils literal notranslate"><span class="pre">iros_llm_rviz_panel</span></code> plus the
+click-to-command tools in <code class="docutils literal notranslate"><span class="pre">iros_llm_rviz_tool</span></code>) for chat,
+per-robot status, BT state, event log, STOP-ALL, and direct
+goal / obstacle / door manipulation.</p></li>
+<li><p>Includes a <strong>dynamic obstacle layer</strong> (<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_obstacles</span></code>)
+that overlays runtime-added circles, rectangles, and stateful doors
+on top of the static map and republishes the merged grid on <code class="docutils literal notranslate"><span class="pre">/map</span></code>.</p></li>
 </ul>
 </section>
 <section id="design-goals">
@@ -136,10 +154,15 @@ CycloneDDS configuration tuned for multi-robot discovery overhead.</p></li>
 <li><p><strong>Safe primitives, simple glue.</strong> Conflict detection, inflation, and
 schedule monitoring live inside the planner. The behavior tree only
 decides <em>which</em> mission to run, not <em>how</em> to keep robots from colliding.</p></li>
-<li><p><strong>Pluggable LLM reasoning.</strong> The behavior tree layer is structured so
-that an external LLM agent can be inserted as the high-level decision
-maker over the existing primitives. The current release does not ship
-the LLM agent itself, but the message types and BT nodes are in place.</p></li>
+<li><p><strong>Pluggable LLM reasoning.</strong> The current release ships
+<code class="docutils literal notranslate"><span class="pre">iros_llm_orchestrator</span></code> with three channels (reactive, proactive,
+operator chat) and a backend factory that selects between a mock
+client, a local Ollama instance, an OpenAI-compatible HTTP endpoint,
+and an in-process HuggingFace Transformers backend without changing
+any node code. The LLM never executes outside the BT/Nav2 primitives —
+it produces decisions and plan JSON which are then dispatched through
+the same <code class="docutils literal notranslate"><span class="pre">/swarm/set_goals</span></code> and <code class="docutils literal notranslate"><span class="pre">/llm/command</span></code> interfaces used by
+the rest of the stack.</p></li>
 </ul>
 </section>
 <section id="scope-and-known-limits">

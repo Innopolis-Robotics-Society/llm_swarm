@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>iros_llm_orchestrator.context.pose_cache module &mdash; iros_llm_orchestrator 0.0.1 documentation</title>
+  <title>iros_llm_orchestrator.context.pose_cache module &mdash; iros_llm_orchestrator</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
 
@@ -18,9 +18,7 @@
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="iros_llm_orchestrator.context.provider module" href="iros_llm_orchestrator.context.provider.html" />
-    <link rel="prev" title="iros_llm_orchestrator.context.no_execute module" href="iros_llm_orchestrator.context.no_execute.html" /> 
+    <link rel="search" title="Search" href="search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -42,42 +40,11 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <ul class="current">
-<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Python API</a><ul class="current">
-<li class="toctree-l2 current"><a class="reference internal" href="iros_llm_orchestrator.html">iros_llm_orchestrator package</a><ul class="current">
-<li class="toctree-l3 current"><a class="reference internal" href="iros_llm_orchestrator.html#subpackages">Subpackages</a><ul class="current">
-<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.common.html">iros_llm_orchestrator.common package</a></li>
-<li class="toctree-l4 current"><a class="reference internal" href="iros_llm_orchestrator.context.html">iros_llm_orchestrator.context package</a></li>
-<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.local.html">iros_llm_orchestrator.local package</a></li>
-<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.web.html">iros_llm_orchestrator.web package</a></li>
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">iros_llm_orchestrator.context.pose_cache module</a></li>
 </ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="iros_llm_orchestrator.html#submodules">Submodules</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.chat_server.html">iros_llm_orchestrator.chat_server module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.decision_server.html">iros_llm_orchestrator.decision_server module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.execute_server.html">iros_llm_orchestrator.execute_server module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.help_responder.html">iros_llm_orchestrator.help_responder module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.passive_observer.html">iros_llm_orchestrator.passive_observer module</a></li>
-<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.user_chat_node.html">iros_llm_orchestrator.user_chat_node module</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="iros_llm_orchestrator.html#module-iros_llm_orchestrator">Module contents</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="iros_llm_orchestrator.html#structure">Structure</a></li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="standards.html">Standard Documents</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="standard_docs/PACKAGE.html">PACKAGE</a></li>
-</ul>
-</li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
-</ul>
-
+</div>
         </div>
       </div>
     </nav>
@@ -92,9 +59,6 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="modules.html">iros_llm_orchestrator</a></li>
-          <li class="breadcrumb-item"><a href="iros_llm_orchestrator.html">iros_llm_orchestrator package</a></li>
-          <li class="breadcrumb-item"><a href="iros_llm_orchestrator.context.html">iros_llm_orchestrator.context package</a></li>
       <li class="breadcrumb-item active">iros_llm_orchestrator.context.pose_cache module</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/iros_llm_orchestrator.context.pose_cache.rst.txt" rel="nofollow"> View page source</a>
@@ -105,68 +69,21 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-iros_llm_orchestrator.context.pose_cache">
-<span id="iros-llm-orchestrator-context-pose-cache-module"></span><h1>iros_llm_orchestrator.context.pose_cache module<a class="headerlink" href="#module-iros_llm_orchestrator.context.pose_cache" title="Link to this heading"></a></h1>
-<p>Live robot-pose cache for /llm/chat runtime context.</p>
-<p>Owns one subscription per known robot to <code class="docutils literal notranslate"><span class="pre">/robot_{id}/odom</span></code>. <code class="docutils literal notranslate"><span class="pre">snapshot()</span></code>
-returns a per-robot dict of <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y,</span> <span class="pre">yaw,</span> <span class="pre">stale_ms)</span></code> consumed by both
-context providers, so the LLM can reason from actual positions instead of
-inventing coordinates.</p>
-<p>Local subscriptions are deliberate: 20 robots × ~20 Hz over rosbridge would
-blow <code class="docutils literal notranslate"><span class="pre">context_timeout_sec</span></code> budgets on every chat turn. In-process subs
-keep reads O(1).</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="iros_llm_orchestrator.context.pose_cache.RobotPoseCache">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">iros_llm_orchestrator.context.pose_cache.</span></span><span class="sig-name descname"><span class="pre">RobotPoseCache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">robot_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#iros_llm_orchestrator.context.pose_cache.RobotPoseCache" title="Link to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Latest /robot_N/odom per robot, accessed by snapshot().</p>
-<dl class="py property">
-<dt class="sig sig-object py" id="iros_llm_orchestrator.context.pose_cache.RobotPoseCache.enabled">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">enabled</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></em><a class="headerlink" href="#iros_llm_orchestrator.context.pose_cache.RobotPoseCache.enabled" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="iros_llm_orchestrator.context.pose_cache.RobotPoseCache.snapshot">
-<span class="sig-name descname"><span class="pre">snapshot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">stale_threshold_ms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2000</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#iros_llm_orchestrator.context.pose_cache.RobotPoseCache.snapshot" title="Link to this definition"></a></dt>
-<dd><p>Return a copy of cached poses keyed by integer robot id.</p>
-<p>Each entry carries <code class="docutils literal notranslate"><span class="pre">x</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code>, <code class="docutils literal notranslate"><span class="pre">yaw</span></code>, <code class="docutils literal notranslate"><span class="pre">stale_ms</span></code> (age of the
-last odom message), and a boolean <code class="docutils literal notranslate"><span class="pre">stale</span></code> flag set when
-<code class="docutils literal notranslate"><span class="pre">stale_ms</span></code> exceeds <code class="docutils literal notranslate"><span class="pre">stale_threshold_ms</span></code>. Robots that have
-never produced odom are omitted — callers infer “missing pose” by
-absence.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="iros_llm_orchestrator.context.pose_cache.compute_formation_staging">
-<span class="sig-prename descclassname"><span class="pre">iros_llm_orchestrator.context.pose_cache.</span></span><span class="sig-name descname"><span class="pre">compute_formation_staging</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">formation_node</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">snapshot</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tolerance_m</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#iros_llm_orchestrator.context.pose_cache.compute_formation_staging" title="Link to this definition"></a></dt>
-<dd><p>Return a mapf leaf that moves out-of-tolerance followers to their
-leader-relative targets, or None if no staging is required.</p>
-<dl class="simple">
-<dt>The math mirrors <code class="docutils literal notranslate"><span class="pre">formation_manager_node._check_positions</span></code>:</dt><dd><p>target = leader_xy + R(leader_yaw) &#64; (offset_x, offset_y)</p>
-</dd>
-</dl>
-<p>If the leader pose is missing or stale, returns None — staging without a
-known leader pose would be guessing. The formation_manager will then
-reject the leaf with its own clear “no odometry” / “out of position”
-message, which feeds the LLM remediation prompt.</p>
-</dd></dl>
-
+  <p style="margin: 0 0 1em 0;">
+  <a href="../iros_llm_swarm_docs/index.html">&laquo; IROS LLM Swarm — back to overview</a>
+</p><section id="iros-llm-orchestrator-context-pose-cache-module">
+<h1>iros_llm_orchestrator.context.pose_cache module<a class="headerlink" href="#iros-llm-orchestrator-context-pose-cache-module" title="Link to this heading"></a></h1>
 </section>
 
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="iros_llm_orchestrator.context.no_execute.html" class="btn btn-neutral float-left" title="iros_llm_orchestrator.context.no_execute module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="iros_llm_orchestrator.context.provider.html" class="btn btn-neutral float-right" title="iros_llm_orchestrator.context.provider module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright The &lt;iros_llm_orchestrator&gt; Contributors. License: Apache-2.0.</p>
+    <p>&#169; Copyright .</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

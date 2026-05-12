@@ -1,0 +1,244 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iros_llm_rviz_panel &mdash; iros_llm_rviz_panel</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/collapsible-lists/css/tree_view.css?v=a885cde7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=e3a6060d"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js?v=73120307"></script>
+      <script src="../_static/collapsible-lists/js/apply-collapsible-lists.js?v=660e4f45"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            iros_llm_rviz_panel
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">iros_llm_rviz_panel</a><ul>
+<li><a class="reference internal" href="#loading-the-panel">Loading the panel</a></li>
+<li><a class="reference internal" href="#layout">Layout</a></li>
+<li><a class="reference internal" href="#ros-interfaces">ROS interfaces</a></li>
+<li><a class="reference internal" href="#threading-model">Threading model</a></li>
+<li><a class="reference internal" href="#source-layout">Source layout</a></li>
+<li><a class="reference internal" href="#build">Build</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">iros_llm_rviz_panel</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">iros_llm_rviz_panel</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/user_docs/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <p style="margin: 0 0 1em 0;">
+  <a href="../iros_llm_swarm_docs/index.html">&laquo; IROS LLM Swarm — back to overview</a>
+</p><section id="iros-llm-rviz-panel">
+<h1>iros_llm_rviz_panel<a class="headerlink" href="#iros-llm-rviz-panel" title="Link to this heading"></a></h1>
+<p>A single docked RViz2 <code class="docutils literal notranslate"><span class="pre">Panel</span></code> plugin
+(<code class="docutils literal notranslate"><span class="pre">iros_llm_rviz_panel/LLM-Panel</span></code>) that is the operator’s primary
+surface on the swarm. Five tabs plus a sticky status bar with a
+<strong>STOP ALL</strong> button.</p>
+<section id="loading-the-panel">
+<h2>Loading the panel<a class="headerlink" href="#loading-the-panel" title="Link to this heading"></a></h2>
+<p>In RViz2: <strong>Panels → Add New Panel → ``iros_llm_rviz_panel/LLM-Panel``</strong>.
+The panel is preloaded by <code class="docutils literal notranslate"><span class="pre">swarm_full_demo.launch.py</span></code> via the bundled
+<code class="docutils literal notranslate"><span class="pre">swarm_20.rviz</span></code> config.</p>
+</section>
+<section id="layout">
+<h2>Layout<a class="headerlink" href="#layout" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Status bar</strong> (top, always visible)</p>
+<ul>
+<li><p>Mode badge — <code class="docutils literal notranslate"><span class="pre">mapf</span> <span class="pre">|</span> <span class="pre">formation</span> <span class="pre">|</span> <span class="pre">idle</span></code> (background colour from
+<code class="docutils literal notranslate"><span class="pre">modeColor()</span></code>).</p></li>
+<li><p>Action badge — <code class="docutils literal notranslate"><span class="pre">OK</span> <span class="pre">|</span> <span class="pre">WARN</span> <span class="pre">|</span> <span class="pre">ERROR</span> <span class="pre">|</span> <span class="pre">HALTED</span></code> (colour from
+<code class="docutils literal notranslate"><span class="pre">statusColor()</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LLM</span> <span class="pre">thinking</span></code> indicator — driven by the <code class="docutils literal notranslate"><span class="pre">llm_thinking</span></code> field
+of <code class="docutils literal notranslate"><span class="pre">/bt/state</span></code>.</p></li>
+<li><p>Sticky last-error label — lingers for 5 s after the error clears.</p></li>
+<li><p><strong>STOP ALL</strong> button — publishes
+<code class="docutils literal notranslate"><span class="pre">LlmCommand{mode=idle}</span></code> directly to <code class="docutils literal notranslate"><span class="pre">/llm/command</span></code>. No LLM in
+the loop.</p></li>
+</ul>
+</li>
+<li><p><strong>Chat tab</strong> — the channel-3 entry point.</p>
+<ul>
+<li><p>Read-only conversation view (<code class="docutils literal notranslate"><span class="pre">QTextEdit</span></code>) streamed chunk-by-chunk
+from <code class="docutils literal notranslate"><span class="pre">/llm/chat</span></code> action feedback.</p></li>
+<li><p>Input line + <strong>Send</strong> button + <strong>Preview</strong> checkbox.</p></li>
+<li><p>When <em>Preview</em> is on, the parsed plan JSON is rendered as a
+<code class="docutils literal notranslate"><span class="pre">QTreeWidget</span></code> and the <strong>Cancel</strong> / <strong>Execute</strong> buttons activate.
+<em>Execute</em> sends the plan to <code class="docutils literal notranslate"><span class="pre">/llm/execute_plan</span></code>.</p></li>
+</ul>
+</li>
+<li><p><strong>MAPF tab</strong> — fleet progress.</p>
+<ul>
+<li><p>Progress bar (arrived / total) + per-row labels (active, stalled,
+replans, last event tail).</p></li>
+<li><p>Two custom <code class="docutils literal notranslate"><span class="pre">Sparkline</span></code> widgets (60-sample ring buffer) for active
+and arrived counts.</p></li>
+<li><p>Per-robot status table.</p></li>
+</ul>
+</li>
+<li><p><strong>Events tab</strong> — live tail of <code class="docutils literal notranslate"><span class="pre">/llm/events</span></code>.</p>
+<ul>
+<li><p>Five-column table: <code class="docutils literal notranslate"><span class="pre">time</span></code>, <code class="docutils literal notranslate"><span class="pre">channel</span></code>, <code class="docutils literal notranslate"><span class="pre">trigger</span></code>, <code class="docutils literal notranslate"><span class="pre">output</span></code>,
+<code class="docutils literal notranslate"><span class="pre">reason</span></code>.</p></li>
+<li><p>Per-channel filter checkboxes (decision, observer, user).</p></li>
+</ul>
+</li>
+<li><p><strong>BT tab</strong> — current <code class="docutils literal notranslate"><span class="pre">/bt/state</span></code> and a transition log.</p>
+<ul>
+<li><p>Eleven-row property table: <code class="docutils literal notranslate"><span class="pre">mode</span></code>, <code class="docutils literal notranslate"><span class="pre">action_status</span></code>,
+<code class="docutils literal notranslate"><span class="pre">active_action</span></code>, <code class="docutils literal notranslate"><span class="pre">last_error</span></code>, <code class="docutils literal notranslate"><span class="pre">formation_id</span></code>, <code class="docutils literal notranslate"><span class="pre">leader_ns</span></code>,
+<code class="docutils literal notranslate"><span class="pre">robots</span></code>, <code class="docutils literal notranslate"><span class="pre">goals</span></code>, <code class="docutils literal notranslate"><span class="pre">llm_thinking</span></code>, <code class="docutils literal notranslate"><span class="pre">stamp</span></code>,
+<code class="docutils literal notranslate"><span class="pre">action_summary</span></code>.</p></li>
+<li><p>Transition log (max 200 rows).</p></li>
+</ul>
+</li>
+<li><p><strong>Info tab</strong> — async-refreshed parameter snapshot of the running
+stack.</p></li>
+</ul>
+</section>
+<section id="ros-interfaces">
+<h2>ROS interfaces<a class="headerlink" href="#ros-interfaces" title="Link to this heading"></a></h2>
+<p><strong>Subscribers:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/bt/state</span></code> (<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces/BTState</span></code>, reliable, depth
+20).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/llm/events</span></code> (<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_interfaces/LlmEvent</span></code>, reliable,
+depth 50).</p></li>
+</ul>
+<p><strong>Publishers:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/llm_panel/markers</span></code> (<code class="docutils literal notranslate"><span class="pre">visualization_msgs/MarkerArray</span></code>) — goal
+spheres, text labels, TF-aware arrows, formation polygon. Refreshed
+on a 30 Hz timer when <code class="docutils literal notranslate"><span class="pre">mode</span> <span class="pre">==</span> <span class="pre">mapf</span></code>.</p></li>
+</ul>
+<p><strong>Action clients:</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">/llm/chat</span></code> (<code class="docutils literal notranslate"><span class="pre">LlmChat</span></code>) — chat tab.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/llm/command</span></code> (<code class="docutils literal notranslate"><span class="pre">LlmCommand</span></code>) — STOP ALL button (and the
+chat-with-execute path).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">/llm/execute_plan</span></code> (<code class="docutils literal notranslate"><span class="pre">LlmExecutePlan</span></code>) — <em>Execute</em> button on the
+pending plan.</p></li>
+</ul>
+</section>
+<section id="threading-model">
+<h2>Threading model<a class="headerlink" href="#threading-model" title="Link to this heading"></a></h2>
+<p>All ROS callbacks fire on the executor thread; <strong>all widget access
+happens on the Qt GUI thread</strong>. Cross-thread bridging is done with Qt
+signals declared in <code class="docutils literal notranslate"><span class="pre">llm_panel.hpp</span></code> (<code class="docutils literal notranslate"><span class="pre">btStateReceived</span></code>,
+<code class="docutils literal notranslate"><span class="pre">chatChunkReceived</span></code>, <code class="docutils literal notranslate"><span class="pre">chatStageReceived</span></code>, <code class="docutils literal notranslate"><span class="pre">chatFinished</span></code>,
+<code class="docutils literal notranslate"><span class="pre">execStageReceived</span></code>, <code class="docutils literal notranslate"><span class="pre">execFinished</span></code>, <code class="docutils literal notranslate"><span class="pre">eventReceived</span></code>,
+<code class="docutils literal notranslate"><span class="pre">systemInfoChanged</span></code>) and connected with
+<code class="docutils literal notranslate"><span class="pre">Qt::QueuedConnection</span></code> in <code class="docutils literal notranslate"><span class="pre">llm_panel.cpp</span></code>. Two mutexes protect
+state shared between the executor thread and the GUI thread:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">cached_state_mutex_</span></code> — last BT state used by the marker timer.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">info_mutex_</span></code> — async parameter-client results.</p></li>
+</ul>
+<p>Touching widgets directly from a ROS callback will segfault under load
+even when it appears to work on a quiet workstation.</p>
+</section>
+<section id="source-layout">
+<h2>Source layout<a class="headerlink" href="#source-layout" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">include/llm_panel.hpp</span></code> / <code class="docutils literal notranslate"><span class="pre">src/llm_panel.cpp</span></code> — main panel.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">include/action_summary.hpp</span></code> / <code class="docutils literal notranslate"><span class="pre">src/action_summary.cpp</span></code> — pure-C++
+parser for the <code class="docutils literal notranslate"><span class="pre">action_summary</span></code> field of <code class="docutils literal notranslate"><span class="pre">BTState</span></code>
+(<code class="docutils literal notranslate"><span class="pre">[t=Xms</span> <span class="pre">status=Y</span> <span class="pre">arrived=A</span> <span class="pre">active=B</span> <span class="pre">stall=S</span> <span class="pre">replans=R]</span></code> style).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">include/sparkline.hpp</span></code> / <code class="docutils literal notranslate"><span class="pre">src/sparkline.cpp</span></code> — minimal custom
+<code class="docutils literal notranslate"><span class="pre">QWidget</span></code> for the MAPF tab sparklines.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">test/test_action_summary.cpp</span></code> — gtest cases for the parser
+(well-formed, malformed, reordered, missing fields).</p></li>
+</ul>
+</section>
+<section id="build">
+<h2>Build<a class="headerlink" href="#build" title="Link to this heading"></a></h2>
+<p>Standard ament + CMake. <code class="docutils literal notranslate"><span class="pre">CMAKE_AUTOMOC</span></code> is ON to drive Qt’s MOC over
+the <code class="docutils literal notranslate"><span class="pre">Q_OBJECT</span></code> classes. The plugin is installed via
+<code class="docutils literal notranslate"><span class="pre">pluginlib_export_plugin_description_file(rviz_common</span>
+<span class="pre">plugin_description.xml)</span></code>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
