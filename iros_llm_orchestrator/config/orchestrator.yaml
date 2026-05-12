@@ -42,7 +42,7 @@ llm_chat_server:
     # Read-only runtime context for /llm/chat.
     # Default demo path uses MCP read-only context. Use "ros_readonly" for a
     # local ROS-topic fallback or "none" for Phase 1 behavior.
-    context_provider: "mcp_readonly"
+    context_provider: "mcp_readonly"  
     context_timeout_sec: 2.0
     context_max_chars: 6000
     context_include_bt_state: true
