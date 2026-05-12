@@ -45,10 +45,10 @@ Top-level launch files live in `iros_llm_swarm_bringup/launch/`:
 | Launch file | Purpose |
 | --- | --- |
 | `swarm_warehouse.launch.py` | Stage + Nav2 + RViz only (no MAPF, no BT) |
-| `swarm_mapf.launch.py` | Stage + Nav2 + PBS planner + RViz |
-| `swarm_lns.launch.py` | Stage + Nav2 + LNS2 planner + RViz |
-| `swarm_mapf_formation.launch.py` / `swarm_lns_formation.launch.py` | Above + formation manager |
-| `swarm_full_demo.launch.py` | Full stack + BT runner + LLM orchestrator (mock LLM) |
+| `swarm_mapf.launch.py` | Stage + Nav2 + PBS planner + RViz + per-robot `pbs_motion_controller` followers |
+| `swarm_lns.launch.py` | Stage + Nav2 + LNS2 planner + RViz + per-robot `lns_motion_controller` followers |
+| `swarm_mapf_formation.launch.py` / `swarm_lns_formation.launch.py` | Above + formation manager / monitor |
+| `swarm_full_demo.launch.py` | Full stack + BT runner + LLM orchestrator + RViz panel + tools. Selectable planner (`planner:=pbs\|lns`); channel 1 always on, channel 2 opt-in (`enable_passive_observer:=true`); rosbridge on by default for the MCP context provider. |
 
 Launch arguments (`swarm_warehouse.launch.py` and downstream): `scenario` (`cave` \| `large_cave` \| `warehouse_2` \| `warehouse_4`, default `cave`), `num_robots` (default `20`), `world_file`, `rviz_cfg`, `use_sim_time`. The simulator always spawns the robots defined in the world file; `num_robots` only limits how many are *controlled*.
 
@@ -93,18 +93,19 @@ colcon test --packages-select <pkg> && colcon test-result --verbose
 | `iros_llm_swarm_interfaces` | msg/srv/action | Shared types — single source of truth |
 | `iros_llm_swarm_mapf` | C++17 | PBS planner: Euclidean A\* + capsule conflict + gradient inflation |
 | `iros_llm_swarm_mapf_lns` | C++17 | LNS2 planner — same `/swarm/set_goals` contract, scalable alternative |
-| `iros_llm_swarm_local_nav` | Python | Spawns one Nav2 stack per robot under `robot_N/` namespace |
-| `iros_llm_swarm_costmap_plugins` | C++17 | `ResettingObstacleLayer` — fixes ghost-trail bug in `nav2_costmap_2d::ObstacleLayer` |
+| `iros_llm_swarm_robot` | C++17 | Per-robot dual-mode followers — `pbs_motion_controller` (PBS) and `lns_motion_controller` (LNS2). Both share the FORMATION_FOLLOWER PD code path. |
+| `iros_llm_swarm_local_nav` | Python | Spawns one Nav2 stack per robot under `robot_N/` namespace; uses `zone_map_server` from `iros_llm_swarm_costmap_plugins` |
+| `iros_llm_swarm_costmap_plugins` | C++17 | `ResettingObstacleLayer` (fixes ghost-trail bug in stock `nav2_costmap_2d::ObstacleLayer`) and `zone_map_server` (the project's actual map server) |
+| `iros_llm_swarm_obstacles` | C++17 | `dynamic_obstacle_manager` — overlays runtime circles / rectangles / stateful doors onto `/raw_map` and republishes the merged grid on `/map` (TRANSIENT_LOCAL). Not yet wired into bringup launches. |
 | `iros_llm_swarm_formation` | Python | Leader-follower formations + manager + monitor |
-| `iros_llm_swarm_bt` | C++17 | BehaviorTree.CPP v3 nodes (`MapfPlan`, `SetFormation`, `DisableFormation`, `CheckMode`) + `test_bt_runner`, `fleet_cmd` |
-| `iros_llm_orchestrator` | Python | LLM glue: `decision_server` (channel 1), `passive_observer` (channel 2), `chat_server`, `execute_server`, `user_chat_node` |
-| `iros_llm_rviz_panel` | C++ (Qt) | RViz2 operator panel — chat tab, status, goal markers, STOP ALL |
-| `iros_llm_rviz_tool` | C++ | RViz2 tool plugin (goal pickers etc.) |
+| `iros_llm_swarm_bt` | C++17 | BehaviorTree.CPP v3 nodes (`MapfPlan`, `SetFormation`, `DisableFormation`, `CheckMode`) + `test_bt_runner`, `fleet_cmd`, `LlmCommandReceiver` |
+| `iros_llm_orchestrator` | Python | LLM glue: `decision_server` (channel 1), `passive_observer` (channel 2), `chat_server` + `execute_server` + `user_chat` (channel 3); MCP read-only context provider; JSONL dataset writers |
+| `iros_llm_rviz_panel` | C++ (Qt) | RViz2 operator panel — Chat / MAPF / Events / BT / Info tabs, status bar, STOP ALL, goal markers on `/llm_panel/markers` |
+| `iros_llm_rviz_tool` | C++ (Qt) | RViz2 tool plugins — `SendLlmGoalTool` (`g`), `PlaceObstacleTool` (`b`), `DoorTool` (`d`) |
 | `iros_llm_swarm_simulation_lite` | Python | Stage 2D simulator launcher, world files, robot `.inc` |
 | `iros_llm_swarm_simulation` | Python | Gazebo Harmonic (3D) — **not stable for 20 robots, prefer `_lite`** |
-| `iros_llm_swarm_robot` | mixed | Per-robot motion controllers launch |
 | `iros_llm_swarm_bringup` | Python | Top-level launch composition |
-| `iros_llm_swarm_docs` | rosdoc2 | Carries `COLCON_IGNORE` |
+| `iros_llm_swarm_docs` | rosdoc2 | Aggregator for the unified Sphinx site. Carries `COLCON_IGNORE`. |
 
 ### Central contracts
 
@@ -141,12 +142,13 @@ Stage runs with `one_tf_tree: true` + `enforce_prefixes: true`, so every robot f
 
 ### LLM orchestrator (`iros_llm_orchestrator`)
 
-Two-channel design:
+Three-channel design:
 
-- **Channel 1 (reactive)** — `decision_server` exposes `/llm/decision` (action). BT nodes (`MapfPlan`, `SetFormation`) call it directly when they hit WARN/ERROR. Always on in the full demo.
-- **Channel 2 (proactive)** — `passive_observer` subscribes to `/bt/state`, decides on its own whether to intervene, and writes `LlmCommand` to `/llm/command`. Off by default (`enable_passive_observer:=false`); enabling it does **not** disable channel 1 — both run.
+- **Channel 1 (reactive)** — `decision_server` exposes `/llm/decision` (action). BT nodes (`MapfPlan`, `SetFormation`) call it directly when they hit WARN/ERROR. Always on in the full demo. Returns `wait | abort | replan`.
+- **Channel 2 (proactive)** — `passive_observer` subscribes to `/bt/state`, decides on its own whether to intervene, and writes `LlmCommand` to `/llm/command`. Off by default (`enable_passive_observer:=false`); enabling it does **not** disable channel 1 — both run. Cooldown-gated; checks the `llm_thinking` flag on `/bt/state` to avoid colliding with channel 1.
+- **Channel 3 (operator chat)** — `chat_server` exposes the `/llm/chat` action consumed by the RViz panel. Streams replies chunk-by-chunk, parses an executable plan JSON, and dispatches the leaves through `/llm/execute_plan` → `execute_server`. Includes a remediation loop (default 2 retries) that re-prompts the LLM with refreshed runtime context on execution failure. Supports an MCP read-only context provider (`uvx ros-mcp --transport=stdio`) — locked to a `mcp_tool_allowlist` of `get_topics`, `get_topic_type`, `subscribe_once`, `get_nodes`, `get_services`, `get_actions`, …; the LLM never sees MCP tools directly, only a bounded snapshot.
 
-`chat_server` exposes the `/llm/chat` action consumed by the RViz panel. `execute_server` owns command execution. The default backend is a mock; swap it via the orchestrator config to point at a real model.
+`user_chat` is a CLI mirror of channel 3 for offline testing. Backends are selected by `llm_backend:=mock|ollama|http|local` (HTTP is OpenAI-compatible). Default endpoint and model live in `iros_llm_orchestrator/config/orchestrator.yaml` and can be overridden per launch via `llm_endpoint:=…` / `llm_model:=…`. API keys come from the env var named by `llm_api_key_env` (default `LLM_API_KEY`); never hardcode them in YAML.
 
 ## Stack and tooling conventions
 
@@ -180,6 +182,8 @@ Two-channel design:
 - AMCL disabled (see TF section). Don't re-enable without a plan for cross-robot laser interference.
 - 3D Gazebo (`iros_llm_swarm_simulation`) is not stable yet — use `_simulation_lite` (Stage).
 - `iros_llm_rviz_panel` does Qt from ROS callbacks via `Qt::QueuedConnection` signals only — never touch widgets from an executor thread (segfaults under load, passes silently on a quiet workstation).
+- `iros_llm_rviz_tool` provides three click-to-command tools (`g` / `b` / `d`) that bypass the LLM and call ROS actions / services directly — handy for ground-truth comparisons and demos. `PlaceObstacleTool` and `DoorTool` need `iros_llm_swarm_obstacles` running.
+- `iros_llm_swarm_obstacles` and `iros_llm_swarm_costmap_plugins/zone_map_server` both publish `/map` with `TRANSIENT_LOCAL` QoS — only one can own the topic at a time. Today the bringup launches use `zone_map_server` and the obstacle manager is **not** wired in; if you compose it manually, repoint the static map server to `/raw_map` first.
 - Always rebuild `iros_llm_swarm_interfaces` (and `_mapf_lns` if its types changed) before dependents when adding messages — symlink-install will not save you here.
 
 ## Sub-agent routing
