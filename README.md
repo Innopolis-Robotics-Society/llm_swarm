@@ -1,6 +1,6 @@
 # IROS LLM Swarm — Simulation
 
-Multi-robot simulation on ROS 2 Humble with Nav2 local navigation stack. Runs 20 differential-drive robots in a 2D Stage environment with per-robot navigation controllers and a shared map.
+Multi-robot simulation on ROS 2 Humble with Nav2 local navigation stack. Runs 20 differential-drive robots in a 2D Stage environment with per-robot navigation controllers, a shared map, two MAPF planners (PBS, LNS2), leader-follower formations, BehaviorTree.CPP orchestration, an LLM advisory layer with three channels (reactive, proactive, operator chat), an RViz operator panel with chat / STOP-ALL / status views, click-to-command RViz tools, and a dynamic-obstacle layer.
 
 ## Quick Start (Docker)
 
@@ -37,7 +37,7 @@ ros2 launch iros_llm_swarm_bringup swarm_lns.launch.py
 | -------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
 | `scenario`     | `cave`            | Defines the map and configuration of robots for operation. Acceptable parameters:<br>- `large_cave`: A giant `cave` map, not recommended for running on default settings due to large distances.<br>- `cave`: A medium-sized `cave` map.<br>- `warehouse_2`: A standard `warehouse` map with shelving, robots arranged in two groups in the lower left and upper right corners.<br>- `warehouse_4`: A standard `warehouse` map with shelving, robots arranged in four groups in the four corners.<br>- `amongus`: Among Us-style map with named rooms and corridor doors preloaded from the scenario YAML. |
 | `num_robots`   | `20`              | Number of robots to controll by system (still spawn as many robots as there are in the world file) |
-| `world_file`   | `warehouse.world` | Stage world file path                                                                              |
+| `world_file`   | scenario-dependent | Stage world file path. Override directly to bypass the scenario→world mapping in `common_scenarios.yaml`. |
 | `rviz_cfg`     | `swarm_20.rviz`   | common RViz config for 20 robots                                                                   |
 | `use_sim_time` | `true`            | Use simulation clock                                                                               |
 
@@ -120,13 +120,13 @@ You can play around with swarm a little:
 You can send everyone to the same point by following command:
 
 ```bash
-ros2 run iros_llm_swarm_local_nav test_local_planne --num 20 --goal-x <replace> --goal-y <replace>
+ros2 run iros_llm_swarm_local_nav test_local_planner --num 20 --goal-x <replace> --goal-y <replace>
 ```
 
 Or send everyone to their own random point within a radius:
 
 ```bash
-ros2 run iros_llm_swarm_local_nav test_local_planne --num 20 --radius <replace>
+ros2 run iros_llm_swarm_local_nav test_local_planner --num 20 --radius <replace>
 ```
 
 > _notes:_ num - determines the number of robots that will receive the command
@@ -153,7 +153,7 @@ ros2 run iros_llm_swarm_mapf test_send_goals --json-file goals.json
 
 Launch the full stack and send the goals:
 ```bash
-ros2 launch iros_llm_swarm_bringup swarm_formation.launch.py
+ros2 launch iros_llm_swarm_bringup swarm_mapf_formation.launch.py
 
 # In second terminal
 ros2 run iros_llm_swarm_mapf test_send_goals --json-file src/iros_llm_swarm_mapf/config/goals_1.json
@@ -701,7 +701,97 @@ ros2 service call /obstacles/list iros_llm_swarm_interfaces/srv/ListObstacles "{
 
 ### `iros_llm_swarm_interfaces`
 
-Custom ROS 2 messages, services, and actions.
+Custom ROS 2 messages, services, and actions. Includes the swarm action
+(`SetGoals`), the LLM channels (`LlmDecision`, `LlmCommand`, `LlmChat`,
+`LlmExecutePlan`, `LlmEvent`), the BT state stream (`BTState`), the
+LNS2 follower contract (`MAPFPlan` + `MAPFStep`, `FollowerStatus`), the
+formation CRUD set, and the dynamic-obstacle messages and services
+(`CircleObstacle`, `RectangleObstacle`, `Door`, `AddCircle`,
+`AddRectangle`, `AddDoor`, `RemoveObstacle`, `ListObstacles`,
+`OpenDoor`, `CloseDoor`).
+
+### `iros_llm_swarm_robot`
+
+Per-robot dual-mode followers shared by both planners. Two executables
+are built from this package:
+
+- `pbs_motion_controller` — paired with the PBS planner, consumes
+  `nav_msgs/Path` on `/<ns>/mapf_path`, dispatches chunks to Nav2
+  `follow_path`. Does not publish `FollowerStatus`.
+- `lns_motion_controller` — paired with the LNS2 planner, consumes
+  `MAPFPlan` on `/<ns>/mapf_plan`, executes hold-then-go, publishes
+  `FollowerStatus` (state, current step, `plan_id`, hold countdown,
+  Nav2 failure count).
+
+Both share the FORMATION_FOLLOWER code path (PD controller on the
+leader's body-frame offset). Mode switching is event-driven by
+`/formations/config`; the node does not restart. Selected at launch
+time via `motion_controllers.launch.py controller_type:=pbs|lns`.
+
+### `iros_llm_swarm_bt`
+
+BehaviorTree.CPP v3 nodes that wrap the swarm primitives:
+
+- `MapfPlan` — async client for `/swarm/set_goals`, with optional
+  `/llm/decision` callback hook for WARN/ERROR.
+- `SetFormation` / `DisableFormation` — formation service wrappers.
+- `CheckMode` — blackboard mode-transition checks.
+
+Also ships `test_bt_runner` (loads a BT XML and publishes `/bt/state`),
+the `fleet_cmd` CLI (`simple|stress|unreachable|idle` scenarios), and
+`LlmCommandReceiver` which applies channel-2 commands onto the BT
+blackboard.
+
+### `iros_llm_orchestrator`
+
+Three-channel LLM advisory layer (Python). Five nodes:
+
+- `decision_server` — channel 1, `/llm/decision` action server. BT
+  nodes call it on WARN/ERROR; returns `wait | abort | replan`.
+- `passive_observer` — channel 2, watches `/bt/state` and pushes
+  `LlmCommand` to `/llm/command` when intervention is warranted
+  (cooldown-gated, opt-in via `enable_passive_observer:=true`).
+- `chat_server` — channel 3, `/llm/chat` action server. Streams replies
+  chunk-by-chunk, parses JSON plans, runs a remediation loop on
+  execution failure (default 2 retries), and grounds prompts in live
+  state via a read-only MCP context provider.
+- `execute_server` — replays an operator-confirmed plan via
+  `/llm/execute_plan`.
+- `user_chat` — CLI chatbot for offline testing of the channel-3
+  pipeline.
+
+Backend selectable at launch (`llm_backend:=mock|ollama|http|local`).
+HTTP backend is OpenAI-compatible. Every call is appended to JSONL for
+SFT collection — channel 1 to `~/.ros/llm_decisions/`, channel 2 to
+`~/.ros/llm_commands/`. The MCP context provider spawns
+`uvx ros-mcp --transport=stdio` and is locked to a read-only
+allowlist; the LLM never sees MCP tools directly, only a bounded
+snapshot.
+
+### `iros_llm_rviz_panel`
+
+Single docked RViz2 panel (`iros_llm_rviz_panel/LLM-Panel`) — five
+tabs (Chat, MAPF, Events, BT, Info) plus a sticky status bar with a
+**STOP ALL** button that publishes `LlmCommand{mode=idle}` directly to
+`/llm/command`. The Chat tab drives `/llm/chat`, streams the reply
+back chunk-by-chunk, optionally previews the parsed plan as a tree,
+and confirms execution via `/llm/execute_plan`. Goal markers stream on
+`/llm_panel/markers` at 30 Hz when `mode=mapf`. All ROS callbacks
+marshal to Qt slots through `Qt::QueuedConnection` — never touch
+widgets from an executor thread.
+
+### `iros_llm_rviz_tool`
+
+Three click-to-command RViz2 tool plugins (no LLM in the loop):
+
+- **SendLlmGoalTool** (`g`) — pick a robot group, click on the map, N
+  goals are spread around the click and dispatched to `/llm/command`
+  as a `mode=mapf` command.
+- **PlaceObstacleTool** (`b`) — left-click adds a circle / rectangle /
+  door (shape and size from the Tool Properties panel); right-click
+  removes the nearest obstacle.
+- **DoorTool** (`d`) — left-click opens, right-click closes the door
+  whose ID is set in the Tool Properties panel.
 
 ### `iros_llm_swarm_simulation`
 
@@ -734,10 +824,17 @@ DDS and performance tuning scripts are in `src/scripts/`:
 - [x] Dynamic obstacles — runtime circle/rectangle/door obstacles; scenario YAML preloading; RViz PlaceObstacleTool + DoorTool
 - [x] Formation control (leader-follower with PD controllers)
 - [x] Long-lived MAPF action (plan-execute-arrive lifecycle with feedback)
-- [ ] BT integration
-  - [ ] Swarm BT Navigator (single BT for the whole swarm)
-  - [ ] Custom BT nodes: ExecuteMAPF, ExecuteFormation, EmergencyStop
-  - [ ] Mode switching (MAPF - formation) via BT control flow
+- [x] BT integration
+  - [x] Swarm BT runner (`test_bt_runner` in `iros_llm_swarm_bt`)
+  - [x] Custom BT nodes: `MapfPlan`, `SetFormation`, `DisableFormation`, `CheckMode`
+  - [x] Mode switching (MAPF / formation / idle) via BT blackboard
+- [x] LNS2 MAPF planner (sharing the `/swarm/set_goals` contract with PBS)
+- [x] LLM advisory layer (`iros_llm_orchestrator`)
+  - [x] Channel 1 — reactive `/llm/decision` action driven by BT WARN/ERROR
+  - [x] Channel 2 — proactive `passive_observer` watching `/bt/state`
+  - [x] Channel 3 — operator chat (`/llm/chat`) with plan preview, remediation loop, MCP-grounded context
+  - [x] JSONL dataset collection per channel (`~/.ros/llm_{decisions,commands}/`)
+- [x] RViz operator surface (`iros_llm_rviz_panel`, `iros_llm_rviz_tool`)
 - [ ] MAPF improvements
   - [ ] Better conflict resolution — PBS is currently brute force, needs smarter strategy (CBS, ECBS, or improved PBS heuristics)
   - [ ] Path following temporal accuracy — robots drift from planned schedule (too fast/slow), causing unnecessary replans
@@ -746,5 +843,5 @@ DDS and performance tuning scripts are in `src/scripts/`:
   - [ ] Formation-aware MAPF (plan formations as single entities with compound footprints)
   - [ ] Orientation-aware PBS for complex polygon footprints
 - [ ] Fault tolerance and communication loss handling
-- [ ] LLM reasoning agent integration (fleet-level task allocation)
+- [ ] LLM-driven fleet-level task allocation (beyond reactive/chat — proactive mission decomposition)
 - [ ] Transition to Gazebo Harmonic for 3D simulation
