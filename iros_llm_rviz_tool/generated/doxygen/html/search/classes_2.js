@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['doortool_27',['DoorTool',['../classiros__llm__rviz__tool_1_1DoorTool.html',1,'iros_llm_rviz_tool']]]
+  ['placeobstacletool_7',['PlaceObstacleTool',['../classiros__llm__rviz__tool_1_1PlaceObstacleTool.html',1,'iros_llm_rviz_tool']]]
 ];

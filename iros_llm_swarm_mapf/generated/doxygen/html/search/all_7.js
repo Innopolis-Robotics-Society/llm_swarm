@@ -1,8 +1,6 @@
 var searchData=
 [
-  ['segment_12',['Segment',['../structSegment.html',1,'']]],
-  ['segmentreservationtable_13',['SegmentReservationTable',['../classSegmentReservationTable.html',1,'']]],
-  ['solvediagnostics_14',['SolveDiagnostics',['../structSolveDiagnostics.html',1,'']]],
-  ['solvestats_15',['SolveStats',['../structSolveStats.html',1,'']]],
-  ['spacetimeastarplanner_16',['SpaceTimeAStarPlanner',['../classSpaceTimeAStarPlanner.html',1,'']]]
+  ['mapbounds_12',['MapBounds',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_rviz_tool/generated/doxygen/html/structiros__llm__rviz__tool_1_1MapBounds.html',1,'iros_llm_rviz_tool']]],
+  ['move_13',['Move',['../structMove.html',1,'']]],
+  ['moveset_14',['MoveSet',['../structMoveSet.html',1,'']]]
 ];

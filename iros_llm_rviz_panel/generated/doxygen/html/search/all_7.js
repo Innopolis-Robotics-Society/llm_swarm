@@ -1,6 +1,5 @@
 var searchData=
 [
-  ['mapbounds_11',['MapBounds',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_rviz_tool/generated/doxygen/html/structiros__llm__rviz__tool_1_1MapBounds.html',1,'iros_llm_rviz_tool']]],
-  ['move_12',['Move',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_swarm_mapf/generated/doxygen/html/structMove.html',1,'']]],
-  ['moveset_13',['MoveSet',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_swarm_mapf/generated/doxygen/html/structMoveSet.html',1,'']]]
+  ['sendllmgoaltool_7',['SendLlmGoalTool',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_rviz_tool/generated/doxygen/html/classiros__llm__rviz__tool_1_1SendLlmGoalTool.html',1,'iros_llm_rviz_tool']]],
+  ['sparkline_8',['Sparkline',['../classiros__llm__rviz__panel_1_1Sparkline.html',1,'iros_llm_rviz_panel']]]
 ];

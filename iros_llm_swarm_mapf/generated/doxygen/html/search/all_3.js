@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['gridmap_6',['GridMap',['../structGridMap.html',1,'']]]
+  ['euclideanastarplanner_7',['EuclideanAStarPlanner',['../classEuclideanAStarPlanner.html',1,'']]]
 ];
