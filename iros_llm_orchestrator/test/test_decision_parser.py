@@ -1,6 +1,9 @@
 """Unit tests for decision_parser.parse_llm_decision()."""
 
-from iros_llm_orchestrator.common.parsers import parse_llm_decision
+from iros_llm_orchestrator.common.parsers import (
+    parse_llm_decision,
+    parse_llm_decision_final,
+)
 
 
 def test_plain_json_wait():
@@ -68,6 +71,11 @@ def test_none_like_input_falls_back_to_wait():
 def test_case_insensitive_decision():
     raw = '{"decision": "AbOrT", "reason": "mixed case"}'
     assert parse_llm_decision(raw) == 'abort'
+
+
+def test_agentic_final_json_replan():
+    raw = '{"mode": "final", "decision": "replan", "reason": "stalled"}'
+    assert parse_llm_decision_final(raw) == 'replan'
 
 
 def test_prose_without_json_falls_back_to_wait():

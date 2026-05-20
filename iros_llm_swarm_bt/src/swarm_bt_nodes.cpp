@@ -99,6 +99,8 @@ BT::NodeStatus MapfPlan::onStart()
   llm_goal_handle_.reset();
   llm_result_future_ = {};
   last_llm_log_time_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+  last_llm_feedback_log_time_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
+  last_llm_no_warning_log_time_ = rclcpp::Time(0, 0, RCL_ROS_TIME);
 
   // Observer channel: snapshot state for BTStatePublisher
   {
@@ -148,12 +150,27 @@ BT::NodeStatus MapfPlan::onRunning()
         bb->set<std::string>("@last_error", pending_snapshot_.error);
       }
 
-      if (!pending_snapshot_.warn_event.empty()) {
+      if (!pending_snapshot_.error_event.empty()) {
         RCLCPP_WARN(node->get_logger(),
-          "MapfPlan feedback WARN: %s", pending_snapshot_.warn_event.c_str());
+          "MapfPlan LLM: feedback error detected level=ERROR event='%s'",
+          pending_snapshot_.error_event.c_str());
+        setOutput("mapf_warn", pending_snapshot_.error_event);
+        if (!llm_pending_) {
+          send_to_llm("ERROR", pending_snapshot_.error_event);
+        } else {
+          RCLCPP_INFO(node->get_logger(),
+            "MapfPlan LLM: decision pending=true");
+        }
+      } else if (!pending_snapshot_.warn_event.empty()) {
+        RCLCPP_WARN(node->get_logger(),
+          "MapfPlan LLM: feedback warning detected level=WARN event='%s'",
+          pending_snapshot_.warn_event.c_str());
         setOutput("mapf_warn", pending_snapshot_.warn_event);
         if (!llm_pending_) {
           send_to_llm("WARN", pending_snapshot_.warn_event);
+        } else {
+          RCLCPP_INFO(node->get_logger(),
+            "MapfPlan LLM: decision pending=true");
         }
       } else if (!pending_snapshot_.info_event.empty() && !llm_pending_) {
         const auto now = node->now();
@@ -167,6 +184,7 @@ BT::NodeStatus MapfPlan::onRunning()
       }
 
       pending_snapshot_.updated = false;
+      pending_snapshot_.error_event.clear();
       pending_snapshot_.warn_event.clear();
       pending_snapshot_.info_event.clear();
     }
@@ -181,6 +199,8 @@ BT::NodeStatus MapfPlan::onRunning()
       llm_pending_ = false;
 
       if (dec == "abort") {
+        RCLCPP_WARN(node->get_logger(),
+          "MapfPlan LLM: applying decision abort");
         RCLCPP_WARN(node->get_logger(), "MapfPlan: LLM decision=abort");
         setOutput("mapf_ok", false);
         setOutput("mapf_info", "aborted by LLM");
@@ -190,6 +210,8 @@ BT::NodeStatus MapfPlan::onRunning()
         cancel_mapf();
         return BT::NodeStatus::FAILURE;
       } else if (dec == "replan") {
+        RCLCPP_INFO(node->get_logger(),
+          "MapfPlan LLM: applying decision replan");
         RCLCPP_INFO(node->get_logger(), "MapfPlan: LLM decision=replan");
         config().blackboard->set<std::string>("@mapf_decision", "replan");
         config().blackboard->set<std::string>("@mode", "idle");
@@ -203,6 +225,8 @@ BT::NodeStatus MapfPlan::onRunning()
       // Reset action_status to OK so PassiveObserver (channel 2) doesn't
       // re-trigger on the same stale WARN on the next BTState publish.
       RCLCPP_INFO(node->get_logger(), "MapfPlan: LLM decision=wait, continuing");
+      RCLCPP_INFO(node->get_logger(),
+        "MapfPlan LLM: applying decision wait");
       config().blackboard->set<std::string>("@action_status", "OK");
       config().blackboard->set<std::string>("@last_error", "");
       config().blackboard->set<bool>("@llm_thinking", false);
@@ -213,6 +237,8 @@ BT::NodeStatus MapfPlan::onRunning()
   if (llm_pending_ && !llm_goal_handle_ && future_ready(llm_goal_handle_future_)) {
     llm_goal_handle_ = llm_goal_handle_future_.get();
     if (llm_goal_handle_) {
+      RCLCPP_INFO(node->get_logger(),
+        "MapfPlan LLM: decision pending=true");
       llm_result_future_ = llm_client_->async_get_result(llm_goal_handle_);
     } else {
       RCLCPP_WARN(node->get_logger(), "MapfPlan: LLM goal rejected");
@@ -224,6 +250,9 @@ BT::NodeStatus MapfPlan::onRunning()
     if (wrapped.code == rclcpp_action::ResultCode::SUCCEEDED) {
       std::lock_guard<std::mutex> lk(decision_mutex_);
       pending_decision_ = wrapped.result->decision;
+      RCLCPP_INFO(node->get_logger(),
+        "MapfPlan LLM: decision result decision=%s",
+        pending_decision_.c_str());
     } else {
       RCLCPP_WARN(node->get_logger(), "MapfPlan: LLM action did not succeed");
       llm_pending_ = false;
@@ -366,6 +395,8 @@ void MapfPlan::on_feedback(
   GoalHandle::SharedPtr /*gh*/,
   const std::shared_ptr<const Feedback> fb)
 {
+  auto node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
+
   // Build a one-line summary of this feedback tick. snprintf into a stack
   // buffer for the numeric prefix (no heap), then append the optional
   // INFO / WARN strings.
@@ -385,6 +416,36 @@ void MapfPlan::on_feedback(
   if (!fb->info.empty())    { line_str += " INFO: ";    line_str += fb->info; }
   if (!fb->warning.empty()) { line_str += " WARN: ";    line_str += fb->warning; }
 
+  const bool status_failed =
+    fb->status == "failed" || fb->status == "ERROR" || fb->status == "error";
+  const bool has_decision_event = !fb->warning.empty() || status_failed;
+  const auto now = node->now();
+  const bool feedback_log_due =
+    has_decision_event ||
+    last_llm_feedback_log_time_.nanoseconds() == 0 ||
+    (now - last_llm_feedback_log_time_).seconds() >= 2.0;
+  if (feedback_log_due) {
+    RCLCPP_INFO(node->get_logger(),
+      "MapfPlan LLM: feedback received status=%s warning='%s' info='%s' "
+      "replans_done=%u arrived=%u active=%u",
+      fb->status.c_str(),
+      fb->warning.c_str(),
+      fb->info.c_str(),
+      static_cast<unsigned>(fb->replans_done),
+      static_cast<unsigned>(fb->robots_arrived),
+      static_cast<unsigned>(fb->robots_active));
+    last_llm_feedback_log_time_ = now;
+  }
+  const bool no_warning_log_due =
+    !has_decision_event &&
+    (last_llm_no_warning_log_time_.nanoseconds() == 0 ||
+     (now - last_llm_no_warning_log_time_).seconds() >= 5.0);
+  if (no_warning_log_due) {
+    RCLCPP_INFO(node->get_logger(),
+      "MapfPlan LLM: no warning in feedback, skipping decision");
+    last_llm_no_warning_log_time_ = now;
+  }
+
   // Ring buffer — has its own mutex, safe from any thread
   {
     std::lock_guard<std::mutex> lk(buffer_mutex_);
@@ -401,14 +462,25 @@ void MapfPlan::on_feedback(
     pending_snapshot_.summary = line_str;
     pending_snapshot_.updated = true;
 
-    if (!fb->warning.empty()) {
+    if (status_failed) {
+      const std::string event =
+        !fb->warning.empty() ? fb->warning :
+        (!fb->info.empty() ? fb->info : "MAPF feedback status failed");
+      pending_snapshot_.status      = "ERROR";
+      pending_snapshot_.error       = event;
+      pending_snapshot_.error_event = event;
+      pending_snapshot_.warn_event.clear();
+      pending_snapshot_.info_event.clear();
+    } else if (!fb->warning.empty()) {
       pending_snapshot_.status     = "WARN";
       pending_snapshot_.error      = fb->warning;
+      pending_snapshot_.error_event.clear();
       pending_snapshot_.warn_event = fb->warning;
       pending_snapshot_.info_event.clear();
     } else {
       pending_snapshot_.status = "OK";
       pending_snapshot_.error.clear();
+      pending_snapshot_.error_event.clear();
       pending_snapshot_.warn_event.clear();
       // Stash the info string; onRunning will decide whether the
       // periodic-log interval has elapsed before actually sending it.
@@ -427,10 +499,14 @@ void MapfPlan::send_to_llm(const std::string & level, const std::string & event)
 
   // Don't pile up LLM calls — skip if one is already in flight
   if (llm_pending_) {
+    RCLCPP_INFO(node->get_logger(),
+      "MapfPlan LLM: decision pending=true");
     RCLCPP_WARN(node->get_logger(),
       "MapfPlan: LLM call already in flight, skipping new %s event", level.c_str());
     return;
   }
+  RCLCPP_INFO(node->get_logger(),
+    "MapfPlan LLM: decision pending=false");
 
   if (!llm_client_->action_server_is_ready()) {
     RCLCPP_WARN(node->get_logger(),
@@ -450,9 +526,23 @@ void MapfPlan::send_to_llm(const std::string & level, const std::string & event)
     goal.log_buffer.assign(info_buffer_.begin(), info_buffer_.end());
   }
 
+  RCLCPP_INFO(node->get_logger(),
+    "MapfPlan LLM: sending /llm/decision level=%s event='%s' "
+    "log_buffer_size=%zu",
+    level.c_str(), event.c_str(), goal.log_buffer.size());
+
+  rclcpp_action::Client<LlmDecision>::SendGoalOptions opts;
+  opts.feedback_callback =
+    [this](LlmGoalHandle::SharedPtr,
+           const std::shared_ptr<const LlmDecision::Feedback> fb) {
+      auto cb_node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
+      RCLCPP_INFO(cb_node->get_logger(),
+        "MapfPlan LLM: decision feedback stage=%s", fb->stage.c_str());
+    };
+
   llm_goal_handle_.reset();
   llm_result_future_ = {};
-  llm_goal_handle_future_ = llm_client_->async_send_goal(goal);
+  llm_goal_handle_future_ = llm_client_->async_send_goal(goal, opts);
   llm_pending_ = true;
   config().blackboard->set<bool>("@llm_thinking", true);
 

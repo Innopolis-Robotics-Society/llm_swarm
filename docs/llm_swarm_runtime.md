@@ -28,6 +28,7 @@ llm_chat_server:
   ros__parameters:
     context_provider: "mcp_readonly"
     mcp_enabled: true
+    mcp_agentic_enabled: true
 ```
 
 Never put a real API key in YAML, docs, reports, logs, or tests. Use only:
@@ -122,6 +123,54 @@ an OpenAI-compatible HTTP API.
 
 Local backend is not the same thing as Ollama. Ollama is selected automatically
 through endpoint inference.
+
+## Agentic Read-Only MCP
+
+`/llm/chat` can run a bounded read-only MCP tool loop before producing the
+final reply and plan. The model never receives direct MCP client access. It may
+only return JSON tool requests, the broker validates them against
+`mcp_tool_allowlist`, and tool results are appended back into the conversation.
+
+```yaml
+mcp_agentic_enabled: true
+mcp_agentic_max_rounds: 3
+mcp_agentic_max_tools_per_round: 3
+mcp_agentic_tool_timeout_sec: 2.0
+mcp_agentic_max_result_chars: 6000
+mcp_agentic_enable_for_initial_chat: true
+mcp_agentic_enable_for_remediation: true
+```
+
+Allowed tool requests must use the protocol:
+
+```json
+{
+  "mode": "tool_request",
+  "tools": [
+    {
+      "name": "subscribe_once",
+      "args": {
+        "topic": "/bt/state",
+        "msg_type": "iros_llm_swarm_interfaces/msg/BTState"
+      }
+    }
+  ],
+  "reason": "Need current BT state before choosing action"
+}
+```
+
+Final answers use:
+
+```json
+{
+  "mode": "final",
+  "reply": "...",
+  "plan": { "type": "idle", "reason": "reply_only: status answer" }
+}
+```
+
+The safety boundary is unchanged: MCP is observation only, and execution still
+goes through `PlanExecutor -> /llm/command -> Behavior Tree`.
 
 ## Local Ollama
 

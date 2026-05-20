@@ -5,6 +5,13 @@ build_decision_prompt(scenarios, level, event, log_buffer, tail) -> str
 
 import json
 
+DECISION_MCP_ALLOWED_TOOLS = (
+    'subscribe_once',
+    'get_action_status',
+    'get_actions',
+    'get_topics',
+)
+
 SYSTEM_PROMPT = """You are the supervisor orchestrator of a swarm of 20 Nav2 robots.
 
 When a BT node (MapfPlan / SetFormation / DisableFormation) encounters a WARN or ERROR,
@@ -65,6 +72,144 @@ Respond strictly with valid JSON:
 No surrounding text, no markdown blocks — only one JSON object.
 """
 
+AGENTIC_MCP_PROMPT = """
+For WARN/ERROR only:
+You may request read-only MCP observations before your final decision.
+
+MCP is observation only. Request only the listed tools. Never request
+write/control tools, never publish topics, call services, send action goals,
+set/delete parameters, send /cmd_vel, directly control robots, or bypass the
+BT/MAPF/Formation Manager path.
+
+Allowed read-only decision tools and exact useful args:
+
+1. subscribe_once for BT state:
+{"name":"subscribe_once","args":{"topic":"/bt/state","msg_type":"iros_llm_swarm_interfaces/msg/BTState"}}
+
+2. subscribe_once for formation status:
+{"name":"subscribe_once","args":{"topic":"/formations/status","msg_type":"iros_llm_swarm_interfaces/msg/FormationsStatus"}}
+
+3. get_action_status for the active MAPF goal action:
+{"name":"get_action_status","args":{"action_name":"/swarm/set_goals"}}
+
+4. get_actions:
+{"name":"get_actions","args":{}}
+
+5. get_topics:
+{"name":"get_topics","args":{}}
+
+Return exactly one JSON object in one of these shapes.
+
+Tool request:
+{"mode":"tool_request","tools":[{"name":"subscribe_once","args":{"topic":"/bt/state","msg_type":"iros_llm_swarm_interfaces/msg/BTState"}}],"reason":"Need current BT state"}
+
+Final decision:
+{"mode":"final","decision":"wait","reason":"Short temporary stall; no persistent failure evidence"}
+
+If the event and log_buffer already contain enough evidence, return
+mode=final immediately. The final decision must be exactly one of:
+wait, replan, abort.
+"""
+
+AGENTIC_MCP_EXAMPLES = [
+    {
+        'title': 'Temporary warning: observe BT state, then wait',
+        'input': {
+            'level': 'WARN',
+            'event': 'robot_3 stalled for 5s',
+            'log_buffer': [
+                '[t=3600ms status=executing arrived=8 active=12] WARN: robot_3 stalled',
+            ],
+        },
+        'responses': [
+            {
+                'mode': 'tool_request',
+                'tools': [{
+                    'name': 'subscribe_once',
+                    'args': {
+                        'topic': '/bt/state',
+                        'msg_type': 'iros_llm_swarm_interfaces/msg/BTState',
+                    },
+                }],
+                'reason': 'Need current BT state before canceling a running plan',
+            },
+            {
+                'mode': 'final',
+                'decision': 'wait',
+                'reason': 'First short stall and BT state still shows executing',
+            },
+        ],
+    },
+    {
+        'title': 'Persistent MAPF stall: observe BT and action status, then replan',
+        'input': {
+            'level': 'WARN',
+            'event': 'stall count is 4 and growing across cluster',
+            'log_buffer': [
+                '[t=3000ms status=executing arrived=6 active=14 stall=2]',
+                '[t=6000ms status=executing arrived=6 active=14 stall=3]',
+                '[t=9000ms status=executing arrived=6 active=14 stall=4]',
+            ],
+        },
+        'responses': [
+            {
+                'mode': 'tool_request',
+                'tools': [
+                    {
+                        'name': 'subscribe_once',
+                        'args': {
+                            'topic': '/bt/state',
+                            'msg_type':
+                                'iros_llm_swarm_interfaces/msg/BTState',
+                        },
+                    },
+                    {
+                        'name': 'get_action_status',
+                        'args': {'action_name': '/swarm/set_goals'},
+                    },
+                ],
+                'reason': 'Need current BT progress and MAPF action status',
+            },
+            {
+                'mode': 'final',
+                'decision': 'replan',
+                'reason': 'Arrived count is frozen and action remains active',
+            },
+        ],
+    },
+    {
+        'title': 'Fatal or unrecoverable failure: decide immediately',
+        'input': {
+            'level': 'ERROR',
+            'event': 'formation broken: Leader robot_0 odom timeout (2.3s)',
+            'log_buffer': [
+                '[formation=wedge state=BROKEN failure=LEADER_LOST] ERROR',
+            ],
+        },
+        'responses': [{
+            'mode': 'final',
+            'decision': 'abort',
+            'reason': 'Leader odometry is lost; formation cannot continue',
+        }],
+    },
+    {
+        'title': 'Forbidden tools',
+        'input': {
+            'level': 'WARN',
+            'event': 'operator asks whether to reset a service',
+            'log_buffer': [],
+        },
+        'responses': [{
+            'mode': 'final',
+            'decision': 'wait',
+            'reason': (
+                'Do not request call_service, send_action_goal, publish_once, '
+                'or any write/control tool from the decision channel'
+            ),
+        }],
+    },
+]
+
 
 def build_decision_prompt(
     scenarios: list,
@@ -72,8 +217,26 @@ def build_decision_prompt(
     event: str,
     log_buffer: list,
     tail: int = 20,
+    agentic_enabled: bool = False,
 ) -> str:
+    use_agentic = agentic_enabled and str(level).upper() in {'WARN', 'ERROR'}
     parts = [SYSTEM_PROMPT.strip(), '']
+    if use_agentic:
+        parts.append(AGENTIC_MCP_PROMPT.strip())
+        parts.append('')
+        parts.append('# Agentic MCP examples')
+        for example in AGENTIC_MCP_EXAMPLES:
+            parts.append(f"## {example['title']}")
+            parts.append('Input:')
+            parts.append(f"level: {example['input']['level']}")
+            parts.append(f"event: {example['input']['event']}")
+            parts.append('log_buffer:')
+            for line in example['input']['log_buffer']:
+                parts.append(f'  {line}')
+            parts.append('Responses:')
+            for response in example['responses']:
+                parts.append(json.dumps(response, ensure_ascii=False))
+            parts.append('')
     parts.append('# Examples')
     for s in scenarios:
         parts.append('## Input')
@@ -83,7 +246,10 @@ def build_decision_prompt(
         for line in s['log_buffer']:
             parts.append(f'  {line}')
         parts.append('## Decision')
-        parts.append(json.dumps(s['decision'], ensure_ascii=False))
+        decision = dict(s['decision'])
+        if use_agentic:
+            decision = {'mode': 'final', **decision}
+        parts.append(json.dumps(decision, ensure_ascii=False))
         parts.append('')
     parts.append('# Current situation')
     parts.append(f'level: {level}')
@@ -91,6 +257,6 @@ def build_decision_prompt(
     parts.append('log_buffer:')
     for line in log_buffer[-tail:]:
         parts.append(f'  {line}')
-    parts.append('## Decision')
+    parts.append('## Decision or Tool Request' if use_agentic else '## Decision')
     parts.append('')
     return '\n'.join(parts)

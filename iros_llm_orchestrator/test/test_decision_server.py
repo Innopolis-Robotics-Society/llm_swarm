@@ -11,9 +11,11 @@ action-client requests and checks that:
 """
 
 import os
+import asyncio
 import tempfile
 import threading
 import time
+from types import SimpleNamespace
 
 import pytest
 
@@ -25,6 +27,7 @@ from rclpy.node import Node  # noqa: E402
 
 from iros_llm_swarm_interfaces.action import LlmDecision  # noqa: E402
 from iros_llm_orchestrator.decision_server import LlmDecisionServer  # noqa: E402
+from iros_llm_orchestrator.context.agentic_mcp import AgenticMcpError  # noqa: E402
 
 
 class _ActionClientNode(Node):
@@ -62,6 +65,28 @@ class _ActionClientNode(Node):
             rclpy.spin_once(self, timeout_sec=0.1)
             if time.time() > deadline:
                 raise TimeoutError('action client timed out')
+
+
+class _FakeGoalHandle:
+    def __init__(self, level, event, log_buffer):
+        self.request = SimpleNamespace(
+            level=level,
+            event=event,
+            log_buffer=log_buffer,
+        )
+        self.stages_seen = []
+        self.succeeded = False
+
+    def publish_feedback(self, feedback):
+        self.stages_seen.append(feedback.stage)
+
+    def succeed(self):
+        self.succeeded = True
+
+
+def _run_on_server_loop(server, coro, timeout_sec=5.0):
+    future = asyncio.run_coroutine_threadsafe(coro, server._loop)
+    return future.result(timeout=timeout_sec)
 
 
 def _spin_server(executor, stop_event):
@@ -145,3 +170,83 @@ def test_mock_wait_on_healthy_heartbeat(running_server):
 
     assert result.decision == 'wait'
     client.destroy_node()
+
+
+def test_info_does_not_use_agentic_mcp_gate(running_server):
+    server, _ = running_server
+    server._mcp_tool_broker = object()
+    server._mcp_decision_agentic_config.enabled = True
+    server._mcp_decision_agentic_levels = {'WARN', 'ERROR'}
+
+    assert server._should_use_agentic_mcp('WARN')
+    assert server._should_use_agentic_mcp('ERROR')
+    assert not server._should_use_agentic_mcp('INFO')
+
+
+def test_decision_tool_policy_rejects_cmd_vel():
+    ok, reason = LlmDecisionServer._validate_decision_tool_args(
+        'subscribe_once',
+        {
+            'topic': '/cmd_vel',
+            'msg_type': 'geometry_msgs/msg/Twist',
+        },
+    )
+
+    assert not ok
+    assert '/bt/state' in reason
+
+
+def test_warn_uses_agentic_mcp_when_enabled(running_server, monkeypatch):
+    server, _ = running_server
+    called = {}
+
+    async def agentic(prompt):
+        called['agentic_prompt'] = prompt
+        return 'replan', 'agentic ok'
+
+    async def plain(_prompt):
+        raise AssertionError('plain decision path should not run')
+
+    monkeypatch.setattr(server, '_should_use_agentic_mcp', lambda _level: True)
+    monkeypatch.setattr(server, '_run_agentic_decision', agentic)
+    monkeypatch.setattr(server, '_run_plain_decision', plain)
+
+    goal_handle = _FakeGoalHandle(
+        level='WARN',
+        event='robot_3 stalled',
+        log_buffer=['WARN: robot_3 stalled'],
+    )
+    result = _run_on_server_loop(server, server._execute_async(goal_handle))
+
+    assert result.decision == 'replan'
+    assert goal_handle.succeeded
+    assert 'done' in goal_handle.stages_seen
+    assert 'read-only MCP observations' in called['agentic_prompt']
+
+
+def test_mcp_failure_falls_back_safely(running_server, monkeypatch):
+    server, _ = running_server
+    called = {'fallback': False}
+
+    async def agentic(_prompt):
+        raise AgenticMcpError('MCP unavailable')
+
+    async def plain(prompt):
+        called['fallback'] = True
+        assert 'read-only MCP observations' not in prompt
+        return 'wait', 'fallback ok'
+
+    monkeypatch.setattr(server, '_should_use_agentic_mcp', lambda _level: True)
+    monkeypatch.setattr(server, '_run_agentic_decision', agentic)
+    monkeypatch.setattr(server, '_run_plain_decision', plain)
+
+    goal_handle = _FakeGoalHandle(
+        level='WARN',
+        event='robot_3 stalled',
+        log_buffer=['WARN: robot_3 stalled'],
+    )
+    result = _run_on_server_loop(server, server._execute_async(goal_handle))
+
+    assert result.decision == 'wait'
+    assert called['fallback']
+    assert goal_handle.succeeded
