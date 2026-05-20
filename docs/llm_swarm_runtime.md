@@ -1,7 +1,7 @@
 # LLM Swarm Runtime
 
-This is the single runtime note for the LLM swarm demo: external API mode,
-local Ollama mode, MCP read-only context, safety boundaries, and validation.
+This is the single runtime note for the LLM swarm demo: endpoint-inferred LLM
+mode, MCP read-only context, safety boundaries, and validation.
 
 ## Current Defaults
 
@@ -11,9 +11,9 @@ under the ROS wildcard block:
 ```yaml
 "/**":
   ros__parameters:
-    llm_mode: "http"
-    llm_endpoint: "https://api.groq.com/openai/v1/chat/completions"
-    llm_model: "llama-3.3-70b-versatile"
+    llm_mode: "ollama"
+    llm_endpoint: "http://localhost:11434/api/chat"
+    llm_model: ""
     llm_api_key: ""
     llm_api_key_env: "LLM_API_KEY"
     llm_force_chat: true
@@ -84,10 +84,11 @@ mcp_tool_allowlist:
 
 ## Full Demo
 
-Default launch:
+Local Ollama with the default localhost endpoint:
 
 ```bash
-ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py \
+  llm_model:=mistral-small3.1
 ```
 
 The full demo starts rosbridge by default for MCP context:
@@ -100,36 +101,64 @@ Disable it only for debugging:
 
 ```bash
 ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py \
-  enable_rosbridge:=false
+  enable_rosbridge:=false \
+  llm_model:=mistral-small3.1
 ```
 
-## External API Mode
+## LLM Launch Arguments
 
-```bash
-export LLM_API_KEY="REPLACE_WITH_FRESH_GROQ_KEY"
-ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py llm_backend:=http
+Public launch uses only:
+
+```text
+llm_endpoint
+llm_model
+llm_api_key_env
 ```
 
-Optional explicit model/endpoint override:
+`llm_model` is required for both local Ollama and HTTP APIs. No endpoint means
+local Ollama at `http://localhost:11434/api/chat`. An endpoint containing
+`/api/chat` selects Ollama. An endpoint containing `/chat/completions` selects
+an OpenAI-compatible HTTP API.
+
+Local backend is not the same thing as Ollama. Ollama is selected automatically
+through endpoint inference.
+
+## Local Ollama
 
 ```bash
 ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py \
-  llm_backend:=http \
+  llm_model:=mistral-small3.1
+```
+
+Custom Ollama endpoint:
+
+```bash
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py \
+  llm_endpoint:=http://172.17.0.1:11434/api/chat \
+  llm_model:=mistral-small3.1
+```
+
+Ollama does not require `LLM_API_KEY`.
+
+## API
+
+```bash
+export LLM_API_KEY="REPLACE_WITH_FRESH_GROQ_KEY"
+
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py \
   llm_endpoint:=https://api.groq.com/openai/v1/chat/completions \
   llm_model:=llama-3.3-70b-versatile
 ```
 
-## Local Ollama Mode
+OpenRouter uses the same universal arguments:
 
 ```bash
-ollama serve
-ollama pull qwen2.5:7b
-ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py \
-  llm_backend:=ollama \
-  llm_model:=qwen2.5:7b
-```
+export LLM_API_KEY="REPLACE_WITH_FRESH_OPENROUTER_KEY"
 
-Ollama mode does not require `LLM_API_KEY`.
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py \
+  llm_endpoint:=https://openrouter.ai/api/v1/chat/completions \
+  llm_model:=meta-llama/llama-3.3-70b-instruct
+```
 
 ## Context Fallback Modes
 
@@ -217,16 +246,18 @@ Parameter checks after launch:
 ros2 param get /llm_chat_server context_provider
 ros2 param get /llm_chat_server mcp_enabled
 ros2 param get /llm_chat_server llm_mode
+ros2 param get /llm_chat_server llm_endpoint
 ros2 param get /llm_chat_server llm_model
 ```
 
-Expected:
+Expected for local Ollama default endpoint:
 
 ```text
 context_provider = mcp_readonly
 mcp_enabled = true
-llm_mode = http
-llm_model = llama-3.3-70b-versatile
+llm_mode = ollama
+llm_endpoint = http://localhost:11434/api/chat
+llm_model = mistral-small3.1
 ```
 
 Port check, if `ss` is available:

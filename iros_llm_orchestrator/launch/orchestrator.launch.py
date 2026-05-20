@@ -10,6 +10,25 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
+OLLAMA_DEFAULT_ENDPOINT = 'http://localhost:11434/api/chat'
+
+
+def infer_llm_mode(endpoint: str) -> tuple[str, str]:
+    """Infer the internal LLM mode from the endpoint shape."""
+    endpoint = endpoint.strip()
+    if not endpoint:
+        return 'ollama', OLLAMA_DEFAULT_ENDPOINT
+    if '/api/chat' in endpoint:
+        return 'ollama', endpoint
+    if '/chat/completions' in endpoint:
+        return 'http', endpoint
+    raise RuntimeError(
+        'Unsupported llm_endpoint. Supported endpoint forms:\n'
+        f'  Ollama: {OLLAMA_DEFAULT_ENDPOINT}\n'
+        '  OpenAI-compatible API: https://.../v1/chat/completions'
+    )
+
+
 def _resolve_map_name(context) -> str:
     """Read scenarios YAML, return the bare stem of the active scenario's
     map_description (e.g. ``warehouse.yaml`` -> ``warehouse``). Falls back to
@@ -28,36 +47,36 @@ def _resolve_map_name(context) -> str:
     return os.path.splitext(md)[0]
 
 
-def _resolve_llm_overrides(context) -> dict:
-    """Return launch-time LLM backend overrides.
-
-    The YAML keeps the external HTTP default. This helper lets demos switch
-    back to local Ollama with one launch argument instead of editing all three
-    LLM node sections by hand.
-    """
-    backend = LaunchConfiguration('llm_backend').perform(context).strip().lower()
+def _resolve_llm_overrides(context) -> tuple[dict, list]:
+    """Return launch-time LLM overrides inferred from endpoint/model args."""
+    deprecated_backend = LaunchConfiguration('llm_backend').perform(context).strip()
     endpoint = LaunchConfiguration('llm_endpoint').perform(context).strip()
     model = LaunchConfiguration('llm_model').perform(context).strip()
+    api_key_env = LaunchConfiguration('llm_api_key_env').perform(context).strip()
 
-    overrides = {'llm_mode': backend}
-    if backend == 'ollama':
-        overrides.update({
-            'llm_endpoint': endpoint or 'http://localhost:11434/api/chat',
-            'llm_model': model or 'qwen2.5:14b',
-            'llm_api_key': '',
-            'llm_force_chat': True,
-            'llm_enable_stop': False,
-        })
-    elif backend == 'http':
-        if endpoint:
-            overrides['llm_endpoint'] = endpoint
-        if model:
-            overrides['llm_model'] = model
-    elif backend == 'local':
-        if model:
-            overrides['llm_model'] = model
+    if not model:
+        raise RuntimeError(
+            'llm_model is required. Example:\n'
+            '  local Ollama: llm_model:=mistral-small3.1\n'
+            '  API: llm_endpoint:=https://.../chat/completions llm_model:=...'
+        )
 
-    return overrides
+    mode, resolved_endpoint = infer_llm_mode(endpoint)
+    notices = []
+    if deprecated_backend:
+        notices.append(LogInfo(
+            msg='llm_backend is deprecated and ignored; use llm_endpoint + '
+                f'llm_model instead. Inferred llm_mode={mode}.'
+        ))
+
+    overrides = {
+        'llm_mode': mode,
+        'llm_endpoint': resolved_endpoint,
+        'llm_model': model,
+        'llm_api_key': '',
+        'llm_api_key_env': api_key_env or 'LLM_API_KEY',
+    }
+    return overrides, notices
 
 
 def setup(context, *args, **kwargs):
@@ -72,8 +91,7 @@ def setup(context, *args, **kwargs):
 
     map_name = _resolve_map_name(context)
     map_param = {'map_name': map_name}
-    llm_overrides = _resolve_llm_overrides(context)
-    llm_env = {'LLM_API_KEY': os.environ.get('LLM_API_KEY', '')}
+    llm_overrides, llm_notices = _resolve_llm_overrides(context)
 
     rosbridge_condition = IfCondition(enable_rosbridge)
     rosbridge_notice = LogInfo(
@@ -88,6 +106,7 @@ def setup(context, *args, **kwargs):
     )
 
     return [
+        *llm_notices,
         rosbridge_notice,
         rosbridge,
         Node(
@@ -96,7 +115,6 @@ def setup(context, *args, **kwargs):
             name='llm_decision_server',
             parameters=[config, llm_overrides, map_param],
             output='screen',
-            additional_env=llm_env,
         ),
         Node(
             package='iros_llm_orchestrator',
@@ -109,7 +127,6 @@ def setup(context, *args, **kwargs):
                 map_param,
             ],
             output='screen',
-            additional_env=llm_env,
         ),
         Node(
             package='iros_llm_orchestrator',
@@ -117,7 +134,6 @@ def setup(context, *args, **kwargs):
             name='llm_chat_server',
             parameters=[config, llm_overrides, map_param],
             output='screen',
-            additional_env=llm_env,
         ),
         Node(
             package='iros_llm_orchestrator',
@@ -132,24 +148,28 @@ def setup(context, *args, **kwargs):
 def generate_launch_description():
     llm_backend_arg = DeclareLaunchArgument(
         'llm_backend',
-        default_value='http',
-        description='LLM backend override for decision/passive/chat nodes. '
-                    'Use "ollama" for local Ollama without editing YAML.',
-        choices=['http', 'ollama', 'mock', 'local'],
+        default_value='',
+        description='Deprecated and ignored. LLM mode is inferred from '
+                    'llm_endpoint; use llm_endpoint + llm_model instead.',
     )
 
     llm_endpoint_arg = DeclareLaunchArgument(
         'llm_endpoint',
         default_value='',
-        description='Optional LLM endpoint override. Empty keeps YAML for '
-                    'http and uses the local Ollama default for ollama.',
+        description='LLM endpoint. Empty selects local Ollama at '
+                    f'{OLLAMA_DEFAULT_ENDPOINT}.',
     )
 
     llm_model_arg = DeclareLaunchArgument(
         'llm_model',
         default_value='',
-        description='Optional LLM model override. Empty keeps YAML for http '
-                    'and uses qwen2.5:14b for ollama.',
+        description='LLM model name. Required for Ollama and HTTP API modes.',
+    )
+
+    llm_api_key_env_arg = DeclareLaunchArgument(
+        'llm_api_key_env',
+        default_value='LLM_API_KEY',
+        description='Environment variable name used by HTTP API clients.',
     )
 
     enable_passive_arg = DeclareLaunchArgument(
@@ -190,6 +210,7 @@ def generate_launch_description():
         llm_backend_arg,
         llm_endpoint_arg,
         llm_model_arg,
+        llm_api_key_env_arg,
         enable_passive_arg,
         enable_rosbridge_arg,
         scenario_arg,

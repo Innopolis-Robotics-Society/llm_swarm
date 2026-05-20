@@ -48,7 +48,9 @@ ros2 launch iros_llm_swarm_bringup swarm_warehouse.launch.py num_robots:=5
 
 ### Full Demo (with LLM)
 
-Запускает всю систему — симуляцию + MAPF + Nav2 + BT + LLM orchestrator (mock).
+Запускает всю систему — симуляцию + MAPF + Nav2 + BT + LLM orchestrator.
+Если `llm_endpoint` не задан, launch использует локальный Ollama endpoint
+`http://localhost:11434/api/chat`; `llm_model` нужно указать явно.
 
 #### Режим 1 — только реактивный LLM (канал 1, по умолчанию)
 
@@ -56,7 +58,8 @@ BT-ноды сами вызывают LLM при WARN/ERROR через `/llm/dec
 Проактивный наблюдатель (`passive_observer`) запускается но молчит.
 
 ```bash
-ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py \
+  llm_model:=mistral-small3.1
 ```
 
 #### Режим 2 — оба канала (канал 1 + канал 2)
@@ -65,13 +68,17 @@ ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py
 и вмешивается при WARN/ERROR, отправляя команды через `/llm/command`.
 
 ```bash
-ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py enable_passive_observer:=true
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py \
+  enable_passive_observer:=true \
+  llm_model:=mistral-small3.1
 ```
 
 Запустить только orchestrator с обоими каналами:
 
 ```bash
-ros2 launch iros_llm_orchestrator orchestrator.launch.py enable_passive_observer:=true
+ros2 launch iros_llm_orchestrator orchestrator.launch.py \
+  enable_passive_observer:=true \
+  llm_model:=mistral-small3.1
 ```
 
 Проверить что канал 2 активен — в логах должно быть:
@@ -760,12 +767,15 @@ Three-channel LLM advisory layer (Python). Five nodes:
 - `user_chat` — CLI chatbot for offline testing of the channel-3
   pipeline.
 
-Backend selectable at launch (`llm_backend:=mock|ollama|http|local`).
-HTTP backend is OpenAI-compatible. Every call is appended to JSONL for
-SFT collection — channel 1 to `~/.ros/llm_decisions/`, channel 2 to
-`~/.ros/llm_commands/`. The MCP context provider spawns
-`uvx ros-mcp --transport=stdio` and is locked to a read-only
-allowlist; the LLM never sees MCP tools directly, only a bounded
+LLM mode is inferred from `llm_endpoint`: no endpoint means local Ollama at
+`http://localhost:11434/api/chat`, `/api/chat` means Ollama, and
+`/chat/completions` means an OpenAI-compatible HTTP API. Launch with
+`llm_model:=...` for local Ollama, or set `LLM_API_KEY` and pass both
+`llm_endpoint:=...` and `llm_model:=...` for hosted APIs. Every call is
+appended to JSONL for SFT collection — channel 1 to
+`~/.ros/llm_decisions/`, channel 2 to `~/.ros/llm_commands/`. The MCP
+context provider spawns `uvx ros-mcp --transport=stdio` and is locked to a
+read-only allowlist; the LLM never sees MCP tools directly, only a bounded
 snapshot.
 
 ### `iros_llm_rviz_panel`

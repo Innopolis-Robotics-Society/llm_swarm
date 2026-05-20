@@ -89,11 +89,18 @@ ROS interfaces
 * ``/obstacles/{add_circle, add_rectangle, add_door, remove, list}``
 * ``/doors/{open, close}``
 
-LLM backend selection
----------------------
+LLM mode selection
+------------------
 
-The backend is selected by the ``llm_mode`` parameter (or the
-``llm_backend`` launch argument) and produced by ``llm_factory``:
+Launch files infer the internal ``llm_mode`` from ``llm_endpoint``:
+an empty endpoint uses local Ollama at
+``http://localhost:11434/api/chat``, endpoints containing ``/api/chat``
+select ``ollama``, and endpoints containing ``/chat/completions``
+select the OpenAI-compatible ``http`` client. Do not infer mode from
+the model name. The deprecated ``llm_backend`` launch argument is
+ignored when present.
+
+The resulting ``llm_mode`` parameter is consumed by ``llm_factory``:
 
 .. list-table::
    :header-rows: 1
@@ -107,12 +114,10 @@ The backend is selected by the ``llm_mode`` parameter (or the
    * - ``ollama``
      - Local Ollama instance over ``/api/chat`` (streaming).
    * - ``http``
-     - OpenAI-compatible ``/v1/chat/completions`` (default for the
-       hosted setup; the orchestrator can be pointed at any compatible
-       endpoint).
+     - OpenAI-compatible ``/v1/chat/completions`` endpoint.
    * - ``local``
      - In-process HuggingFace Transformers inference (``transformers``
-       client).
+       client; distinct from Ollama).
 
 API keys are pulled from the env var named by ``llm_api_key_env``
 (default ``LLM_API_KEY``); the parameter ``llm_api_key`` is a fallback
@@ -131,8 +136,8 @@ Defaults live in ``config/orchestrator.yaml``. Selected highlights:
      - Default
      - Purpose
    * - ``llm_mode``
-     - ``http``
-     - Backend selector — see table above.
+     - ``ollama``
+     - Internal backend selector inferred by launch from ``llm_endpoint``.
    * - ``llm_temperature``
      - ``0.1`` (chat) / ``0.2-0.3`` (decision)
      - Sampling temperature.
@@ -206,8 +211,10 @@ Launch
 ------
 
 ``launch/orchestrator.launch.py`` brings up all five nodes plus an
-optional ``rosbridge_server``. Arguments mirror the chat-channel
-parameters (``llm_backend``, ``llm_endpoint``, ``llm_model``,
-``enable_passive_observer``, ``enable_rosbridge``, ``scenario``,
-``scenarios_file``). The full demo (``swarm_full_demo.launch.py`` from
-``iros_llm_swarm_bringup``) includes this launch file.
+optional ``rosbridge_server``. Public LLM launch arguments are
+``llm_endpoint``, ``llm_model``, and ``llm_api_key_env``. ``llm_model``
+is required; leaving ``llm_endpoint`` empty selects local Ollama.
+The remaining arguments are ``enable_passive_observer``,
+``enable_rosbridge``, ``scenario``, and ``scenarios_file``. The full
+demo (``swarm_full_demo.launch.py`` from ``iros_llm_swarm_bringup``)
+includes this launch file.

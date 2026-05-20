@@ -20,9 +20,9 @@ Launch order (sim seconds):
   t=20  BT runner
 
 Examples:
-  ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py
-  ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py scenario:=warehouse_2 planner:=pbs
-  ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py enable_formation:=false
+  ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py llm_model:=mistral-small3.1
+  ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py scenario:=warehouse_2 planner:=pbs llm_model:=mistral-small3.1
+  ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py enable_formation:=false llm_model:=mistral-small3.1
 """
 
 from launch import LaunchDescription
@@ -84,20 +84,25 @@ def generate_launch_description():
     )
     llm_backend_arg = DeclareLaunchArgument(
         'llm_backend',
-        default_value='http',
-        choices=['http', 'ollama', 'mock', 'local'],
-        description='LLM backend for orchestrator nodes. Use "ollama" for '
-                    'local Ollama without editing orchestrator.yaml.',
+        default_value='',
+        description='Deprecated and ignored. LLM mode is inferred from '
+                    'llm_endpoint; use llm_endpoint + llm_model instead.',
     )
     llm_endpoint_arg = DeclareLaunchArgument(
         'llm_endpoint',
         default_value='',
-        description='Optional LLM endpoint override passed to orchestrator.',
+        description='LLM endpoint passed to orchestrator. Empty selects '
+                    'local Ollama at http://localhost:11434/api/chat.',
     )
     llm_model_arg = DeclareLaunchArgument(
         'llm_model',
         default_value='',
-        description='Optional LLM model override passed to orchestrator.',
+        description='LLM model name passed to orchestrator. Required.',
+    )
+    llm_api_key_env_arg = DeclareLaunchArgument(
+        'llm_api_key_env',
+        default_value='LLM_API_KEY',
+        description='Environment variable name used by HTTP API clients.',
     )
     enable_formation_arg = DeclareLaunchArgument(
         'enable_formation',
@@ -123,6 +128,7 @@ def generate_launch_description():
     llm_backend      = LaunchConfiguration('llm_backend')
     llm_endpoint     = LaunchConfiguration('llm_endpoint')
     llm_model        = LaunchConfiguration('llm_model')
+    llm_api_key_env  = LaunchConfiguration('llm_api_key_env')
     enable_formation = LaunchConfiguration('enable_formation')
     rviz_cfg         = LaunchConfiguration('rviz_cfg')
 
@@ -201,6 +207,7 @@ def generate_launch_description():
             ('llm_backend', llm_backend),
             ('llm_endpoint', llm_endpoint),
             ('llm_model', llm_model),
+            ('llm_api_key_env', llm_api_key_env),
             ('scenario', scenario),
             ('scenarios_file', scenarios_file),
         ],
@@ -269,6 +276,7 @@ def generate_launch_description():
         llm_backend_arg,
         llm_endpoint_arg,
         llm_model_arg,
+        llm_api_key_env_arg,
         enable_formation_arg,
         rviz_cfg_arg,
 
