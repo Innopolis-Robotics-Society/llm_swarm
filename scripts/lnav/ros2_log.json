@@ -1,0 +1,73 @@
+{
+  "$schema": "https://lnav.org/schemas/format-v1.schema.json",
+  "ros2_node_log": {
+    "title": "ROS 2 per-node log",
+    "description": "rcl_logging_spdlog file format: [LEVEL] [time] [logger]: message",
+    "url": "https://docs.ros.org/en/humble/Concepts/About-Logging.html",
+    "regex": {
+      "std": {
+        "pattern": "^\\[(?<level>[A-Z]+)\\] \\[(?<timestamp>\\d+\\.\\d+)\\] \\[(?<logger>[^\\]]+)\\]: (?<body>.*)$"
+      }
+    },
+    "level-field": "level",
+    "level": {
+      "debug": "DEBUG",
+      "info": "INFO",
+      "warning": "WARN",
+      "error": "ERROR",
+      "fatal": "FATAL"
+    },
+    "value": {
+      "logger": { "kind": "string", "identifier": true, "rewriter": ";SELECT :logger" },
+      "level": { "kind": "string", "identifier": true }
+    },
+    "timestamp-format": ["%s.%f"],
+    "multiline": true,
+    "sample": [
+      { "line": "[INFO] [1752896062.305349796] [gz_bridge]: Creating GZ->ROS Bridge" },
+      { "line": "[WARN] [1752896062.305349796] [robot_5.controller_server]: Goal aborted" }
+    ]
+  },
+  "ros2_launch_log": {
+    "title": "ROS 2 launch log",
+    "description": "ros2 launch's launch.log file. Lines come in two shapes: plain launch chatter '<epoch> [LEVEL] [logger]: msg' and wrapped child-process output '<epoch> [<process>] [LEVEL] [<inner-epoch>] [<logger>]: msg'.",
+    "regex": {
+      "wrapped": {
+        "pattern": "^(?<timestamp>\\d+\\.\\d+) \\[(?<process>[^\\]]+)\\] \\[(?<level>[A-Z]+)\\] \\[\\d+\\.\\d+\\] \\[(?<logger>[^\\]]+)\\]: (?<body>.*)$"
+      },
+      "plain": {
+        "pattern": "^(?<timestamp>\\d+\\.\\d+) \\[(?<level>[A-Z]+)\\] \\[(?<logger>[^\\]]+)\\]: (?<body>.*)$"
+      }
+    },
+    "level-field": "level",
+    "level": {
+      "debug": "DEBUG",
+      "info": "INFO",
+      "warning": "WARN",
+      "error": "ERROR",
+      "fatal": "FATAL"
+    },
+    "value": {
+      "process": { "kind": "string", "identifier": true },
+      "logger": { "kind": "string", "identifier": true },
+      "level": { "kind": "string", "identifier": true }
+    },
+    "timestamp-format": ["%s.%f"],
+    "multiline": true,
+    "sample": [
+      { "line": "1752898304.7795289 [INFO] [launch]: All log files can be found below /home/u/.ros/log/run" },
+      { "line": "1779373923.6395259 [lifecycle_manager-97] [ERROR] [1779373923.635650643] [robot_17.lifecycle_manager_nav]: Failed to change state for node: controller_server." }
+    ],
+    "highlights": {
+      "robot_id":   { "pattern": "\\brobot_\\d+",                                                                                                              "color": "#00d7ff" },
+      "nav2":       { "pattern": "\\b(controller_server|planner_server|behavior_server|bt_navigator|local_costmap|global_costmap|lifecycle_manager(_nav)?|amcl|zone_map_server|map_server)\\b", "color": "#ffd700" },
+      "mapf":       { "pattern": "\\b(mapf_\\w+|pbs_\\w+|lns2?_\\w+|mapf|pbs|lns2)\\b",                                                                        "color": "#ff5fff" },
+      "bt":         { "pattern": "\\b(test_bt_runner|bt_runner|behavior_tree|LlmCommandReceiver)\\b",                                                          "color": "#5fd75f" },
+      "llm":        { "pattern": "\\b(llm_\\w+|chat_server|decision_server|execute_server|passive_observer|user_chat|fake_llm_command_server)\\b",             "color": "#ff66cc" },
+      "formation":  { "pattern": "\\bformation(_\\w+)?\\b",                                                                                                    "color": "#5fafff" },
+      "obstacles":  { "pattern": "\\b(dynamic_obstacle_manager|obstacle_manager)\\b",                                                                          "color": "#ff8800" },
+      "sim":        { "pattern": "\\b(stage_ros2?|gazebo|robot_state_publisher)\\b",                                                                           "color": "#888888" },
+      "rviz":       { "pattern": "\\brviz2?\\b",                                                                                                               "color": "#888888" }
+    }
+  }
+}

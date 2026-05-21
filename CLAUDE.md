@@ -84,6 +84,31 @@ When unit-style tests do exist (e.g. `iros_llm_orchestrator/test/`), run them wi
 colcon test --packages-select <pkg> && colcon test-result --verbose
 ```
 
+## Log navigation (`swarm_logs.sh` + lnav)
+
+End-user usage is in README. Files:
+- `scripts/lnav/ros2_log.json` — format + subsystem `highlights`.
+- `scripts/lnav/scripts/swarm-presets.lnav` — filters, pre-loaded disabled.
+- `scripts/swarm_logs.sh` — installer + launcher.
+
+**Add a filter preset** — append to `swarm-presets.lnav`:
+```text
+:filter-in <regex>            # or :filter-out for noise
+:disable-filter <regex>       # exact-byte-match of the line above
+```
+
+**Add a subsystem highlight** — entry in `highlights` of `ros2_log.json`: `"name": { "pattern": "<regex>", "color": "#rrggbb" }`. Named colors (`Magenta`, `Cyan`) error out — use hex.
+
+**Add a parser regex** — append to the `regex` block in `ros2_log.json`. First match wins; include `timestamp` + `level` captures; add a real line to `sample` so `lnav -i` validates.
+
+**Gotchas**:
+- `lnav -i` stops after the first already-installed file; `swarm_logs.sh` works around it by installing one file per call.
+- Timestamps: use `%s.%f` (any-length fraction), not `%s.%N` (forces 9 digits).
+- `:reset-filters` does not exist in 0.14. Reset via `Tab` → `D` per filter.
+- `launch.log` has two line shapes: `wrapped` (child stdout) and `plain` — keep both regexes, `wrapped` first.
+
+**When changing any of the above, update the "Debugging logs (`swarm_logs.sh`)" section in `README.md`** — it lists the available presets, highlight colors, and usage variants users see. Out-of-sync README is worse than no README.
+
 ## Architecture
 
 ### Package map

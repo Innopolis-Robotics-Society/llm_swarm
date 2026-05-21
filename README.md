@@ -33,13 +33,13 @@ ros2 launch iros_llm_swarm_bringup swarm_lns.launch.py
 
 ### Launch Arguments
 
-| Argument       | Default           | Description                                                                                        |
-| -------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
-| `scenario`     | `cave`            | Defines the map and configuration of robots for operation. Acceptable parameters:<br>- `large_cave`: A giant `cave` map, not recommended for running on default settings due to large distances.<br>- `cave`: A medium-sized `cave` map.<br>- `warehouse_2`: A standard `warehouse` map with shelving, robots arranged in two groups in the lower left and upper right corners.<br>- `warehouse_4`: A standard `warehouse` map with shelving, robots arranged in four groups in the four corners.<br>- `amongus`: Among Us-style map with named rooms and corridor doors preloaded from the scenario YAML. |
-| `num_robots`   | `20`              | Number of robots to controll by system (still spawn as many robots as there are in the world file) |
-| `world_file`   | scenario-dependent | Stage world file path. Override directly to bypass the scenario→world mapping in `common_scenarios.yaml`. |
-| `rviz_cfg`     | `swarm_20.rviz`   | common RViz config for 20 robots                                                                   |
-| `use_sim_time` | `true`            | Use simulation clock                                                                               |
+| Argument       | Default            | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scenario`     | `cave`             | Defines the map and configuration of robots for operation. Acceptable parameters:<br>- `large_cave`: A giant `cave` map, not recommended for running on default settings due to large distances.<br>- `cave`: A medium-sized `cave` map.<br>- `warehouse_2`: A standard `warehouse` map with shelving, robots arranged in two groups in the lower left and upper right corners.<br>- `warehouse_4`: A standard `warehouse` map with shelving, robots arranged in four groups in the four corners.<br>- `amongus`: Among Us-style map with named rooms and corridor doors preloaded from the scenario YAML. |
+| `num_robots`   | `20`               | Number of robots to controll by system (still spawn as many robots as there are in the world file)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `world_file`   | scenario-dependent | Stage world file path. Override directly to bypass the scenario→world mapping in `common_scenarios.yaml`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `rviz_cfg`     | `swarm_20.rviz`    | common RViz config for 20 robots                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `use_sim_time` | `true`             | Use simulation clock                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 ```bash
 # Example: launch with 5 robots under nav2 controll
@@ -75,9 +75,11 @@ ros2 launch iros_llm_orchestrator orchestrator.launch.py enable_passive_observer
 ```
 
 Проверить что канал 2 активен — в логах должно быть:
+
 ```
 [llm_passive_observer] PassiveObserver up: mode=mock, cooldown=10.0s, trigger=...
 ```
+
 При `enabled=false` нода запускается но при получении `/bt/state` сразу возвращается (silent mode).
 
 Подождать ~22 секунды до сообщения `==== Full demo ready ====`.
@@ -101,6 +103,7 @@ ros2 run iros_llm_swarm_bt fleet_cmd --scenario idle
 #### Что наблюдать
 
 В терминале с launch:
+
 - `[mapf_planner]` логирует план, выполнение, replans
 - `[test_bt_runner]` логирует тики BT, переходы статусов
 - `[decision_server]` (канал 1) реагирует на запросы от MapfPlan/SetFormation
@@ -110,8 +113,79 @@ ros2 run iros_llm_swarm_bt fleet_cmd --scenario idle
 В RViz — роботы движутся по картам.
 
 Датасеты для будущего SFT накапливаются в:
+
 - `~/.ros/llm_decisions/decisions_YYYYMMDD.jsonl` — канал 1
 - `~/.ros/llm_commands/decisions_YYYYMMDD.jsonl` — канал 2
+
+### Debugging logs (`swarm_logs.sh`)
+
+`scripts/swarm_logs.sh` opens the current swarm run's logs in [lnav](https://lnav.org/) with a project-specific format, color-coded subsystem highlights, and a pre-loaded set of filter presets. Run it inside the container:
+
+```bash
+~/ros2_ws/src/scripts/swarm_logs.sh
+```
+
+What it does on first run:
+
+- Downloads the lnav 0.14 static musl binary into `~/.local/bin/` (Ubuntu's apt ships lnav 0.9.0 from 2020, which crashes on backspace in command mode).
+- Installs `scripts/lnav/ros2_log.json` (the ROS 2 log format) and `scripts/lnav/scripts/swarm-presets.lnav` (filter presets) into `~/.lnav/formats/installed/`.
+- Picks the newest run directory under `~/.ros/log/` (uses the `latest` symlink if present, otherwise the newest timestamped subdir).
+- Launches lnav in tail-follow mode so new lines stream in as the launch keeps running.
+
+Format-aware features inside lnav:
+
+- Severity coloring + jump (`e`/`E` for errors, `w`/`W` for warnings).
+- Subsystem highlights: `robot_N` cyan, Nav2 yellow, MAPF magenta, BT green, LLM pink, Formation light-blue, Obstacles orange, Sim/RViz dim grey.
+- Pre-loaded filters, all disabled by default — open them with `Tab`, toggle with `Space`. Available presets:
+
+| Group              | Pattern                                                                                                                                              | Use                                  |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| noise (filter-out) | `process started with pid`, `got segment`, `Setting transition`, `Lifecycle State`, `Configuring`, `Activating`, `Can't update static costmap layer` | Hide common boot / lifecycle chatter |
+| focus (filter-in)  | `mapf_* \| pbs_* \| lns_*`                                                                                                                           | MAPF planner + motion controllers    |
+| focus (filter-in)  | `controller_server \| planner_server \| ... \| zone_map_server`                                                                                      | Nav2 stack                           |
+| focus (filter-in)  | `llm_* \| chat_server \| decision_server \| ... \| /llm/*`                                                                                           | LLM orchestrator (all 3 channels)    |
+| focus (filter-in)  | `test_bt_runner \| behavior_tree \| LlmCommandReceiver \| /bt/state`                                                                                 | BT layer                             |
+| focus (filter-in)  | `formation* \| /formations/*`                                                                                                                        | Leader-follower formations           |
+| focus (filter-in)  | `dynamic_obstacle_manager`                                                                                                                           | Obstacle overlay                     |
+| focus (filter-in)  | `\[(WARN \| ERROR \| FATAL)\]`                                                                                                                       | All problems, full fleet             |
+
+General keys (most useful for live swarm debugging):
+
+| Key              | Action                                                |
+| ---------------- | ----------------------------------------------------- |
+| `/<regex>`       | Forward search; `?` for backward                      |
+| `n` / `N`        | Next / previous search hit                            |
+| `e` / `E`        | Jump to next / previous **error**                     |
+| `w` / `W`        | Jump to next / previous **warning**                   |
+| `F` (shift+f)    | Toggle tail-follow on/off (paused while you scroll)   |
+| `m`              | Bookmark current line                                 |
+| `u` / `U`        | Next / previous bookmark                              |
+| `Space` / `b`    | Page down / up                                        |
+| `g` / `G`        | Top / bottom of log                                   |
+| `c`              | Copy current line to clipboard                        |
+| `?`              | Show the full lnav cheat sheet                        |
+| `q`              | Quit lnav                                             |
+
+Filter panel keys (after pressing `Tab`):
+
+| Key           | Action                                      |
+| ------------- | ------------------------------------------- |
+| `Space`       | Toggle this filter on/off                   |
+| `D` (shift+d) | Delete this filter (it's re-added next run) |
+| `i`           | Flip filter type (in ↔ out)                 |
+| `Enter`       | Edit the regex                              |
+| `Tab` / `q`   | Close the filter panel                      |
+
+Usage variants:
+
+```bash
+~/ros2_ws/src/scripts/swarm_logs.sh                          # newest run, tail-follow
+~/ros2_ws/src/scripts/swarm_logs.sh <run-dir>                # specific run directory
+~/ros2_ws/src/scripts/swarm_logs.sh -- <lnav-args>           # forward args to lnav
+~/ros2_ws/src/scripts/swarm_logs.sh -- -n                    # one-shot headless dump
+```
+
+To tweak presets, edit `scripts/lnav/scripts/swarm-presets.lnav` — `swarm_logs.sh` re-installs it on the next run.
 
 ### Simple tests
 
@@ -152,13 +226,16 @@ ros2 run iros_llm_swarm_mapf test_send_goals --json-file goals.json
 ### Formations and MAPF tests
 
 Launch the full stack and send the goals:
+
 ```bash
 ros2 launch iros_llm_swarm_bringup swarm_mapf_formation.launch.py
 
 # In second terminal
 ros2 run iros_llm_swarm_mapf test_send_goals --json-file src/iros_llm_swarm_mapf/config/goals_1.json
 ```
+
 or
+
 ```bash
 ros2 launch iros_llm_swarm_bringup swarm_lns_formation.launch.py
 
@@ -263,33 +340,33 @@ Action `/swarm/set_goals` (`iros_llm_swarm_interfaces/action/SetGoals`) - long-l
 
 **Result:**
 
-| Field                | Type     | Description                                      |
-| -------------------- | -------- | ------------------------------------------------ |
-| `success`            | bool     | Whether the mission completed successfully       |
-| `message`            | string   | "All robots arrived" or error description        |
-| `error_code`         | uint16   | Enumerated error (NONE=0, NO_VALID_AGENTS=201, PBS_FAILED=202, TIMEOUT=203, CANCELLED=204) |
-| `planning_time_ms`   | float64  | Wall-clock planning time (ms), last plan         |
-| `num_agents_planned` | uint32   | Number of agents actually planned                |
-| `pbs_expansions`     | uint32   | PBS tree node expansions                         |
-| `max_path_length`    | uint32   | Longest path in steps                            |
-| `path_lengths`       | uint32[] | Per-agent path lengths (parallel to `robot_ids`) |
-| `astar_ok_count`     | uint32   | Successful A\* calls                             |
-| `astar_fail_count`   | uint32   | Failed A\* calls (hit expansion cap)             |
-| `astar_avg_exp`      | uint32   | Avg expansions per successful A\* call           |
-| `astar_max_exp`      | uint32   | Max expansions in a single successful A\* call   |
-| `total_replans`      | uint32   | Number of replans during execution               |
-| `total_execution_sec`| float64  | Total time from planning to all-arrived (s)      |
+| Field                 | Type     | Description                                                                                |
+| --------------------- | -------- | ------------------------------------------------------------------------------------------ |
+| `success`             | bool     | Whether the mission completed successfully                                                 |
+| `message`             | string   | "All robots arrived" or error description                                                  |
+| `error_code`          | uint16   | Enumerated error (NONE=0, NO_VALID_AGENTS=201, PBS_FAILED=202, TIMEOUT=203, CANCELLED=204) |
+| `planning_time_ms`    | float64  | Wall-clock planning time (ms), last plan                                                   |
+| `num_agents_planned`  | uint32   | Number of agents actually planned                                                          |
+| `pbs_expansions`      | uint32   | PBS tree node expansions                                                                   |
+| `max_path_length`     | uint32   | Longest path in steps                                                                      |
+| `path_lengths`        | uint32[] | Per-agent path lengths (parallel to `robot_ids`)                                           |
+| `astar_ok_count`      | uint32   | Successful A\* calls                                                                       |
+| `astar_fail_count`    | uint32   | Failed A\* calls (hit expansion cap)                                                       |
+| `astar_avg_exp`       | uint32   | Avg expansions per successful A\* call                                                     |
+| `astar_max_exp`       | uint32   | Max expansions in a single successful A\* call                                             |
+| `total_replans`       | uint32   | Number of replans during execution                                                         |
+| `total_execution_sec` | float64  | Total time from planning to all-arrived (s)                                                |
 
 **Feedback** (published periodically during all phases):
 
-| Field             | Type   | Description                                          |
-| ----------------- | ------ | ---------------------------------------------------- |
+| Field             | Type   | Description                                                          |
+| ----------------- | ------ | -------------------------------------------------------------------- |
 | `status`          | string | Phase: "validating", "planning", "executing", "replanning", "failed" |
-| `elapsed_ms`      | uint32 | Milliseconds since action started                    |
-| `robots_arrived`  | uint32 | Robots that reached their goals (execution phase)    |
-| `robots_active`   | uint32 | Robots still en-route (execution phase)              |
-| `robots_deviated` | uint32 | Robots off-schedule (execution phase)                |
-| `replans_done`    | uint32 | Replan count so far (execution phase)                |
+| `elapsed_ms`      | uint32 | Milliseconds since action started                                    |
+| `robots_arrived`  | uint32 | Robots that reached their goals (execution phase)                    |
+| `robots_active`   | uint32 | Robots still en-route (execution phase)                              |
+| `robots_deviated` | uint32 | Robots off-schedule (execution phase)                                |
+| `replans_done`    | uint32 | Replan count so far (execution phase)                                |
 
 Paths are published as `nav_msgs/Path` on `/robot_{id}/mapf_path`. Each `PoseStamped` contains the scheduled arrival time (`header.stamp = plan_time + step × time_step_sec`) and orientation pointing toward the next waypoint.
 
@@ -362,22 +439,22 @@ PBS failed (2709.9 ms, 1 expansions)
 
 #### Key parameters
 
-| Parameter              | Default         | Description                                                                |
-| ---------------------- | --------------- | -------------------------------------------------------------------------- |
-| `default_robot_radius` | 0.22            | Physical footprint radius (m)                                              |
-| `inflation_radius`     | 0.5             | Gradient zone width beyond footprint (m)                                   |
-| `cost_curve`           | "quadratic"     | Gradient curve shape ("linear", "quadratic", "cubic")                      |
-| `proximity_penalty`    | 15              | Max gradient penalty at the hard boundary (walls and agents)               |
-| `pbs_resolution`       | 0.2             | PBS grid cell size (m), map downsampled from 0.05                          |
-| `max_pbs_expansions`   | 5000            | PBS node expansion limit                                                   |
-| `max_astar_expansions` | 100000 (launch) | Per-A\* expansion limit (root planning uncapped)                           |
-| `time_step_sec`        | 0.1             | Seconds per PBS grid step                                                  |
-| `max_speed`            | 0.5             | Max robot speed (m/s), determines movement connectivity with time_step_sec |
+| Parameter              | Default         | Description                                                                                    |
+| ---------------------- | --------------- | ---------------------------------------------------------------------------------------------- |
+| `default_robot_radius` | 0.22            | Physical footprint radius (m)                                                                  |
+| `inflation_radius`     | 0.5             | Gradient zone width beyond footprint (m)                                                       |
+| `cost_curve`           | "quadratic"     | Gradient curve shape ("linear", "quadratic", "cubic")                                          |
+| `proximity_penalty`    | 15              | Max gradient penalty at the hard boundary (walls and agents)                                   |
+| `pbs_resolution`       | 0.2             | PBS grid cell size (m), map downsampled from 0.05                                              |
+| `max_pbs_expansions`   | 5000            | PBS node expansion limit                                                                       |
+| `max_astar_expansions` | 100000 (launch) | Per-A\* expansion limit (root planning uncapped)                                               |
+| `time_step_sec`        | 0.1             | Seconds per PBS grid step                                                                      |
+| `max_speed`            | 0.5             | Max robot speed (m/s), determines movement connectivity with time_step_sec                     |
 | `max_zone_cost`        | 10              | OccupancyGrid value 99 maps to this wall_cost; zone costs scale linearly in [1, max_zone_cost] |
-| `urgency`              | 1.0             | Time cost coefficient: 1 = balanced, >1 = rush. Below 1.0 not recommended  |
-| `replan_check_hz`      | 2.0             | Schedule deviation check rate (Hz)                                         |
-| `replan_threshold_m`   | 1.0             | Deviation distance to trigger replan (m)                                   |
-| `replan_cooldown_sec`  | 15.0            | Cooldown from replan end to next replan start (s)                          |
+| `urgency`              | 1.0             | Time cost coefficient: 1 = balanced, >1 = rush. Below 1.0 not recommended                      |
+| `replan_check_hz`      | 2.0             | Schedule deviation check rate (Hz)                                                             |
+| `replan_threshold_m`   | 1.0             | Deviation distance to trigger replan (m)                                                       |
+| `replan_cooldown_sec`  | 15.0            | Cooldown from replan end to next replan start (s)                                              |
 
 **Constraint:** `footprint_radius >= 0.7 * pbs_resolution` must hold when using the Euclidean planner. The planner asserts this at startup. With defaults (0.22m footprint, 0.2m resolution) the constraint is satisfied. Increasing `pbs_resolution` beyond `footprint_radius / 0.7` requires a proportionally larger footprint or finer resolution.
 
@@ -397,12 +474,14 @@ Description: Publishes the complete state of all formations in the system.
 Each message is a full snapshot, allowing late subscribers to immediately receive the current configuration.
 
 Message Structure:
+
 ```text
 std_msgs/Header header
 FormationConfig[] formations
 ```
 
 FormationConfig.msg:
+
 ```text
 std_msgs/Header header
 
@@ -429,12 +508,14 @@ QoS: `depth=10`
 Description: Publishes the complete runtime status of all formations in the system. Includes state (INACTIVE, FORMING, STABLE, DEGRADED, BROKEN), failure wornings and per-follower errors.
 
 Message Structure:
+
 ```text
 std_msgs/Header header
 FormationStatus[] formations
 ```
 
 FormationStatus.msg:
+
 ```text
 # State constants
 uint8 STATE_INACTIVE  = 0   # formation not active
@@ -449,13 +530,13 @@ uint8 FAILURE_FOLLOWER_LOST    = 1   # odom stopped arriving
 uint8 FAILURE_FOLLOWER_STUCK   = 2   # error not decreasing
 uint8 FAILURE_LEADER_LOST      = 3   # leader odom stopped arriving
 
-# Header 
+# Header
 std_msgs/Header header
 string          formation_id
 string          leader_ns
 string[]        follower_ns
 
-# Discrete state 
+# Discrete state
 uint8  state           # one of STATE_* constants above
 uint8  failure_code    # one of FAILURE_* constants, FAILURE_NONE if state != BROKEN
 string failure_reason  # human-readable, empty if no failure
@@ -472,15 +553,15 @@ float32 mean_error_m  # mean of follower_errors_m, -1 if unavailable
 
 #### Services
 
-| Service                 | Type                  | Description                                |
-| ----------------------- | --------------------- | ------------------------------------------ |
-| `/formation/set`        | `SetFormation`        | Create or update a formation               |
-| `/formation/activate`   | `ActivateFormation`   | Activate a formation                       |
-| `/formation/deactivate` | `DeactivateFormation` | Deactivate a formation                     |
-| `/formation/get`        | `GetFormation`        | Get a formation by ID                      |
-| `/formation/list`       | `ListFormations`      | List all formations                        |
-| `/formation/load`       | `LoadFormations`      | Load formations from YAML                  |
-| `/formation/save`       | `SaveFormations`      | Save formations to YAML                    |
+| Service                 | Type                  | Description                  |
+| ----------------------- | --------------------- | ---------------------------- |
+| `/formation/set`        | `SetFormation`        | Create or update a formation |
+| `/formation/activate`   | `ActivateFormation`   | Activate a formation         |
+| `/formation/deactivate` | `DeactivateFormation` | Deactivate a formation       |
+| `/formation/get`        | `GetFormation`        | Get a formation by ID        |
+| `/formation/list`       | `ListFormations`      | List all formations          |
+| `/formation/load`       | `LoadFormations`      | Load formations from YAML    |
+| `/formation/save`       | `SaveFormations`      | Save formations to YAML      |
 
 ##### `/formation/set`
 
@@ -657,15 +738,15 @@ Dynamic obstacle manager. Loads doors declared in the scenario YAML (`obstacles.
 
 #### Services
 
-| Service | Description |
-| --- | --- |
-| `/obstacles/add_circle` | Add a circle obstacle (id, position, radius) |
-| `/obstacles/add_rectangle` | Add a rectangle obstacle (id, position, width, height) |
-| `/obstacles/add_door` | Add a door obstacle (id, position, width, height, is_open) |
-| `/obstacles/remove` | Remove an obstacle by id |
-| `/obstacles/list` | List all active circles, rectangles, and doors |
-| `/doors/open` | Open a door by id (clears its map footprint) |
-| `/doors/close` | Close a door by id (adds its footprint back) |
+| Service                    | Description                                                |
+| -------------------------- | ---------------------------------------------------------- |
+| `/obstacles/add_circle`    | Add a circle obstacle (id, position, radius)               |
+| `/obstacles/add_rectangle` | Add a rectangle obstacle (id, position, width, height)     |
+| `/obstacles/add_door`      | Add a door obstacle (id, position, width, height, is_open) |
+| `/obstacles/remove`        | Remove an obstacle by id                                   |
+| `/obstacles/list`          | List all active circles, rectangles, and doors             |
+| `/doors/open`              | Open a door by id (clears its map footprint)               |
+| `/doors/close`             | Close a door by id (adds its footprint back)               |
 
 #### Scenario YAML preloading
 
@@ -845,3 +926,4 @@ DDS and performance tuning scripts are in `src/scripts/`:
 - [ ] Fault tolerance and communication loss handling
 - [ ] LLM-driven fleet-level task allocation (beyond reactive/chat — proactive mission decomposition)
 - [ ] Transition to Gazebo Harmonic for 3D simulation
+

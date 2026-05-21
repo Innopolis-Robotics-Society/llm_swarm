@@ -1,0 +1,37 @@
+# swarm-presets — pre-load every common filter for the swarm stack, then leave
+# them all disabled. Use Tab to open the filter panel and Space to toggle any
+# one on/off. Already-loaded regexes survive between sessions via lnav history.
+#
+# Auto-run by swarm_logs.sh on startup.
+
+# --- noise: hide common spam (toggle these ON when you want quiet) ---
+:filter-out process started with pid
+# :disable-filter process started with pid
+:filter-out got segment
+# :disable-filter got segment
+:filter-out Setting transition
+# :disable-filter Setting transition
+:filter-out Lifecycle State
+# :disable-filter Lifecycle State
+:filter-out Configuring
+# :disable-filter Configuring
+:filter-out Activating
+# :disable-filter Activating
+:filter-out Can't update static costmap layer
+# :disable-filter Can't update static costmap layer
+
+# --- focus: show ONLY one subsystem (toggle one of these ON to drill in) ---
+:filter-in (mapf_\w+|pbs_\w+|lns2?_\w+|set_goals)
+:disable-filter (mapf_\w+|pbs_\w+|lns2?_\w+|set_goals)
+:filter-in (controller_server|planner_server|behavior_server|bt_navigator|local_costmap|global_costmap|lifecycle_manager|amcl|zone_map_server|map_server)
+:disable-filter (controller_server|planner_server|behavior_server|bt_navigator|local_costmap|global_costmap|lifecycle_manager|amcl|zone_map_server|map_server)
+:filter-in (llm_\w+|chat_server|decision_server|execute_server|passive_observer|user_chat|fake_llm_command_server|/llm/(decision|command|chat))
+:disable-filter (llm_\w+|chat_server|decision_server|execute_server|passive_observer|user_chat|fake_llm_command_server|/llm/(decision|command|chat))
+:filter-in (test_bt_runner|bt_runner|behavior_tree|LlmCommandReceiver|/bt/state)
+:disable-filter (test_bt_runner|bt_runner|behavior_tree|LlmCommandReceiver|/bt/state)
+:filter-in (formation(_\w+)?|/formations/)
+:disable-filter (formation(_\w+)?|/formations/)
+:filter-in (dynamic_obstacle_manager|obstacle_manager)
+:disable-filter (dynamic_obstacle_manager|obstacle_manager)
+:filter-in \[(WARN|ERROR|FATAL)\]
+:disable-filter \[(WARN|ERROR|FATAL)\]
