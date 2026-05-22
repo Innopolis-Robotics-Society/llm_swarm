@@ -49,3 +49,11 @@ class MockLLMClient(LLMClientBase):
                 'reason': 'mock: replan via MAPF',
             })
         return json.dumps({'mode': 'idle', 'reason': 'mock: fallback'})
+
+    async def stream_with_tools(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+    ):
+        result = await self.generate_with_tools(messages, tools)
+        yield result

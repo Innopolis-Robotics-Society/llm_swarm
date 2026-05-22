@@ -3,6 +3,11 @@
     # Shared LLM backend/model settings for LLM-capable nodes.
     # Defaults use an OpenAI-compatible HTTP API. Never store a real API key
     # here; set the environment variable named by llm_api_key_env instead.
+
+    # llm_mode: "ollama"                              # was "http"
+    # llm_endpoint: "http://localhost:11434/api/chat" # Ollama default
+    # llm_model: "qwen2.5:14b"                        # or qwen2.5:7b, mistral-small3.1
+
     llm_mode: "http"
     llm_endpoint: "https://api.groq.com/openai/v1/chat/completions"
     llm_model: "llama-3.3-70b-versatile"
@@ -69,6 +74,13 @@ llm_chat_server:
     # formation_manager_node's position_tolerance (default 0.5 m).
     formation_tolerance_m: 0.5
 
+    # Tool calling loop for get_robot_position / get_positions / check_occupancy.
+    tool_max_iterations: 6
+    robot_footprint_radius: 0.22
+    scan_timeout_sec: 3.0
+    # Stream reasoning tokens to the panel as stage='thinking' feedback.
+    stream_reasoning: true
+
     # MCP read-only provider. The full demo starts rosbridge by default.
     # The provider logs actionable diagnostics if uvx, ros-mcp, the MCP SDK,
     # rosbridge, or tool calls are unavailable.
@@ -91,6 +103,14 @@ llm_chat_server:
       - "get_actions"
       - "get_action_details"
       # - "get_action_status"
+
+user_chat:
+  ros__parameters:
+    # Terminal channel-3 client (user_chat_node.py).
+    stream_reasoning: true
+    tool_max_iterations: 6
+    robot_footprint_radius: 0.22
+    scan_timeout_sec: 3.0
 
 llm_execute_server:
   ros__parameters:

@@ -58,7 +58,12 @@ from iros_llm_orchestrator.context.provider import (
     known_robot_ids,
     utc_now,
 )
-from iros_llm_orchestrator.user_chat_node import _parse_response, _postprocess_plan
+from iros_llm_orchestrator.common.tool_definitions import TOOL_DEFINITIONS
+from iros_llm_orchestrator.common.tool_executor import ToolExecutor
+from iros_llm_orchestrator.user_chat_node import (
+    _parse_response, _postprocess_plan,
+    _build_tool_use_assistant_message, _build_tool_result_message,
+)
 
 MAX_HISTORY = 8   # conversation turns kept per session
 
@@ -105,11 +110,18 @@ class ChatServer(Node):
         self.declare_parameter('mcp_tool_allowlist', list(DEFAULT_MCP_READ_TOOLS))
         self.declare_parameter('max_remediation_attempts', 2)
         self.declare_parameter('remediation_enabled', True)
+        self.declare_parameter('robot_footprint_radius', 0.22)
+        self.declare_parameter('scan_timeout_sec',       3.0)
+        self.declare_parameter('tool_max_iterations',    6)
+        self.declare_parameter('stream_reasoning',       True)
 
         self._max_remediation_attempts = max(0, int(
             self.get_parameter('max_remediation_attempts').value))
         self._remediation_enabled = bool(
             self.get_parameter('remediation_enabled').value)
+        self._tool_max_iterations = max(1, int(
+            self.get_parameter('tool_max_iterations').value))
+        self._stream_reasoning = bool(self.get_parameter('stream_reasoning').value)
 
         self._timeout  = float(self.get_parameter('timeout_sec').value)
         self._map_name = self.get_parameter('map_name').value
@@ -140,6 +152,16 @@ class ChatServer(Node):
             self.get_parameter('formation_tolerance_m').value)
         self._context_provider = make_context_provider(
             self, self._context_config, pose_cache=self._pose_cache)
+
+        _footprint_r = float(self.get_parameter('robot_footprint_radius').value)
+        _scan_to     = float(self.get_parameter('scan_timeout_sec').value)
+        self._tool_executor = ToolExecutor(
+            node=self,
+            pose_cache=self._pose_cache,
+            map_cfg=self._map_cfg,
+            robot_footprint_radius=_footprint_r,
+            scan_timeout_sec=_scan_to,
+        )
 
         self._sender = BTLeafSender(
             self,
@@ -380,10 +402,10 @@ class ChatServer(Node):
             last_failure=attempts[-1])
 
     async def _stream_and_parse(self, messages, goal_handle):
-        """Stream → parse → postprocess; raises _LlmStageError on any failure."""
+        """Tool loop with streaming → parse → postprocess; raises _LlmStageError."""
         try:
             full_raw = await asyncio.wait_for(
-                self._stream_reply(messages, goal_handle),
+                self._stream_with_tool_loop(messages, goal_handle),
                 timeout=self._timeout)
         except asyncio.TimeoutError as exc:
             raise _LlmStageError('LLM timeout') from exc
@@ -395,6 +417,109 @@ class ChatServer(Node):
             raise _LlmStageError(f'parse error: {exc}') from exc
         plan = _postprocess_plan(plan, self._map_cfg)
         return reply, plan, full_raw
+
+    async def _stream_with_tool_loop(
+        self,
+        messages: list[dict],
+        goal_handle,
+    ) -> str:
+        """Tool calling loop with streaming feedback for the RViz panel.
+
+        When stream_reasoning=True, emits stage='thinking' chunks for reasoning
+        tokens during each LLM call.  The reply field of the final response is
+        always emitted as stage='streaming' via _emit_reply_streaming.
+        """
+        msgs = list(messages)
+        for iteration in range(self._tool_max_iterations):
+            full_text = ''
+            terminal: dict | None = None
+
+            if self._stream_reasoning:
+                async for event in self._llm.stream_with_tools(msgs, TOOL_DEFINITIONS):
+                    if event['type'] == 'chunk':
+                        token = event.get('content', '')
+                        if token:
+                            full_text += token
+                            self._publish_fb(goal_handle, stage='thinking', chunk=token)
+                    else:
+                        terminal = event
+            else:
+                terminal = await self._llm.generate_with_tools(msgs, TOOL_DEFINITIONS)
+
+            if terminal is None:
+                terminal = {'type': 'text', 'content': full_text}
+
+            if terminal['type'] == 'text':
+                content = terminal.get('content') or full_text
+                self._emit_reply_streaming(content, goal_handle)
+                return content
+
+            # Tool calls — execute and loop
+            calls = terminal['calls']
+            self.get_logger().debug(
+                f'tool_loop iter={iteration}: {[c["name"] for c in calls]}')
+            msgs.append(_build_tool_use_assistant_message(calls))
+
+            for call in calls:
+                name    = call['name']
+                args    = call['arguments']
+                call_id = call.get('call_id', '')
+                try:
+                    tool_result = await asyncio.wait_for(
+                        self._tool_executor.call(name, args),
+                        timeout=max(self._timeout, 10.0),
+                    )
+                except Exception as exc:
+                    tool_result = {'error': str(exc)}
+                result_str = json.dumps(tool_result, ensure_ascii=False)
+                msgs.append(_build_tool_result_message(call_id, result_str))
+
+        raise RuntimeError(
+            f'tool loop exceeded {self._tool_max_iterations} iterations '
+            'without producing a final text response'
+        )
+
+    def _emit_reply_streaming(self, full_raw: str, goal_handle) -> None:
+        """Extract the 'reply' field from full_raw and emit as stage='streaming'.
+
+        Runs the same BEFORE/IN_REPLY/AFTER state machine as _stream_reply, but
+        operates on a complete string rather than a live stream.
+        """
+        BEFORE, IN_REPLY, AFTER = 0, 1, 2
+        state = BEFORE
+        in_escape = False
+        scan = ''
+        MARKERS = ('"reply": "', '"reply":"')
+        ESCAPES = {
+            'n': '\n', 't': '\t', 'r': '\r',
+            'b': '\b', 'f': '\f',
+            '"': '"', '\\': '\\', '/': '/',
+        }
+        cap = max(len(m) for m in MARKERS)
+        emit_buf = ''
+
+        for c in full_raw:
+            if state == BEFORE:
+                scan += c
+                if len(scan) > cap:
+                    scan = scan[-cap:]
+                if any(scan.endswith(m) for m in MARKERS):
+                    state = IN_REPLY
+                    scan = ''
+                    in_escape = False
+            elif state == IN_REPLY:
+                if in_escape:
+                    emit_buf += ESCAPES.get(c, c)
+                    in_escape = False
+                elif c == '\\':
+                    in_escape = True
+                elif c == '"':
+                    state = AFTER
+                else:
+                    emit_buf += c
+
+        if emit_buf:
+            self._publish_fb(goal_handle, stage='streaming', chunk=emit_buf)
 
     def _formation_prestage_hook(self, formation_node: dict) -> dict | None:
         """Auto-stage out-of-tolerance followers when the LLM emits a bare

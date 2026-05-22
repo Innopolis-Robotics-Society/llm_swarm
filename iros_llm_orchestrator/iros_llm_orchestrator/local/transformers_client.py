@@ -48,6 +48,14 @@ class TransformersClient(LLMClientBase):
         )
         return outputs[0]['generated_text']
 
+    async def stream_with_tools(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+    ):
+        result = await self.generate_with_tools(messages, tools)
+        yield result
+
     @staticmethod
     def _flatten(messages: list) -> str:
         """Convert chat messages to a flat prompt string."""

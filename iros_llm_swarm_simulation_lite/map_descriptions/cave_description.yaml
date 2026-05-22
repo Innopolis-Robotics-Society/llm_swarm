@@ -107,6 +107,58 @@ formation_zones:
     coords: [-30.0, -28.0]
     radius: 4.0
 
+# Named geometric sub-locations used by the get_positions tool.
+# Schema: geometry.<room>.<qualifier_dot_path> = [x, y]
+# qualifier paths: center, corners.{top_left|top_right|bottom_left|bottom_right},
+#                  doorways.{north|south|east|west}
+geometry:
+  nw_hall:
+    center: [-27.0, 14.0]
+    corners:
+      top_left:     [-33.0, 19.0]
+      top_right:    [-21.0, 19.0]
+      bottom_left:  [-33.0,  9.0]
+      bottom_right: [-21.0,  9.0]
+    doorways:
+      south: [-27.0,  9.0]
+      east:  [-21.0, 14.0]
+
+  central_hub:
+    center: [-6.0, 2.0]
+    corners:
+      top_left:     [-11.0,  7.0]
+      top_right:    [ -1.0,  7.0]
+      bottom_left:  [-11.0, -3.0]
+      bottom_right: [ -1.0, -3.0]
+    doorways:
+      west:  [-11.0,  2.0]
+      east:  [ -1.0,  2.0]
+      north: [ -6.0,  7.0]
+      south: [ -6.0, -3.0]
+
+  east_corridor:
+    center: [22.0, 2.0]
+    corners:
+      top_left:     [17.0,  7.0]
+      top_right:    [27.0,  7.0]
+      bottom_left:  [17.0, -3.0]
+      bottom_right: [27.0, -3.0]
+    doorways:
+      west:  [17.0,  2.0]
+      north: [22.0,  7.0]
+      south: [22.0, -3.0]
+
+  sw_pocket:
+    center: [-30.0, -28.0]
+    corners:
+      top_left:     [-35.0, -23.0]
+      top_right:    [-25.0, -23.0]
+      bottom_left:  [-35.0, -33.0]
+      bottom_right: [-25.0, -33.0]
+    doorways:
+      north: [-30.0, -23.0]
+      east:  [-25.0, -28.0]
+
 heuristics: |
   - 23.5% of free area has clearance < 0.5 m — narrow corridors are the main
     source of MAPF conflicts and robot stalls.

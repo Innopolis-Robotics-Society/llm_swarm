@@ -20,20 +20,58 @@ from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 
 from iros_llm_swarm_interfaces.action import LlmCommand
-from iros_llm_swarm_interfaces.msg import BTState
+from iros_llm_swarm_interfaces.msg import BTState, LlmEvent
 
 from iros_llm_orchestrator.common.llm_factory import get_llm_client
 from iros_llm_orchestrator.common.plan_executor import PlanExecutor, parse_plan
+from iros_llm_orchestrator.common.tool_definitions import TOOL_DEFINITIONS
+from iros_llm_orchestrator.common.tool_executor import ToolExecutor
 from iros_llm_orchestrator.common.user_prompt import (
     build_remediation_prompt, build_user_prompt,
     build_bt_event_prompt, load_map_config)
 from iros_llm_orchestrator.context.no_execute import is_help_request
+from iros_llm_orchestrator.context.pose_cache import RobotPoseCache
 
 MAX_HISTORY   = 8
 CLUSTER_SPACE = 1.5
 MIN_GOAL_DIST = 1.0
 
 BOT='BOT'; THK='🧠'; WRN='⚠ '; OK='✓'; ERR='✗'; ARR='→'
+
+
+# ---------------------------------------------------------------------------
+# Tool loop message builders
+# ---------------------------------------------------------------------------
+
+def _build_tool_use_assistant_message(calls: list[dict]) -> dict:
+    """Build the assistant message that records tool call requests.
+
+    OpenAI format embeds tool_calls in the message; Ollama uses the same shape.
+    This message must appear in the thread before the tool result messages.
+    """
+    tool_calls_field = [
+        {
+            "id": c.get("call_id", f"call_{c['name']}"),
+            "type": "function",
+            "function": {
+                "name": c["name"],
+                "arguments": json.dumps(c.get("arguments", {})),
+            },
+        }
+        for c in calls
+    ]
+    return {"role": "assistant", "content": None, "tool_calls": tool_calls_field}
+
+
+def _build_tool_result_message(call_id: str, result_str: str) -> dict:
+    """Build the tool result message to append to the conversation."""
+    return {"role": "tool", "tool_call_id": call_id, "content": result_str}
+
+
+def _fmt_args(args: dict) -> str:
+    """Format tool arguments for display, truncated to 80 chars."""
+    s = ', '.join(f'{k}={v!r}' for k, v in args.items())
+    return s[:80] + ('…' if len(s) > 80 else '')
 
 
 # ---------------------------------------------------------------------------
@@ -229,11 +267,18 @@ class UserChatNode(Node):
         self.declare_parameter('step_timeout_sec', 120.0)
         self.declare_parameter('max_remediation_attempts', 2)
         self.declare_parameter('remediation_enabled', True)
+        self.declare_parameter('robot_footprint_radius', 0.22)
+        self.declare_parameter('scan_timeout_sec',       3.0)
+        self.declare_parameter('tool_max_iterations',    6)
+        self.declare_parameter('stream_reasoning',       True)
 
         self._max_remediation_attempts = max(0, int(
             self.get_parameter('max_remediation_attempts').value))
         self._remediation_enabled = bool(
             self.get_parameter('remediation_enabled').value)
+        self._tool_max_iterations = max(1, int(
+            self.get_parameter('tool_max_iterations').value))
+        self._stream_reasoning = bool(self.get_parameter('stream_reasoning').value)
         # Most recent _send_leaf failure metadata — read by the chat-side
         # remediation loop to brief the LLM on what broke.
         self._last_send_failure: dict | None = None
@@ -268,10 +313,34 @@ class UserChatNode(Node):
             self.get_logger().warn(f'Map config load failed: {e}')
             self._map_cfg = {}
 
+        # Build robot ID list from map config; fall back to 0-19
+        _all_ids: list[int] = []
+        for _g in self._map_cfg.get('robot_groups', {}).values():
+            _all_ids.extend(int(i) for i in _g.get('ids', []))
+        if not _all_ids:
+            _all_ids = list(range(20))
+
+        self._pose_cache = RobotPoseCache(self, _all_ids)
+
+        _footprint_r = float(self.get_parameter('robot_footprint_radius').value)
+        _scan_to     = float(self.get_parameter('scan_timeout_sec').value)
+        self._tool_executor = ToolExecutor(
+            node=self,
+            pose_cache=self._pose_cache,
+            map_cfg=self._map_cfg,
+            robot_footprint_radius=_footprint_r,
+            scan_timeout_sec=_scan_to,
+        )
+
         self._cmd_client = ActionClient(self, LlmCommand, '/llm/command')
         qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
                          history=HistoryPolicy.KEEP_LAST, depth=10)
         self.create_subscription(BTState, '/bt/state', self._on_bt_state, qos)
+
+        reliable_qos = QoSProfile(reliability=ReliabilityPolicy.RELIABLE,
+                                  history=HistoryPolicy.KEEP_LAST, depth=20)
+        self.create_subscription(LlmEvent, '/llm/events', self._on_llm_event,
+                                 reliable_qos)
 
         self._last_status        = 'OK'
         # _last_mode and _mode_seq are written from the ROS callback thread
@@ -288,7 +357,11 @@ class UserChatNode(Node):
         self._last_action_status = 'OK'
         self._last_bt_error      = ''
         self._history: list[dict] = []
-        self._bt_event_analyzing = False
+        self._bt_event_analyzing  = False
+        self._llm_event_analyzing = False
+        # Monotonic timestamp set when a user command is dispatched.
+        # _on_llm_event ignores events that arrive before this time.
+        self._last_dispatch_mono: float = 0.0
         # /llm/command server readiness is checked once per session, off the
         # asyncio loop thread, so wait_for_server() never freezes the UI.
         self._cmd_server_ready   = False
@@ -414,6 +487,102 @@ class UserChatNode(Node):
             self._prompt()
 
     # ------------------------------------------------------------------
+    # /llm/events diagnostic handler
+    # ------------------------------------------------------------------
+
+    def _on_llm_event(self, msg: LlmEvent) -> None:
+        """React to LlmEvent from channel 1 or 2 that signals an error."""
+        severity = getattr(msg, 'severity', '').upper()
+        if severity not in ('WARN', 'ERROR'):
+            return
+        # Only diagnose events that arrived after the last user command.
+        if time.monotonic() < self._last_dispatch_mono:
+            return
+        with self._mode_lock:
+            if self._llm_event_analyzing:
+                return
+            self._llm_event_analyzing = True
+        channel = int(getattr(msg, 'channel', 0))
+        trigger = str(getattr(msg, 'trigger', ''))[:180]
+        output  = str(getattr(msg, 'output', ''))[:180]
+        reason  = str(getattr(msg, 'reason', ''))[:180]
+        self._out(
+            f'\n  {WRN} [llm_event ch={channel}] {severity}: {reason or trigger}')
+        self._slog.warning(
+            f'llm_event: ch={channel} severity={severity} trigger={trigger} '
+            f'output={output} reason={reason}')
+        self._out(f'  {THK} Diagnosing...')
+        asyncio.run_coroutine_threadsafe(
+            self._handle_llm_event_diagnostic(channel, severity, trigger, output, reason),
+            self._loop,
+        )
+
+    _DIAGNOSTIC_SYSTEM = (
+        'You are diagnosing a robot execution failure reported by the swarm '
+        'orchestrator. Explain what went wrong in plain language and suggest '
+        'how the operator should reformulate their command to fix it. '
+        'Reply ONLY with a JSON object (no markdown, no prose outside JSON):\n'
+        '{"diagnosis": "<plain-language explanation>", '
+        '"suggested_reformulation": "<reworded operator command>"}'
+    )
+
+    async def _handle_llm_event_diagnostic(
+        self,
+        channel: int,
+        severity: str,
+        trigger: str,
+        output: str,
+        reason: str,
+    ) -> None:
+        try:
+            user_content = (
+                f'Channel {channel} reported {severity}.\n'
+                f'Trigger: {trigger}\n'
+                f'Output: {output}\n'
+                f'Reason: {reason}\n'
+                'Recent operator command history is provided for context.'
+            )
+            messages = [
+                {'role': 'system', 'content': self._DIAGNOSTIC_SYSTEM},
+            ]
+            if self._history:
+                messages.extend(self._history[-4:])
+            messages.append({'role': 'user', 'content': user_content})
+
+            try:
+                raw = await asyncio.wait_for(
+                    self._llm.generate(messages), timeout=self._timeout)
+            except asyncio.TimeoutError:
+                self._out(f'\n  {ERR}  LLM diagnostic timeout')
+                self._slog.error('llm_event diagnostic timeout')
+                return
+            except Exception as exc:
+                self._out(f'\n  {ERR}  LLM diagnostic error: {exc}')
+                self._slog.error(f'llm_event diagnostic error: {exc}')
+                return
+
+            safe_raw = raw.encode('utf-8', errors='replace').decode('utf-8')
+            self._slog.info(f'llm_event diagnostic: {safe_raw[:300]}')
+
+            try:
+                start = safe_raw.find('{')
+                end   = safe_raw.rfind('}')
+                obj = json.loads(safe_raw[start:end + 1]) if start != -1 else {}
+                diag   = obj.get('diagnosis', safe_raw[:300])
+                reform = obj.get('suggested_reformulation', '')
+            except Exception:
+                diag   = safe_raw[:300]
+                reform = ''
+
+            self._out(f'\n  {WRN} Diagnosis: {diag}')
+            if reform:
+                self._out(f'  {ARR} Try: {reform}')
+        finally:
+            with self._mode_lock:
+                self._llm_event_analyzing = False
+            self._prompt()
+
+    # ------------------------------------------------------------------
     # Stdin
     # ------------------------------------------------------------------
 
@@ -444,6 +613,7 @@ class UserChatNode(Node):
         if prev is not None and not prev.done():
             self._slog.info('cancelling previous plan task — newer command arrived')
             prev.cancel()
+        self._last_dispatch_mono = time.monotonic()
         self._current_plan_task = asyncio.run_coroutine_threadsafe(
             self._handle(text), self._loop)
 
@@ -469,7 +639,7 @@ class UserChatNode(Node):
         messages = build_user_prompt(text, history=self._history,
                                      map_name=self._map_name)
 
-        parsed = await self._stream_parse_and_announce(messages)
+        parsed = await self._tool_parse_and_announce(messages)
         if parsed is None:
             self._prompt(); return
         reply, plan, full_raw = parsed
@@ -512,7 +682,7 @@ class UserChatNode(Node):
                 map_name=self._map_name,
             )
             self._out(f'\n  {THK} ')
-            parsed = await self._stream_parse_and_announce(rem_messages)
+            parsed = await self._tool_parse_and_announce(rem_messages)
             if parsed is None:
                 self._announce_help(last_reply, last_plan, source=f'remediation {n}: LLM failure',
                                     last_failure=attempts[-1])
@@ -548,6 +718,131 @@ class UserChatNode(Node):
                                     f'{self._max_remediation_attempts} exhausted'),
                             last_failure=attempts[-1])
         self._prompt()
+
+    async def _tool_parse_and_announce(
+        self, messages: list[dict],
+    ) -> tuple[str, dict, str] | None:
+        """Run the tool calling loop, then parse + announce the resulting plan.
+
+        When stream_reasoning=True, reasoning tokens are printed inline to the
+        terminal via a chunk_cb passed to _run_tool_loop.
+
+        Returns (reply, plan, full_raw) or None on error.
+        """
+        msgs = list(messages)
+        full_raw: str = ''
+
+        chunk_cb = None
+        if self._stream_reasoning:
+            def _cb(token: str) -> None:
+                print(token, end='', flush=True)
+            chunk_cb = _cb
+
+        try:
+            full_raw = await asyncio.wait_for(
+                self._run_tool_loop(msgs, chunk_cb=chunk_cb),
+                timeout=self._timeout)
+        except asyncio.TimeoutError:
+            self._out(f'\n  {ERR}  LLM backend timeout')
+            self._slog.error('LLM timeout')
+            return None
+        except Exception as exc:
+            self._out(f'\n  {ERR}  LLM error: {exc}')
+            self._slog.error(f'LLM error: {exc}')
+            return None
+
+        if chunk_cb is not None:
+            print()  # newline after streamed reasoning tokens
+
+        self._slog.debug(f'LLM raw ({len(full_raw)} chars):\n{full_raw}')
+        try:
+            reply, plan = _parse_response(full_raw)
+        except ValueError as exc:
+            self._out(f'  {ERR}  Parse error: {exc}')
+            self._out(f'       Raw: {full_raw[:400]}')
+            self._slog.error(f'Parse error: {exc}\nRaw: {full_raw}')
+            return None
+        self._out(f'  {BOT} {reply}')
+        self._slog.info(f'Plan: {json.dumps(plan, ensure_ascii=False)}')
+        plan = _postprocess_plan(plan, self._map_cfg)
+        self._describe_plan(plan)
+        return reply, plan, full_raw
+
+    async def _consume_stream(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+        chunk_cb=None,
+    ) -> dict:
+        """Drain stream_with_tools; call chunk_cb for each non-empty text chunk.
+
+        Returns the terminal event dict (type=tool_calls or type=text).
+        """
+        terminal: dict | None = None
+        async for event in self._llm.stream_with_tools(messages, tools):
+            if event['type'] == 'chunk':
+                token = event.get('content', '')
+                if token and chunk_cb is not None:
+                    chunk_cb(token)
+            else:
+                terminal = event
+        return terminal or {'type': 'text', 'content': ''}
+
+    async def _run_tool_loop(self, messages: list[dict], chunk_cb=None) -> str:
+        """Tool calling loop: call LLM, execute any requested tools, repeat.
+
+        When chunk_cb is provided, uses stream_with_tools and forwards each
+        non-empty text chunk to the callback. Otherwise uses generate_with_tools.
+
+        Returns the final text response (the full JSON string with reply+plan).
+        Hard-capped at self._tool_max_iterations rounds to prevent infinite loops.
+        """
+        msgs = list(messages)
+        for iteration in range(self._tool_max_iterations):
+            if chunk_cb is not None:
+                result = await self._consume_stream(
+                    msgs, TOOL_DEFINITIONS, chunk_cb=chunk_cb)
+            else:
+                result = await self._llm.generate_with_tools(msgs, TOOL_DEFINITIONS)
+
+            if result['type'] == 'text':
+                return result['content']
+
+            # Execute requested tool calls
+            calls: list[dict] = result['calls']
+            self._slog.debug(
+                f'tool_loop iter={iteration}: '
+                f'{[c["name"] for c in calls]}'
+            )
+
+            # Build the assistant message that requested the tools
+            # (needed for OpenAI multi-turn tool format)
+            tool_use_msg = _build_tool_use_assistant_message(calls)
+            msgs.append(tool_use_msg)
+
+            for call in calls:
+                name = call['name']
+                args = call['arguments']
+                call_id = call.get('call_id', '')
+                self._out(f'  🔧 tool: {name}({_fmt_args(args)})')
+                self._slog.debug(f'tool call: {name} args={args}')
+
+                try:
+                    tool_result = await asyncio.wait_for(
+                        self._tool_executor.call(name, args),
+                        timeout=max(self._timeout, 10.0),
+                    )
+                except Exception as exc:
+                    tool_result = {'error': str(exc)}
+
+                result_str = json.dumps(tool_result, ensure_ascii=False)
+                self._slog.debug(f'tool result: {name} → {result_str[:300]}')
+                msgs.append(_build_tool_result_message(call_id, result_str))
+
+        raise RuntimeError(
+            f'tool loop exceeded {self._tool_max_iterations} iterations '
+            'without producing a final text response'
+        )
 
     async def _stream_parse_and_announce(
         self, messages: list[dict],

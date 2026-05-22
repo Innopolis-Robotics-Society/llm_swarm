@@ -18,6 +18,45 @@ class LLMClientBase:
     async def stream(self, prompt: str | list):
         yield await self.generate(prompt, prompt_kind='chat')
 
+    async def generate_with_tools(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+    ) -> dict:
+        """Send messages with tool definitions; return structured result.
+
+        Return shape:
+          {"type": "tool_calls", "calls": [{"name": str, "arguments": dict, "call_id": str}]}
+          {"type": "text",       "content": str}
+
+        Default implementation falls back to generate() (no tool awareness).
+        Backends that support native tool calling override this.
+        """
+        content = await self.generate(messages)
+        return {"type": "text", "content": content}
+
+    async def stream_with_tools(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+    ):
+        """Async generator yielding event dicts during generation.
+
+        Yields:
+          {"type": "chunk",      "content": str}  — text token during generation
+          {"type": "tool_calls", "calls": [...]}   — tool call request (terminal)
+          {"type": "text",       "content": str}   — full text response (terminal)
+
+        Exactly one terminal event (tool_calls or text) is yielded last.
+        Zero or more chunk events may precede the terminal.
+
+        Default implementation falls back to generate_with_tools(); yields the
+        terminal event with no preceding chunks. Backends that support streaming
+        override this to emit real-time tokens.
+        """
+        result = await self.generate_with_tools(messages, tools)
+        yield result
+
 
 def get_llm_client(
     mode: str = 'mock',
