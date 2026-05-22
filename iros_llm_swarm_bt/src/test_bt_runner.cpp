@@ -1,33 +1,39 @@
 /**
  * test_bt_runner.cpp
  *
- * BT runner + embedded integration scenario for 20 robots.
+ * BT host + embedded 20-robot integration scenario.
  *
  * ROS param:
  *   ~scenario  (bool, default: false)
- *       false -- idle runner, listens on /fleet/cmd  (String "key=value")
- *       true  -- built-in 20-robot test scenario:
+ *       false -- host only: load the tree and tick at 10 Hz. External
+ *                control comes via /llm/command action.
+ *       true  -- additionally launch a side thread that runs the built-in
+ *                20-robot scenario through the /llm/command action client.
+ *
+ * After the Phase 4 refactor, this file is intentionally thin: the host
+ * loop does nothing except spin rclcpp and call tree.tickRoot(). All mode
+ * transitions, all blackboard writes, all retry policy decisions live
+ * outside the BT — either in the scenario thread or in the external
+ * Python LLM agent.
  *
  *   Scenario layout (warehouse.world, 30x30m):
  *     Orange  robot_0..9   -- loading zone,   bottom-left  (~2-4,  2-8)
- *     Blue    robot_10..19 -- unloading zone,  top-right    (~26-28, 22-28)
+ *     Blue    robot_10..19 -- unloading zone, top-right    (~26-28, 22-28)
  *
- *   Step 1: MAPF all 20 -> warehouse center (15,15), 4x5 grid, 1.5m spacing
- *   Step 2: Formation WEDGE_20  -- robot_1  leader, robot_0/2..9  followers (orange squad)
- *   Step 3: Formation LINE_BLUE -- robot_10 leader, robot_11..14  followers (blue squad)
- *   Step 4: MAPF cross-swap -- orange robots -> top-right, blue robots -> bottom-left
- *           Real stress test: two clusters crossing the full warehouse
+ *   Step 1: MAPF all 20 -> warehouse center (15,15)
+ *   Step 2: Formation WEDGE_20  -- orange squad
+ *   Step 3: Formation LINE_BLUE -- blue squad
+ *   Step 4: MAPF cross-swap     -- orange to top-right, blue to bottom-left
  *   Step 5: MAPF all 20 back home
  *   Step 6: idle
- *
- * Published topics:
- *   /fleet/mode              std_msgs/String
- *   /fleet/mapf_ok           std_msgs/String  "true"/"false"
- *   /fleet/formation_enabled std_msgs/Bool
  */
 
 #include <atomic>
-#include <sstream>
+#include <chrono>
+#include <condition_variable>
+#include <future>
+#include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -38,25 +44,17 @@
 #include "behaviortree_cpp_v3/loggers/abstract_logger.h"
 #include "geometry_msgs/msg/point.hpp"
 #include "iros_llm_swarm_bt/swarm_bt_nodes.hpp"
+#include "iros_llm_swarm_interfaces/action/llm_command.hpp"
 #include "iros_llm_swarm_interfaces/msg/bt_state.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "std_msgs/msg/bool.hpp"
-#include "std_msgs/msg/string.hpp"
+#include "rclcpp_action/rclcpp_action.hpp"
 
 using namespace std::chrono_literals;
-using Point = geometry_msgs::msg::Point;
 
-static std::vector<std::string> split_csv(const std::string & s)
-{
-  std::vector<std::string> out;
-  std::stringstream ss(s);
-  std::string tok;
-  while (std::getline(ss, tok, ',')) {
-    while (!tok.empty() && tok.front() == ' ') tok.erase(tok.begin());
-    if (!tok.empty()) out.push_back(tok);
-  }
-  return out;
-}
+using Point      = geometry_msgs::msg::Point;
+using LlmCommand = iros_llm_swarm_interfaces::action::LlmCommand;
+using BTState    = iros_llm_swarm_interfaces::msg::BTState;
+using LlmGoalHandle = rclcpp_action::ClientGoalHandle<LlmCommand>;
 
 static Point make_point(double x, double y)
 {
@@ -87,148 +85,229 @@ private:
 };
 
 // ---------------------------------------------------------------------------
+// ScenarioClient — wraps the /llm/command action client + a /bt/state
+// subscription. Lives on the scenario thread; all ROS interactions go through
+// the shared rclcpp node which is spun on the main thread.
+// ---------------------------------------------------------------------------
+class ScenarioClient
+{
+public:
+  ScenarioClient(rclcpp::Node::SharedPtr node)
+  : node_(node), logger_(node->get_logger())
+  {
+    cmd_client_ = rclcpp_action::create_client<LlmCommand>(node_, "/llm/command");
+
+    bt_state_sub_ = node_->create_subscription<BTState>(
+      "/bt/state", iros_llm_swarm_bt::bt_state_qos(),
+      [this](BTState::SharedPtr msg) {
+        std::lock_guard<std::mutex> lk(state_mutex_);
+        latest_state_ = *msg;
+        have_state_ = true;
+        state_cv_.notify_all();
+      });
+  }
+
+  bool wait_for_server(std::chrono::seconds timeout)
+  {
+    return cmd_client_->wait_for_action_server(timeout);
+  }
+
+  // Send a command and wait for the action result. Returns true if the
+  // command was accepted and applied to the blackboard on the BT thread.
+  // This does NOT mean the mission has completed — call wait_for_completion
+  // for that.
+  bool send(const LlmCommand::Goal & goal, std::chrono::seconds timeout = 5s)
+  {
+    auto gh_future = cmd_client_->async_send_goal(goal);
+    if (gh_future.wait_for(timeout) != std::future_status::ready) {
+      RCLCPP_ERROR(logger_, "[scenario] send_goal timed out");
+      return false;
+    }
+    auto gh = gh_future.get();
+    if (!gh) {
+      RCLCPP_ERROR(logger_, "[scenario] goal rejected by LlmCommandReceiver");
+      return false;
+    }
+    auto result_future = cmd_client_->async_get_result(gh);
+    if (result_future.wait_for(timeout) != std::future_status::ready) {
+      RCLCPP_ERROR(logger_, "[scenario] get_result timed out");
+      return false;
+    }
+    auto wrapped = result_future.get();
+    if (wrapped.code != rclcpp_action::ResultCode::SUCCEEDED) {
+      RCLCPP_ERROR(logger_, "[scenario] action did not succeed");
+      return false;
+    }
+    return wrapped.result->success;
+  }
+
+  // Wait until /bt/state reports the mode we asked for AND the action has
+  // completed (@active_action == "none"). Returns @action_status —
+  // "OK" / "WARN" / "ERROR" / "HALTED" — or "TIMEOUT" on no answer in time.
+  std::string wait_for_completion(
+    const std::string & expected_mode, std::chrono::seconds timeout)
+  {
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
+    std::unique_lock<std::mutex> lk(state_mutex_);
+    while (std::chrono::steady_clock::now() < deadline) {
+      // Tail the state stream tick by tick — wait until a fresh /bt/state
+      // arrives, then re-evaluate. wait_until returns false on timeout.
+      have_state_ = false;
+      if (!state_cv_.wait_until(lk, deadline, [this] { return have_state_; })) {
+        break;
+      }
+      if (latest_state_.mode != expected_mode) {
+        continue;  // mode change still propagating after the LlmCommand
+      }
+      if (latest_state_.active_action == "none") {
+        // Action node finished — read terminal status.
+        return latest_state_.action_status.empty()
+          ? std::string("OK")
+          : latest_state_.action_status;
+      }
+    }
+    return "TIMEOUT";
+  }
+
+  // Best-effort idle reset. Used between scenario steps and on abort.
+  void to_idle()
+  {
+    LlmCommand::Goal g;
+    g.mode = "idle";
+    g.reason = "scenario reset";
+    send(g);
+  }
+
+private:
+  rclcpp::Node::SharedPtr node_;
+  rclcpp::Logger logger_;
+  rclcpp_action::Client<LlmCommand>::SharedPtr cmd_client_;
+  rclcpp::Subscription<BTState>::SharedPtr bt_state_sub_;
+
+  mutable std::mutex state_mutex_;
+  std::condition_variable state_cv_;
+  BTState latest_state_;
+  bool have_state_{false};
+};
+
+// ---------------------------------------------------------------------------
 // Scenario thread
 // ---------------------------------------------------------------------------
 static void run_scenario(
-  BT::Blackboard::Ptr bb,
-  rclcpp::Logger log,
+  rclcpp::Node::SharedPtr node,
   std::atomic<bool> & done)
 {
-  auto set_mode = [&](const std::string & m) {
-    bb->set<std::string>("@mode", m);
-    RCLCPP_INFO(log, "[scenario] mode -> %s", m.c_str());
-  };
+  auto log = node->get_logger();
+  ScenarioClient client(node);
 
-  auto wait_mapf = [&](int timeout_sec) -> bool {
-    RCLCPP_INFO(log, "[scenario] waiting for MAPF...");
-    bb->set<bool>("@mapf_ok", false);
-    bb->set<bool>("@mapf_failed", false);
-    for (int i = 0; i < timeout_sec * 10; ++i) {
-      std::this_thread::sleep_for(100ms);
-      try { if (bb->get<bool>("@mapf_ok"))     return true;  } catch (...) {}
-      try { if (bb->get<bool>("@mapf_failed")) return false; } catch (...) {}
-    }
-    RCLCPP_ERROR(log, "[scenario] TIMEOUT waiting for MAPF");
-    return false;
-  };
+  RCLCPP_INFO(log, "[scenario] waiting for /llm/command action server...");
+  if (!client.wait_for_server(20s)) {
+    RCLCPP_ERROR(log, "[scenario] /llm/command never came up");
+    done = true;
+    return;
+  }
+  RCLCPP_INFO(log, "[scenario] /llm/command ready");
 
-  auto wait_formation = [&](int timeout_sec) -> bool {
-    RCLCPP_INFO(log, "[scenario] waiting for formation_enabled...");
-    bb->set<bool>("@formation_enabled", false);
-    bb->set<bool>("@formation_failed", false);
-    for (int i = 0; i < timeout_sec * 10; ++i) {
-      std::this_thread::sleep_for(100ms);
-      try { if (bb->get<bool>("@formation_enabled"))  return true;  } catch (...) {}
-      try { if (bb->get<bool>("@formation_failed"))   return false; } catch (...) {}
-    }
-    RCLCPP_ERROR(log, "[scenario] TIMEOUT waiting for formation");
-    return false;
-  };
-
-  auto abort = [&](const char * step) {
-    RCLCPP_ERROR(log, "=== SCENARIO FAILED at %s ===", step);
-    set_mode("idle");
+  auto step_failed = [&](const char * step, const std::string & reason) {
+    RCLCPP_ERROR(log, "=== SCENARIO FAILED at %s: %s ===", step, reason.c_str());
+    client.to_idle();
     done = true;
   };
 
-  // Give the stack time to come up
+  // Give the rest of the stack time to come up
   std::this_thread::sleep_for(3s);
 
   // -------------------------------------------------------------------------
-  // Step 1: MAPF all 20 robots -> warehouse center (15, 15)
-  // 4 columns x 5 rows, 1.5m spacing, centered on (15, 15)
+  // Step 1: MAPF all 20 robots -> warehouse center (15, 15), 4x5 grid
   // -------------------------------------------------------------------------
   RCLCPP_INFO(log, "=== STEP 1: MAPF all 20 -> center (15,15) ===");
   {
-    std::vector<int> ids;
-    std::vector<Point> goals;
+    LlmCommand::Goal g;
+    g.mode = "mapf";
+    g.reason = "scenario step 1: rally to center";
     const int cols = 4;
     const double spacing = 1.5;
     for (int i = 0; i < 20; ++i) {
-      ids.push_back(i);
-      goals.push_back(make_point(
+      g.robot_ids.push_back(static_cast<uint32_t>(i));
+      g.goals.push_back(make_point(
         15.0 + ((i % cols) - (cols - 1) / 2.0) * spacing,
         15.0 + ((i / cols) - 2.0) * spacing));
     }
-    bb->set<std::vector<int>>("@robot_ids", ids);
-    bb->set<std::vector<Point>>("@goals", goals);
+    if (!client.send(g)) { step_failed("step 1 send", "send_goal failed"); return; }
   }
-  set_mode("mapf");
-  if (!wait_mapf(240)) { abort("step 1"); return; }
+  if (auto status = client.wait_for_completion("mapf", 240s); status != "OK") {
+    step_failed("step 1 wait", status); return;
+  }
   RCLCPP_INFO(log, "=== STEP 1 OK ===");
+
+  client.to_idle();
   std::this_thread::sleep_for(2s);
 
   // -------------------------------------------------------------------------
   // Step 2: Formation WEDGE_20 -- orange squad (robot_0..9)
-  // robot_1 is leader, robot_0/2..9 form a wedge behind it
-  // Two wings: left wing (robot_2,4,6,8) right wing (robot_0,3,5,7,9)
-  //   +x=forward, +y=left in leader body frame
+  // robot_1 leader, robot_0/2..9 alternating left/right wings
   // -------------------------------------------------------------------------
   RCLCPP_INFO(log, "=== STEP 2: Formation WEDGE_20 (orange squad) ===");
-  set_mode("idle");
-  std::this_thread::sleep_for(300ms);
-  bb->set<std::string>("@formation_id", "wedge_20");
-  bb->set<std::string>("@leader_ns",    "robot_1");
-  bb->set<std::vector<std::string>>("@follower_ns", {
-    "robot_2", "robot_0",
-    "robot_4", "robot_3",
-    "robot_6", "robot_5",
-    "robot_8", "robot_7",
-    "robot_9"
-  });
-  // Alternating left/right, stepping back 1m per row
-  bb->set<std::vector<double>>("@offsets_x", {
-    -1.0, -1.0,
-    -2.0, -2.0,
-    -3.0, -3.0,
-    -4.0, -4.0,
-    -5.0
-  });
-  bb->set<std::vector<double>>("@offsets_y", {
-     0.8, -0.8,
-     1.6, -1.6,
-     2.4, -2.4,
-     3.2, -3.2,
-     0.0
-  });
-  set_mode("formation");
-  if (!wait_formation(15)) { abort("step 2"); return; }
+  {
+    LlmCommand::Goal g;
+    g.mode = "formation";
+    g.reason = "scenario step 2: wedge orange";
+    g.formation_id = "wedge_20";
+    g.leader_ns    = "robot_1";
+    g.follower_ns  = {
+      "robot_2", "robot_0",
+      "robot_4", "robot_3",
+      "robot_6", "robot_5",
+      "robot_8", "robot_7",
+      "robot_9"
+    };
+    g.offsets_x = { -1.0, -1.0, -2.0, -2.0, -3.0, -3.0, -4.0, -4.0, -5.0 };
+    g.offsets_y = {  0.8, -0.8,  1.6, -1.6,  2.4, -2.4,  3.2, -3.2,  0.0 };
+    if (!client.send(g)) { step_failed("step 2 send", "send_goal failed"); return; }
+  }
+  if (auto status = client.wait_for_completion("formation", 15s); status != "OK") {
+    step_failed("step 2 wait", status); return;
+  }
   RCLCPP_INFO(log, "=== STEP 2 OK ===");
   std::this_thread::sleep_for(3s);
 
+  client.to_idle();
+  std::this_thread::sleep_for(300ms);
+
   // -------------------------------------------------------------------------
   // Step 3: Formation LINE_BLUE -- blue squad (robot_10..14)
-  // robot_10 is leader, robot_11..14 line up behind
   // -------------------------------------------------------------------------
   RCLCPP_INFO(log, "=== STEP 3: Formation LINE_BLUE (blue squad) ===");
-  set_mode("idle");
-  std::this_thread::sleep_for(300ms);
-  bb->set<std::string>("@formation_id", "line_blue");
-  bb->set<std::string>("@leader_ns",    "robot_10");
-  bb->set<std::vector<std::string>>("@follower_ns", {
-    "robot_11", "robot_12", "robot_13", "robot_14"
-  });
-  bb->set<std::vector<double>>("@offsets_x", {-1.5, -3.0, -4.5, -6.0});
-  bb->set<std::vector<double>>("@offsets_y", { 0.0,  0.0,  0.0,  0.0});
-  set_mode("formation");
-  if (!wait_formation(15)) { abort("step 3"); return; }
+  {
+    LlmCommand::Goal g;
+    g.mode = "formation";
+    g.reason = "scenario step 3: line blue";
+    g.formation_id = "line_blue";
+    g.leader_ns    = "robot_10";
+    g.follower_ns  = { "robot_11", "robot_12", "robot_13", "robot_14" };
+    g.offsets_x    = { -1.5, -3.0, -4.5, -6.0 };
+    g.offsets_y    = {  0.0,  0.0,  0.0,  0.0 };
+    if (!client.send(g)) { step_failed("step 3 send", "send_goal failed"); return; }
+  }
+  if (auto status = client.wait_for_completion("formation", 15s); status != "OK") {
+    step_failed("step 3 wait", status); return;
+  }
   RCLCPP_INFO(log, "=== STEP 3 OK ===");
   std::this_thread::sleep_for(3s);
 
-  // -------------------------------------------------------------------------
-  // Step 4: MAPF cross-swap
-  // Orange (0..9) -> top-right unloading zone (mirror of blue home)
-  // Blue  (10..19) -> bottom-left loading zone (mirror of orange home)
-  // Two clusters cross the full warehouse -- stress test for MAPF replanning
-  // -------------------------------------------------------------------------
-  RCLCPP_INFO(log, "=== STEP 4: MAPF cross-swap (full warehouse crossing) ===");
-  set_mode("idle");
+  client.to_idle();
   std::this_thread::sleep_for(300ms);
-  {
-    std::vector<int> ids;
-    std::vector<Point> goals;
 
-    // Orange robots 0..9 -> top-right zone (where blue robots started)
+  // -------------------------------------------------------------------------
+  // Step 4: MAPF cross-swap — orange goes to blue home, blue goes to orange
+  // -------------------------------------------------------------------------
+  RCLCPP_INFO(log, "=== STEP 4: MAPF cross-swap ===");
+  {
+    LlmCommand::Goal g;
+    g.mode = "mapf";
+    g.reason = "scenario step 4: cross-swap";
+
+    // Orange 0..9 -> blue home (top-right)
     const std::vector<std::pair<double,double>> blue_home = {
       {26.0, 22.0}, {27.5, 22.0},
       {26.0, 23.5}, {27.5, 23.5},
@@ -237,11 +316,11 @@ static void run_scenario(
       {26.0, 28.0}, {27.5, 28.0},
     };
     for (int i = 0; i < 10; ++i) {
-      ids.push_back(i);
-      goals.push_back(make_point(blue_home[i].first, blue_home[i].second));
+      g.robot_ids.push_back(static_cast<uint32_t>(i));
+      g.goals.push_back(make_point(blue_home[i].first, blue_home[i].second));
     }
 
-    // Blue robots 10..19 -> bottom-left zone (where orange robots started)
+    // Blue 10..19 -> orange home (bottom-left)
     const std::vector<std::pair<double,double>> orange_home = {
       {2.0, 2.0}, {3.5, 2.0},
       {2.0, 3.5}, {3.5, 3.5},
@@ -250,29 +329,30 @@ static void run_scenario(
       {2.0, 8.0}, {3.5, 8.0},
     };
     for (int i = 0; i < 10; ++i) {
-      ids.push_back(10 + i);
-      goals.push_back(make_point(orange_home[i].first, orange_home[i].second));
+      g.robot_ids.push_back(static_cast<uint32_t>(10 + i));
+      g.goals.push_back(make_point(orange_home[i].first, orange_home[i].second));
     }
 
-    bb->set<std::vector<int>>("@robot_ids", ids);
-    bb->set<std::vector<Point>>("@goals", goals);
+    if (!client.send(g)) { step_failed("step 4 send", "send_goal failed"); return; }
   }
-  set_mode("mapf");
-  if (!wait_mapf(300)) { abort("step 4"); return; }
+  if (auto status = client.wait_for_completion("mapf", 300s); status != "OK") {
+    step_failed("step 4 wait", status); return;
+  }
   RCLCPP_INFO(log, "=== STEP 4 OK ===");
   std::this_thread::sleep_for(2s);
 
+  client.to_idle();
+  std::this_thread::sleep_for(300ms);
+
   // -------------------------------------------------------------------------
-  // Step 5: MAPF all 20 back to original home positions
+  // Step 5: MAPF all 20 back home
   // -------------------------------------------------------------------------
   RCLCPP_INFO(log, "=== STEP 5: MAPF all 20 -> home ===");
-  set_mode("idle");
-  std::this_thread::sleep_for(300ms);
   {
-    std::vector<int> ids;
-    std::vector<Point> goals;
+    LlmCommand::Goal g;
+    g.mode = "mapf";
+    g.reason = "scenario step 5: home";
 
-    // Orange robots 0..9 back to bottom-left
     const std::vector<std::pair<double,double>> orange_home = {
       {2.0, 2.0}, {3.5, 2.0},
       {2.0, 3.5}, {3.5, 3.5},
@@ -281,11 +361,10 @@ static void run_scenario(
       {2.0, 8.0}, {3.5, 8.0},
     };
     for (int i = 0; i < 10; ++i) {
-      ids.push_back(i);
-      goals.push_back(make_point(orange_home[i].first, orange_home[i].second));
+      g.robot_ids.push_back(static_cast<uint32_t>(i));
+      g.goals.push_back(make_point(orange_home[i].first, orange_home[i].second));
     }
 
-    // Blue robots 10..19 back to top-right
     const std::vector<std::pair<double,double>> blue_home = {
       {26.0, 22.0}, {27.5, 22.0},
       {26.0, 23.5}, {27.5, 23.5},
@@ -294,29 +373,29 @@ static void run_scenario(
       {26.0, 28.0}, {27.5, 28.0},
     };
     for (int i = 0; i < 10; ++i) {
-      ids.push_back(10 + i);
-      goals.push_back(make_point(blue_home[i].first, blue_home[i].second));
+      g.robot_ids.push_back(static_cast<uint32_t>(10 + i));
+      g.goals.push_back(make_point(blue_home[i].first, blue_home[i].second));
     }
 
-    bb->set<std::vector<int>>("@robot_ids", ids);
-    bb->set<std::vector<Point>>("@goals", goals);
+    if (!client.send(g)) { step_failed("step 5 send", "send_goal failed"); return; }
   }
-  set_mode("mapf");
-  if (!wait_mapf(300)) { abort("step 5"); return; }
+  if (auto status = client.wait_for_completion("mapf", 300s); status != "OK") {
+    step_failed("step 5 wait", status); return;
+  }
   RCLCPP_INFO(log, "=== STEP 5 OK ===");
 
   // -------------------------------------------------------------------------
   // Step 6: Idle
   // -------------------------------------------------------------------------
-  RCLCPP_INFO(log, "=== STEP 6: IDLE -- scenario complete ===");
-  set_mode("idle");
+  RCLCPP_INFO(log, "=== STEP 6: IDLE ===");
+  client.to_idle();
   std::this_thread::sleep_for(1s);
   RCLCPP_INFO(log, "ALL 20 ROBOTS -- FULL SCENARIO COMPLETED SUCCESSFULLY");
   done = true;
 }
 
 // ---------------------------------------------------------------------------
-// Main
+// main — host the BT tree, tick at 10 Hz, that's it
 // ---------------------------------------------------------------------------
 int main(int argc, char ** argv)
 {
@@ -332,6 +411,7 @@ int main(int argc, char ** argv)
   auto blackboard = BT::Blackboard::create();
   blackboard->set<rclcpp::Node::SharedPtr>("node", node);
   blackboard->set<std::string>("@mode", "idle");
+  blackboard->set<int>("@command_seq", 0);
   blackboard->set<std::vector<int>>("@robot_ids", {});
   blackboard->set<std::vector<Point>>("@goals", {});
 
@@ -342,165 +422,29 @@ int main(int argc, char ** argv)
   auto tree = factory.createTreeFromFile(xml_file, blackboard);
   RclcppDebugLogger logger(tree, node->get_logger());
 
-  // Publishers
-  auto pub_mode = node->create_publisher<std_msgs::msg::String>(
-    "/fleet/mode", rclcpp::QoS(1).transient_local());
-  auto pub_mapf_ok = node->create_publisher<std_msgs::msg::String>(
-    "/fleet/mapf_ok", 10);
-  auto pub_form_en = node->create_publisher<std_msgs::msg::Bool>(
-    "/fleet/formation_enabled", 10);
-
-  // Mirror /bt/state from outside the tree so we can flush a final snapshot
-  // (HALTED / FAILURE) after BTStatePublisher last ticked but before we
-  // overwrite @mode = idle and halt the tree.
-  auto pub_bt_state = node->create_publisher<
-    iros_llm_swarm_interfaces::msg::BTState>(
-      "/bt/state", iros_llm_swarm_bt::bt_state_qos());
-  auto bt_clock = node->get_clock();
-
-  // /fleet/cmd subscriber (idle-runner mode only)
-  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr sub_cmd;
-  if (!run_scenario_mode) {
-    sub_cmd = node->create_subscription<std_msgs::msg::String>(
-      "/fleet/cmd", 10,
-      [&](const std_msgs::msg::String::SharedPtr msg) {
-        const auto sep = msg->data.find('=');
-        if (sep == std::string::npos) return;
-        const std::string key   = msg->data.substr(0, sep);
-        const std::string value = msg->data.substr(sep + 1);
-        RCLCPP_INFO(node->get_logger(), "fleet/cmd: %s=%s", key.c_str(), value.c_str());
-        if      (key == "mode")         blackboard->set<std::string>("@mode", value);
-        else if (key == "formation_id") blackboard->set<std::string>("@formation_id", value);
-        else if (key == "leader_ns")    blackboard->set<std::string>("@leader_ns", value);
-        else if (key == "robot_ids") {
-          std::vector<int> ids;
-          for (const auto & t : split_csv(value)) ids.push_back(std::stoi(t));
-          blackboard->set<std::vector<int>>("@robot_ids", ids);
-        } else if (key == "goals") {
-          auto toks = split_csv(value);
-          std::vector<Point> goals;
-          for (size_t i = 0; i + 1 < toks.size(); i += 2)
-            goals.push_back(make_point(std::stod(toks[i]), std::stod(toks[i+1])));
-          blackboard->set<std::vector<Point>>("@goals", goals);
-        } else if (key == "follower_ns") {
-          blackboard->set<std::vector<std::string>>("@follower_ns", split_csv(value));
-        } else if (key == "offsets_x") {
-          std::vector<double> v;
-          for (const auto & t : split_csv(value)) v.push_back(std::stod(t));
-          blackboard->set<std::vector<double>>("@offsets_x", v);
-        } else if (key == "offsets_y") {
-          std::vector<double> v;
-          for (const auto & t : split_csv(value)) v.push_back(std::stod(t));
-          blackboard->set<std::vector<double>>("@offsets_y", v);
-        }
-      });
-    RCLCPP_INFO(node->get_logger(), "BT runner: idle mode -- listening on /fleet/cmd");
-  }
-
-  // Scenario thread
+  // Optional embedded scenario
   std::atomic<bool> scenario_done{false};
   std::thread scenario_thread;
   if (run_scenario_mode) {
-    RCLCPP_INFO(node->get_logger(), "BT runner: scenario mode -- starting in 3s");
-    scenario_thread = std::thread(
-      run_scenario, blackboard, node->get_logger(), std::ref(scenario_done));
+    RCLCPP_INFO(node->get_logger(),
+      "BT runner: scenario mode -- starting scenario in 3s");
+    scenario_thread = std::thread(run_scenario, node, std::ref(scenario_done));
+  } else {
+    RCLCPP_INFO(node->get_logger(),
+      "BT runner: host mode -- send commands via "
+      "'ros2 action send_goal /llm/command iros_llm_swarm_interfaces/action/LlmCommand ...'");
   }
 
-  // Tick loop
+  // Tick loop. Tree is reactive: it never reaches a terminal status in
+  // steady state (RunOnce masks terminal child statuses with RUNNING).
+  // All control flow happens through /llm/command and /bt/state.
   rclcpp::Rate rate(10);
-  std::string last_mode = "idle";
-
   while (rclcpp::ok()) {
-    if (run_scenario_mode && scenario_done) break;
-
+    if (run_scenario_mode && scenario_done) {
+      break;
+    }
     rclcpp::spin_some(node);
-
-    std::string current_mode = "idle";
-    try { current_mode = blackboard->get<std::string>("@mode"); } catch (...) {}
-
-    // Publish mode
-    {
-      std_msgs::msg::String m; m.data = current_mode;
-      pub_mode->publish(m);
-    }
-
-    // Transition -> idle: halt any running action immediately. Flush a
-    // final /bt/state right after halt — onHalted has set @action_status
-    // to HALTED but BTStatePublisher will not tick again with the old
-    // @mode, so without this push the operator never sees the marker.
-    if (current_mode == "idle" && last_mode != "idle") {
-      tree.haltTree();
-      blackboard->set<std::string>("@mode", last_mode);
-      iros_llm_swarm_bt::publish_bt_state(blackboard, pub_bt_state, bt_clock);
-      blackboard->set<std::string>("@mode", "idle");
-      RCLCPP_INFO(node->get_logger(), "BT: mode -> idle, tree halted");
-    }
-    last_mode = current_mode;
-
-    // Always tick the tree — even in idle mode.
-    // LlmCommandReceiver (SyncActionNode in ReactiveSequence) must be ticked
-    // every cycle to pick up goals sent by user_chat / PassiveObserver.
-    // When mode == idle, CheckMode(idle) → SUCCESS immediately so no robot
-    // actions run; the only cost is BTStatePublisher + LlmCommandReceiver.
-    auto status = tree.tickRoot();
-
-    // Terminal status: only meaningful when an action was actually running.
-    // In idle mode the tree returns SUCCESS via CheckMode every tick —
-    // we must NOT treat that as "mission finished" or call haltTree() here.
-    if (current_mode != "idle" &&
-        (status == BT::NodeStatus::SUCCESS || status == BT::NodeStatus::FAILURE)) {
-      const bool ok = (status == BT::NodeStatus::SUCCESS);
-
-      try {
-        std_msgs::msg::String m;
-        m.data = blackboard->get<bool>("@mapf_ok") ? "true" : "false";
-        pub_mapf_ok->publish(m);
-      } catch (...) {}
-      try {
-        std_msgs::msg::Bool m;
-        m.data = blackboard->get<bool>("@formation_enabled");
-        pub_form_en->publish(m);
-      } catch (...) {}
-
-      RCLCPP_INFO(node->get_logger(), "BT: %s -> %s",
-        current_mode.c_str(), BT::toStr(status).c_str());
-
-      // Surface terminal state in /bt/state before we wipe @mode. Leaf
-      // nodes (MapfPlan, SetFormation) already wrote @action_status /
-      // @last_error on their way out — but BTStatePublisher's tick that
-      // ran at the start of this same tickRoot() captured the *previous*
-      // values. Push one more snapshot now so the panel sees ERROR/HALTED
-      // paired with the failing mode.
-      if (!ok) {
-        std::string cur_status;
-        try { cur_status = blackboard->get<std::string>("@action_status"); } catch (...) {}
-        if (cur_status == "OK" || cur_status.empty()) {
-          blackboard->set<std::string>("@action_status", "ERROR");
-        }
-        std::string cur_err;
-        try { cur_err = blackboard->get<std::string>("@last_error"); } catch (...) {}
-        if (cur_err.empty()) {
-          blackboard->set<std::string>("@last_error",
-            "BT FAILURE in mode=" + current_mode);
-        }
-      }
-      iros_llm_swarm_bt::publish_bt_state(blackboard, pub_bt_state, bt_clock);
-
-      // Always return to idle after any terminal state.
-      // Without this, mode stays "mapf"/"formation" after SUCCESS and the
-      // next tick immediately restarts the same mission with the same goals.
-      blackboard->set<std::string>("@mode", "idle");
-
-      if (!ok) {
-        // Signal failure to scenario thread, then go idle so tree stops ticking
-        blackboard->set<bool>("@mapf_failed", true);
-        blackboard->set<bool>("@formation_failed", true);
-        RCLCPP_WARN(node->get_logger(), "BT: FAILURE in mode=%s -> idle", current_mode.c_str());
-      }
-
-      tree.haltTree();
-    }
-
+    tree.tickRoot();
     rate.sleep();
   }
 

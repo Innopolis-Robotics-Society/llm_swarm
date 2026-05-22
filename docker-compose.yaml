@@ -3,7 +3,7 @@ x-common: &common-setup
   privileged: true
   stdin_open: true
   tty: true
-  image: fabook/iros:v0.0.3
+  image: fabook/iros:v0.0.4
   working_dir: /home/fabian/ros2_ws
   volumes:
     - ${HOME}/.Xauthority:/home/fabian/.Xauthority:rw

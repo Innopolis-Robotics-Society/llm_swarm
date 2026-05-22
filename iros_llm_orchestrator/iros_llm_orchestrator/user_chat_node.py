@@ -287,6 +287,7 @@ class UserChatNode(Node):
         self._mode_seq           = 0
         self._last_action_status = 'OK'
         self._last_bt_error      = ''
+        self._last_active_action = 'none'
         self._history: list[dict] = []
         self._bt_event_analyzing = False
         # /llm/command server readiness is checked once per session, off the
@@ -306,21 +307,18 @@ class UserChatNode(Node):
         self._print_banner()
 
     # ------------------------------------------------------------------
-    # Thread-safe mode accessors
+    # Thread-safe BT-state accessors
     # ------------------------------------------------------------------
-
-    def _get_mode(self) -> str:
-        with self._mode_lock:
-            return self._last_mode
-
-    def _get_mode_state(self) -> tuple[str, int]:
-        """Atomically read (mode, seq) so callers see a consistent pair."""
-        with self._mode_lock:
-            return self._last_mode, self._mode_seq
 
     def _get_bt_status(self) -> tuple[str, str]:
         with self._mode_lock:
             return self._last_action_status, self._last_bt_error
+
+    def _get_bt_progress(self) -> tuple[str, str, str]:
+        """(action_status, last_error, active_action) read atomically."""
+        with self._mode_lock:
+            return (self._last_action_status, self._last_bt_error,
+                    self._last_active_action)
 
     def _record_send_failure(self, *, leaf_type: str, phase: str,
                               info: str = '') -> None:
@@ -348,9 +346,11 @@ class UserChatNode(Node):
                 self._last_mode = msg.mode
                 self._mode_seq += 1
                 seq = self._mode_seq
-            # Mirror status/error so _send_leaf can surface real failures.
+            # Mirror status/error/active_action so _send_leaf can surface
+            # mission start, completion and real failures.
             self._last_action_status = msg.action_status
             self._last_bt_error      = msg.last_error
+            self._last_active_action = msg.active_action or 'none'
         if transitioned:
             self._slog.debug(f'mode: {prev_mode!r} → {msg.mode!r} (seq={seq})')
             if prev_mode and prev_mode != 'idle' and msg.mode == 'idle':
@@ -654,16 +654,6 @@ class UserChatNode(Node):
         goal.offsets_x    = [float(o) for o in command.get('offsets_x', [])]
         goal.offsets_y    = [float(o) for o in command.get('offsets_y', [])]
 
-        # Snapshot the mode-transition counter BEFORE sending so we can tell
-        # the difference between a transition triggered by THIS leaf and a
-        # leftover transition from the previous step. Without this snapshot,
-        # the second leaf in a sequence races: the BT publishes idle→<mode>
-        # while we are still inside `await get_result_async`, and a stale
-        # "ever busy" flag would otherwise be reset right after, leaving the
-        # subsequent <mode>→idle transition undetectable (the BTState callback
-        # only fires on actual mode changes).
-        seq_at_send = self._get_mode_state()[1]
-
         # Step 1: send goal and wait for BT to accept it.
         handle = await self._cmd_client.send_goal_async(goal)
         if not handle.accepted:
@@ -681,58 +671,56 @@ class UserChatNode(Node):
             self._record_send_failure(leaf_type=t, phase='accept', info=info)
             return False
 
-        self._slog.debug(
-            f'send_leaf: goal accepted and applied (seq_at_send={seq_at_send})')
+        self._slog.debug('send_leaf: goal accepted and applied')
 
-        # Phase 1: wait up to 1.5s for the BT to actually pick up our goal.
-        # We treat seeing _any_ transition past seq_at_send as proof the BT
-        # processed our blackboard write. Three outcomes:
-        #   * mode now non-idle  → mission running, drop into Phase 2.
-        #   * mode flipped to idle inside the window → fast-complete leaf.
-        #   * no transition at all in 1.5s → ModeDispatch effectively no-op'd
-        #     this leaf (e.g. duplicate goal, validation failure inside the
-        #     BT). Return success rather than block the whole plan; the
-        #     BT-event analyzer surfaces real failures via WARN/ERROR.
-        phase1_deadline = time.monotonic() + 1.5
+        # The /llm/command result is only an ack. Mission completion is read
+        # from /bt/state via @active_action: the BT cycles it
+        # none → MapfPlan/SetFormation/DisableFormation → none and no longer
+        # returns @mode to idle on its own, so we must not wait on @mode.
+
+        # Phase 1: wait up to 3s for the BT to start the action node.
+        phase1_deadline = time.monotonic() + 3.0
+        started = False
         while time.monotonic() < phase1_deadline:
-            mode_now, seq_now = self._get_mode_state()
-            if seq_now > seq_at_send:
-                if mode_now == 'idle':
-                    status_now, err_now = self._get_bt_status()
-                    if status_now == 'ERROR':
-                        self._out(f'  {ERR}  Mission failed: {err_now}')
-                        self._slog.error(
-                            f'send_leaf: {t} idle with ERROR: {err_now}')
-                        self._record_send_failure(
-                            leaf_type=t, phase='phase1', info=err_now)
-                        return False
-                    self._slog.info(
-                        f'send_leaf: {t} fast-completed (returned to idle '
-                        f'in <1.5s, seq {seq_at_send}->{seq_now})')
-                    return True
-                self._slog.debug(
-                    f'send_leaf: BT entered {mode_now!r} (seq {seq_at_send}->{seq_now})')
+            status_now, err_now, action_now = self._get_bt_progress()
+            if action_now not in ('', 'none'):
+                self._slog.debug(f'send_leaf: BT started {action_now!r}')
+                started = True
                 break
             await asyncio.sleep(0.05)
-        else:
+        if not started:
+            status_now, err_now, _ = self._get_bt_progress()
+            if status_now in ('ERROR', 'HALTED'):
+                self._out(f'  {ERR}  Mission failed: {err_now}')
+                self._slog.error(
+                    f'send_leaf: {t} reported {status_now} without starting: '
+                    f'{err_now}')
+                self._record_send_failure(
+                    leaf_type=t, phase='phase1', info=err_now)
+                return False
             self._slog.info(
-                f'send_leaf: BT never transitioned after {t} command '
-                f'(seq stuck at {seq_at_send}) — treating as no-op success')
+                f'send_leaf: BT never started an action after {t} command '
+                f'— treating as no-op success')
             return True
 
-        # Phase 2: wait for the mission to finish (mode → idle).
+        # Phase 2: wait for the action node to finish. @active_action returns
+        # to "none" on success/partial; a hard failure raises @action_status
+        # to ERROR/HALTED.
         deadline = time.monotonic() + self._step_timeout
         while time.monotonic() < deadline:
-            if self._get_mode() == 'idle':
-                status_now, err_now = self._get_bt_status()
-                if status_now == 'ERROR':
+            status_now, err_now, action_now = self._get_bt_progress()
+            finished = action_now in ('', 'none')
+            failed   = status_now in ('ERROR', 'HALTED')
+            if finished or failed:
+                if failed:
                     self._out(f'  {ERR}  Mission failed: {err_now}')
                     self._slog.error(
-                        f'send_leaf: {t} idle with ERROR after run: {err_now}')
+                        f'send_leaf: {t} finished with {status_now}: {err_now}')
                     self._record_send_failure(
                         leaf_type=t, phase='phase2', info=err_now)
                     return False
-                self._slog.debug('send_leaf: mission complete (mode=idle)')
+                self._slog.debug(
+                    'send_leaf: mission complete (active_action=none)')
                 return True
             await asyncio.sleep(0.1)
 
