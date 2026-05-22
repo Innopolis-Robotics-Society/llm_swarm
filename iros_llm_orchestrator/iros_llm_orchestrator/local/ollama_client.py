@@ -72,6 +72,104 @@ class OllamaClient(LLMClientBase):
                         return
 
     # ------------------------------------------------------------------
+    # Tool calling
+    # ------------------------------------------------------------------
+
+    async def generate_with_tools(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+    ) -> dict:
+        """Non-streaming call with tool definitions via Ollama /api/chat.
+
+        Returns {"type": "tool_calls", "calls": [...]} or {"type": "text", "content": str}.
+        """
+        from iros_llm_orchestrator.common.tool_definitions import parse_ollama_tool_calls
+
+        import aiohttp
+
+        payload = {
+            'model':    self.model,
+            'messages': messages,
+            'tools':    tools,
+            'stream':   False,
+            'options':  {
+                'temperature': self.temperature,
+                'num_predict': self.max_tokens,
+            },
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(self.endpoint, json=payload) as resp:
+                if resp.status != 200:
+                    body = await resp.text()
+                    raise RuntimeError(f'Ollama HTTP {resp.status}: {body[:300]}')
+                data = await resp.json()
+
+        message = data.get('message', {})
+        calls = parse_ollama_tool_calls(message)
+        if calls:
+            return {"type": "tool_calls", "calls": calls}
+        content = message.get('content', '')
+        return {"type": "text", "content": content}
+
+    async def stream_with_tools(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+    ):
+        """Streaming call with tool definitions via Ollama /api/chat.
+
+        Yields:
+          {"type": "chunk",      "content": str}  — text token during generation
+          {"type": "tool_calls", "calls": [...]}   — tool call request (terminal)
+          {"type": "text",       "content": str}   — full text response (terminal)
+        """
+        from iros_llm_orchestrator.common.tool_definitions import parse_ollama_tool_calls
+        import aiohttp
+
+        payload = {
+            'model':    self.model,
+            'messages': messages,
+            'tools':    tools,
+            'stream':   True,
+            'options':  {
+                'temperature': self.temperature,
+                'num_predict': self.max_tokens,
+            },
+        }
+
+        full_text = ''
+        final_message: dict = {}
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(self.endpoint, json=payload) as resp:
+                if resp.status != 200:
+                    body = await resp.text()
+                    raise RuntimeError(f'Ollama HTTP {resp.status}: {body[:300]}')
+                async for raw_line in resp.content:
+                    raw_line = raw_line.strip()
+                    if not raw_line:
+                        continue
+                    try:
+                        data = json.loads(raw_line)
+                    except json.JSONDecodeError:
+                        continue
+                    chunk = data.get('message', {}).get('content', '')
+                    if chunk:
+                        full_text += chunk
+                        yield {'type': 'chunk', 'content': chunk}
+                    if data.get('done'):
+                        final_message = data.get('message', {})
+                        break
+
+        calls = parse_ollama_tool_calls(final_message)
+        if calls:
+            yield {'type': 'tool_calls', 'calls': calls}
+        else:
+            yield {'type': 'text', 'content': full_text}
+
+    # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
