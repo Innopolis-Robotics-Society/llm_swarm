@@ -683,12 +683,12 @@ formation rejection.</p>
 </pre></div>
 </div>
 <p>You should see in the launch log:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[test_bt_runner] MapfPlan: action accepted
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>[bt_runner] MapfPlan: action accepted
 [mapf_lns2_node] LNS2 timed out at iter 12 (4500 ms)
-[test_bt_runner] MapfPlan: status=WARN replans_done=2
+[bt_runner] MapfPlan: status=WARN replans_done=2
 [decision_server] /llm/decision call (channel 1) — trigger: stress, status=WARN
 [decision_server] reply: replan
-[test_bt_runner] applying decision: replan
+[bt_runner] applying decision: replan
 </pre></div>
 </div>
 <p>In the panel’s <em>BT</em> tab, <code class="docutils literal notranslate"><span class="pre">llm_thinking</span></code> flips to <code class="docutils literal notranslate"><span class="pre">true</span></code> for the
@@ -914,7 +914,7 @@ once odom updates land.</p></td>
 </tr>
 <tr class="row-odd"><td><p>“STOP ALL” button is greyed / no effect.</p></td>
 <td><p>The panel cannot connect to the <code class="docutils literal notranslate"><span class="pre">/llm/command</span></code> action server.
-<code class="docutils literal notranslate"><span class="pre">LlmCommandReceiver</span></code> lives in <code class="docutils literal notranslate"><span class="pre">test_bt_runner</span></code>; restart the
+<code class="docutils literal notranslate"><span class="pre">LlmCommandReceiver</span></code> lives in <code class="docutils literal notranslate"><span class="pre">bt_runner</span></code>; restart the
 BT runner.</p></td>
 </tr>
 <tr class="row-even"><td><p>MCP context times out (<code class="docutils literal notranslate"><span class="pre">mcp_stale:</span> <span class="pre">true</span></code> in events).</p></td>

@@ -55,7 +55,7 @@
 <li><a class="reference internal" href="#blackboard-convention">Blackboard convention</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#test-bt-runner">test_bt_runner</a><ul>
+<li><a class="reference internal" href="#bt-runner">bt_runner</a><ul>
 <li><a class="reference internal" href="#idle-runner-scenario-false-default">Idle runner (<code class="docutils literal notranslate"><span class="pre">scenario</span> <span class="pre">=</span> <span class="pre">false</span></code>, default)</a></li>
 <li><a class="reference internal" href="#scenario-mode-scenario-true">Scenario mode (<code class="docutils literal notranslate"><span class="pre">scenario</span> <span class="pre">=</span> <span class="pre">true</span></code>)</a></li>
 <li><a class="reference internal" href="#tick-loop">Tick loop</a></li>
@@ -134,7 +134,7 @@ blocked by it.</p>
 <li><p><a class="reference internal" href="#blackboard-convention" id="id8">Blackboard convention</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#test-bt-runner" id="id9">test_bt_runner</a></p>
+<li><p><a class="reference internal" href="#bt-runner" id="id9">bt_runner</a></p>
 <ul>
 <li><p><a class="reference internal" href="#idle-runner-scenario-false-default" id="id10">Idle runner (<code class="docutils literal notranslate"><span class="pre">scenario</span> <span class="pre">=</span> <span class="pre">false</span></code>, default)</a></p></li>
 <li><p><a class="reference internal" href="#scenario-mode-scenario-true" id="id11">Scenario mode (<code class="docutils literal notranslate"><span class="pre">scenario</span> <span class="pre">=</span> <span class="pre">true</span></code>)</a></p></li>
@@ -151,7 +151,7 @@ blocked by it.</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_bt_nodes</span></code> (shared library) — the BT plugin.
 Registers four node types via <code class="docutils literal notranslate"><span class="pre">BT_REGISTER_NODES</span></code>.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">test_bt_runner</span></code> (executable) — minimal BT runner / scenario
+<li><p><code class="docutils literal notranslate"><span class="pre">bt_runner</span></code> (executable) — minimal BT runner / scenario
 harness. Loads the plugin, ticks the reference tree at 10 Hz, and
 optionally drives an embedded 20-robot scenario.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">behavior_trees/</span></code> — XML trees:</p>
@@ -164,7 +164,7 @@ isolation.</p></li>
 trees that drive a formation disband from the BT side.</p></li>
 </ul>
 </li>
-<li><p><code class="docutils literal notranslate"><span class="pre">launch/test_bt_runner.launch.py</span></code> — one-line launch wrapper for
+<li><p><code class="docutils literal notranslate"><span class="pre">launch/bt_runner.launch.py</span></code> — one-line launch wrapper for
 the runner.</p></li>
 </ul>
 <p>The plugin and the runner can be used independently of each other —
@@ -550,8 +550,8 @@ scenario thread to abort.</p></td>
 </table>
 </section>
 </section>
-<section id="test-bt-runner">
-<h2><a class="toc-backref" href="#id9" role="doc-backlink">test_bt_runner</a><a class="headerlink" href="#test-bt-runner" title="Link to this heading"></a></h2>
+<section id="bt-runner">
+<h2><a class="toc-backref" href="#id9" role="doc-backlink">bt_runner</a><a class="headerlink" href="#bt-runner" title="Link to this heading"></a></h2>
 <p>Two roles selectable via the <code class="docutils literal notranslate"><span class="pre">scenario</span></code> ROS parameter:</p>
 <section id="idle-runner-scenario-false-default">
 <h3><a class="toc-backref" href="#id10" role="doc-backlink">Idle runner (<code class="docutils literal notranslate"><span class="pre">scenario</span> <span class="pre">=</span> <span class="pre">false</span></code>, default)</a><a class="headerlink" href="#idle-runner-scenario-false-default" title="Link to this heading"></a></h3>
@@ -690,7 +690,7 @@ types).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">libiros_llm_swarm_bt_nodes.so</span></code> (shared library) —
 installed under <code class="docutils literal notranslate"><span class="pre">lib/</span></code> (and the
 exported <code class="docutils literal notranslate"><span class="pre">include/</span></code> headers).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">test_bt_runner</span></code> (executable) — installed under
+<li><p><code class="docutils literal notranslate"><span class="pre">bt_runner</span></code> (executable) — installed under
 <code class="docutils literal notranslate"><span class="pre">lib/iros_llm_swarm_bt/</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">behavior_trees/</span></code> and <code class="docutils literal notranslate"><span class="pre">launch/</span></code> — installed under
 <code class="docutils literal notranslate"><span class="pre">share/iros_llm_swarm_bt/</span></code>.</p></li>
@@ -705,10 +705,10 @@ hosts (custom BT runners) need to point <code class="docutils literal notranslat
 install <code class="docutils literal notranslate"><span class="pre">lib/</span></code> directory or pass the absolute path.</p>
 <p>Run the runner directly:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Idle mode — listens on /fleet/cmd</span>
-<span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_bt</span> <span class="n">test_bt_runner</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span>
+<span class="n">ros2</span> <span class="n">launch</span> <span class="n">iros_llm_swarm_bt</span> <span class="n">bt_runner</span><span class="o">.</span><span class="n">launch</span><span class="o">.</span><span class="n">py</span>
 
 <span class="c1"># Embedded integration scenario</span>
-<span class="n">ros2</span> <span class="n">run</span> <span class="n">iros_llm_swarm_bt</span> <span class="n">test_bt_runner</span> <span class="o">--</span><span class="n">ros</span><span class="o">-</span><span class="n">args</span> <span class="o">-</span><span class="n">p</span> <span class="n">scenario</span><span class="o">:=</span><span class="n">true</span>
+<span class="n">ros2</span> <span class="n">run</span> <span class="n">iros_llm_swarm_bt</span> <span class="n">bt_runner</span> <span class="o">--</span><span class="n">ros</span><span class="o">-</span><span class="n">args</span> <span class="o">-</span><span class="n">p</span> <span class="n">scenario</span><span class="o">:=</span><span class="n">true</span>
 </pre></div>
 </div>
 <p>Both modes assume the rest of the swarm stack (planner + per-robot
