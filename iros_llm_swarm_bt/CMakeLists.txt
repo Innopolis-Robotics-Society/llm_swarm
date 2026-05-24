@@ -32,20 +32,20 @@ ament_target_dependencies(iros_llm_swarm_bt_nodes
   iros_llm_swarm_interfaces
 )
 
-add_executable(test_bt_runner
-  src/test_bt_runner.cpp
+add_executable(bt_runner
+  src/bt_runner.cpp
 )
 
-target_include_directories(test_bt_runner PUBLIC
+target_include_directories(bt_runner PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(test_bt_runner
+target_link_libraries(bt_runner
   iros_llm_swarm_bt_nodes
 )
 
-ament_target_dependencies(test_bt_runner
+ament_target_dependencies(bt_runner
   ament_index_cpp
   behaviortree_cpp_v3
   rclcpp
@@ -57,7 +57,7 @@ ament_target_dependencies(test_bt_runner
 install(
   TARGETS
     iros_llm_swarm_bt_nodes
-    test_bt_runner
+    bt_runner
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
