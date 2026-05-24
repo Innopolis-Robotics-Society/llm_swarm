@@ -23,7 +23,8 @@ from iros_llm_swarm_interfaces.action import LlmCommand
 from iros_llm_swarm_interfaces.msg import BTState, LlmEvent
 
 from iros_llm_orchestrator.common.llm_factory import get_llm_client
-from iros_llm_orchestrator.common.plan_executor import PlanExecutor, parse_plan
+from iros_llm_orchestrator.common.plan_executor import (
+    PlanExecutor, coerce_robot_id, parse_plan)
 from iros_llm_orchestrator.common.tool_definitions import TOOL_DEFINITIONS
 from iros_llm_orchestrator.common.tool_executor import ToolExecutor
 from iros_llm_orchestrator.common.user_prompt import (
@@ -940,7 +941,8 @@ class UserChatNode(Node):
         goal = LlmCommand.Goal()
         goal.mode         = t
         goal.reason       = command.get('reason', '')
-        goal.robot_ids    = [int(r) for r in command.get('robot_ids', [])]
+        goal.robot_ids    = [coerce_robot_id(r)
+                             for r in command.get('robot_ids', [])]
         goal.goals        = [Point(x=float(g[0]), y=float(g[1]), z=0.0)
                              for g in command.get('goals', [])]
         goal.formation_id = command.get('formation_id', '')

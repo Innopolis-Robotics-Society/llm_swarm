@@ -35,6 +35,8 @@ from iros_llm_swarm_interfaces.msg import BTState
 from iros_llm_swarm_interfaces.srv import (
     AddCircle, AddRectangle, AddDoor, RemoveObstacle, OpenDoor, CloseDoor)
 
+from iros_llm_orchestrator.common.plan_executor import coerce_robot_id
+
 
 class BTLeafSender:
     """Send a single PlanExecutor leaf via /llm/command and wait for BT.
@@ -149,7 +151,8 @@ class BTLeafSender:
         goal = LlmCommand.Goal()
         goal.mode         = t
         goal.reason       = command.get('reason', '')
-        goal.robot_ids    = [int(r) for r in command.get('robot_ids', [])]
+        goal.robot_ids    = [coerce_robot_id(r)
+                             for r in command.get('robot_ids', [])]
         goal.goals        = [Point(x=float(g[0]), y=float(g[1]), z=0.0)
                              for g in command.get('goals', [])]
         goal.formation_id = command.get('formation_id', '')

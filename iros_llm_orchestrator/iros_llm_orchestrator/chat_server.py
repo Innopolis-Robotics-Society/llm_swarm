@@ -414,6 +414,14 @@ class ChatServer(Node):
         try:
             reply, plan = _parse_response(full_raw)
         except ValueError as exc:
+            # Diagnostic: surface exactly what the LLM returned so a parse
+            # failure (e.g. tool-calling making the model answer in prose
+            # instead of JSON) is debuggable from the logs.
+            preview = (full_raw if len(full_raw) <= 4000
+                       else full_raw[:4000] + '…[truncated]')
+            self.get_logger().error(
+                f'parse error: {exc} | raw LLM output ({len(full_raw)} chars): '
+                f'{preview!r}')
             raise _LlmStageError(f'parse error: {exc}') from exc
         plan = _postprocess_plan(plan, self._map_cfg)
         return reply, plan, full_raw
@@ -451,13 +459,17 @@ class ChatServer(Node):
 
             if terminal['type'] == 'text':
                 content = terminal.get('content') or full_text
+                self.get_logger().info(
+                    f'tool_loop: final text after {iteration + 1} iteration(s), '
+                    f'{len(content)} chars, has_json={"{" in content}')
                 self._emit_reply_streaming(content, goal_handle)
                 return content
 
             # Tool calls — execute and loop
             calls = terminal['calls']
-            self.get_logger().debug(
-                f'tool_loop iter={iteration}: {[c["name"] for c in calls]}')
+            self.get_logger().info(
+                f'tool_loop iter={iteration}: calling tools '
+                f'{[c["name"] for c in calls]}')
             msgs.append(_build_tool_use_assistant_message(calls))
 
             for call in calls:

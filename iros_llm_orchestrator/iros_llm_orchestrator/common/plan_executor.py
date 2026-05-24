@@ -36,6 +36,32 @@ _LEAF_TYPES      = {'mapf', 'formation', 'idle'}
 _CONTAINER_TYPES = {'sequence', 'parallel'}
 _ALL_TYPES       = _LEAF_TYPES | _CONTAINER_TYPES
 
+_ROBOT_ID_RE = re.compile(r'(?:robot[_-]?)?(\d+)', re.IGNORECASE)
+
+
+def coerce_robot_id(value) -> int:
+    """Coerce an LLM-supplied robot id to a plain int.
+
+    Accepts ``10``, ``"10"``, ``"robot_10"``, ``"robot10"`` and integral
+    floats. Small local models routinely emit the namespace string
+    ``"robot_N"`` instead of the bare integer the plan schema expects.
+    Raises ValueError on anything genuinely unparseable.
+    """
+    # bool is a subclass of int — reject it explicitly.
+    if isinstance(value, bool):
+        raise ValueError(f'invalid robot id: {value!r}')
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        if value.is_integer():
+            return int(value)
+        raise ValueError(f'non-integer robot id: {value!r}')
+    if isinstance(value, str):
+        m = _ROBOT_ID_RE.fullmatch(value.strip())
+        if m:
+            return int(m.group(1))
+    raise ValueError(f'cannot parse robot id: {value!r}')
+
 
 def parse_plan(raw: str | dict) -> dict:
     """Parse and validate a plan tree. Raises ValueError on any error."""
@@ -82,9 +108,22 @@ def _validate_node(node: dict, path: str = 'plan') -> dict:
         if len(ids) != len(goals):
             raise ValueError(
                 f'{path}: robot_ids({len(ids)}) != goals({len(goals)})')
+        # Normalise robot ids in place — LLMs (especially small local models)
+        # routinely emit "robot_10" instead of the bare int the schema wants.
+        try:
+            node['robot_ids'] = [coerce_robot_id(r) for r in ids]
+        except ValueError as exc:
+            raise ValueError(f'{path}: {exc}') from exc
+        # Normalise goals to [float, float]; reject non-numeric coordinates.
+        norm_goals = []
         for g in goals:
             if not (isinstance(g, (list, tuple)) and len(g) >= 2):
                 raise ValueError(f'{path}: each goal must be [x, y]')
+            try:
+                norm_goals.append([float(g[0]), float(g[1])])
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f'{path}: goal {g!r} is not numeric') from exc
+        node['goals'] = norm_goals
     elif node_type == 'formation':
         if not node.get('formation_id'):
             raise ValueError(f'{path}: formation requires formation_id')
@@ -133,7 +172,7 @@ def flatten_parallel(node: dict) -> list[dict]:
         merged: dict[int, list] = {}
         reasons: list[str]      = []
         for leaf in mapf_leaves:
-            ids   = [int(r) for r in leaf.get('robot_ids', [])]
+            ids   = [coerce_robot_id(r) for r in leaf.get('robot_ids', [])]
             goals = [[float(g[0]), float(g[1])] for g in leaf.get('goals', [])]
             for rid, g in zip(ids, goals):
                 merged[rid] = g
