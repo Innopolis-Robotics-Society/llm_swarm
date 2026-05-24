@@ -31,7 +31,7 @@ template<typename F>
 inline bool future_ready(const F & f)
 {
   return f.valid() &&
-    f.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
+         f.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
 }
 
 // ---------------------------------------------------------------------------
@@ -53,10 +53,10 @@ inline bool future_ready(const F & f)
 class MapfPlan : public BT::StatefulActionNode
 {
 public:
-  using SetGoals      = iros_llm_swarm_interfaces::action::SetGoals;
-  using GoalHandle    = rclcpp_action::ClientGoalHandle<SetGoals>;
+  using SetGoals = iros_llm_swarm_interfaces::action::SetGoals;
+  using GoalHandle = rclcpp_action::ClientGoalHandle<SetGoals>;
   using WrappedResult = rclcpp_action::ClientGoalHandle<SetGoals>::WrappedResult;
-  using Feedback      = SetGoals::Feedback;
+  using Feedback = SetGoals::Feedback;
 
   MapfPlan(const std::string & name, const BT::NodeConfiguration & config);
 
@@ -67,22 +67,23 @@ public:
   void           onHalted()  override;
 
 private:
-  rclcpp_action::Client<SetGoals>::SharedPtr  client_;
-  std::shared_future<GoalHandle::SharedPtr>   goal_handle_future_;
-  std::shared_future<WrappedResult>           result_future_;
-  std::shared_ptr<GoalHandle>                 goal_handle_;
+  rclcpp_action::Client<SetGoals>::SharedPtr client_;
+  std::shared_future<GoalHandle::SharedPtr> goal_handle_future_;
+  std::shared_future<WrappedResult> result_future_;
+  std::shared_ptr<GoalHandle> goal_handle_;
 
   // Snapshot written from the ROS executor thread (on_feedback),
   // applied to the blackboard only inside onRunning() (BT thread).
   // Blackboard is not thread-safe — never write it outside the BT thread.
-  struct FeedbackSnapshot {
+  struct FeedbackSnapshot
+  {
     std::string summary;
     std::string status;       // "OK" | "WARN"
     std::string error;
     bool updated{false};
   };
-  std::mutex         snapshot_mutex_;
-  FeedbackSnapshot   pending_snapshot_;
+  std::mutex snapshot_mutex_;
+  FeedbackSnapshot pending_snapshot_;
 
   void on_feedback(
     GoalHandle::SharedPtr,
@@ -103,7 +104,7 @@ class SetFormation : public BT::StatefulActionNode
 {
 public:
   using SetFormationSrv = iros_llm_swarm_interfaces::srv::SetFormation;
-  using ServiceFuture   = rclcpp::Client<SetFormationSrv>::SharedFuture;
+  using ServiceFuture = rclcpp::Client<SetFormationSrv>::SharedFuture;
 
   SetFormation(const std::string & name, const BT::NodeConfiguration & config);
 
@@ -115,7 +116,7 @@ public:
 
 private:
   rclcpp::Client<SetFormationSrv>::SharedPtr client_;
-  ServiceFuture                              future_;
+  ServiceFuture future_;
 
   std::string last_error_;
 
@@ -131,7 +132,7 @@ class DisableFormation : public BT::StatefulActionNode
 {
 public:
   using DeactivateFormationSrv = iros_llm_swarm_interfaces::srv::DeactivateFormation;
-  using ServiceFuture          = rclcpp::Client<DeactivateFormationSrv>::SharedFuture;
+  using ServiceFuture = rclcpp::Client<DeactivateFormationSrv>::SharedFuture;
 
   DisableFormation(const std::string & name, const BT::NodeConfiguration & config);
 
@@ -143,7 +144,7 @@ public:
 
 private:
   rclcpp::Client<DeactivateFormationSrv>::SharedPtr client_;
-  ServiceFuture                                     future_;
+  ServiceFuture future_;
 
   std::string last_error_;
 
@@ -233,7 +234,7 @@ class FormationHealthMonitor : public BT::SyncActionNode
 {
 public:
   using FormationsStatusMsg = iros_llm_swarm_interfaces::msg::FormationsStatus;
-  using FormationStatusMsg  = iros_llm_swarm_interfaces::msg::FormationStatus;
+  using FormationStatusMsg = iros_llm_swarm_interfaces::msg::FormationStatus;
 
   FormationHealthMonitor(const std::string & name, const BT::NodeConfiguration & config);
   static BT::PortsList providedPorts();
