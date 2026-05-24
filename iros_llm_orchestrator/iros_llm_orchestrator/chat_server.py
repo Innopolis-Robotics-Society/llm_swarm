@@ -619,15 +619,6 @@ class ChatServer(Node):
                 f'Chat runtime context source={source} warnings={warnings}')
         return context
 
-    def _get_obstacle_context(self) -> str:
-        heuristics = (self._map_cfg or {}).get('heuristics', '')
-        if not heuristics:
-            return ''
-        return (
-            'Obstacle and navigation constraints from the current map:\n'
-            f'{str(heuristics).strip()}'
-        )
-
     # ------------------------------------------------------------------
     # Reply streaming — emit only the JSON "reply" field via feedback
     # ------------------------------------------------------------------
