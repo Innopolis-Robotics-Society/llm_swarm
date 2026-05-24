@@ -32,7 +32,7 @@ from iros_llm_swarm_interfaces.srv import ListObstacles
 
 from iros_llm_orchestrator.common.leaf_sender import BTLeafSender
 from iros_llm_orchestrator.common.llm_factory import get_llm_client
-from iros_llm_orchestrator.common.plan_executor import PlanExecutor
+from iros_llm_orchestrator.common.plan_executor import PlanExecutor, parse_plan
 from iros_llm_orchestrator.common.user_prompt import (
     build_remediation_prompt,
     build_user_prompt,
@@ -459,9 +459,51 @@ class ChatServer(Node):
 
             if terminal['type'] == 'text':
                 content = terminal.get('content') or full_text
+                has_json = '{' in content
                 self.get_logger().info(
                     f'tool_loop: final text after {iteration + 1} iteration(s), '
-                    f'{len(content)} chars, has_json={"{" in content}')
+                    f'{len(content)} chars, has_json={has_json}')
+                if not has_json and iteration < self._tool_max_iterations - 1:
+                    self.get_logger().warning(
+                        'tool_loop: prose response detected, injecting JSON reminder')
+                    msgs.append({'role': 'assistant', 'content': content})
+                    msgs.append({
+                        'role': 'user',
+                        'content': (
+                            'Your response above is not valid JSON. '
+                            'Output ONLY the JSON object now:\n'
+                            '{"reasoning":"...","reply":"...","plan":{...}}\n'
+                            'No prose, no explanation — just the JSON.'
+                        ),
+                    })
+                    continue
+                if has_json and iteration < self._tool_max_iterations - 1:
+                    try:
+                        parse_plan(content)
+                    except ValueError as schema_exc:
+                        self.get_logger().warning(
+                            f'tool_loop: plan schema error iter={iteration + 1}: '
+                            f'{schema_exc}')
+                        msgs.append({'role': 'assistant', 'content': content})
+                        msgs.append({
+                            'role': 'user',
+                            'content': (
+                                f'Your JSON plan is invalid: {schema_exc}\n'
+                                '\n'
+                                'RULES — "plan" must be a single node with "type" at the TOP level:\n'
+                                '  WRONG: {"plan":{"actions":[{"type":"..."}]}}\n'
+                                '  WRONG: tool names (check_occupancy, get_positions) are not plan types\n'
+                                '  Valid types: mapf | formation | idle | sequence | parallel\n'
+                                '\n'
+                                'Correct examples:\n'
+                                '  Move robots:  {"type":"mapf","robot_ids":[12,13,14,15],"goals":[[-9.5,4.0],[-9.5,4.0],[-9.5,4.0],[-9.5,4.0]],"reason":"orange to medbay"}\n'
+                                '  Stop all:     {"type":"idle","reason":"operator stop"}\n'
+                                '  Two steps:    {"type":"sequence","steps":[{"type":"mapf",...},{"type":"formation",...}]}\n'
+                                '\n'
+                                'Output the corrected complete JSON object now.'
+                            ),
+                        })
+                        continue
                 self._emit_reply_streaming(content, goal_handle)
                 return content
 

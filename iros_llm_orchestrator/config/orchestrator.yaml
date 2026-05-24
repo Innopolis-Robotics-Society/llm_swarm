@@ -6,7 +6,7 @@
 
     llm_mode: "ollama"                              # was "http"
     llm_endpoint: "http://localhost:11434/api/chat" # Ollama default
-    llm_model: "qwen2.5:7b"                        # or qwen2.5:7b, mistral-small3.1
+    llm_model: "qwen2.5:14b"                       # or qwen2.5:7b, mistral-small3.1
 
     # llm_mode: "http"
     # llm_endpoint: "https://api.groq.com/openai/v1/chat/completions"
@@ -20,7 +20,7 @@
 llm_decision_server:
   ros__parameters:
     # Channel 1 — BT/MAPF WARN/INFO -> wait / abort / replan.
-    llm_max_tokens: 512
+    llm_max_tokens: 2048
     dataset_path: "~/.ros/llm_decisions"
     max_concurrent: 1
     timeout_sec: 45.0
@@ -30,7 +30,7 @@ llm_decision_server:
 llm_passive_observer:
   ros__parameters:
     # Channel 2 — passive observer. Disabled by default.
-    llm_max_tokens: 1024
+    llm_max_tokens: 2048
     history_size: 20
     cooldown_sec: 10.0
     timeout_sec: 45.0
@@ -40,7 +40,7 @@ llm_passive_observer:
 llm_chat_server:
   ros__parameters:
     # Channel 3 — RViz operator chat -> reply + JSON plan.
-    llm_max_tokens: 2000
+    llm_max_tokens: 6000
     timeout_sec: 60.0
     step_timeout_sec: 120.0
 
