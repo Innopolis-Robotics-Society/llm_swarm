@@ -11,7 +11,6 @@ import json
 import os
 import shutil
 import socket
-import traceback
 from typing import Any
 
 from iros_llm_orchestrator.context.provider import (
@@ -68,42 +67,6 @@ class McpReadonlyContextProvider(ChatContextProvider):
         }
         return bound_context(context, self.config.max_chars)
 
-    async def execute_readonly_tool(self, name: str, args: dict) -> Any:
-        """Execute one already-validated read-only MCP tool.
-
-        Agentic callers must go through McpToolBroker before reaching this
-        method. Keeping this method narrow avoids exposing raw MCP sessions to
-        the LLM-facing code path.
-        """
-        if not self.config.mcp_enabled:
-            raise RuntimeError('MCP context disabled')
-        if name not in self._allowlist:
-            raise RuntimeError(f'MCP tool not enabled: {name}')
-        warnings = self._preflight_warnings()
-        if warnings:
-            raise RuntimeError(
-                'MCP context provider failed: '
-                f'provider={self.config.provider} stage=preflight '
-                f'warnings={self._bound_text("; ".join(warnings), 600)}')
-        try:
-            snapshot = await self._collect_snapshot([(name, args or {})])
-        except Exception as exc:
-            detail = self._format_exception(
-                stage='execute_readonly_tool',
-                exc=exc,
-                tool=name,
-                args=args or {},
-            )
-            self._warn(detail)
-            raise RuntimeError(detail) from exc
-        mcp = snapshot.get('mcp') or {}
-        key = self._tool_key(name, args or {})
-        if key in mcp:
-            return mcp[key]
-        if name in mcp:
-            return mcp[name]
-        return mcp
-
     async def _build_context(
         self,
         *,
@@ -146,12 +109,9 @@ class McpReadonlyContextProvider(ChatContextProvider):
             )
             context.update(snapshot)
         except Exception as exc:
-            detail = self._format_exception(
-                stage='initial_snapshot',
-                exc=exc,
+            context['warnings'].append(
+                f'MCP server unavailable; continuing without live MCP context: {exc}'
             )
-            self._warn(detail)
-            context['warnings'].append(detail)
         self._log_warning_list(context.get('warnings') or [])
         if not context['warnings']:
             context.pop('warnings', None)
@@ -232,20 +192,14 @@ class McpReadonlyContextProvider(ChatContextProvider):
                 for tool_name, args in planned:
                     if tool_name not in self._allowlist:
                         continue
-                    key = self._tool_key(tool_name, args)
-                    try:
-                        out['mcp'][key] = await self._call_tool(
-                            session,
-                            tool_name,
-                            args,
-                        )
-                    except Exception as exc:
-                        raise RuntimeError(self._format_exception(
-                            stage='tool_call',
-                            exc=exc,
-                            tool=tool_name,
-                            args=args,
-                        )) from exc
+                    key = tool_name
+                    if tool_name == 'subscribe_once' and args.get('topic'):
+                        key = f"subscribe_once:{args['topic']}"
+                    out['mcp'][key] = await self._call_tool(
+                        session,
+                        tool_name,
+                        args,
+                    )
                 self._info(
                     f'MCP read-only tool calls ran: '
                     f'{", ".join(out["mcp"].keys()) or "none"}')
@@ -321,14 +275,6 @@ class McpReadonlyContextProvider(ChatContextProvider):
         result = await session.call_tool(name, args)
         return _tool_result_to_jsonable(result)
 
-    @staticmethod
-    def _tool_key(name: str, args: dict) -> str:
-        if name == 'subscribe_once' and args.get('topic'):
-            return f"subscribe_once:{args['topic']}"
-        if name == 'get_action_status' and args.get('action_name'):
-            return f"get_action_status:{args['action_name']}"
-        return name
-
     def _resolve_command(self) -> str:
         command = self.config.mcp_command
         if os.path.isabs(command):
@@ -353,59 +299,6 @@ class McpReadonlyContextProvider(ChatContextProvider):
             self._warn(f'MCP context warnings: {warnings}')
         else:
             self._info('MCP context warnings: []')
-
-    def _format_exception(
-        self,
-        *,
-        stage: str,
-        exc: BaseException,
-        tool: str | None = None,
-        args: dict | None = None,
-    ) -> str:
-        exc_type = type(exc).__name__
-        exc_msg = self._bound_text(str(exc) or '<empty>', 500)
-        parts = [
-            'MCP context provider failed:',
-            f'provider={self.config.provider}',
-            f'stage={stage}',
-        ]
-        if tool:
-            parts.append(f'tool={tool}')
-        if args is not None:
-            parts.append(f'args={self._format_args(args)}')
-        parts.append(f'exc_type={exc_type}')
-        parts.append(f'exc="{exc_msg}"')
-        tb = self._traceback_summary(exc)
-        if tb:
-            parts.append(f'traceback={tb}')
-        return ' '.join(parts)
-
-    def _format_args(self, args: dict) -> str:
-        try:
-            text = json.dumps(to_jsonable(args), ensure_ascii=False,
-                              separators=(',', ':'))
-        except Exception:
-            text = str(args)
-        return self._bound_text(text, 400)
-
-    @staticmethod
-    def _bound_text(text: str, limit: int) -> str:
-        text = '' if text is None else str(text)
-        text = text.replace('\n', ' ').replace('\r', ' ')
-        if len(text) > limit:
-            return text[:max(0, limit - 3)] + '...'
-        return text
-
-    @staticmethod
-    def _traceback_summary(exc: BaseException) -> str:
-        tb = traceback.TracebackException.from_exception(exc)
-        frames = list(tb.stack)[-3:]
-        if not frames:
-            return ''
-        return ' -> '.join(
-            f'{os.path.basename(frame.filename)}:{frame.lineno}:{frame.name}'
-            for frame in frames
-        )
 
     def _info(self, message: str):
         if self._logger is not None:
@@ -445,8 +338,7 @@ def summarize_for_remediation(snapshot: dict) -> dict:
             key: value
             for key, value in mcp.items()
             if key.startswith('subscribe_once:')
-            or key == 'get_action_status'
-            or key.startswith('get_action_status:')
+            or key in {'get_action_status'}
         }
         if kept:
             slim['mcp'] = kept

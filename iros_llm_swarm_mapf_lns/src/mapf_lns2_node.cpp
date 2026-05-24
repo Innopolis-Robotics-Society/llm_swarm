@@ -701,9 +701,6 @@ class MapfLns2Node : public rclcpp::Node {
               "robot_%u start grid(%d,%d) is blocked, no free cell within "
               "escape radius — skip this mission",
               rid, a.start.row, a.start.col);
-          if (!validation_warnings.empty()) validation_warnings += "; ";
-          validation_warnings += "robot_" + std::to_string(rid) +
-              " start cell blocked, no free cell within escape radius";
           continue;
         }
         RCLCPP_INFO(get_logger(),
@@ -720,9 +717,6 @@ class MapfLns2Node : public rclcpp::Node {
               "robot_%u goal grid(%d,%d) is blocked, no free cell within "
               "escape radius — skip",
               rid, a.goal.row, a.goal.col);
-          if (!validation_warnings.empty()) validation_warnings += "; ";
-          validation_warnings += "robot_" + std::to_string(rid) +
-              " blocked goal cell, no free cell within escape radius";
           continue;
         }
         RCLCPP_INFO(get_logger(),
@@ -735,9 +729,6 @@ class MapfLns2Node : public rclcpp::Node {
         RCLCPP_WARN(get_logger(),
             "robot_%u start==goal at grid(%d,%d), skip (static obstacle)",
             rid, a.start.row, a.start.col);
-        if (!validation_warnings.empty()) validation_warnings += "; ";
-        validation_warnings += "robot_" + std::to_string(rid) +
-            " start equals goal on static obstacle";
         continue;
       }
       // Static reachability: is there ANY footprint-valid path from start
@@ -760,9 +751,6 @@ class MapfLns2Node : public rclcpp::Node {
             std::lock_guard<std::mutex> lk(state_mutex_);
             life_.unplanable.insert(rid);
           }
-          if (!validation_warnings.empty()) validation_warnings += "; ";
-          validation_warnings += "robot_" + std::to_string(rid) +
-              " no static path, marked unplanable";
           continue;
         }
       }
@@ -1403,17 +1391,15 @@ class MapfLns2Node : public rclcpp::Node {
 
       // Defer the "replanning" feedback publish until after we drop the
       // mutex so that DDS / network blips on the feedback writer can never
-      // hold up trigger_replan. Surface the stall-triggered replan through
-      // feedback.warning so MapfPlan can prove and exercise the automatic
-      // WARN -> /llm/decision path.
-      const std::string replan_event =
-          "replan requested: " + std::to_string(stalled.size()) +
-          " stalled robots " + parts;
+      // hold up trigger_replan.
+      // Routine auto-replan: surface as info (rate-limited at the BT side)
+      // rather than warning, so the LLM is not asked to decide on a normal
+      // recovery the planner is already handling.
       pending_feedbacks.push_back({"replanning",
                                    arrived_count, in_progress_count, stalled.size(),
                                    life_.unplanable.size(),
                                    "replan triggered by stalls (" + parts + ")",
-                                   replan_event});
+                                   ""});
 
       lk.unlock();
       drain_feedbacks(fb_gh, pending_feedbacks);

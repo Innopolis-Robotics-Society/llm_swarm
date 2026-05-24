@@ -15,7 +15,7 @@ from collections import deque
 
 import rclpy
 from rclpy.action import ActionClient
-from rclpy.executors import ExternalShutdownException, MultiThreadedExecutor
+from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 
@@ -88,11 +88,7 @@ class PassiveObserver(Node):
 
         self._loop   = asyncio.new_event_loop()
         self._sender = BTLeafSender(self, step_timeout_sec=30.0)
-        self._loop_thread = threading.Thread(
-            target=self._loop.run_forever,
-            daemon=True,
-        )
-        self._loop_thread.start()
+        threading.Thread(target=self._loop.run_forever, daemon=True).start()
 
         self.get_logger().info(f'PassiveObserver ready (mode={mode}, '
                                f'enabled={self.get_parameter("enabled").value})')
@@ -136,10 +132,6 @@ class PassiveObserver(Node):
                 self._llm.generate(prompt, prompt_kind='command'),
                 timeout=self._timeout)
             command = parse_llm_command(raw)
-        except asyncio.CancelledError:
-            with self._observer_lock:
-                self._is_thinking = False
-            raise
         except asyncio.TimeoutError:
             self.get_logger().warn('PassiveObserver: LLM timeout')
             with self._observer_lock:
@@ -201,41 +193,6 @@ class PassiveObserver(Node):
         self.get_logger().info(
             f'PassiveObserver: command applied success={result.result.success}')
 
-    def shutdown_resources(self):
-        self.get_logger().info('llm_passive_observer: shutting down')
-        if self._loop.is_running():
-            fut = asyncio.run_coroutine_threadsafe(
-                self._cancel_async_tasks(),
-                self._loop,
-            )
-            try:
-                fut.result(timeout=5.0)
-            except Exception as exc:
-                self.get_logger().warn(
-                    f'llm_passive_observer: async shutdown warning: {exc}')
-            self._loop.call_soon_threadsafe(self._loop.stop)
-        if getattr(self, '_loop_thread', None) is not None:
-            self._loop_thread.join(timeout=5.0)
-            if self._loop_thread.is_alive():
-                self.get_logger().warn(
-                    'llm_passive_observer: asyncio loop thread did not stop')
-                return
-        if not self._loop.is_closed():
-            self._loop.close()
-        self.get_logger().info('llm_passive_observer: shutdown complete')
-
-    async def _cancel_async_tasks(self):
-        current = asyncio.current_task()
-        tasks = [
-            task for task in asyncio.all_tasks(self._loop)
-            if task is not current and not task.done()
-        ]
-        for task in tasks:
-            task.cancel()
-        if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
-        await self._loop.shutdown_asyncgens()
-
 
 def main(args=None):
     rclpy.init(args=args)
@@ -244,16 +201,12 @@ def main(args=None):
     executor.add_node(node)
     try:
         executor.spin()
-    except (KeyboardInterrupt, ExternalShutdownException):
+    except KeyboardInterrupt:
         pass
     finally:
-        node.shutdown_resources()
         executor.shutdown()
         node.destroy_node()
-        try:
-            rclpy.shutdown()
-        except Exception:
-            pass
+        rclpy.shutdown()
 
 
 if __name__ == '__main__':

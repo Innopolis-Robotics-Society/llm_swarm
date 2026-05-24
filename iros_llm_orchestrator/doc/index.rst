@@ -163,10 +163,6 @@ Defaults live in ``config/orchestrator.yaml``. Selected highlights:
        ``subscribe_once``, ``get_nodes``, ``get_services``,
        ``get_actions`` and similar. **No execute / write tools** ever
        reach the LLM.
-   * - ``mcp_agentic_enabled``
-     - ``true``
-     - Enables the bounded JSON tool-request loop for read-only MCP
-       observations before the final chat/remediation plan.
    * - ``formation_tolerance_m``
      - ``0.5``
      - Distance within which followers are considered "at position" for
@@ -188,14 +184,6 @@ When channel 3 fails to execute a plan, ``chat_server``:
    ``max_remediation_attempts`` times.
 4. On exhaustion, surfaces ``success=True, plan_executed=False`` and
    leaves the help-escalation hook in place for the operator UI.
-
-When ``mcp_agentic_enabled`` is true, the initial chat turn and remediation
-turns may also ask for read-only MCP observations through the controlled
-``{"mode":"tool_request", ...}`` protocol. The broker enforces the same
-read-only allowlist, rejects blocked write/control tools, applies per-round
-and max-round budgets, bounds tool output, and then requires the model to
-return ``{"mode":"final","reply":"...","plan":{...}}``. Execution remains
-``PlanExecutor -> /llm/command -> Behavior Tree``.
 
 Datasets
 --------

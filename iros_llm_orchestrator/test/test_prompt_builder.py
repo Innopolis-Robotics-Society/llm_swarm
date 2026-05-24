@@ -90,40 +90,6 @@ def test_prompt_with_empty_scenarios_still_well_formed():
     assert 'event: X' in prompt
 
 
-def test_warn_agentic_prompt_advertises_readonly_mcp_protocol():
-    prompt = build_decision_prompt(
-        scenarios=[],
-        level='WARN',
-        event='robot stalled',
-        log_buffer=[],
-        agentic_enabled=True,
-    )
-
-    assert 'You may request read-only MCP observations' in prompt
-    assert '"mode":"tool_request"' in prompt
-    assert '"mode":"final"' in prompt
-    assert '"action_name":"/swarm/set_goals"' in prompt
-    assert '/bt/state' in prompt
-    assert '/formations/status' in prompt
-    assert 'call_service' in prompt
-    assert 'send_action_goal' in prompt
-    assert 'publish_once' in prompt
-
-
-def test_info_prompt_does_not_enable_agentic_protocol():
-    prompt = build_decision_prompt(
-        scenarios=[],
-        level='INFO',
-        event='heartbeat',
-        log_buffer=[],
-        agentic_enabled=True,
-    )
-
-    assert 'You may request read-only MCP observations' not in prompt
-    assert '## Decision or Tool Request' not in prompt
-    assert '## Decision' in prompt
-
-
 def test_scenarios_library_covers_all_categories():
     seen = {(s['level'], s['decision']['decision']) for s in SCENARIOS}
     # spec calls for: WARN->wait, WARN->replan, WARN->abort, INFO->wait

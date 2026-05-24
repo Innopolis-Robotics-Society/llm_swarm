@@ -36,25 +36,12 @@ add_executable(test_bt_runner
   src/test_bt_runner.cpp
 )
 
-add_executable(trigger_llm_decision_warn_test
-  src/trigger_llm_decision_warn_test.cpp
-)
-
 target_include_directories(test_bt_runner PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
 
-target_include_directories(trigger_llm_decision_warn_test PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
-)
-
 target_link_libraries(test_bt_runner
-  iros_llm_swarm_bt_nodes
-)
-
-target_link_libraries(trigger_llm_decision_warn_test
   iros_llm_swarm_bt_nodes
 )
 
@@ -67,17 +54,10 @@ ament_target_dependencies(test_bt_runner
   iros_llm_swarm_interfaces
 )
 
-ament_target_dependencies(trigger_llm_decision_warn_test
-  rclcpp
-  rclcpp_action
-  iros_llm_swarm_interfaces
-)
-
 install(
   TARGETS
     iros_llm_swarm_bt_nodes
     test_bt_runner
-    trigger_llm_decision_warn_test
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}

@@ -19,13 +19,11 @@ Two non-obvious bits the panel relies on:
 
 import asyncio
 import json
-import os
 import threading
-import traceback
 
 import rclpy
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
-from rclpy.executors import ExternalShutdownException, MultiThreadedExecutor
+from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 
 from iros_llm_swarm_interfaces.action import LlmChat
@@ -58,14 +56,7 @@ from iros_llm_orchestrator.context.no_execute import (
 from iros_llm_orchestrator.context.provider import (
     bound_context,
     known_robot_ids,
-    safe_str,
     utc_now,
-)
-from iros_llm_orchestrator.context.agentic_mcp import (
-    AgenticMcpConfig,
-    AgenticMcpError,
-    McpToolBroker,
-    run_agentic_mcp_loop,
 )
 from iros_llm_orchestrator.user_chat_node import _parse_response, _postprocess_plan
 
@@ -112,13 +103,6 @@ class ChatServer(Node):
         self.declare_parameter('mcp_command', 'uvx')
         self.declare_parameter('mcp_args', ['ros-mcp', '--transport=stdio'])
         self.declare_parameter('mcp_tool_allowlist', list(DEFAULT_MCP_READ_TOOLS))
-        self.declare_parameter('mcp_agentic_enabled', True)
-        self.declare_parameter('mcp_agentic_max_rounds', 3)
-        self.declare_parameter('mcp_agentic_max_tools_per_round', 3)
-        self.declare_parameter('mcp_agentic_tool_timeout_sec', 2.0)
-        self.declare_parameter('mcp_agentic_max_result_chars', 6000)
-        self.declare_parameter('mcp_agentic_enable_for_initial_chat', True)
-        self.declare_parameter('mcp_agentic_enable_for_remediation', True)
         self.declare_parameter('max_remediation_attempts', 2)
         self.declare_parameter('remediation_enabled', True)
 
@@ -156,12 +140,6 @@ class ChatServer(Node):
             self.get_parameter('formation_tolerance_m').value)
         self._context_provider = make_context_provider(
             self, self._context_config, pose_cache=self._pose_cache)
-        self._mcp_agentic_config = self._make_agentic_mcp_config()
-        self._mcp_agentic_enable_for_initial_chat = bool(
-            self.get_parameter('mcp_agentic_enable_for_initial_chat').value)
-        self._mcp_agentic_enable_for_remediation = bool(
-            self.get_parameter('mcp_agentic_enable_for_remediation').value)
-        self._mcp_tool_broker = self._make_mcp_tool_broker()
 
         self._sender = BTLeafSender(
             self,
@@ -190,11 +168,7 @@ class ChatServer(Node):
 
         # Asyncio loop on a dedicated thread; action callbacks block on it.
         self._loop = asyncio.new_event_loop()
-        self._loop_thread = threading.Thread(
-            target=self._loop.run_forever,
-            daemon=True,
-        )
-        self._loop_thread.start()
+        threading.Thread(target=self._loop.run_forever, daemon=True).start()
 
         # Serialize concurrent /llm/chat goals — the panel guards client-side
         # but a CLI caller could still race two requests.
@@ -209,8 +183,6 @@ class ChatServer(Node):
         self.get_logger().info(
             f'LlmChatServer ready on /llm/chat '
             f'(mode={mode}, context={self._context_config.provider})')
-        status = 'enabled' if self._mcp_tool_broker is not None else 'disabled'
-        self.get_logger().info(f'agentic MCP {status}')
 
     def _make_context_config(self) -> ChatContextConfig:
         return ChatContextConfig(
@@ -236,44 +208,6 @@ class ChatServer(Node):
             mcp_command=str(self.get_parameter('mcp_command').value or 'uvx'),
             mcp_args=self._param_string_list('mcp_args'),
             mcp_tool_allowlist=self._param_string_list('mcp_tool_allowlist'),
-        )
-
-    def _make_agentic_mcp_config(self) -> AgenticMcpConfig:
-        return AgenticMcpConfig(
-            enabled=bool(self.get_parameter('mcp_agentic_enabled').value),
-            max_rounds=int(self.get_parameter('mcp_agentic_max_rounds').value),
-            max_tools_per_round=int(
-                self.get_parameter('mcp_agentic_max_tools_per_round').value),
-            tool_timeout_sec=float(
-                self.get_parameter('mcp_agentic_tool_timeout_sec').value),
-            max_result_chars=int(
-                self.get_parameter('mcp_agentic_max_result_chars').value),
-        )
-
-    def _make_mcp_tool_broker(self) -> McpToolBroker | None:
-        if not self._mcp_agentic_config.enabled:
-            self.get_logger().info('agentic MCP disabled by parameter')
-            return None
-        if self._context_config.provider != 'mcp_readonly':
-            self.get_logger().info(
-                'agentic MCP disabled because context_provider is not mcp_readonly')
-            return None
-        if not self._context_config.mcp_enabled:
-            self.get_logger().info(
-                'agentic MCP disabled because mcp_enabled is false')
-            return None
-        runner = getattr(self._context_provider, 'execute_readonly_tool', None)
-        if runner is None:
-            self.get_logger().warn(
-                'agentic MCP disabled because provider has no read-only tool runner')
-            return None
-        return McpToolBroker(
-            allowed_tools=self._context_config.mcp_tool_allowlist,
-            runner=runner,
-            max_tools_per_round=self._mcp_agentic_config.max_tools_per_round,
-            tool_timeout_sec=self._mcp_agentic_config.tool_timeout_sec,
-            max_result_chars=self._mcp_agentic_config.max_result_chars,
-            logger=self.get_logger(),
         )
 
     def _param_string_list(self, name: str) -> list[str]:
@@ -323,12 +257,8 @@ class ChatServer(Node):
         )
 
         try:
-            reply, plan, full_raw = await self._run_llm_stage(
-                messages,
-                goal_handle,
-                agentic_enabled=self._mcp_agentic_enable_for_initial_chat,
-                label='initial_chat',
-            )
+            reply, plan, full_raw = await self._stream_and_parse(
+                messages, goal_handle)
         except _LlmStageError as exc:
             return self._fail(goal_handle, result, str(exc))
 
@@ -399,12 +329,8 @@ class ChatServer(Node):
             )
 
             try:
-                r_reply, r_plan, r_raw = await self._run_llm_stage(
-                    rem_messages,
-                    goal_handle,
-                    agentic_enabled=self._mcp_agentic_enable_for_remediation,
-                    label=f'remediation_{n}',
-                )
+                r_reply, r_plan, r_raw = await self._stream_and_parse(
+                    rem_messages, goal_handle)
             except _LlmStageError as exc:
                 return self._finalize_help(
                     goal_handle, result, last_reply, last_plan,
@@ -453,40 +379,6 @@ class ChatServer(Node):
                     f'{self._max_remediation_attempts} exhausted'),
             last_failure=attempts[-1])
 
-    async def _run_llm_stage(
-        self,
-        messages,
-        goal_handle,
-        *,
-        agentic_enabled: bool,
-        label: str,
-    ):
-        if self._mcp_tool_broker is None or not agentic_enabled:
-            return await self._stream_and_parse(messages, goal_handle)
-
-        async def ask_llm(loop_messages: list[dict]) -> str:
-            return await asyncio.wait_for(
-                self._stream_reply(loop_messages, goal_handle),
-                timeout=self._timeout,
-            )
-
-        try:
-            return await run_agentic_mcp_loop(
-                messages,
-                ask_llm=ask_llm,
-                parse_final=self._parse_and_postprocess,
-                broker=self._mcp_tool_broker,
-                config=self._mcp_agentic_config,
-                logger=self.get_logger(),
-                label=label,
-            )
-        except asyncio.TimeoutError as exc:
-            raise _LlmStageError('LLM timeout') from exc
-        except AgenticMcpError as exc:
-            raise _LlmStageError(str(exc)) from exc
-        except Exception as exc:
-            raise _LlmStageError(f'LLM error: {exc}') from exc
-
     async def _stream_and_parse(self, messages, goal_handle):
         """Stream → parse → postprocess; raises _LlmStageError on any failure."""
         try:
@@ -503,13 +395,6 @@ class ChatServer(Node):
             raise _LlmStageError(f'parse error: {exc}') from exc
         plan = _postprocess_plan(plan, self._map_cfg)
         return reply, plan, full_raw
-
-    def _parse_and_postprocess(self, raw: str) -> tuple[str, dict]:
-        try:
-            reply, plan = _parse_response(raw)
-        except ValueError as exc:
-            raise AgenticMcpError(f'parse error: {exc}') from exc
-        return reply, _postprocess_plan(plan, self._map_cfg)
 
     def _formation_prestage_hook(self, formation_node: dict) -> dict | None:
         """Auto-stage out-of-tolerance followers when the LLM emits a bare
@@ -569,8 +454,7 @@ class ChatServer(Node):
             context = dict(cached or {})
             warnings = list(context.get('warnings') or [])
             warnings.append(
-                'targeted MCP refresh failed; using stale snapshot: '
-                f'{self._exception_detail(exc, stage="targeted_context")}')
+                f'targeted MCP refresh failed; using stale snapshot: {exc}')
             warnings.append('mcp_stale: true')
             context['warnings'] = warnings
             context['source'] = 'mcp_readonly_remediation_stale'
@@ -583,15 +467,11 @@ class ChatServer(Node):
                 timeout=max(0.1, float(self._context_config.timeout_sec)),
             )
         except Exception as exc:
-            detail = self._exception_detail(exc, stage='runtime_context')
-            self.get_logger().warn(
-                f'Chat runtime context provider failed: {detail}')
             context = {
                 'timestamp': utc_now(),
                 'source': self._context_config.provider,
                 'warnings': [
-                    'Context provider failed; continuing without live '
-                    f'context: {detail}',
+                    f'Context provider failed; continuing without live context: {exc}',
                 ],
             }
         context = bound_context(context, self._context_config.max_chars)
@@ -601,21 +481,6 @@ class ChatServer(Node):
             self.get_logger().info(
                 f'Chat runtime context source={source} warnings={warnings}')
         return context
-
-    @staticmethod
-    def _exception_detail(exc: BaseException, *, stage: str) -> str:
-        exc_type = type(exc).__name__
-        exc_msg = safe_str(str(exc) or '<empty>', 500).replace('\n', ' ')
-        tb = traceback.TracebackException.from_exception(exc)
-        frames = list(tb.stack)[-3:]
-        summary = ' -> '.join(
-            f'{os.path.basename(frame.filename)}:{frame.lineno}:{frame.name}'
-            for frame in frames
-        )
-        out = f'stage={stage} exc_type={exc_type} exc="{exc_msg}"'
-        if summary:
-            out += f' traceback={summary}'
-        return out
 
     def _get_obstacle_context(self) -> str:
         heuristics = (self._map_cfg or {}).get('heuristics', '')
@@ -832,49 +697,6 @@ class ChatServer(Node):
         gh.succeed()
         return result
 
-    def shutdown_resources(self):
-        self.get_logger().info(
-            'llm_chat_server: shutting down MCP/tool resources')
-        if self._loop.is_running():
-            fut = asyncio.run_coroutine_threadsafe(
-                self._cancel_async_tasks(),
-                self._loop,
-            )
-            try:
-                fut.result(timeout=5.0)
-            except Exception as exc:
-                self.get_logger().warn(
-                    'llm_chat_server: async task cancellation warning: '
-                    f'{self._exception_detail(exc, stage="shutdown")}')
-            self._loop.call_soon_threadsafe(self._loop.stop)
-        if getattr(self, '_loop_thread', None) is not None:
-            self._loop_thread.join(timeout=5.0)
-            if self._loop_thread.is_alive():
-                self.get_logger().warn(
-                    'llm_chat_server: asyncio loop thread did not stop cleanly')
-                return
-        try:
-            if not self._loop.is_closed():
-                self._loop.close()
-        except Exception as exc:
-            self.get_logger().warn(
-                'llm_chat_server: loop close warning: '
-                f'{self._exception_detail(exc, stage="loop_close")}')
-        self.get_logger().info('llm_chat_server: shutdown complete')
-
-    async def _cancel_async_tasks(self):
-        current = asyncio.current_task()
-        tasks = [
-            task for task in asyncio.all_tasks(self._loop)
-            if task is not current and not task.done()
-        ]
-        if not tasks:
-            return
-        for task in tasks:
-            task.cancel()
-        await asyncio.gather(*tasks, return_exceptions=True)
-        await self._loop.shutdown_asyncgens()
-
 
 def main(args=None):
     rclpy.init(args=args)
@@ -883,10 +705,10 @@ def main(args=None):
     executor.add_node(node)
     try:
         executor.spin()
-    except (KeyboardInterrupt, ExternalShutdownException):
+    except KeyboardInterrupt:
         pass
     finally:
-        node.shutdown_resources()
+        node._loop.call_soon_threadsafe(node._loop.stop)
         executor.shutdown()
         node.destroy_node()
         try:

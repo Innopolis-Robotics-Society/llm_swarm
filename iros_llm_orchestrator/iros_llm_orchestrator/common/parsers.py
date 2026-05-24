@@ -23,8 +23,6 @@ def parse_llm_decision(raw: str) -> str:
     """Parse LLM output into one of {wait, abort, replan}.
 
     Handles fenced JSON, loose JSON, and unknown decision values.
-    Also accepts the agentic final shape:
-      {"mode": "final", "decision": "...", "reason": "..."}
     Falls back to 'wait' (safe default — keeps the BT running).
     """
     if not raw:
@@ -33,9 +31,6 @@ def parse_llm_decision(raw: str) -> str:
     fenced = _FENCED_DEC.search(text)
     candidates = [fenced.group(1)] if fenced else []
     candidates.extend(m.group(0) for m in _LOOSE_DEC.finditer(text))
-    first_obj = _first_json_object(text)
-    if first_obj and first_obj not in candidates:
-        candidates.append(first_obj)
     for candidate in candidates:
         try:
             obj = json.loads(candidate)
@@ -50,43 +45,6 @@ def parse_llm_decision(raw: str) -> str:
         if decision == '':
             return 'wait'
     return 'wait'
-
-
-def parse_llm_decision_final(raw: str) -> str:
-    """Decision-specific agentic final parser.
-
-    The agentic decision loop returns only the action-server contract value,
-    never a chat reply or executable plan.
-    """
-    return parse_llm_decision(raw)
-
-
-def _first_json_object(text: str) -> str:
-    start = text.find('{')
-    if start == -1:
-        return ''
-    depth = 0
-    in_string = False
-    escaped = False
-    for i in range(start, len(text)):
-        ch = text[i]
-        if in_string:
-            if escaped:
-                escaped = False
-            elif ch == '\\':
-                escaped = True
-            elif ch == '"':
-                in_string = False
-            continue
-        if ch == '"':
-            in_string = True
-        elif ch == '{':
-            depth += 1
-        elif ch == '}':
-            depth -= 1
-            if depth == 0:
-                return text[start:i + 1]
-    return ''
 
 
 # ---------------------------------------------------------------------------

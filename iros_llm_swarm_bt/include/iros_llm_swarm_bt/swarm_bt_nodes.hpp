@@ -91,7 +91,6 @@ private:
     std::string summary;
     std::string status;       // "OK" | "WARN"
     std::string error;
-    std::string error_event;  // non-empty -> trigger send_to_llm("ERROR", ...)
     std::string warn_event;   // non-empty → trigger send_to_llm("WARN", ...)
     std::string info_event;   // non-empty → candidate for periodic INFO log
     bool updated{false};
@@ -102,8 +101,6 @@ private:
   // Periodic log to LLM (0 = disabled)
   double        llm_log_interval_sec_{0.0};
   rclcpp::Time  last_llm_log_time_{0, 0, RCL_ROS_TIME};
-  rclcpp::Time  last_llm_feedback_log_time_{0, 0, RCL_ROS_TIME};
-  rclcpp::Time  last_llm_no_warning_log_time_{0, 0, RCL_ROS_TIME};
 
   void on_feedback(
     GoalHandle::SharedPtr,

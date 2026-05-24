@@ -22,33 +22,6 @@ llm_decision_server:
     timeout_sec: 45.0
     default_on_error: "wait"
     log_tail: 20
-    context_provider: "mcp_readonly"
-    context_timeout_sec: 2.0
-    context_max_chars: 6000
-    context_include_bt_state: true
-    context_include_formations: true
-    context_include_map_summary: false
-    context_include_recent_events: false
-    context_include_robot_positions: false
-    mcp_enabled: true
-    mcp_transport: "stdio"
-    mcp_command: "uvx"
-    mcp_args:
-      - "ros-mcp"
-      - "--transport=stdio"
-    mcp_tool_allowlist:
-      - "get_topics"
-      - "get_actions"
-      - "subscribe_once"
-      - "get_action_status"
-    mcp_decision_agentic_enabled: true
-    mcp_decision_agentic_levels:
-      - "WARN"
-      - "ERROR"
-    mcp_decision_agentic_max_rounds: 3
-    mcp_decision_agentic_max_tools_per_round: 3
-    mcp_decision_agentic_tool_timeout_sec: 2.0
-    mcp_decision_agentic_max_result_chars: 6000
 
 llm_passive_observer:
   ros__parameters:
@@ -118,18 +91,7 @@ llm_chat_server:
       - "get_service_details"
       - "get_actions"
       - "get_action_details"
-      - "get_action_status"
-
-    # Optional agentic read-only MCP loop for /llm/chat. The LLM may request
-    # observations through a validated JSON protocol; execution still goes
-    # only through PlanExecutor -> /llm/command -> BT.
-    mcp_agentic_enabled: true
-    mcp_agentic_max_rounds: 3
-    mcp_agentic_max_tools_per_round: 3
-    mcp_agentic_tool_timeout_sec: 2.0
-    mcp_agentic_max_result_chars: 6000
-    mcp_agentic_enable_for_initial_chat: true
-    mcp_agentic_enable_for_remediation: true
+      # - "get_action_status"
 
 llm_execute_server:
   ros__parameters:
