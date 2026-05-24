@@ -182,7 +182,7 @@ BehaviorTree.CPP v3 action nodes that wrap the swarm's ROS 2 interfaces:
 * ``SetFormation`` / ``DisableFormation`` — formation service wrappers.
 * ``CheckMode`` — blackboard mode-transition checks.
 
-The package also ships the ``test_bt_runner`` executable (loads a tree
+The package also ships the ``bt_runner`` executable (loads a tree
 and publishes ``/bt/state``), the ``fleet_cmd`` CLI helper
 (``simple|stress|unreachable|idle`` scenarios), and an
 ``LlmCommandReceiver`` that applies channel-2 commands onto the BT

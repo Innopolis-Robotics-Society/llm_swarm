@@ -124,7 +124,7 @@ Topic graph
      - LLM orchestrator, RViz panel, external clients
    * - ``/bt/state``
      - ``iros_llm_swarm_interfaces/BTState``
-     - ``test_bt_runner``
+     - ``bt_runner``
      - ``passive_observer``, ``chat_server``, RViz panel
    * - ``/llm/events``
      - ``iros_llm_swarm_interfaces/LlmEvent``

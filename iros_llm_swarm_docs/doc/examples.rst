@@ -502,12 +502,12 @@ Trace one through the system::
 
 You should see in the launch log::
 
-    [test_bt_runner] MapfPlan: action accepted
+    [bt_runner] MapfPlan: action accepted
     [mapf_lns2_node] LNS2 timed out at iter 12 (4500 ms)
-    [test_bt_runner] MapfPlan: status=WARN replans_done=2
+    [bt_runner] MapfPlan: status=WARN replans_done=2
     [decision_server] /llm/decision call (channel 1) — trigger: stress, status=WARN
     [decision_server] reply: replan
-    [test_bt_runner] applying decision: replan
+    [bt_runner] applying decision: replan
 
 In the panel's *BT* tab, ``llm_thinking`` flips to ``true`` for the
 duration of the LLM call, then back to ``false`` once a verdict
@@ -718,7 +718,7 @@ Failure modes and what to do
        ``ros2 node list``.
    * - "STOP ALL" button is greyed / no effect.
      - The panel cannot connect to the ``/llm/command`` action server.
-       ``LlmCommandReceiver`` lives in ``test_bt_runner``; restart the
+       ``LlmCommandReceiver`` lives in ``bt_runner``; restart the
        BT runner.
    * - MCP context times out (``mcp_stale: true`` in events).
      - The subprocess is slow or misconfigured. Reduce

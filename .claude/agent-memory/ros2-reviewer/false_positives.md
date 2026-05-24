@@ -6,7 +6,7 @@ type: feedback
 
 ## Intentional patterns
 
-- **`sleep_for` in `test_bt_runner.cpp`**: These are in `run_scenario()`, a detached scenario thread, not in a ROS callback. They are deliberate pacing delays between BT steps.
+- **`sleep_for` in `bt_runner.cpp`**: These are in `run_scenario()`, a detached scenario thread, not in a ROS callback. They are deliberate pacing delays between BT steps.
 
 - **`wait_for_action_server(2s)` in `MapfPlan::onStart()`**: Called from BT node `onStart()`, which runs in the BT tick thread (not a ROS executor callback). Blocking for 2s there is awkward but does not deadlock the executor.
 

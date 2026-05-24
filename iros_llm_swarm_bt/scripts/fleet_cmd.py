@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CLI utility to send LlmCommand goals to /llm/command for test_bt_runner."""
+"""CLI utility to send LlmCommand goals to /llm/command for bt_runner."""
 import argparse
 import sys
 

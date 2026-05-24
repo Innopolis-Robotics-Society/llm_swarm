@@ -12,7 +12,7 @@ type: reference
 | `mapf_lns2_node` (LNS2) | MultiThreadedExecutor(2) | Default (no explicit groups) | Planning runs in `execute_thread_` (joined); cancel poll runs in `cancel_thread_` |
 | `motion_controller_node` | SingleThreadedExecutor (rclcpp::spin) | Default | |
 | `path_follower_node` (LNS2) | SingleThreadedExecutor | Default | |
-| `test_bt_runner` | MultiThreadedExecutor(4) | Default | BT runs in scenario thread; ROS callbacks in executor threads |
+| `bt_runner` | MultiThreadedExecutor(4) | Default | BT runs in scenario thread; ROS callbacks in executor threads |
 
 ## Python nodes
 

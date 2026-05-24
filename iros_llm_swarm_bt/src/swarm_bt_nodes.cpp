@@ -29,9 +29,6 @@ BT::PortsList MapfPlan::providedPorts()
       "Robot IDs to navigate"),
     BT::InputPort<std::vector<geometry_msgs::msg::Point>>("goals",
       "Target positions, one per robot_id"),
-    BT::OutputPort<bool>("mapf_ok"),
-    BT::OutputPort<std::string>("mapf_info"),
-    BT::OutputPort<std::string>("mapf_warn"),
   };
 }
 
@@ -44,28 +41,21 @@ BT::NodeStatus MapfPlan::onStart()
 
   if (!robot_ids || !goals) {
     RCLCPP_ERROR(node->get_logger(), "MapfPlan: missing robot_ids or goals port");
-    setOutput("mapf_ok", false);
-    setOutput("mapf_info", "missing inputs");
     return BT::NodeStatus::FAILURE;
   }
   if (robot_ids->size() != goals->size()) {
     RCLCPP_ERROR(node->get_logger(),
       "MapfPlan: robot_ids size %zu != goals size %zu",
       robot_ids->size(), goals->size());
-    setOutput("mapf_ok", false);
-    setOutput("mapf_info", "size mismatch");
     return BT::NodeStatus::FAILURE;
   }
   if (robot_ids->empty()) {
-    setOutput("mapf_ok", false);
-    setOutput("mapf_info", "empty robot_ids");
+    RCLCPP_ERROR(node->get_logger(), "empty robot_ids");
     return BT::NodeStatus::FAILURE;
   }
 
   if (!client_->action_server_is_ready()) {
     RCLCPP_ERROR(node->get_logger(), "MapfPlan: /swarm/set_goals not available");
-    setOutput("mapf_ok", false);
-    setOutput("mapf_info", "action server unavailable");
     return BT::NodeStatus::FAILURE;
   }
 
@@ -77,7 +67,7 @@ BT::NodeStatus MapfPlan::onStart()
     pending_snapshot_ = FeedbackSnapshot{};
   }
 
-  // Observer channel — telemetry only. NEVER write control-flow keys (@mode).
+  // Observer channel — telemetry only
   {
     auto bb = config().blackboard;
     bb->set<std::string>("@action_status", "OK");
@@ -114,7 +104,6 @@ BT::NodeStatus MapfPlan::onRunning()
   auto node = config().blackboard->get<rclcpp::Node::SharedPtr>("node");
 
   // ---- Apply pending feedback snapshot (written by executor thread) -------
-  // All blackboard writes MUST happen here, never inside on_feedback.
   {
     std::lock_guard<std::mutex> lk(snapshot_mutex_);
     if (pending_snapshot_.updated) {
@@ -123,7 +112,6 @@ BT::NodeStatus MapfPlan::onRunning()
       bb->set<std::string>("@action_status",  pending_snapshot_.status);
       if (!pending_snapshot_.error.empty()) {
         bb->set<std::string>("@last_error", pending_snapshot_.error);
-        setOutput("mapf_warn", pending_snapshot_.error);
       }
       pending_snapshot_.updated = false;
     }
@@ -137,8 +125,6 @@ BT::NodeStatus MapfPlan::onRunning()
     goal_handle_ = goal_handle_future_.get();
     if (!goal_handle_) {
       RCLCPP_ERROR(node->get_logger(), "MapfPlan: goal rejected");
-      setOutput("mapf_ok", false);
-      setOutput("mapf_info", "goal rejected");
       config().blackboard->set<std::string>("@action_status", "ERROR");
       config().blackboard->set<std::string>("@last_error", "goal rejected");
       return BT::NodeStatus::FAILURE;
@@ -153,8 +139,6 @@ BT::NodeStatus MapfPlan::onRunning()
 
   auto wrapped = result_future_.get();
   if (wrapped.code != rclcpp_action::ResultCode::SUCCEEDED) {
-    setOutput("mapf_ok", false);
-    setOutput("mapf_info", "action transport error");
     config().blackboard->set<std::string>("@action_status", "ERROR");
     config().blackboard->set<std::string>("@last_error", "action transport error");
     return BT::NodeStatus::FAILURE;
@@ -166,13 +150,11 @@ BT::NodeStatus MapfPlan::onRunning()
       << " planned=" << res->num_agents_planned
       << " time_ms=" << res->planning_time_ms
       << " replans=" << res->total_replans;
-  setOutput("mapf_info", oss.str());
 
   // No agents planned at all — hard failure
   if (res->num_agents_planned == 0) {
     RCLCPP_ERROR(node->get_logger(),
       "MapfPlan: FAILURE — no agents planned. %s", oss.str().c_str());
-    setOutput("mapf_ok", false);
     config().blackboard->set<std::string>("@action_status", "ERROR");
     config().blackboard->set<std::string>("@last_error",
       std::string("no agents planned: ") + res->message);
@@ -188,8 +170,6 @@ BT::NodeStatus MapfPlan::onRunning()
     RCLCPP_WARN(node->get_logger(),
       "MapfPlan: partial plan (%u agents). %s",
       res->num_agents_planned, oss.str().c_str());
-    setOutput("mapf_ok", false);
-    setOutput("mapf_warn", warn_msg);
     auto bb = config().blackboard;
     bb->set<std::string>("@action_status", "WARN");
     bb->set<std::string>("@last_error",    warn_msg);
@@ -200,7 +180,6 @@ BT::NodeStatus MapfPlan::onRunning()
 
   // Full success
   RCLCPP_INFO(node->get_logger(), "MapfPlan: done — %s", oss.str().c_str());
-  setOutput("mapf_ok", true);
   {
     auto bb = config().blackboard;
     bb->set<std::string>("@action_status", "OK");

@@ -105,7 +105,7 @@ ros2 run iros_llm_swarm_bt fleet_cmd --scenario idle
 В терминале с launch:
 
 - `[mapf_planner]` логирует план, выполнение, replans
-- `[test_bt_runner]` логирует тики BT, переходы статусов
+- `[bt_runner]` логирует тики BT, переходы статусов
 - `[decision_server]` (канал 1) реагирует на запросы от MapfPlan/SetFormation
 - `[passive_observer]` (канал 2) триггерится по WARN/ERROR в `/bt/state`
 - `[LlmCommandReceiver]` применяет команды от observer в blackboard
@@ -144,7 +144,7 @@ Format-aware features inside lnav:
 | focus (filter-in)  | `mapf_* \| pbs_* \| lns_*`                                                                                                                           | MAPF planner + motion controllers    |
 | focus (filter-in)  | `controller_server \| planner_server \| ... \| zone_map_server`                                                                                      | Nav2 stack                           |
 | focus (filter-in)  | `llm_* \| chat_server \| decision_server \| ... \| /llm/*`                                                                                           | LLM orchestrator (all 3 channels)    |
-| focus (filter-in)  | `test_bt_runner \| behavior_tree \| LlmCommandReceiver \| /bt/state`                                                                                 | BT layer                             |
+| focus (filter-in)  | `bt_runner \| behavior_tree \| LlmCommandReceiver \| /bt/state`                                                                                 | BT layer                             |
 | focus (filter-in)  | `formation* \| /formations/*`                                                                                                                        | Leader-follower formations           |
 | focus (filter-in)  | `dynamic_obstacle_manager`                                                                                                                           | Obstacle overlay                     |
 | focus (filter-in)  | `\[(WARN \| ERROR \| FATAL)\]`                                                                                                                       | All problems, full fleet             |
@@ -818,7 +818,7 @@ BehaviorTree.CPP v3 nodes that wrap the swarm primitives:
 - `SetFormation` / `DisableFormation` — formation service wrappers.
 - `CheckMode` — blackboard mode-transition checks.
 
-Also ships `test_bt_runner` (loads a BT XML and publishes `/bt/state`),
+Also ships `bt_runner` (loads a BT XML and publishes `/bt/state`),
 the `fleet_cmd` CLI (`simple|stress|unreachable|idle` scenarios), and
 `LlmCommandReceiver` which applies channel-2 commands onto the BT
 blackboard.
@@ -906,7 +906,7 @@ DDS and performance tuning scripts are in `src/scripts/`:
 - [x] Formation control (leader-follower with PD controllers)
 - [x] Long-lived MAPF action (plan-execute-arrive lifecycle with feedback)
 - [x] BT integration
-  - [x] Swarm BT runner (`test_bt_runner` in `iros_llm_swarm_bt`)
+  - [x] Swarm BT runner (`bt_runner` in `iros_llm_swarm_bt`)
   - [x] Custom BT nodes: `MapfPlan`, `SetFormation`, `DisableFormation`, `CheckMode`
   - [x] Mode switching (MAPF / formation / idle) via BT blackboard
 - [x] LNS2 MAPF planner (sharing the `/swarm/set_goals` contract with PBS)

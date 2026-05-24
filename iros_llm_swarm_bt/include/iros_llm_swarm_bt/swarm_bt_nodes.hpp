@@ -210,7 +210,7 @@ inline rclcpp::QoS bt_state_qos()
 // ---------------------------------------------------------------------------
 // publish_bt_state — snapshot the blackboard into a BTState message and
 // publish it on the supplied publisher. Used both by BTStatePublisher (every
-// tick) and by test_bt_runner directly (to flush a terminal snapshot before
+// tick) and by bt_runner directly (to flush a terminal snapshot before
 // haltTree wipes the blackboard). Formation health fields are read from the
 // blackboard (populated by FormationHealthMonitor).
 // ---------------------------------------------------------------------------

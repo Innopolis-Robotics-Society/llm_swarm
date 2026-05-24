@@ -245,7 +245,7 @@ def generate_launch_description():
 
     bt_runner = Node(
         package='iros_llm_swarm_bt',
-        executable='test_bt_runner',
+        executable='bt_runner',
         output='screen',
     )
 
@@ -300,7 +300,7 @@ def generate_launch_description():
         ]),
 
         TimerAction(period=20.0, actions=[
-            LogInfo(msg='Starting test_bt_runner...'),
+            LogInfo(msg='Starting bt_runner...'),
             bt_runner,
         ]),
 

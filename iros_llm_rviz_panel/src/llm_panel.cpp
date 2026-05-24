@@ -1580,7 +1580,7 @@ void LlmPanel::refreshSystemInfo()
   const bool dec_up      = has("llm_decision_server");
   const bool chat_up     = has("llm_chat_server");
   const bool exec_up     = has("llm_execute_server");
-  const bool bt_up       = has("test_bt_runner");
+  const bool bt_up       = has("bt_runner");
   const bool stage_up    = has("stage_ros2");
   const bool map_srv_up  = has("map_server") || has("zone_map_server");
 
