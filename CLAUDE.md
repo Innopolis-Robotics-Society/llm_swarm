@@ -72,7 +72,7 @@ ros2 run iros_llm_swarm_mapf test_send_goals --json-file src/iros_llm_swarm_mapf
 ros2 run iros_llm_swarm_local_nav test_local_planner --num 20 --goal-x X --goal-y Y
 
 # BT runner under the full demo
-ros2 run iros_llm_swarm_bt test_bt_runner
+ros2 run iros_llm_swarm_bt bt_runner
 ros2 run iros_llm_swarm_bt fleet_cmd --scenario {simple|stress|unreachable|idle}
 ```
 
@@ -123,7 +123,7 @@ End-user usage is in README. Files:
 | `iros_llm_swarm_costmap_plugins` | C++17 | `ResettingObstacleLayer` (fixes ghost-trail bug in stock `nav2_costmap_2d::ObstacleLayer`) and `zone_map_server` (the project's actual map server) |
 | `iros_llm_swarm_obstacles` | C++17 | `dynamic_obstacle_manager` — overlays runtime circles / rectangles / stateful doors onto `/raw_map` and republishes the merged grid on `/map` (TRANSIENT_LOCAL). Not yet wired into bringup launches. |
 | `iros_llm_swarm_formation` | Python | Leader-follower formations + manager + monitor |
-| `iros_llm_swarm_bt` | C++17 | BehaviorTree.CPP v3 nodes (`MapfPlan`, `SetFormation`, `DisableFormation`, `CheckMode`) + `test_bt_runner`, `fleet_cmd`, `LlmCommandReceiver` |
+| `iros_llm_swarm_bt` | C++17 | BehaviorTree.CPP v3 nodes (`MapfPlan`, `SetFormation`, `DisableFormation`, `CheckMode`) + `bt_runner`, `fleet_cmd`, `LlmCommandReceiver` |
 | `iros_llm_orchestrator` | Python | LLM glue: `decision_server` (channel 1), `passive_observer` (channel 2), `chat_server` + `execute_server` + `user_chat` (channel 3); MCP read-only context provider; JSONL dataset writers |
 | `iros_llm_rviz_panel` | C++ (Qt) | RViz2 operator panel — Chat / MAPF / Events / BT / Info tabs, status bar, STOP ALL, goal markers on `/llm_panel/markers` |
 | `iros_llm_rviz_tool` | C++ (Qt) | RViz2 tool plugins — `SendLlmGoalTool` (`g`), `PlaceObstacleTool` (`b`), `DoorTool` (`d`) |

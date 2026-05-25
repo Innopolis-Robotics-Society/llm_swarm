@@ -264,7 +264,7 @@ def generate_launch_description():
 
     bt_runner_direct = Node(
         package='iros_llm_swarm_bt',
-        executable='test_bt_runner',
+        executable='bt_runner',
         output='screen',
         condition=UnlessCondition(enable_llm_mapf_proxy),
     )

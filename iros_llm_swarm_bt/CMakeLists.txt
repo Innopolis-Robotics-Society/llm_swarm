@@ -84,11 +84,19 @@ install(
   RENAME fleet_cmd
 )
 
+install(PROGRAMS
+  scripts/demo_20_robot.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
+
+  find_package(launch_testing_ament_cmake REQUIRED)
+  add_launch_test(test/test_bt_integration_mapf.py)
 endif()
 
 ament_export_include_directories(include)

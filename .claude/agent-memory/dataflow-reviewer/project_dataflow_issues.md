@@ -16,7 +16,7 @@ type: project
 4. **DATAFLOW_AUDIT.md documents /llm/execute as action name** but execute_server.py:52 actually serves `/llm/execute_plan`. The enumeration doc is wrong; code and RViz panel agree on `/llm/execute_plan`.
 
 ### Warnings
-1. **Orphan publishers**: `/fleet/mode`, `/fleet/mapf_ok`, `/fleet/formation_enabled` published by test_bt_runner — no in-workspace subscribers (external observability use only via ros2 topic echo or rqt).
+1. **Orphan publishers**: `/fleet/mode`, `/fleet/mapf_ok`, `/fleet/formation_enabled` published by bt_runner — no in-workspace subscribers (external observability use only via ros2 topic echo or rqt).
 2. **Double /bt/state subscription in chat_server**: chat_server.py:91 creates its own sub AND BTLeafSender.py:55 creates a second sub on the same node. Not a bug but wasteful.
 3. **DATAFLOW_AUDIT.md says /llm/command is "published by passive_observer"** (action section) — wrong framing. passive_observer is the action CLIENT; LlmCommandReceiver (BT) is the server.
 

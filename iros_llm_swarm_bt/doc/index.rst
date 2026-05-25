@@ -34,7 +34,7 @@ What's in the package
 
 * ``iros_llm_swarm_bt_nodes`` (shared library) — the BT plugin.
   Registers four node types via ``BT_REGISTER_NODES``.
-* ``test_bt_runner`` (executable) — minimal BT runner / scenario
+* ``bt_runner`` (executable) — minimal BT runner / scenario
   harness. Loads the plugin, ticks the reference tree at 10 Hz, and
   optionally drives an embedded 20-robot scenario.
 * ``behavior_trees/`` — XML trees:
@@ -45,7 +45,7 @@ What's in the package
     isolation.
   * ``disable_formation.xml`` / ``test_disable_formation.xml`` —
     trees that drive a formation disband from the BT side.
-* ``launch/test_bt_runner.launch.py`` — one-line launch wrapper for
+* ``launch/bt_runner.launch.py`` — one-line launch wrapper for
   the runner.
 
 The plugin and the runner can be used independently of each other —
@@ -378,7 +378,7 @@ thread) or written back by the BT nodes:
      - Set by the runner on terminal FAILURE; read by the embedded
        scenario thread to abort.
 
-test_bt_runner
+bt_runner
 --------------
 
 Two roles selectable via the ``scenario`` ROS parameter:
@@ -503,7 +503,7 @@ Built artefacts:
 * ``libiros_llm_swarm_bt_nodes.so`` (shared library) —
   installed under ``lib/`` (and the
   exported ``include/`` headers).
-* ``test_bt_runner`` (executable) — installed under
+* ``bt_runner`` (executable) — installed under
   ``lib/iros_llm_swarm_bt/``.
 * ``behavior_trees/`` and ``launch/`` — installed under
   ``share/iros_llm_swarm_bt/``.
@@ -520,10 +520,10 @@ install ``lib/`` directory or pass the absolute path.
 Run the runner directly::
 
     # Idle mode — listens on /fleet/cmd
-    ros2 launch iros_llm_swarm_bt test_bt_runner.launch.py
+    ros2 launch iros_llm_swarm_bt bt_runner.launch.py
 
     # Embedded integration scenario
-    ros2 run iros_llm_swarm_bt test_bt_runner --ros-args -p scenario:=true
+    ros2 run iros_llm_swarm_bt bt_runner --ros-args -p scenario:=true
 
 Both modes assume the rest of the swarm stack (planner + per-robot
 followers + optional formation manager) is already running. The runner

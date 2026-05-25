@@ -28,7 +28,7 @@
 
 using namespace std::chrono_literals;
 
-using Point   = geometry_msgs::msg::Point;
+using Point = geometry_msgs::msg::Point;
 using BTState = iros_llm_swarm_interfaces::msg::BTState;
 
 class RclcppDebugLogger : public BT::StatusChangeLogger
@@ -62,7 +62,8 @@ int main(int argc, char ** argv)
   node->declare_parameter("bt_freq", 10.0);
   const double bt_freq = node->get_parameter("bt_freq").as_double();
   if (bt_freq <= 0.0 || bt_freq > 1000.0) {
-    RCLCPP_FATAL(node->get_logger(),
+    RCLCPP_FATAL(
+      node->get_logger(),
       "bt_freq must be in (0, 1000] Hz, got %f", bt_freq);
     return 1;
   }
@@ -84,7 +85,8 @@ int main(int argc, char ** argv)
   auto tree = factory.createTreeFromFile(xml_file, blackboard);
   RclcppDebugLogger logger(tree, node->get_logger());
 
-  RCLCPP_INFO(node->get_logger(),
+  RCLCPP_INFO(
+    node->get_logger(),
     "bt_runner started: ticking tree at %.1f Hz, "
     "send commands via 'ros2 action send_goal /llm/command ...'",
     bt_freq);

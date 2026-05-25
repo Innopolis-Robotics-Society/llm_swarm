@@ -64,9 +64,14 @@ def load_map_config(map_name: str) -> dict:
     if not _YAML_OK:
         raise RuntimeError(
             'PyYAML required: pip install pyyaml --break-system-packages')
-    path = os.path.join(_map_descriptions_dir(), f'{map_name}.yaml')
-    with open(path, 'r', encoding='utf-8') as f:
-        return _yaml.safe_load(f)
+    dir_ = _map_descriptions_dir()
+    for candidate in (f'{map_name}_description.yaml', f'{map_name}.yaml'):
+        path = os.path.join(dir_, candidate)
+        if os.path.isfile(path):
+            with open(path, 'r', encoding='utf-8') as f:
+                return _yaml.safe_load(f)
+    raise FileNotFoundError(
+        f'Map config not found for {map_name!r} in {dir_!r}')
 
 
 def build_map_context(map_name: str) -> str:
@@ -78,8 +83,20 @@ def build_map_context(map_name: str) -> str:
         f"Y ∈ [{b.get('y_min')}, {b.get('y_max')}] m",
         '', 'Named locations:',
     ]
+    # Build reverse alias map: canonical_name → [alias, ...]
+    # Only include non-Russian aliases to keep context concise
+    raw_aliases = cfg.get('location_aliases', {})
+    alias_map: dict[str, list[str]] = {}
+    for alias, target in raw_aliases.items():
+        # Skip Cyrillic aliases to keep context short
+        if any('Ѐ' <= ch <= 'ӿ' for ch in alias):
+            continue
+        alias_map.setdefault(target, []).append(alias)
+
     for name, coords in cfg.get('named_locations', {}).items():
-        lines.append(f'  {name:<22} ({coords[0]:.1f}, {coords[1]:.1f})')
+        aliases = alias_map.get(name, [])
+        alias_str = f'  [also: {", ".join(aliases)}]' if aliases else ''
+        lines.append(f'  {name:<22} ({coords[0]:.1f}, {coords[1]:.1f}){alias_str}')
 
     groups = cfg.get('robot_groups', {})
     if groups:
@@ -88,11 +105,14 @@ def build_map_context(map_name: str) -> str:
             ids     = g.get('ids', [])
             color   = g.get('color', gname)
             home    = g.get('home', [])
-            aliases = g.get('aliases', [gname])
+            raw_grp_aliases = g.get('aliases', [gname])
+            aliases = [a for a in raw_grp_aliases
+                       if not any('Ѐ' <= ch <= 'ӿ' for ch in str(a))]
             home_str = f'({home[0]:.1f}, {home[1]:.1f})' if home else '?'
             id_str   = ', '.join(f'robot_{i}' for i in ids)
             lines.append(f'  {color:<10} [{id_str}]  home={home_str}')
-            lines.append(f'             aliases: {", ".join(str(a) for a in aliases)}')
+            if aliases:
+                lines.append(f'             aliases: {", ".join(str(a) for a in aliases)}')
             spawn = g.get('spawn', {})
             if spawn:
                 for rname, pos in spawn.items():
