@@ -69,6 +69,7 @@ def get_llm_client(
     timeout: float = 30.0,
     force_chat: bool | None = None,
     enable_stop: bool = False,
+    num_ctx: int = 8192,
 ) -> LLMClientBase:
     """Return an LLM client for the requested mode.
 
@@ -91,6 +92,7 @@ def get_llm_client(
             model=model or 'qwen2.5:14b',
             max_tokens=max_tokens,
             temperature=temperature,
+            num_ctx=num_ctx,
         )
 
     if mode == 'local':

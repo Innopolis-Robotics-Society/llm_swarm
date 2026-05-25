@@ -132,9 +132,10 @@ def setup(context, *args, **kwargs):
 def generate_launch_description():
     llm_backend_arg = DeclareLaunchArgument(
         'llm_backend',
-        default_value='http',
+        default_value='ollama',
         description='LLM backend override for decision/passive/chat nodes. '
-                    'Use "ollama" for local Ollama without editing YAML.',
+                    'Defaults to local Ollama (native /api/chat). Use "http" '
+                    'for an OpenAI-compatible endpoint via llm_endpoint.',
         choices=['http', 'ollama', 'mock', 'local'],
     )
 
@@ -162,7 +163,7 @@ def generate_launch_description():
 
     enable_rosbridge_arg = DeclareLaunchArgument(
         'enable_rosbridge',
-        default_value='true',
+        default_value='false',
         description='Start rosbridge_server on port 9090. Required by the '
                     'mcp_readonly context provider; disable when an external '
                     'rosbridge is already running.',

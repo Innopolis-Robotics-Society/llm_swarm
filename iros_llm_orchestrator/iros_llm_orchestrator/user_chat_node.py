@@ -261,6 +261,7 @@ class UserChatNode(Node):
         self.declare_parameter('llm_api_key_env',  'LLM_API_KEY')
         self.declare_parameter('llm_force_chat',   True)
         self.declare_parameter('llm_enable_stop',  False)
+        self.declare_parameter('llm_num_ctx',      8192)
         self.declare_parameter('timeout_sec',      30.0)
         self.declare_parameter('map_name',         'cave')
         self.declare_parameter('log_enabled',      True)
@@ -307,6 +308,7 @@ class UserChatNode(Node):
             timeout=self._timeout,
             force_chat=bool(self.get_parameter('llm_force_chat').value),
             enable_stop=bool(self.get_parameter('llm_enable_stop').value),
+            num_ctx=int(self.get_parameter('llm_num_ctx').value),
         )
         try:
             self._map_cfg = load_map_config(self._map_name)

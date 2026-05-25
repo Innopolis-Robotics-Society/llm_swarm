@@ -84,10 +84,11 @@ def generate_launch_description():
     )
     llm_backend_arg = DeclareLaunchArgument(
         'llm_backend',
-        default_value='http',
+        default_value='ollama',
         choices=['http', 'ollama', 'mock', 'local'],
-        description='LLM backend for orchestrator nodes. Use "ollama" for '
-                    'local Ollama without editing orchestrator.yaml.',
+        description='LLM backend for orchestrator nodes. Defaults to local '
+                    'Ollama (native /api/chat). Use "http" for an '
+                    'OpenAI-compatible endpoint via llm_endpoint.',
     )
     llm_endpoint_arg = DeclareLaunchArgument(
         'llm_endpoint',

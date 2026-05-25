@@ -23,11 +23,16 @@ class OllamaClient(LLMClientBase):
         model:    str  = 'qwen2.5:14b',
         max_tokens:  int   = 256,
         temperature: float = 0.2,
+        num_ctx:     int   = 8192,
     ):
         self.endpoint    = endpoint
         self.model       = model
         self.max_tokens  = max_tokens
         self.temperature = temperature
+        # Input context window. Ollama defaults to 4096 when unset; the channel-3
+        # chat prompt is ~7000 tokens, so leaving it unset truncates the system
+        # prompt and forces the model into a tool-call/prose loop.
+        self.num_ctx     = num_ctx
 
     # ------------------------------------------------------------------
     # LLMClientBase interface
@@ -96,6 +101,7 @@ class OllamaClient(LLMClientBase):
             'options':  {
                 'temperature': self.temperature,
                 'num_predict': self.max_tokens,
+                'num_ctx':     self.num_ctx,
             },
         }
 
@@ -136,11 +142,15 @@ class OllamaClient(LLMClientBase):
             'options':  {
                 'temperature': self.temperature,
                 'num_predict': self.max_tokens,
+                'num_ctx':     self.num_ctx,
             },
         }
 
         full_text = ''
         final_message: dict = {}
+        # Ollama may put tool_calls in intermediate chunks rather than the done
+        # chunk — accumulate across all chunks so they aren't silently dropped.
+        accumulated_tool_calls: list = []
 
         async with aiohttp.ClientSession() as session:
             async with session.post(self.endpoint, json=payload) as resp:
@@ -155,13 +165,21 @@ class OllamaClient(LLMClientBase):
                         data = json.loads(raw_line)
                     except json.JSONDecodeError:
                         continue
-                    chunk = data.get('message', {}).get('content', '')
+                    msg = data.get('message', {})
+                    chunk = msg.get('content', '')
                     if chunk:
                         full_text += chunk
                         yield {'type': 'chunk', 'content': chunk}
+                    chunk_calls = msg.get('tool_calls')
+                    if chunk_calls:
+                        accumulated_tool_calls = chunk_calls
                     if data.get('done'):
-                        final_message = data.get('message', {})
+                        final_message = msg
                         break
+
+        # Merge tool_calls found in intermediate chunks into the final message.
+        if accumulated_tool_calls and not final_message.get('tool_calls'):
+            final_message = {**final_message, 'tool_calls': accumulated_tool_calls}
 
         calls = parse_ollama_tool_calls(final_message)
         if calls:
@@ -186,6 +204,7 @@ class OllamaClient(LLMClientBase):
             'options':  {
                 'temperature': self.temperature,
                 'num_predict': self.max_tokens,
+                'num_ctx':     self.num_ctx,
                 'stop':        ['\n## ', '\n# ', '</s>', '<|im_end|>'],
             },
         }

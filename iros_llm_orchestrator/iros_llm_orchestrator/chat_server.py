@@ -87,6 +87,7 @@ class ChatServer(Node):
         self.declare_parameter('llm_api_key_env',  'LLM_API_KEY')
         self.declare_parameter('llm_force_chat',   True)
         self.declare_parameter('llm_enable_stop',  False)
+        self.declare_parameter('llm_num_ctx',      8192)
         self.declare_parameter('timeout_sec',      30.0)
         self.declare_parameter('step_timeout_sec', 120.0)
         self.declare_parameter('map_name',         'cave')
@@ -114,6 +115,10 @@ class ChatServer(Node):
         self.declare_parameter('scan_timeout_sec',       3.0)
         self.declare_parameter('tool_max_iterations',    6)
         self.declare_parameter('stream_reasoning',       True)
+        # Tool-calling adds latency and a prose-fallback failure mode; when the
+        # prompt fits the context window the model plans directly without tools.
+        # Off by default — flip on for spatial-precision experiments.
+        self.declare_parameter('tool_calling_enabled',   False)
 
         self._max_remediation_attempts = max(0, int(
             self.get_parameter('max_remediation_attempts').value))
@@ -122,6 +127,8 @@ class ChatServer(Node):
         self._tool_max_iterations = max(1, int(
             self.get_parameter('tool_max_iterations').value))
         self._stream_reasoning = bool(self.get_parameter('stream_reasoning').value)
+        self._tool_calling_enabled = bool(
+            self.get_parameter('tool_calling_enabled').value)
 
         self._timeout  = float(self.get_parameter('timeout_sec').value)
         self._map_name = self.get_parameter('map_name').value
@@ -138,6 +145,7 @@ class ChatServer(Node):
             timeout=self._timeout,
             force_chat=bool(self.get_parameter('llm_force_chat').value),
             enable_stop=bool(self.get_parameter('llm_enable_stop').value),
+            num_ctx=int(self.get_parameter('llm_num_ctx').value),
         )
         try:
             self._map_cfg = load_map_config(self._map_name)
@@ -402,11 +410,17 @@ class ChatServer(Node):
             last_failure=attempts[-1])
 
     async def _stream_and_parse(self, messages, goal_handle):
-        """Tool loop with streaming → parse → postprocess; raises _LlmStageError."""
+        """Stream → parse → postprocess; raises _LlmStageError.
+
+        Uses the tool-calling loop when ``tool_calling_enabled``; otherwise the
+        plain streaming path (no tools), which is the reliable default.
+        """
+        if self._tool_calling_enabled:
+            coro = self._stream_with_tool_loop(messages, goal_handle)
+        else:
+            coro = self._stream_plain(messages, goal_handle)
         try:
-            full_raw = await asyncio.wait_for(
-                self._stream_with_tool_loop(messages, goal_handle),
-                timeout=self._timeout)
+            full_raw = await asyncio.wait_for(coro, timeout=self._timeout)
         except asyncio.TimeoutError as exc:
             raise _LlmStageError('LLM timeout') from exc
         except Exception as exc:
@@ -466,7 +480,10 @@ class ChatServer(Node):
                 if not has_json and iteration < self._tool_max_iterations - 1:
                     self.get_logger().warning(
                         'tool_loop: prose response detected, injecting JSON reminder')
-                    msgs.append({'role': 'assistant', 'content': content})
+                    # Only append the assistant turn when there is actual content;
+                    # an empty turn confuses the model on the next iteration.
+                    if content:
+                        msgs.append({'role': 'assistant', 'content': content})
                     msgs.append({
                         'role': 'user',
                         'content': (
@@ -532,6 +549,22 @@ class ChatServer(Node):
             f'tool loop exceeded {self._tool_max_iterations} iterations '
             'without producing a final text response'
         )
+
+    async def _stream_plain(self, messages: list[dict], goal_handle) -> str:
+        """Non-tool streaming path: collect the full response, surfacing
+        reasoning tokens live and the parsed reply via _emit_reply_streaming.
+        """
+        full = ''
+        async for chunk in self._llm.stream(messages):
+            if not chunk:
+                continue
+            full += chunk
+            if self._stream_reasoning:
+                self._publish_fb(goal_handle, stage='thinking', chunk=chunk)
+        self.get_logger().info(
+            f'plain stream: {len(full)} chars, has_json={"{" in full}')
+        self._emit_reply_streaming(full, goal_handle)
+        return full
 
     def _emit_reply_streaming(self, full_raw: str, goal_handle) -> None:
         """Extract the 'reply' field from full_raw and emit as stage='streaming'.
@@ -660,60 +693,6 @@ class ChatServer(Node):
             self.get_logger().info(
                 f'Chat runtime context source={source} warnings={warnings}')
         return context
-
-    # ------------------------------------------------------------------
-    # Reply streaming — emit only the JSON "reply" field via feedback
-    # ------------------------------------------------------------------
-
-    async def _stream_reply(self, messages, goal_handle) -> str:
-        """Stream and forward only "reply" body characters to the panel.
-
-        State machine identical to user_chat_node._stream_command:
-          BEFORE   — scanning for `"reply":"`
-          IN_REPLY — emit chars; honour JSON escapes; stop at unescaped `"`
-          AFTER    — accumulate raw silently for the parser.
-        """
-        BEFORE, IN_REPLY, AFTER = 0, 1, 2
-        state = BEFORE
-        in_escape = False
-        scan = ''
-        MARKERS = ('"reply": "', '"reply":"')
-        ESCAPES = {'n': '\n', 't': '\t', 'r': '\r',
-                   'b': '\b', 'f': '\f',
-                   '"': '"', '\\': '\\', '/': '/'}
-        cap = max(len(m) for m in MARKERS)
-
-        full = ''
-        async for chunk in self._llm.stream(messages):
-            full += chunk
-            if state == AFTER:
-                continue
-
-            emit_buf = ''
-            for c in chunk:
-                if state == BEFORE:
-                    scan += c
-                    if len(scan) > cap:
-                        scan = scan[-cap:]
-                    if any(scan.endswith(m) for m in MARKERS):
-                        state = IN_REPLY
-                        scan  = ''
-                        in_escape = False
-                elif state == IN_REPLY:
-                    if in_escape:
-                        emit_buf += ESCAPES.get(c, c)
-                        in_escape = False
-                    elif c == '\\':
-                        in_escape = True
-                    elif c == '"':
-                        state = AFTER
-                    else:
-                        emit_buf += c
-
-            if emit_buf:
-                self._publish_fb(goal_handle, stage='streaming', chunk=emit_buf)
-
-        return full
 
     # ------------------------------------------------------------------
     # BT event handling — mirrors user_chat_node._handle_bt_event

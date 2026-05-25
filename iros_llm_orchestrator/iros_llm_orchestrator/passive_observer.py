@@ -45,6 +45,7 @@ class PassiveObserver(Node):
         self.declare_parameter('llm_api_key_env', 'LLM_API_KEY')
         self.declare_parameter('llm_force_chat',  True)
         self.declare_parameter('llm_enable_stop', False)
+        self.declare_parameter('llm_num_ctx',     8192)
         self.declare_parameter('timeout_sec',     15.0)
         self.declare_parameter('history_size',    20)
         self.declare_parameter('cooldown_sec',    10.0)
@@ -66,6 +67,7 @@ class PassiveObserver(Node):
             timeout=float(self.get_parameter('timeout_sec').value),
             force_chat=bool(self.get_parameter('llm_force_chat').value),
             enable_stop=bool(self.get_parameter('llm_enable_stop').value),
+            num_ctx=int(self.get_parameter('llm_num_ctx').value),
         )
         self._timeout     = float(self.get_parameter('timeout_sec').value)
         self._cooldown    = float(self.get_parameter('cooldown_sec').value)

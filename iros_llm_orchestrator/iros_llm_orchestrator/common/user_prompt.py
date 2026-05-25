@@ -158,24 +158,35 @@ def _get_examples(map_name: str) -> list[dict]:
                       names[0] if names else 'center')
     center = loc(center_key)
 
-    gvals  = list(groups.values())
-    # We need at least 2 groups for swap example
-    g0 = gvals[0] if gvals          else {'ids': [0,1,2,3],  'color': 'cyan',    'home': center, 'spawn': {}}
-    g1 = gvals[1] if len(gvals) > 1 else {'ids': [4,5,6,7],  'color': 'magenta', 'home': center, 'spawn': {}}
-    g2 = gvals[2] if len(gvals) > 2 else {'ids': [8,9,10,11],'color': 'green',   'home': center, 'spawn': {}}
+    # Group name is the dict key (the color); value has ids/home/etc.
+    glist = list(groups.items())
 
-    ids0  = list(g0['ids']); color0 = g0.get('color','group0')
-    ids1  = list(g1['ids']); color1 = g1.get('color','group1')
-    ids2  = list(g2['ids']); color2 = g2.get('color','group2')
-    home0 = g0.get('home', center)
-    home1 = g1.get('home', center)
-    spawn0 = g0.get('spawn', {})
-    dest  = names[min(2, len(names)-1)] if names else center_key
+    def _grp(i: int, fallback_name: str, fallback_ids: list) -> tuple:
+        if i < len(glist):
+            return glist[i][0], glist[i][1]
+        return fallback_name, {'ids': fallback_ids, 'home': center}
+
+    color0, g0 = _grp(0, 'cyan',    [0, 1, 2, 3])
+    color1, g1 = _grp(1, 'magenta', [4, 5, 6, 7])
+    color2, g2 = _grp(2, 'green',   [8, 9, 10, 11])
+    color3, g3 = _grp(3, 'orange',  [12, 13, 14, 15])
+    color4, g4 = _grp(4, 'yellow',  [16, 17, 18, 19])
+
+    ids0 = list(g0['ids']);  home0 = g0.get('home', center)
+    ids1 = list(g1['ids']);  home1 = g1.get('home', center)
+    ids2 = list(g2['ids']);  home2 = g2.get('home', center)
+    ids3 = list(g3['ids'])
+    ids4 = list(g4['ids'])
+
+    # Pick three spread-out named locations for variety across examples
+    dest  = names[min(2, len(names) - 1)] if names else center_key
+    dest2 = names[min(5, len(names) - 1)] if names else center_key
+    dest3 = names[min(8, len(names) - 1)] if names else center_key
 
     return [
-        # 1. Simple: one group to a location
+        # 1. cyan (0-3) to a named location
         {
-            'user': f'{color0} robots to {dest.replace("_"," ")}',
+            'user': f'{color0} robots to {dest.replace("_", " ")}',
             'out': _ex(
                 f'Sending {color0} robots to {dest}.',
                 {'type': 'mapf',
@@ -184,53 +195,46 @@ def _get_examples(map_name: str) -> list[dict]:
                  'reason': f'{color0} to {dest}'}
             ),
         },
-        # 2. Group home — uses spawn positions
+        # 2. orange (12-15) — explicitly show this group's IDs
         {
-            'user': f'send {color0} robots home',
+            'user': f'{color3} robots to {dest2.replace("_", " ")}',
             'out': _ex(
-                f'Returning {color0} robots to their spawn positions.',
+                f'Sending {color3} robots to {dest2}.',
                 {'type': 'mapf',
-                 'robot_ids': ids0,
-                 'goals': [home0] * len(ids0),
-                 'reason': f'{color0} home'}
+                 'robot_ids': ids3,
+                 'goals': [loc(dest2)] * len(ids3),
+                 'reason': f'{color3} to {dest2}'}
             ),
         },
-        # 3. TWO groups swap homes — parallel with merged mapf
+        # 3. yellow (16-19) — explicitly show this group's IDs
         {
-            'user': f'{color0} robots to {color1} home, {color1} robots to {color0} home',
+            'user': f'send {color4} robots to {dest3.replace("_", " ")}',
             'out': _ex(
-                f'{color0.capitalize()} and {color1} swap homes simultaneously.',
+                f'Sending {color4} robots to {dest3}.',
+                {'type': 'mapf',
+                 'robot_ids': ids4,
+                 'goals': [loc(dest3)] * len(ids4),
+                 'reason': f'{color4} to {dest3}'}
+            ),
+        },
+        # 4. parallel: magenta (4-7) and green (8-11) swap homes
+        {
+            'user': f'{color1} to {color2} home, {color2} to {color1} home',
+            'out': _ex(
+                f'{color1.capitalize()} and {color2} swap homes simultaneously.',
                 {'type': 'parallel', 'steps': [
-                    {'type': 'mapf',
-                     'robot_ids': ids0,
-                     'goals': [home1] * len(ids0),
-                     'reason': f'{color0} to {color1} home'},
                     {'type': 'mapf',
                      'robot_ids': ids1,
-                     'goals': [home0] * len(ids1),
-                     'reason': f'{color1} to {color0} home'},
+                     'goals': [home2] * len(ids1),
+                     'reason': f'{color1} to {color2} home'},
+                    {'type': 'mapf',
+                     'robot_ids': ids2,
+                     'goals': [home1] * len(ids2),
+                     'reason': f'{color2} to {color1} home'},
                 ]}
             ),
         },
-        # 4. Three groups simultaneous
-        {
-            'user': f'{color0} to east, {color1} to center, {color2} to west',
-            'out': _ex(
-                f'{color0.capitalize()}, {color1}, and {color2} move simultaneously.',
-                {'type': 'parallel', 'steps': [
-                    {'type': 'mapf', 'robot_ids': ids0,
-                     'goals': [loc(names[min(3,len(names)-1)])] * len(ids0),
-                     'reason': f'{color0} east'},
-                    {'type': 'mapf', 'robot_ids': ids1,
-                     'goals': [center] * len(ids1),
-                     'reason': f'{color1} center'},
-                    {'type': 'mapf', 'robot_ids': ids2,
-                     'goals': [loc(names[min(1,len(names)-1)])] * len(ids2),
-                     'reason': f'{color2} west'},
-                ]}
-            ),
-        },
-        # 5. Sequential: go somewhere, then form
+        # 5. sequence: move then form (single formation example)
         {
             'user': f'{color0} go to {center_key}, then form a line',
             'out': _ex(
@@ -242,13 +246,13 @@ def _get_examples(map_name: str) -> list[dict]:
                     {'type': 'formation', 'formation_id': 'line',
                      'leader_ns': f'robot_{ids0[0]}',
                      'follower_ns': [f'robot_{i}' for i in ids0[1:]],
-                     'offsets_x': [-1.5 * (j+1) for j in range(len(ids0)-1)],
-                     'offsets_y': [0.0] * (len(ids0)-1),
+                     'offsets_x': [-1.5 * (j + 1) for j in range(len(ids0) - 1)],
+                     'offsets_y': [0.0] * (len(ids0) - 1),
                      'reason': 'line formation'},
                 ]}
             ),
         },
-        # 6. Stop
+        # 6. stop
         {
             'user': 'stop',
             'out': _ex('Stopping all robots.',

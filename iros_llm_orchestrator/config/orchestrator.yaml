@@ -16,6 +16,10 @@
     llm_force_chat: true
     llm_enable_stop: false
     llm_temperature: 0.1
+    # Ollama input context window. MUST exceed the prompt size (the channel-3
+    # chat prompt is ~7000 tokens). Ollama silently truncates to its 4096
+    # default when unset, which drops the system prompt and breaks JSON output.
+    llm_num_ctx: 8192
 
 llm_decision_server:
   ros__parameters:
@@ -52,9 +56,9 @@ llm_chat_server:
     max_remediation_attempts: 2
 
     # Read-only runtime context for /llm/chat.
-    # Default demo path uses MCP read-only context. Use "ros_readonly" for a
-    # local ROS-topic fallback or "none" for Phase 1 behavior.
-    context_provider: "mcp_readonly"
+    # MCP read-only context disabled — uvx ros-mcp fails with BrokenResourceError.
+    # Re-enable with context_provider: "mcp_readonly" once fixed.
+    context_provider: "none"
     context_timeout_sec: 2.0
     context_max_chars: 6000
     context_include_bt_state: true
@@ -75,6 +79,10 @@ llm_chat_server:
     formation_tolerance_m: 0.5
 
     # Tool calling loop for get_robot_position / get_positions / check_occupancy.
+    # Off by default: with a context window that fits the prompt the model plans
+    # directly; the tool loop only added latency and a prose-fallback failure
+    # mode. Flip on for spatial-precision experiments.
+    tool_calling_enabled: false
     tool_max_iterations: 6
     robot_footprint_radius: 0.22
     scan_timeout_sec: 3.0
