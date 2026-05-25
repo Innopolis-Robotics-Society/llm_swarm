@@ -63,7 +63,6 @@ def _resolve_llm_overrides(context) -> dict:
 def setup(context, *args, **kwargs):
     enable_passive = LaunchConfiguration('enable_passive_observer')
     enable_rosbridge = LaunchConfiguration('enable_rosbridge')
-    enable_llm_mapf_proxy = LaunchConfiguration('enable_llm_mapf_proxy')
 
     config = os.path.join(
         get_package_share_directory('iros_llm_orchestrator'),
@@ -127,18 +126,6 @@ def setup(context, *args, **kwargs):
             parameters=[config, map_param],
             output='screen',
         ),
-        Node(
-            package='iros_llm_orchestrator',
-            executable='mapf_proxy',
-            name='llm_mapf_proxy',
-            parameters=[{
-                'proxy_action_name': '/llm/swarm/set_goals_proxy',
-                'target_action_name': '/swarm/set_goals',
-                'decision_action_name': '/llm/decision',
-            }],
-            output='screen',
-            condition=IfCondition(enable_llm_mapf_proxy),
-        ),
     ]
 
 
@@ -183,15 +170,6 @@ def generate_launch_description():
         choices=['true', 'false'],
     )
 
-    enable_llm_mapf_proxy_arg = DeclareLaunchArgument(
-        'enable_llm_mapf_proxy',
-        default_value='true',
-        description='Start the read-only LLM decision proxy for MAPF feedback. '
-                    'BT runners must remap /swarm/set_goals to '
-                    '/llm/swarm/set_goals_proxy to use it.',
-        choices=['true', 'false'],
-    )
-
     scenario_arg = DeclareLaunchArgument(
         'scenario',
         default_value='amongus',
@@ -215,7 +193,6 @@ def generate_launch_description():
         llm_model_arg,
         enable_passive_arg,
         enable_rosbridge_arg,
-        enable_llm_mapf_proxy_arg,
         scenario_arg,
         scenarios_file_arg,
         OpaqueFunction(function=setup),

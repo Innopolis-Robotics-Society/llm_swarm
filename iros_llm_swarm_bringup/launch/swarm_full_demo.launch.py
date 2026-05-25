@@ -32,7 +32,7 @@ from launch.actions import (
     LogInfo,
     TimerAction,
 )
-from launch.conditions import IfCondition, UnlessCondition
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     LaunchConfiguration,
@@ -82,13 +82,6 @@ def generate_launch_description():
         description='Start rosbridge_server on port 9090 for default MCP '
                     'read-only context.',
     )
-    enable_llm_mapf_proxy_arg = DeclareLaunchArgument(
-        'enable_llm_mapf_proxy',
-        default_value='true',
-        choices=['true', 'false'],
-        description='Route BT MapfPlan through the LLM MAPF proxy so WARN/ERROR '
-                    'feedback can ask /llm/decision.',
-    )
     llm_backend_arg = DeclareLaunchArgument(
         'llm_backend',
         default_value='ollama',
@@ -128,7 +121,6 @@ def generate_launch_description():
     use_sim_time     = LaunchConfiguration('use_sim_time')
     enable_passive   = LaunchConfiguration('enable_passive_observer')
     enable_rosbridge = LaunchConfiguration('enable_rosbridge')
-    enable_llm_mapf_proxy = LaunchConfiguration('enable_llm_mapf_proxy')
     llm_backend      = LaunchConfiguration('llm_backend')
     llm_endpoint     = LaunchConfiguration('llm_endpoint')
     llm_model        = LaunchConfiguration('llm_model')
@@ -207,7 +199,6 @@ def generate_launch_description():
         launch_arguments=[
             ('enable_passive_observer', enable_passive),
             ('enable_rosbridge', enable_rosbridge),
-            ('enable_llm_mapf_proxy', enable_llm_mapf_proxy),
             ('llm_backend', llm_backend),
             ('llm_endpoint', llm_endpoint),
             ('llm_model', llm_model),
@@ -253,21 +244,10 @@ def generate_launch_description():
         condition=use_formation,
     )
 
-    bt_runner_proxy = Node(
-        package='iros_llm_swarm_bt',
-        executable='test_bt_runner',
-        output='screen',
-        remappings=[
-            ('/swarm/set_goals', '/llm/swarm/set_goals_proxy'),
-        ],
-        condition=IfCondition(enable_llm_mapf_proxy),
-    )
-
-    bt_runner_direct = Node(
+    bt_runner = Node(
         package='iros_llm_swarm_bt',
         executable='bt_runner',
         output='screen',
-        condition=UnlessCondition(enable_llm_mapf_proxy),
     )
 
     rviz = Node(
@@ -287,7 +267,6 @@ def generate_launch_description():
         use_sim_time_arg,
         enable_passive_arg,
         enable_rosbridge_arg,
-        enable_llm_mapf_proxy_arg,
         llm_backend_arg,
         llm_endpoint_arg,
         llm_model_arg,
@@ -322,9 +301,8 @@ def generate_launch_description():
         ]),
 
         TimerAction(period=20.0, actions=[
-            LogInfo(msg='Starting test_bt_runner...'),
-            bt_runner_proxy,
-            bt_runner_direct,
+            LogInfo(msg='Starting bt_runner...'),
+            bt_runner,
         ]),
 
         TimerAction(period=22.0, actions=[
