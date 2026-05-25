@@ -82,7 +82,7 @@ llm_chat_server:
     # Off by default: with a context window that fits the prompt the model plans
     # directly; the tool loop only added latency and a prose-fallback failure
     # mode. Flip on for spatial-precision experiments.
-    tool_calling_enabled: false
+    tool_calling_enabled: true
     tool_max_iterations: 6
     robot_footprint_radius: 0.22
     scan_timeout_sec: 3.0

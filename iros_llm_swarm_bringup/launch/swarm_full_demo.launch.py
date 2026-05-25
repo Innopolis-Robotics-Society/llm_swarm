@@ -255,7 +255,7 @@ def generate_launch_description():
 
     bt_runner_proxy = Node(
         package='iros_llm_swarm_bt',
-        executable='test_bt_runner',
+        executable='bt_runner',
         output='screen',
         remappings=[
             ('/swarm/set_goals', '/llm/swarm/set_goals_proxy'),
@@ -322,7 +322,7 @@ def generate_launch_description():
         ]),
 
         TimerAction(period=20.0, actions=[
-            LogInfo(msg='Starting test_bt_runner...'),
+            LogInfo(msg='Starting bt_runner...'),
             bt_runner_proxy,
             bt_runner_direct,
         ]),
