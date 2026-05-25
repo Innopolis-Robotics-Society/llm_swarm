@@ -124,22 +124,29 @@ def _clamp_goals(goals: list, cfg: dict) -> list:
             for g in goals]
 
 
-def _postprocess_plan(node: dict, map_cfg: dict) -> dict:
+def _postprocess_plan(node: dict, map_cfg: dict, spread: bool = False) -> dict:
     """Recursively post-process plan nodes.
 
-    - mapf: clamp + spread goals so robots don't pile on one point.
+    - mapf: clamp goals into bounds. Spread into a distinct grid when the node
+      has ``spread: true`` (operator/model doesn't care about exact placement)
+      OR the global ``spread`` arg forces it. A single goal is treated as the
+      cluster centre and replicated to one per robot before declumping.
+      Without spread, the model's one-goal-per-robot layout is used as-is.
     - formation: warn if requested outside known formation zones.
     - sequence/parallel: recurse into steps.
     """
     t = node['type']
     if t in ('sequence', 'parallel'):
-        node['steps'] = [_postprocess_plan(s, map_cfg) for s in node['steps']]
+        node['steps'] = [_postprocess_plan(s, map_cfg, spread) for s in node['steps']]
     elif t == 'mapf' and 'goals' in node:
-        # Clamp first so spread happens around an in-bounds centre,
-        # then clamp again as safety net for large spread radii.
-        node['goals'] = _clamp_goals(
-            _spread_goals(_clamp_goals(node['goals'], map_cfg)),
-            map_cfg)
+        goals = _clamp_goals(node['goals'], map_cfg)
+        if spread or bool(node.get('spread', False)):
+            n = len(node.get('robot_ids', goals))
+            if len(goals) == 1 and n > 1:
+                goals = [list(goals[0]) for _ in range(n)]
+            # Declump into a distinct grid/ring; clamp again for large radii.
+            goals = _clamp_goals(_spread_goals(goals), map_cfg)
+        node['goals'] = goals
     elif t == 'formation':
         # Warn if the formation is requested somewhere with insufficient
         # clearance. The actual enforcement is in formation_manager_node.

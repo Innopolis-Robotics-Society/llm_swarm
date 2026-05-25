@@ -5,6 +5,7 @@ All few-shot examples use the {"reply":"...", "plan":{...}} format.
 """
 
 import json
+import math
 import os
 from functools import lru_cache
 from typing import Any
@@ -145,6 +146,26 @@ def _ex(reply: str, plan: dict) -> str:
     return json.dumps({'reply': reply, 'plan': plan}, ensure_ascii=False)
 
 
+def _cluster(center: list, n: int, spacing: float = 1.0) -> list:
+    """N distinct points on a centered grid around ``center``, ~spacing apart.
+
+    Auto-spread is disabled, so the model must emit one distinct goal per robot
+    (the MAPF planner cannot resolve identical goals). Few-shot example goals
+    must therefore demonstrate distinct points, never repeated coordinates.
+    """
+    cx, cy = float(center[0]), float(center[1])
+    if n <= 1:
+        return [[round(cx, 2), round(cy, 2)]]
+    cols = max(1, round(math.sqrt(n)))
+    rows = (n + cols - 1) // cols
+    pts = []
+    for i in range(n):
+        col, row = i % cols, i // cols
+        pts.append([round(cx + (col - (cols - 1) / 2.0) * spacing, 2),
+                    round(cy + (row - (rows - 1) / 2.0) * spacing, 2)])
+    return pts
+
+
 def _get_examples(map_name: str) -> list[dict]:
     cfg    = load_map_config(map_name)
     locs   = cfg.get('named_locations', {})
@@ -191,7 +212,7 @@ def _get_examples(map_name: str) -> list[dict]:
                 f'Sending {color0} robots to {dest}.',
                 {'type': 'mapf',
                  'robot_ids': ids0,
-                 'goals': [loc(dest)] * len(ids0),
+                 'goals': [loc(dest)], 'spread': True,
                  'reason': f'{color0} to {dest}'}
             ),
         },
@@ -202,7 +223,7 @@ def _get_examples(map_name: str) -> list[dict]:
                 f'Sending {color3} robots to {dest2}.',
                 {'type': 'mapf',
                  'robot_ids': ids3,
-                 'goals': [loc(dest2)] * len(ids3),
+                 'goals': [loc(dest2)], 'spread': True,
                  'reason': f'{color3} to {dest2}'}
             ),
         },
@@ -213,7 +234,7 @@ def _get_examples(map_name: str) -> list[dict]:
                 f'Sending {color4} robots to {dest3}.',
                 {'type': 'mapf',
                  'robot_ids': ids4,
-                 'goals': [loc(dest3)] * len(ids4),
+                 'goals': [loc(dest3)], 'spread': True,
                  'reason': f'{color4} to {dest3}'}
             ),
         },
@@ -225,11 +246,11 @@ def _get_examples(map_name: str) -> list[dict]:
                 {'type': 'parallel', 'steps': [
                     {'type': 'mapf',
                      'robot_ids': ids1,
-                     'goals': [home2] * len(ids1),
+                     'goals': [home2], 'spread': True,
                      'reason': f'{color1} to {color2} home'},
                     {'type': 'mapf',
                      'robot_ids': ids2,
-                     'goals': [home1] * len(ids2),
+                     'goals': [home1], 'spread': True,
                      'reason': f'{color2} to {color1} home'},
                 ]}
             ),
@@ -241,7 +262,7 @@ def _get_examples(map_name: str) -> list[dict]:
                 f'{color0.capitalize()} moves to {center_key}, then forms a line.',
                 {'type': 'sequence', 'steps': [
                     {'type': 'mapf', 'robot_ids': ids0,
-                     'goals': [center] * len(ids0),
+                     'goals': [center], 'spread': True,
                      'reason': f'{color0} to {center_key}'},
                     {'type': 'formation', 'formation_id': 'line',
                      'leader_ns': f'robot_{ids0[0]}',
@@ -252,7 +273,18 @@ def _get_examples(map_name: str) -> list[dict]:
                 ]}
             ),
         },
-        # 6. stop
+        # 6. precise placement — distinct goal per robot, no spread
+        {
+            'user': f'place {color0} in a grid at {center_key.replace("_", " ")}',
+            'out': _ex(
+                f'Placing {color0} in a grid at {center_key}.',
+                {'type': 'mapf',
+                 'robot_ids': ids0,
+                 'goals': _cluster(center, len(ids0)),
+                 'reason': f'{color0} grid at {center_key}'}
+            ),
+        },
+        # 7. stop
         {
             'user': 'stop',
             'out': _ex('Stopping all robots.',

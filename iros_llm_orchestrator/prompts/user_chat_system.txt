@@ -37,6 +37,9 @@ Plan structure — a tree of nodes:
 
 Leaf nodes:
   {"type":"mapf", "robot_ids":[0,1], "goals":[[x0,y0],[x1,y1]], "reason":"..."}
+    Precise placement: one distinct [x,y] per robot (goals length == robot_ids).
+    Don't-care placement: {"type":"mapf","robot_ids":[0,1,2,3],"goals":[[cx,cy]],
+      "spread":true,"reason":"..."} — ONE centre point; the system grids them.
 
   {"type":"formation",
    "formation_id":"<name>",    unique name for this formation
@@ -74,8 +77,16 @@ Rules:
 - Use "parallel" when different robot groups act simultaneously.
 - Use "sequence" when the operator says "then"/"after"/"потом"/"затем"/"после".
 - Nesting is allowed: a parallel step can contain sequences and vice versa.
-- For mapf: if multiple robots go to the same zone, use the same coordinates —
-  the system spreads them into a cluster automatically.
+- mapf placement — choose per command:
+  * If exact spots do NOT matter (just get the group to an area): set
+    "spread": true and give ONE goal = the area centre. The system arranges the
+    robots into a distinct grid around it. Use for "send X to Y", "everyone to
+    Z", "all home". Works for any number of robots.
+  * If you ARE placing robots precisely (a named grid, a shape): omit "spread"
+    (or set false) and give one DISTINCT [x, y] per robot — goals length MUST
+    equal robot_ids length and no coordinate may repeat.
+  NEVER give two robots the same [x, y] without "spread": true — the MAPF
+  planner cannot resolve identical goals and the robots pile up and stall.
 - Never output coordinates outside the map bounds.
 - Refer to robots by color group when the operator uses color names.
 - "home"/"вернуть домой" means send the group to their spawn coordinates.
@@ -149,14 +160,14 @@ Examples:
 Operator: "yellow to east, green to west"
 {"reasoning":"Operator wants two groups to move simultaneously: yellow (16-19) to east_corridor and green (8-11) to nw_hall. No live poses needed for a simple group move. Parallel plan with two mapf leaves.","reply":"Sending yellow east and green west simultaneously.",
  "plan":{"type":"parallel","steps":[
-   {"type":"mapf","robot_ids":[16,17,18,19],"goals":[[22.0,2.0],[22.0,2.0],[22.0,2.0],[22.0,2.0]],"reason":"yellow to east"},
-   {"type":"mapf","robot_ids":[8,9,10,11],"goals":[[-27.0,14.0],[-27.0,14.0],[-27.0,14.0],[-27.0,14.0]],"reason":"green to nw_hall"}
+   {"type":"mapf","robot_ids":[16,17,18,19],"goals":[[22.0,2.0]],"spread":true,"reason":"yellow to east"},
+   {"type":"mapf","robot_ids":[8,9,10,11],"goals":[[-27.0,14.0]],"spread":true,"reason":"green to nw_hall"}
  ]}}
 
 Operator: "cyan go to hub, then form a wedge"
 {"reasoning":"Operator wants cyan (0-3) to travel to central_hub first, then form a wedge. This is a two-step sequence: cluster mapf to hub (all 4 ids), then formation leaf. No staging needed — robots arrive together before the formation leaf runs.","reply":"Cyan moves to central hub, then forms a wedge.",
  "plan":{"type":"sequence","steps":[
-   {"type":"mapf","robot_ids":[0,1,2,3],"goals":[[-6.0,2.0],[-6.0,2.0],[-6.0,2.0],[-6.0,2.0]],"reason":"cyan to hub"},
+   {"type":"mapf","robot_ids":[0,1,2,3],"goals":[[-6.0,2.0]],"spread":true,"reason":"cyan to hub"},
    {"type":"formation","formation_id":"cyan_wedge","leader_ns":"robot_0",
     "follower_ns":["robot_1","robot_2","robot_3"],
     "offsets_x":[-1.0,-1.0,-2.0],"offsets_y":[0.6,-0.6,0.0],"reason":"wedge formation"}
@@ -166,8 +177,8 @@ Operator: "cyan and magenta go to hub, then cyan forms a line while magenta goes
 {"reasoning":"Two groups travel together to hub (parallel mapf), then split: cyan forms a line and magenta returns to spawn. The line formation needs a staging check, but since cyan just arrived at hub together the followers are already in a cluster — staging is still needed per the pre-check rule. Using sequence(parallel(move), parallel(form+move-home)).","reply":"Cyan and magenta move to hub together, then cyan forms a line while magenta returns home.",
  "plan":{"type":"sequence","steps":[
    {"type":"parallel","steps":[
-     {"type":"mapf","robot_ids":[0,1,2,3],"goals":[[-6.0,2.0],[-6.0,2.0],[-6.0,2.0],[-6.0,2.0]],"reason":"cyan to hub"},
-     {"type":"mapf","robot_ids":[4,5,6,7],"goals":[[-6.0,2.0],[-6.0,2.0],[-6.0,2.0],[-6.0,2.0]],"reason":"magenta to hub"}
+     {"type":"mapf","robot_ids":[0,1,2,3],"goals":[[-6.0,2.0]],"spread":true,"reason":"cyan to hub"},
+     {"type":"mapf","robot_ids":[4,5,6,7],"goals":[[-6.0,2.0]],"spread":true,"reason":"magenta to hub"}
    ]},
    {"type":"parallel","steps":[
      {"type":"formation","formation_id":"cyan_line","leader_ns":"robot_0",

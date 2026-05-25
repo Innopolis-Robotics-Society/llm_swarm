@@ -35,27 +35,35 @@ class HttpClient(LLMClientBase):
         self.force_chat = force_chat
         self.enable_stop = enable_stop
 
-    async def generate(self, prompt: str | list, prompt_kind: str = 'decision') -> str:
+    async def generate(
+        self,
+        prompt: str | list,
+        prompt_kind: str = 'decision',
+        response_format: dict | None = None,
+    ) -> str:
         if self._should_use_chat(prompt):
-            return await self._chat(self._to_messages(prompt))
+            return await self._chat(self._to_messages(prompt), response_format)
         return await self._completions(str(prompt))
 
-    async def stream(self, messages: list[dict]):
+    async def stream(self, messages: list[dict], response_format: dict | None = None):
         """Yield chat-completion chunks, falling back to a full response.
 
         Some OpenAI-compatible providers or local gateways reject streaming.
         In that case, keep /llm/chat usable by returning the non-streamed
-        response as a single chunk.
+        response as a single chunk. response_format, when given, is a JSON
+        schema sent as OpenAI ``response_format: json_schema``.
         """
         emitted = False
         try:
-            async for chunk in self._stream_chat(self._to_messages(messages)):
+            async for chunk in self._stream_chat(
+                self._to_messages(messages), response_format):
                 emitted = True
                 yield chunk
         except Exception:
             if emitted:
                 raise
-            full = await self.generate(messages, prompt_kind='chat')
+            full = await self.generate(
+                messages, prompt_kind='chat', response_format=response_format)
             if full:
                 yield full
 
@@ -229,6 +237,18 @@ class HttpClient(LLMClientBase):
             payload['stop'] = ['\n## ', '\n# ', '</s>']
         return payload
 
+    @staticmethod
+    def _with_response_format(payload: dict, response_format: dict | None) -> dict:
+        """Attach an OpenAI json_schema response_format from a raw JSON schema."""
+        if not response_format:
+            return payload
+        payload = dict(payload)
+        payload['response_format'] = {
+            'type': 'json_schema',
+            'json_schema': {'name': 'plan_response', 'schema': response_format},
+        }
+        return payload
+
     async def _completions(self, prompt: str) -> str:
         """POST to /v1/completions (flat prompt string)."""
         payload = {
@@ -240,7 +260,8 @@ class HttpClient(LLMClientBase):
         data = await self._post_json(self.endpoint, self._with_optional_stop(payload))
         return self._extract(data)
 
-    async def _chat(self, messages: list[dict]) -> str:
+    async def _chat(
+        self, messages: list[dict], response_format: dict | None = None) -> str:
         """POST to /v1/chat/completions (messages list)."""
         payload = {
             'model': self.model,
@@ -248,22 +269,22 @@ class HttpClient(LLMClientBase):
             'max_tokens': self.max_tokens,
             'temperature': self.temperature,
         }
-        data = await self._post_json(
-            self._chat_endpoint(),
-            self._with_optional_stop(payload),
-        )
+        payload = self._with_response_format(
+            self._with_optional_stop(payload), response_format)
+        data = await self._post_json(self._chat_endpoint(), payload)
         return self._extract(data)
 
-    async def _stream_chat(self, messages: list[dict]):
+    async def _stream_chat(
+        self, messages: list[dict], response_format: dict | None = None):
         import aiohttp
 
-        payload = self._with_optional_stop({
+        payload = self._with_response_format(self._with_optional_stop({
             'model': self.model,
             'messages': messages,
             'stream': True,
             'max_tokens': self.max_tokens,
             'temperature': self.temperature,
-        })
+        }), response_format)
         timeout = aiohttp.ClientTimeout(total=self.timeout)
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(

@@ -59,6 +59,7 @@ from iros_llm_orchestrator.context.provider import (
     utc_now,
 )
 from iros_llm_orchestrator.common.tool_definitions import TOOL_DEFINITIONS
+from iros_llm_orchestrator.common.plan_schema import PLAN_RESPONSE_SCHEMA
 from iros_llm_orchestrator.common.tool_executor import ToolExecutor
 from iros_llm_orchestrator.user_chat_node import (
     _parse_response, _postprocess_plan,
@@ -119,6 +120,14 @@ class ChatServer(Node):
         # prompt fits the context window the model plans directly without tools.
         # Off by default — flip on for spatial-precision experiments.
         self.declare_parameter('tool_calling_enabled',   False)
+        # Structured outputs: send the plan JSON schema to the backend
+        # (Ollama format / OpenAI response_format) so the model can only emit
+        # schema-valid JSON. Applies to the plain (non-tool) path. Conflicts
+        # with tool calling, so keep tool_calling_enabled off when using this.
+        self.declare_parameter('structured_output_enabled', True)
+        # Auto-spread near-coincident mapf goals into a cluster. Off: the LLM
+        # must emit one goal per robot; the motion planner resolves collisions.
+        self.declare_parameter('goal_spread_enabled',    False)
 
         self._max_remediation_attempts = max(0, int(
             self.get_parameter('max_remediation_attempts').value))
@@ -129,6 +138,10 @@ class ChatServer(Node):
         self._stream_reasoning = bool(self.get_parameter('stream_reasoning').value)
         self._tool_calling_enabled = bool(
             self.get_parameter('tool_calling_enabled').value)
+        self._structured_output_enabled = bool(
+            self.get_parameter('structured_output_enabled').value)
+        self._goal_spread_enabled = bool(
+            self.get_parameter('goal_spread_enabled').value)
 
         self._timeout  = float(self.get_parameter('timeout_sec').value)
         self._map_name = self.get_parameter('map_name').value
@@ -437,7 +450,7 @@ class ChatServer(Node):
                 f'parse error: {exc} | raw LLM output ({len(full_raw)} chars): '
                 f'{preview!r}')
             raise _LlmStageError(f'parse error: {exc}') from exc
-        plan = _postprocess_plan(plan, self._map_cfg)
+        plan = _postprocess_plan(plan, self._map_cfg, self._goal_spread_enabled)
         return reply, plan, full_raw
 
     async def _stream_with_tool_loop(
@@ -555,7 +568,8 @@ class ChatServer(Node):
         reasoning tokens live and the parsed reply via _emit_reply_streaming.
         """
         full = ''
-        async for chunk in self._llm.stream(messages):
+        schema = PLAN_RESPONSE_SCHEMA if self._structured_output_enabled else None
+        async for chunk in self._llm.stream(messages, response_format=schema):
             if not chunk:
                 continue
             full += chunk

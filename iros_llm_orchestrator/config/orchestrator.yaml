@@ -44,7 +44,7 @@ llm_passive_observer:
 llm_chat_server:
   ros__parameters:
     # Channel 3 — RViz operator chat -> reply + JSON plan.
-    llm_max_tokens: 6000
+    llm_max_tokens: 6144
     timeout_sec: 60.0
     step_timeout_sec: 120.0
 
@@ -79,13 +79,21 @@ llm_chat_server:
     formation_tolerance_m: 0.5
 
     # Tool calling loop for get_robot_position / get_positions / check_occupancy.
-    # Off by default: with a context window that fits the prompt the model plans
-    # directly; the tool loop only added latency and a prose-fallback failure
-    # mode. Flip on for spatial-precision experiments.
-    tool_calling_enabled: true
+    # Off: with a context window that fits the prompt the model plans directly.
+    # NOTE: mutually exclusive with structured_output_enabled — schema-constrained
+    # decoding suppresses tool_calls — so keep this off when structured outputs
+    # are on. Flip on (and structured_output_enabled off) for tool experiments.
+    tool_calling_enabled: false
     tool_max_iterations: 6
     robot_footprint_radius: 0.22
     scan_timeout_sec: 3.0
+    # Structured outputs: send the plan JSON schema to the backend so the model
+    # can only emit schema-valid JSON (kills the malformed-JSON failure mode).
+    # Applies to the plain (non-tool) path.
+    structured_output_enabled: true
+    # Auto-spread near-coincident mapf goals into a cluster. Off: the LLM emits
+    # one goal per robot and the motion planner resolves collisions.
+    goal_spread_enabled: false
     # Stream reasoning tokens to the panel as stage='thinking' feedback.
     stream_reasoning: true
 
@@ -124,3 +132,5 @@ llm_execute_server:
   ros__parameters:
     # Operator-confirmed plan replay. No LLM call here.
     step_timeout_sec: 120.0
+    # Must match llm_chat_server so a previewed plan executes identically.
+    goal_spread_enabled: false

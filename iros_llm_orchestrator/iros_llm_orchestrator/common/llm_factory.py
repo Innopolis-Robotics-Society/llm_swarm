@@ -12,10 +12,17 @@ from __future__ import annotations
 class LLMClientBase:
     """Minimal interface all backends must implement."""
 
-    async def generate(self, prompt: str | list, prompt_kind: str = 'decision') -> str:
+    async def generate(
+        self,
+        prompt: str | list,
+        prompt_kind: str = 'decision',
+        response_format: dict | None = None,
+    ) -> str:
         raise NotImplementedError
 
-    async def stream(self, prompt: str | list):
+    async def stream(self, prompt: str | list, response_format: dict | None = None):
+        # Backends that support structured outputs override this and honour
+        # response_format; the base fallback ignores it.
         yield await self.generate(prompt, prompt_kind='chat')
 
     async def generate_with_tools(

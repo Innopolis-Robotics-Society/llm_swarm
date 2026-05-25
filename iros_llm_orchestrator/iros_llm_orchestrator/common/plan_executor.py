@@ -103,11 +103,24 @@ def _validate_node(node: dict, path: str = 'plan') -> dict:
     elif node_type == 'mapf':
         ids   = node.get('robot_ids', [])
         goals = node.get('goals', [])
+        spread = bool(node.get('spread', False))
         if not ids:
             raise ValueError(f'{path}: mapf requires non-empty robot_ids')
-        if len(ids) != len(goals):
+        # A single centre for several robots can only mean "grid them around
+        # this point" — infer spread even if the model omitted the flag.
+        if len(goals) == 1 and len(ids) > 1:
+            spread = True
+        if spread:
+            # spread=true: one center (the server grids the robots around it) or
+            # already one per robot. _postprocess_plan expands/declumps it.
+            if len(goals) not in (1, len(ids)):
+                raise ValueError(
+                    f'{path}: spread mapf needs 1 center goal or one per robot '
+                    f'(got robot_ids={len(ids)}, goals={len(goals)})')
+        elif len(ids) != len(goals):
             raise ValueError(
                 f'{path}: robot_ids({len(ids)}) != goals({len(goals)})')
+        node['spread'] = spread
         # Normalise robot ids in place — LLMs (especially small local models)
         # routinely emit "robot_10" instead of the bare int the schema wants.
         try:

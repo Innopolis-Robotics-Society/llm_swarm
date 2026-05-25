@@ -38,25 +38,32 @@ class OllamaClient(LLMClientBase):
     # LLMClientBase interface
     # ------------------------------------------------------------------
 
-    async def generate(self, prompt: str | list, prompt_kind: str = 'decision') -> str:
+    async def generate(
+        self,
+        prompt: str | list,
+        prompt_kind: str = 'decision',
+        response_format: dict | None = None,
+    ) -> str:
         """Non-streaming call. Returns the full response string.
 
         prompt may be:
           str  — flat prompt; injected as a single user message
           list — pre-built messages list [{"role":..,"content":..}]
+        response_format, when given, is a JSON schema passed to Ollama's
+        ``format`` field for constrained (schema-valid) decoding.
         """
         messages = self._to_messages(prompt)
-        return await self._call(messages, stream=False)
+        return await self._call(messages, stream=False, response_format=response_format)
 
     # ------------------------------------------------------------------
     # Streaming helpers (used directly by user_chat_node)
     # ------------------------------------------------------------------
 
-    async def stream(self, messages: list[dict]):
+    async def stream(self, messages: list[dict], response_format: dict | None = None):
         """Async generator yielding text chunks as they arrive from Ollama."""
         import aiohttp
 
-        payload = self._payload(messages, stream=True)
+        payload = self._payload(messages, stream=True, response_format=response_format)
         async with aiohttp.ClientSession() as session:
             async with session.post(self.endpoint, json=payload) as resp:
                 if resp.status != 200:
@@ -196,8 +203,13 @@ class OllamaClient(LLMClientBase):
             return prompt
         return [{'role': 'user', 'content': prompt}]
 
-    def _payload(self, messages: list[dict], stream: bool) -> dict:
-        return {
+    def _payload(
+        self,
+        messages: list[dict],
+        stream: bool,
+        response_format: dict | None = None,
+    ) -> dict:
+        payload = {
             'model':    self.model,
             'messages': messages,
             'stream':   stream,
@@ -208,11 +220,19 @@ class OllamaClient(LLMClientBase):
                 'stop':        ['\n## ', '\n# ', '</s>', '<|im_end|>'],
             },
         }
+        if response_format:
+            payload['format'] = response_format
+        return payload
 
-    async def _call(self, messages: list[dict], stream: bool) -> str:
+    async def _call(
+        self,
+        messages: list[dict],
+        stream: bool,
+        response_format: dict | None = None,
+    ) -> str:
         import aiohttp
 
-        payload = self._payload(messages, stream=stream)
+        payload = self._payload(messages, stream=stream, response_format=response_format)
         async with aiohttp.ClientSession() as session:
             async with session.post(self.endpoint, json=payload) as resp:
                 if resp.status != 200:

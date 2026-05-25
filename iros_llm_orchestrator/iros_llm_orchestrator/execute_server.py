@@ -30,6 +30,10 @@ class ExecuteServer(Node):
 
         self.declare_parameter('step_timeout_sec', 120.0)
         self.declare_parameter('map_name',         'cave')
+        # Must match chat_server so a previewed plan executes identically.
+        self.declare_parameter('goal_spread_enabled', False)
+        self._goal_spread_enabled = bool(
+            self.get_parameter('goal_spread_enabled').value)
 
         self._map_name = self.get_parameter('map_name').value
         try:
@@ -74,10 +78,10 @@ class ExecuteServer(Node):
         except ValueError as exc:
             return self._fail(goal_handle, result, f'parse error: {exc}')
 
-        # Re-apply the same post-processing chat_server runs (clamp + spread
-        # mapf goals). The panel may have rendered raw goals from the original
-        # parsed plan — we keep behaviour identical.
-        plan = _postprocess_plan(plan, self._map_cfg)
+        # Re-apply the same post-processing chat_server runs (clamp, and spread
+        # only if enabled). The panel may have rendered raw goals from the
+        # original parsed plan — we keep behaviour identical.
+        plan = _postprocess_plan(plan, self._map_cfg, self._goal_spread_enabled)
 
         self._publish_fb(goal_handle, stage='executing')
         executor = PlanExecutor(
