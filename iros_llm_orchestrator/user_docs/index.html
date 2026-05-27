@@ -46,7 +46,7 @@
 <li><a class="reference internal" href="#channels">Channels</a></li>
 <li><a class="reference internal" href="#nodes">Nodes</a></li>
 <li><a class="reference internal" href="#ros-interfaces">ROS interfaces</a></li>
-<li><a class="reference internal" href="#llm-backend-selection">LLM backend selection</a></li>
+<li><a class="reference internal" href="#llm-endpoint-selection">LLM endpoint selection</a></li>
 <li><a class="reference internal" href="#key-parameters">Key parameters</a></li>
 <li><a class="reference internal" href="#remediation-loop-and-mcp-context">Remediation loop and MCP context</a></li>
 <li><a class="reference internal" href="#datasets">Datasets</a></li>
@@ -183,10 +183,13 @@ by <code class="docutils literal notranslate"><span class="pre">chat_server</spa
 <li><p><code class="docutils literal notranslate"><span class="pre">/doors/{open,</span> <span class="pre">close}</span></code></p></li>
 </ul>
 </section>
-<section id="llm-backend-selection">
-<h2>LLM backend selection<a class="headerlink" href="#llm-backend-selection" title="Link to this heading"></a></h2>
-<p>The backend is selected by the <code class="docutils literal notranslate"><span class="pre">llm_mode</span></code> parameter (or the
-<code class="docutils literal notranslate"><span class="pre">llm_backend</span></code> launch argument) and produced by <code class="docutils literal notranslate"><span class="pre">llm_factory</span></code>:</p>
+<section id="llm-endpoint-selection">
+<h2>LLM endpoint selection<a class="headerlink" href="#llm-endpoint-selection" title="Link to this heading"></a></h2>
+<p>Normal launch usage selects the LLM with one public argument,
+<code class="docutils literal notranslate"><span class="pre">llm_endpoint</span></code>. <code class="docutils literal notranslate"><span class="pre">launch/orchestrator.launch.py</span></code> resolves that endpoint
+to internal <code class="docutils literal notranslate"><span class="pre">llm_mode</span></code> and <code class="docutils literal notranslate"><span class="pre">llm_model</span></code> parameters before starting the
+LLM-capable nodes. The node-level backend is still produced by
+<code class="docutils literal notranslate"><span class="pre">llm_factory</span></code>:</p>
 <table class="docutils align-default">
 <colgroup>
 <col style="width: 20.0%" />
@@ -203,12 +206,12 @@ by <code class="docutils literal notranslate"><span class="pre">chat_server</spa
 offline development.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ollama</span></code></p></td>
-<td><p>Local Ollama instance over <code class="docutils literal notranslate"><span class="pre">/api/chat</span></code> (streaming).</p></td>
+<td><p>Local Ollama instance over <code class="docutils literal notranslate"><span class="pre">/api/chat</span></code> (streaming). This is the
+default when <code class="docutils literal notranslate"><span class="pre">llm_endpoint</span></code> is empty.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">http</span></code></p></td>
-<td><p>OpenAI-compatible <code class="docutils literal notranslate"><span class="pre">/v1/chat/completions</span></code> (default for the
-hosted setup; the orchestrator can be pointed at any compatible
-endpoint).</p></td>
+<td><p>Known OpenAI-compatible <code class="docutils literal notranslate"><span class="pre">/v1/chat/completions</span></code> endpoint. The
+endpoint must be present in the launch resolver with its model name.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">local</span></code></p></td>
 <td><p>In-process HuggingFace Transformers inference (<code class="docutils literal notranslate"><span class="pre">transformers</span></code>
@@ -321,11 +324,13 @@ context provider. Run with:</p>
 <section id="launch">
 <h2>Launch<a class="headerlink" href="#launch" title="Link to this heading"></a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">launch/orchestrator.launch.py</span></code> brings up all five nodes plus an
-optional <code class="docutils literal notranslate"><span class="pre">rosbridge_server</span></code>. Arguments mirror the chat-channel
-parameters (<code class="docutils literal notranslate"><span class="pre">llm_backend</span></code>, <code class="docutils literal notranslate"><span class="pre">llm_endpoint</span></code>, <code class="docutils literal notranslate"><span class="pre">llm_model</span></code>,
-<code class="docutils literal notranslate"><span class="pre">enable_passive_observer</span></code>, <code class="docutils literal notranslate"><span class="pre">enable_rosbridge</span></code>, <code class="docutils literal notranslate"><span class="pre">scenario</span></code>,
-<code class="docutils literal notranslate"><span class="pre">scenarios_file</span></code>). The full demo (<code class="docutils literal notranslate"><span class="pre">swarm_full_demo.launch.py</span></code> from
-<code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_bringup</span></code>) includes this launch file.</p>
+optional <code class="docutils literal notranslate"><span class="pre">rosbridge_server</span></code>. The public LLM selection argument is
+<code class="docutils literal notranslate"><span class="pre">llm_endpoint</span></code>; the launch resolver fills internal <code class="docutils literal notranslate"><span class="pre">llm_mode</span></code> and
+<code class="docutils literal notranslate"><span class="pre">llm_model</span></code> parameters for decision, passive observer, and chat nodes.
+Other arguments include <code class="docutils literal notranslate"><span class="pre">enable_passive_observer</span></code>, <code class="docutils literal notranslate"><span class="pre">enable_rosbridge</span></code>,
+<code class="docutils literal notranslate"><span class="pre">scenario</span></code>, and <code class="docutils literal notranslate"><span class="pre">scenarios_file</span></code>. The full demo
+(<code class="docutils literal notranslate"><span class="pre">swarm_full_demo.launch.py</span></code> from <code class="docutils literal notranslate"><span class="pre">iros_llm_swarm_bringup</span></code>) includes
+this launch file.</p>
 </section>
 </section>
 

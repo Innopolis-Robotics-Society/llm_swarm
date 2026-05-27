@@ -89,11 +89,14 @@ ROS interfaces
 * ``/obstacles/{add_circle, add_rectangle, add_door, remove, list}``
 * ``/doors/{open, close}``
 
-LLM backend selection
----------------------
+LLM endpoint selection
+----------------------
 
-The backend is selected by the ``llm_mode`` parameter (or the
-``llm_backend`` launch argument) and produced by ``llm_factory``:
+Normal launch usage selects the LLM with one public argument,
+``llm_endpoint``. ``launch/orchestrator.launch.py`` resolves that endpoint
+to internal ``llm_mode`` and ``llm_model`` parameters before starting the
+LLM-capable nodes. The node-level backend is still produced by
+``llm_factory``:
 
 .. list-table::
    :header-rows: 1
@@ -105,11 +108,11 @@ The backend is selected by the ``llm_mode`` parameter (or the
      - In-process keyword heuristic. No network. Used by tests and
        offline development.
    * - ``ollama``
-     - Local Ollama instance over ``/api/chat`` (streaming).
+     - Local Ollama instance over ``/api/chat`` (streaming). This is the
+       default when ``llm_endpoint`` is empty.
    * - ``http``
-     - OpenAI-compatible ``/v1/chat/completions`` (default for the
-       hosted setup; the orchestrator can be pointed at any compatible
-       endpoint).
+     - Known OpenAI-compatible ``/v1/chat/completions`` endpoint. The
+       endpoint must be present in the launch resolver with its model name.
    * - ``local``
      - In-process HuggingFace Transformers inference (``transformers``
        client).
@@ -206,8 +209,10 @@ Launch
 ------
 
 ``launch/orchestrator.launch.py`` brings up all five nodes plus an
-optional ``rosbridge_server``. Arguments mirror the chat-channel
-parameters (``llm_backend``, ``llm_endpoint``, ``llm_model``,
-``enable_passive_observer``, ``enable_rosbridge``, ``scenario``,
-``scenarios_file``). The full demo (``swarm_full_demo.launch.py`` from
-``iros_llm_swarm_bringup``) includes this launch file.
+optional ``rosbridge_server``. The public LLM selection argument is
+``llm_endpoint``; the launch resolver fills internal ``llm_mode`` and
+``llm_model`` parameters for decision, passive observer, and chat nodes.
+Other arguments include ``enable_passive_observer``, ``enable_rosbridge``,
+``scenario``, and ``scenarios_file``. The full demo
+(``swarm_full_demo.launch.py`` from ``iros_llm_swarm_bringup``) includes
+this launch file.
