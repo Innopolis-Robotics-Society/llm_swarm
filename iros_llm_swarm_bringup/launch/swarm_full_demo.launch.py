@@ -23,6 +23,7 @@ Examples:
   ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py
   ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py scenario:=warehouse_2 planner:=pbs
   ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py enable_formation:=false
+  ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py llm_endpoint:=http://10.100.11.191:8000/v1/chat/completions
 """
 
 from launch import LaunchDescription
@@ -89,23 +90,12 @@ def generate_launch_description():
         description='Route BT MapfPlan through the LLM MAPF proxy so WARN/ERROR '
                     'feedback can ask /llm/decision.',
     )
-    llm_backend_arg = DeclareLaunchArgument(
-        'llm_backend',
-        default_value='ollama',
-        choices=['http', 'ollama', 'mock', 'local'],
-        description='LLM backend for orchestrator nodes. Defaults to local '
-                    'Ollama (native /api/chat). Use "http" for an '
-                    'OpenAI-compatible endpoint via llm_endpoint.',
-    )
     llm_endpoint_arg = DeclareLaunchArgument(
         'llm_endpoint',
         default_value='',
-        description='Optional LLM endpoint override passed to orchestrator.',
-    )
-    llm_model_arg = DeclareLaunchArgument(
-        'llm_model',
-        default_value='',
-        description='Optional LLM model override passed to orchestrator.',
+        description='Only public LLM selection parameter. Empty uses local '
+                    'Ollama; known OpenAI-compatible endpoints resolve their '
+                    'model names in the orchestrator launch file.',
     )
     enable_formation_arg = DeclareLaunchArgument(
         'enable_formation',
@@ -129,9 +119,7 @@ def generate_launch_description():
     enable_passive   = LaunchConfiguration('enable_passive_observer')
     enable_rosbridge = LaunchConfiguration('enable_rosbridge')
     enable_llm_mapf_proxy = LaunchConfiguration('enable_llm_mapf_proxy')
-    llm_backend      = LaunchConfiguration('llm_backend')
     llm_endpoint     = LaunchConfiguration('llm_endpoint')
-    llm_model        = LaunchConfiguration('llm_model')
     enable_formation = LaunchConfiguration('enable_formation')
     rviz_cfg         = LaunchConfiguration('rviz_cfg')
 
@@ -208,9 +196,7 @@ def generate_launch_description():
             ('enable_passive_observer', enable_passive),
             ('enable_rosbridge', enable_rosbridge),
             ('enable_llm_mapf_proxy', enable_llm_mapf_proxy),
-            ('llm_backend', llm_backend),
             ('llm_endpoint', llm_endpoint),
-            ('llm_model', llm_model),
             ('scenario', scenario),
             ('scenarios_file', scenarios_file),
         ],
@@ -288,9 +274,7 @@ def generate_launch_description():
         enable_passive_arg,
         enable_rosbridge_arg,
         enable_llm_mapf_proxy_arg,
-        llm_backend_arg,
         llm_endpoint_arg,
-        llm_model_arg,
         enable_formation_arg,
         rviz_cfg_arg,
 

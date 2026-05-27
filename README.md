@@ -46,9 +46,165 @@ ros2 launch iros_llm_swarm_bringup swarm_lns.launch.py
 ros2 launch iros_llm_swarm_bringup swarm_warehouse.launch.py num_robots:=5
 ```
 
+## Running with an LLM
+
+There is only one launch parameter for LLM selection: `llm_endpoint`.
+It must be empty for local Ollama, an Ollama `/api/chat` URL, or one of
+the known team OpenAI-compatible endpoints. The launch file resolves the
+internal backend mode, model name, and chat flags automatically.
+
+OpenAI-compatible APIs still require a model name in the request body, so
+unknown `/chat/completions` endpoints fail early until they are added to
+the hardcoded endpoint resolver with a model name.
+
+### Local Ollama
+
+Prerequisite:
+
+```bash
+ollama serve
+ollama pull mistral-small3.1
+```
+
+Launch with the default local model:
+
+```bash
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py
+```
+
+or explicitly:
+
+```bash
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py \
+  llm_endpoint:=http://localhost:11434/api/chat
+```
+
+Resolved internally:
+
+```text
+llm_mode=ollama
+llm_endpoint=http://localhost:11434/api/chat
+llm_model=mistral-small3.1
+```
+
+### Team Qwen32B on ClearML/vLLM
+
+Prerequisite:
+
+```bash
+export LLM_API_KEY="local-vllm-token"
+```
+
+Endpoint check:
+
+```bash
+curl http://10.100.11.191:8000/v1/models \
+  -H "Authorization: Bearer $LLM_API_KEY"
+```
+
+Launch:
+
+```bash
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py \
+  llm_endpoint:=http://10.100.11.191:8000/v1/chat/completions
+```
+
+Resolved internally:
+
+```text
+llm_mode=http
+llm_endpoint=http://10.100.11.191:8000/v1/chat/completions
+llm_model=qwen32b
+```
+
+### Optional Qwen72B on ClearML/vLLM
+
+This only works if the Qwen72B vLLM server is running on port `8001`.
+Treat it as optional/experimental because the 2xA100 worker queue may not
+always be available.
+
+```bash
+export LLM_API_KEY="local-vllm-token"
+
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py \
+  llm_endpoint:=http://10.100.11.191:8001/v1/chat/completions
+```
+
+Resolved internally:
+
+```text
+llm_mode=http
+llm_endpoint=http://10.100.11.191:8001/v1/chat/completions
+llm_model=qwen72b
+```
+
+### Groq Fallback
+
+```bash
+export LLM_API_KEY="<groq key>"
+
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py \
+  llm_endpoint:=https://api.groq.com/openai/v1/chat/completions
+```
+
+Resolved internally:
+
+```text
+llm_mode=http
+llm_endpoint=https://api.groq.com/openai/v1/chat/completions
+llm_model=llama-3.3-70b-versatile
+```
+
+### Troubleshooting
+
+Check the resolved runtime parameters:
+
+```bash
+ros2 param get /llm_chat_server llm_mode
+ros2 param get /llm_chat_server llm_endpoint
+ros2 param get /llm_chat_server llm_model
+```
+
+Expected Qwen32B:
+
+```text
+String value is: http
+String value is: http://10.100.11.191:8000/v1/chat/completions
+String value is: qwen32b
+```
+
+Expected local:
+
+```text
+String value is: ollama
+String value is: http://localhost:11434/api/chat
+String value is: mistral-small3.1
+```
+
+Common errors:
+
+```text
+401 Unauthorized
+```
+
+`LLM_API_KEY` is missing or wrong.
+
+```text
+Connection refused
+```
+
+The vLLM/Ollama server is not running, or the IP/port is unreachable.
+
+```text
+Unknown OpenAI-compatible llm_endpoint
+```
+
+The URL must be added to the hardcoded endpoint resolver with a model name.
+
 ### Full Demo (with LLM)
 
-Запускает всю систему — симуляцию + MAPF + Nav2 + BT + LLM orchestrator (mock).
+Запускает всю систему — симуляцию + MAPF + Nav2 + BT + LLM orchestrator
+(local Ollama by default).
 
 #### Режим 1 — только реактивный LLM (канал 1, по умолчанию)
 
@@ -77,7 +233,7 @@ ros2 launch iros_llm_orchestrator orchestrator.launch.py enable_passive_observer
 Проверить что канал 2 активен — в логах должно быть:
 
 ```
-[llm_passive_observer] PassiveObserver up: mode=mock, cooldown=10.0s, trigger=...
+[llm_passive_observer] PassiveObserver ready (mode=ollama, enabled=True)
 ```
 
 При `enabled=false` нода запускается но при получении `/bt/state` сразу возвращается (silent mode).
@@ -841,9 +997,11 @@ Three-channel LLM advisory layer (Python). Five nodes:
 - `user_chat` — CLI chatbot for offline testing of the channel-3
   pipeline.
 
-Backend selectable at launch (`llm_backend:=mock|ollama|http|local`).
-HTTP backend is OpenAI-compatible. Every call is appended to JSONL for
-SFT collection — channel 1 to `~/.ros/llm_decisions/`, channel 2 to
+LLM selection is endpoint-only at launch (`llm_endpoint:=...`). The
+orchestrator launch file resolves the internal backend mode and model name
+from known endpoint profiles, and unknown OpenAI-compatible endpoints must be
+added to that resolver before use. Every call is appended to JSONL for SFT
+collection — channel 1 to `~/.ros/llm_decisions/`, channel 2 to
 `~/.ros/llm_commands/`. The MCP context provider spawns
 `uvx ros-mcp --transport=stdio` and is locked to a read-only
 allowlist; the LLM never sees MCP tools directly, only a bounded
@@ -926,4 +1084,3 @@ DDS and performance tuning scripts are in `src/scripts/`:
 - [ ] Fault tolerance and communication loss handling
 - [ ] LLM-driven fleet-level task allocation (beyond reactive/chat — proactive mission decomposition)
 - [ ] Transition to Gazebo Harmonic for 3D simulation
-

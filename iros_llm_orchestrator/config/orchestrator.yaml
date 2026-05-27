@@ -1,12 +1,13 @@
 "/**":
   ros__parameters:
     # Shared LLM backend/model settings for LLM-capable nodes.
-    # Defaults use an OpenAI-compatible HTTP API. Never store a real API key
-    # here; set the environment variable named by llm_api_key_env instead.
+    # Launch files override these via a single public llm_endpoint argument.
+    # Never store a real API key here; set the environment variable named by
+    # llm_api_key_env instead.
 
-    llm_mode: "ollama"                              # was "http"
+    llm_mode: "ollama"
     llm_endpoint: "http://localhost:11434/api/chat" # Ollama default
-    llm_model: "qwen2.5:14b"                       # or qwen2.5:7b, mistral-small3.1
+    llm_model: "mistral-small3.1"
 
     # llm_mode: "http"
     # llm_endpoint: "https://api.groq.com/openai/v1/chat/completions"

@@ -10,6 +10,103 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 
+LOCAL_OLLAMA_ENDPOINT = 'http://localhost:11434/api/chat'
+DEFAULT_OLLAMA_MODEL = 'mistral-small3.1'
+
+
+def _llm_profile(
+    profile: str,
+    llm_mode: str,
+    llm_endpoint: str,
+    llm_model: str,
+) -> dict:
+    return {
+        'profile': profile,
+        'llm_mode': llm_mode,
+        'llm_endpoint': llm_endpoint,
+        'llm_model': llm_model,
+        'llm_force_chat': True,
+        'llm_enable_stop': False,
+    }
+
+
+_KNOWN_LLM_ENDPOINT_PROFILES = {
+    '': _llm_profile(
+        'local-ollama', 'ollama', LOCAL_OLLAMA_ENDPOINT, DEFAULT_OLLAMA_MODEL),
+    LOCAL_OLLAMA_ENDPOINT: _llm_profile(
+        'local-ollama', 'ollama', LOCAL_OLLAMA_ENDPOINT, DEFAULT_OLLAMA_MODEL),
+    'http://127.0.0.1:11434/api/chat': _llm_profile(
+        'local-ollama', 'ollama', LOCAL_OLLAMA_ENDPOINT, DEFAULT_OLLAMA_MODEL),
+    'http://10.100.11.191:8000/v1/chat/completions': _llm_profile(
+        'team-qwen32b',
+        'http',
+        'http://10.100.11.191:8000/v1/chat/completions',
+        'qwen32b',
+    ),
+    'http://10.100.11.191:8001/v1/chat/completions': _llm_profile(
+        'team-qwen72b',
+        'http',
+        'http://10.100.11.191:8001/v1/chat/completions',
+        'qwen72b',
+    ),
+    'https://api.groq.com/openai/v1/chat/completions': _llm_profile(
+        'groq-llama70b',
+        'http',
+        'https://api.groq.com/openai/v1/chat/completions',
+        'llama-3.3-70b-versatile',
+    ),
+}
+
+_KNOWN_LLM_ENDPOINT_DISPLAY = (
+    LOCAL_OLLAMA_ENDPOINT,
+    'http://10.100.11.191:8000/v1/chat/completions',
+    'http://10.100.11.191:8001/v1/chat/completions',
+    'https://api.groq.com/openai/v1/chat/completions',
+)
+
+
+def _known_endpoint_lines() -> str:
+    return '\n'.join(f'  {endpoint}' for endpoint in _KNOWN_LLM_ENDPOINT_DISPLAY)
+
+
+def _unknown_openai_endpoint_error(endpoint: str) -> str:
+    return (
+        'Unknown OpenAI-compatible llm_endpoint:\n\n'
+        f'  {endpoint}\n\n'
+        'This launch accepts only one public LLM parameter, so the model name '
+        'must be known from the endpoint profile.\n\n'
+        'Add this endpoint to resolve_llm_endpoint() with its model name.\n\n'
+        'Known endpoints:\n'
+        f'{_known_endpoint_lines()}'
+    )
+
+
+def resolve_llm_endpoint(endpoint_spec: str) -> dict:
+    """Resolve the single public LLM endpoint into internal node parameters."""
+    endpoint = (endpoint_spec or '').strip()
+
+    known_profile = _KNOWN_LLM_ENDPOINT_PROFILES.get(endpoint)
+    if known_profile:
+        return dict(known_profile)
+
+    if '/api/chat' in endpoint:
+        return _llm_profile(
+            'custom-ollama', 'ollama', endpoint, DEFAULT_OLLAMA_MODEL)
+
+    if '/chat/completions' in endpoint:
+        raise ValueError(_unknown_openai_endpoint_error(endpoint))
+
+    raise ValueError(
+        'Unknown llm_endpoint:\n\n'
+        f'  {endpoint}\n\n'
+        'Use an Ollama /api/chat endpoint, or add an OpenAI-compatible '
+        '/chat/completions endpoint to resolve_llm_endpoint() with its '
+        'model name.\n\n'
+        'Known endpoints:\n'
+        f'{_known_endpoint_lines()}'
+    )
+
+
 def _resolve_map_name(context) -> str:
     """Read scenarios YAML, return the bare stem of the active scenario's
     map_description (e.g. ``warehouse.yaml`` -> ``warehouse``). Falls back to
@@ -28,38 +125,6 @@ def _resolve_map_name(context) -> str:
     return os.path.splitext(md)[0]
 
 
-def _resolve_llm_overrides(context) -> dict:
-    """Return launch-time LLM backend overrides.
-
-    The YAML keeps the external HTTP default. This helper lets demos switch
-    back to local Ollama with one launch argument instead of editing all three
-    LLM node sections by hand.
-    """
-    backend = LaunchConfiguration('llm_backend').perform(context).strip().lower()
-    endpoint = LaunchConfiguration('llm_endpoint').perform(context).strip()
-    model = LaunchConfiguration('llm_model').perform(context).strip()
-
-    overrides = {'llm_mode': backend}
-    if backend == 'ollama':
-        overrides.update({
-            'llm_endpoint': endpoint or 'http://localhost:11434/api/chat',
-            'llm_model': model or 'qwen2.5:14b',
-            'llm_api_key': '',
-            'llm_force_chat': True,
-            'llm_enable_stop': False,
-        })
-    elif backend == 'http':
-        if endpoint:
-            overrides['llm_endpoint'] = endpoint
-        if model:
-            overrides['llm_model'] = model
-    elif backend == 'local':
-        if model:
-            overrides['llm_model'] = model
-
-    return overrides
-
-
 def setup(context, *args, **kwargs):
     enable_passive = LaunchConfiguration('enable_passive_observer')
     enable_rosbridge = LaunchConfiguration('enable_rosbridge')
@@ -73,8 +138,21 @@ def setup(context, *args, **kwargs):
 
     map_name = _resolve_map_name(context)
     map_param = {'map_name': map_name}
-    llm_overrides = _resolve_llm_overrides(context)
+    endpoint_spec = LaunchConfiguration('llm_endpoint').perform(context).strip()
+    llm_profile = resolve_llm_endpoint(endpoint_spec)
+    llm_overrides = {
+        key: value for key, value in llm_profile.items() if key != 'profile'
+    }
     llm_env = {'LLM_API_KEY': os.environ.get('LLM_API_KEY', '')}
+    llm_notice = LogInfo(
+        msg=(
+            'Resolved LLM endpoint: '
+            f'profile={llm_profile["profile"]} '
+            f'mode={llm_profile["llm_mode"]} '
+            f'endpoint={llm_profile["llm_endpoint"]} '
+            f'model={llm_profile["llm_model"]}'
+        )
+    )
 
     rosbridge_condition = IfCondition(enable_rosbridge)
     rosbridge_notice = LogInfo(
@@ -91,6 +169,7 @@ def setup(context, *args, **kwargs):
     return [
         rosbridge_notice,
         rosbridge,
+        llm_notice,
         Node(
             package='iros_llm_orchestrator',
             executable='decision_server',
@@ -143,27 +222,12 @@ def setup(context, *args, **kwargs):
 
 
 def generate_launch_description():
-    llm_backend_arg = DeclareLaunchArgument(
-        'llm_backend',
-        default_value='ollama',
-        description='LLM backend override for decision/passive/chat nodes. '
-                    'Defaults to local Ollama (native /api/chat). Use "http" '
-                    'for an OpenAI-compatible endpoint via llm_endpoint.',
-        choices=['http', 'ollama', 'mock', 'local'],
-    )
-
     llm_endpoint_arg = DeclareLaunchArgument(
         'llm_endpoint',
         default_value='',
-        description='Optional LLM endpoint override. Empty keeps YAML for '
-                    'http and uses the local Ollama default for ollama.',
-    )
-
-    llm_model_arg = DeclareLaunchArgument(
-        'llm_model',
-        default_value='',
-        description='Optional LLM model override. Empty keeps YAML for http '
-                    'and uses qwen2.5:14b for ollama.',
+        description='Only public LLM selection parameter. Empty resolves to '
+                    'local Ollama; known OpenAI-compatible endpoints resolve '
+                    'their model names from the launch profile map.',
     )
 
     enable_passive_arg = DeclareLaunchArgument(
@@ -210,9 +274,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        llm_backend_arg,
         llm_endpoint_arg,
-        llm_model_arg,
         enable_passive_arg,
         enable_rosbridge_arg,
         enable_llm_mapf_proxy_arg,
