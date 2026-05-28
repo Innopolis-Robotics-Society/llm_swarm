@@ -19,16 +19,16 @@
 
         <CheckMode mode="{@mode}" expected="idle"/>
 
-        <Sequence name="MapfBranch">
+        <ReactiveSequence name="MapfBranch">
           <CheckMode mode="{@mode}" expected="mapf"/>
           <RunOnce trigger="{@command_seq}">
             <MapfPlan
               robot_ids="{@robot_ids}"
               goals="{@goals}"/>
           </RunOnce>
-        </Sequence>
+        </ReactiveSequence>
 
-        <Sequence name="FormationBranch">
+        <ReactiveSequence name="FormationBranch">
           <CheckMode mode="{@mode}" expected="formation"/>
           <RunOnce trigger="{@command_seq}">
             <SetFormation
@@ -42,7 +42,7 @@
               active_formation="{@active_formation}"
               formation_warn="{@formation_warn}"/>
           </RunOnce>
-        </Sequence>
+        </ReactiveSequence>
 
       </ReactiveFallback>
 

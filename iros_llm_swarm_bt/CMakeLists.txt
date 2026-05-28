@@ -86,6 +86,7 @@ install(
 
 install(PROGRAMS
   scripts/demo_20_robot.py
+  scripts/demo_triados.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
@@ -97,6 +98,7 @@ if(BUILD_TESTING)
 
   find_package(launch_testing_ament_cmake REQUIRED)
   add_launch_test(test/test_bt_integration_mapf.py)
+  add_launch_test(test/test_bt_integration_mapf_form.py)
 endif()
 
 ament_export_include_directories(include)
