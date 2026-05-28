@@ -123,9 +123,15 @@ def generate_launch_description():
     enable_formation = LaunchConfiguration('enable_formation')
     rviz_cfg         = LaunchConfiguration('rviz_cfg')
 
-    is_lns        = IfCondition(PythonExpression(["'", planner, "' == 'lns'"]))
-    is_pbs        = IfCondition(PythonExpression(["'", planner, "' == 'pbs'"]))
-    use_formation = IfCondition(enable_formation)
+    is_lns           = IfCondition(PythonExpression(["'", planner, "' == 'lns'"]))
+    is_pbs           = IfCondition(PythonExpression(["'", planner, "' == 'pbs'"]))
+    use_formation    = IfCondition(enable_formation)
+
+    set_goals_target = PythonExpression([
+        "'/llm/swarm/set_goals_proxy' if '",
+        enable_llm_mapf_proxy,
+        "' == 'true' else '/swarm/set_goals'",
+    ])
 
     # ----------------------------------------------------- foundational layers
     stage = IncludeLaunchDescription(
@@ -239,21 +245,11 @@ def generate_launch_description():
         condition=use_formation,
     )
 
-    bt_runner_proxy = Node(
+    bt_runner = Node(
         package='iros_llm_swarm_bt',
         executable='bt_runner',
         output='screen',
-        remappings=[
-            ('/swarm/set_goals', '/llm/swarm/set_goals_proxy'),
-        ],
-        condition=IfCondition(enable_llm_mapf_proxy),
-    )
-
-    bt_runner_direct = Node(
-        package='iros_llm_swarm_bt',
-        executable='bt_runner',
-        output='screen',
-        condition=UnlessCondition(enable_llm_mapf_proxy),
+        remappings=[('/swarm/set_goals', set_goals_target)],
     )
 
     rviz = Node(
@@ -307,8 +303,7 @@ def generate_launch_description():
 
         TimerAction(period=20.0, actions=[
             LogInfo(msg='Starting bt_runner...'),
-            bt_runner_proxy,
-            bt_runner_direct,
+            bt_runner,
         ]),
 
         TimerAction(period=22.0, actions=[

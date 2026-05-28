@@ -21,8 +21,8 @@ type: reference
 | `LlmDecisionServer` | MultiThreadedExecutor(4) | `_execute` bridges ROS executor thread to private asyncio loop via `run_coroutine_threadsafe` + `fut.result()` — this BLOCKS the executor thread |
 | `ExecuteServer` | MultiThreadedExecutor(4) | Same blocking bridge pattern |
 | `PassiveObserver` | MultiThreadedExecutor(4) | `_on_state` callback dispatches to asyncio loop non-blocking; correct |
-| `FormationManagerNode` | SingleThreadedExecutor | Services are synchronous; correct |
-| `FormationMonitorNode` | SingleThreadedExecutor | Timer + odom callbacks; correct |
+| `FormationManagerNode` | SingleThreadedExecutor (`rclpy.spin(node)`) | Services are synchronous; correct. Confirmed 2026-05-27 — earlier memory had this as MultiThreadedExecutor, which was wrong. |
+| `FormationMonitorNode` | SingleThreadedExecutor (`rclpy.spin(node)`) | Timer + odom callbacks; correct. |
 
 ## Critical finding
 `LlmDecisionServer._execute` and `ExecuteServer._execute` block the ROS executor thread for the full LLM inference duration (up to `timeout_sec` = 10-15s). With `MultiThreadedExecutor(4)` and up to 4 concurrent action goals, all 4 threads can be consumed by LLM waits, starving map/odom subscriptions.

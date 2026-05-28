@@ -20,4 +20,8 @@ type: feedback
 
 - **`TransientLocal` publisher for `/bt/state` with `BestEffort` subscriber (PassiveObserver)**: A Reliable publisher and BestEffort subscriber are compatible — the subscriber receives whatever it can. This is a deliberate bandwidth trade-off.
 
+- **`rclcpp::spin(node->get_node_base_interface())` in `zone_map_server.cpp`**: This is a LifecycleNode spun via its base interface rather than via a dedicated lifecycle executor. Looks unconventional but works — `lifecycle_manager` sends transitions through the same base interface's service callbacks, which the single-threaded executor processes. This is intentional.
+
+- **`dynamic_obstacle_manager` not wired into bringup**: The `swarm_full_demo` and `robot_local_nav` launches include `dynamic_obstacle_manager`, but the CLAUDE.md notes it is "not yet wired into bringup launches." The launch actually does include it — it is the map publisher for the nav2 stack. The CLAUDE.md description is stale. The lock-held-across-publish in `dynamic_obstacle_manager.cpp:152-162` is a real bug regardless.
+
 **Why:** Confirmed by reading the code comments and architecture. These are not bugs.

@@ -88,7 +88,7 @@ int main(int argc, char ** argv)
   RCLCPP_INFO(
     node->get_logger(),
     "bt_runner started: ticking tree at %.1f Hz, "
-    "send commands via 'ros2 action send_goal /llm/command ...'",
+    "Accepts LlmCommand goals on /llm/command.",
     bt_freq);
 
   // Tick loop. Tree is reactive: it never reaches a terminal status in

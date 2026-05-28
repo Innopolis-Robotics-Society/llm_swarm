@@ -19,17 +19,20 @@ type: reference
 
 ## Confirmed broken /robot_N/odom subscribers (use Reliable default, publisher is BestEffort)
 
-- `iros_llm_swarm_mapf/src/mapf_planner_node.cpp:162-163` — `create_subscription(..., 10, ...)` — bare int, expands to QoS(10) = Reliable VOLATILE KEEP_LAST(10). Receives nothing from Stage.
-- `iros_llm_swarm_robot/src/pbs_motion_controller.cpp:118-120` — own odom: `create_subscription(..., "/" + ns_ + "/odom", 10, ...)` — same default.
-- `iros_llm_swarm_robot/src/pbs_motion_controller.cpp:188-190` — leader odom: `create_subscription(..., "/" + leader_ns_ + "/odom", 10, ...)` — same default.
-- `iros_llm_swarm_formation/iros_llm_swarm_formation/formation_manager_node.py:173-176` — `create_subscription(Odometry, f"/{ns}/odom", ..., 10)` — int 10, rclpy default = Reliable.
-- `iros_llm_swarm_formation/iros_llm_swarm_formation/formation_monitor_node.py:244-249` — `create_subscription(Odometry, f"/{ns}/odom", ..., 10)` — int 10, rclpy default = Reliable.
+- `iros_llm_swarm_mapf/src/mapf_planner_node.cpp:163` — FIXED: was `create_subscription(..., 10, ...)` (bare int = Reliable), now confirmed as `rclcpp::SensorDataQoS()`. No longer broken as of audit 2026-05-27.
+- `iros_llm_swarm_robot/src/pbs_motion_controller.cpp:118-120` — own odom: `create_subscription(..., "/" + ns_ + "/odom", rclcpp::SensorDataQoS(), ...)` — CORRECT (confirmed audit 2026-05-27).
+- `iros_llm_swarm_robot/src/pbs_motion_controller.cpp:188-190` — leader odom: `create_subscription(..., "/" + leader_ns_ + "/odom", rclcpp::SensorDataQoS(), ...)` — CORRECT (confirmed audit 2026-05-27).
+- `iros_llm_swarm_formation/iros_llm_swarm_formation/formation_manager_node.py:207-212` — odom: `QoSProfile(reliability=BEST_EFFORT, history=KEEP_LAST, depth=10)` — CORRECT.
+- `iros_llm_swarm_formation/iros_llm_swarm_formation/formation_monitor_node.py:248-249` — odom: `QoSProfile(reliability=BEST_EFFORT, history=KEEP_LAST, depth=10)` — CORRECT.
 
 ## Confirmed correct /robot_N/odom subscribers
 
+- `iros_llm_swarm_mapf/src/mapf_planner_node.cpp:163` — `rclcpp::SensorDataQoS()` — CORRECT (fixed, confirmed 2026-05-27).
 - `iros_llm_swarm_mapf_lns/src/mapf_lns2_node.cpp:301-304` — `rclcpp::SensorDataQoS()` — BestEffort VOLATILE KEEP_LAST(5). Matches Stage publisher.
-- `iros_llm_swarm_robot/src/lns_motion_controller.cpp:209-211` — own odom: `rclcpp::SensorDataQoS()`.
-- `iros_llm_swarm_robot/src/lns_motion_controller.cpp:290-292` — leader odom: `rclcpp::SensorDataQoS()`.
+- `iros_llm_swarm_robot/src/pbs_motion_controller.cpp:119` — own odom: `rclcpp::SensorDataQoS()` — CORRECT.
+- `iros_llm_swarm_robot/src/pbs_motion_controller.cpp:189` — leader odom: `rclcpp::SensorDataQoS()` — CORRECT.
+- `iros_llm_swarm_robot/src/lns_motion_controller.cpp:210` — own odom: `rclcpp::SensorDataQoS()`.
+- `iros_llm_swarm_robot/src/lns_motion_controller.cpp:292` — leader odom: `rclcpp::SensorDataQoS()`.
 
 ## Stage QoS override status
 

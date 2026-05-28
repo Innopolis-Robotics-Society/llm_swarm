@@ -11,7 +11,7 @@ from launch_ros.substitutions import FindPackageShare
 
 
 LOCAL_OLLAMA_ENDPOINT = 'http://localhost:11434/api/chat'
-DEFAULT_OLLAMA_MODEL = 'mistral-small3.1'
+DEFAULT_OLLAMA_MODEL = 'qwen2.5:7b'
 
 
 def _llm_profile(
