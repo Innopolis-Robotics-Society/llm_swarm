@@ -44,6 +44,16 @@
           </RunOnce>
         </ReactiveSequence>
 
+        <ReactiveSequence name="DisbandBranch">
+          <CheckMode mode="{@mode}" expected="disband"/>
+          <RunOnce trigger="{@command_seq}">
+            <DisableFormation
+              formation_id="{@formation_id}"
+              formation_enabled="{@formation_enabled}"
+              disband_warn="{@disband_warn}"/>
+          </RunOnce>
+        </ReactiveSequence>
+
       </ReactiveFallback>
 
     </ReactiveSequence>

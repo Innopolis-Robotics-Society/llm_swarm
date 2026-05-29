@@ -87,6 +87,8 @@ install(
 install(PROGRAMS
   scripts/demo_20_robot.py
   scripts/demo_triados.py
+  scripts/demo_triados_idle.py
+  scripts/demo_triados_disband.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

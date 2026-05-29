@@ -922,7 +922,9 @@ rclcpp_action::GoalResponse LlmCommandReceiver::handle_goal(
   // is always the more relevant one (e.g. user typing "stop" on top of a
   // mapf in flight). Rejecting here would surface as a confusing
   // "BT rejected goal" in the chat.
-  if (goal->mode != "idle" && goal->mode != "mapf" && goal->mode != "formation") {
+  if (goal->mode != "idle" && goal->mode != "mapf" &&
+    goal->mode != "formation" && goal->mode != "disband")
+  {
     return rclcpp_action::GoalResponse::REJECT;
   }
   for (const auto rid : goal->robot_ids) {
@@ -1024,6 +1026,17 @@ void LlmCommandReceiver::apply_to_blackboard(
   bb->set<std::string>("@mode", goal->mode);
   bb->set<std::string>("@llm_reason", goal->reason);
 
+  // Reset action telemetry so a stale terminal state from the previous command
+  // (e.g. a failed/halted action that left @active_action="DisableFormation" +
+  // @action_status="ERROR") doesn't leak into the new command — most visibly
+  // when switching to "idle", whose branch runs no action node to clear it.
+  // The about-to-run action node's onStart() overwrites these on the same tick;
+  // for "idle" they correctly stay clean.
+  bb->set<std::string>("@active_action", "none");
+  bb->set<std::string>("@action_status", "OK");
+  bb->set<std::string>("@last_error", "");
+  bb->set<std::string>("@action_summary", "");
+
   // Clear opposite-mode fields so BTStatePublisher/PassiveObserver/event
   // prompts never see leftover state from a previous step (e.g. a mapf
   // step's @robot_ids leaking into a subsequent formation, or vice versa).
@@ -1048,6 +1061,17 @@ void LlmCommandReceiver::apply_to_blackboard(
       bb->set<std::vector<double>>("@offsets_x", goal->offsets_x);
       bb->set<std::vector<double>>("@offsets_y", goal->offsets_y);
     }
+  } else if (goal->mode == "disband") {
+    // Tear down a specific formation. Keep @formation_id from the command so
+    // DisableFormation knows which one to deactivate; wipe mapf + the other
+    // formation params (leader/follower/offsets are not needed to disband).
+    bb->set<std::vector<int>>("@robot_ids", {});
+    bb->set<std::vector<geometry_msgs::msg::Point>>("@goals", {});
+    bb->set<std::string>("@formation_id", goal->formation_id);
+    bb->set<std::string>("@leader_ns", "");
+    bb->set<std::vector<std::string>>("@follower_ns", {});
+    bb->set<std::vector<double>>("@offsets_x", {});
+    bb->set<std::vector<double>>("@offsets_y", {});
   } else {  // idle — wipe everything mission-related.
     bb->set<std::vector<int>>("@robot_ids", {});
     bb->set<std::vector<geometry_msgs::msg::Point>>("@goals", {});

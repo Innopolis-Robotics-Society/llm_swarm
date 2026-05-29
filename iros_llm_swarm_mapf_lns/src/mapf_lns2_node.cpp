@@ -281,6 +281,7 @@ class MapfLns2Node : public rclcpp::Node {
     current_positions_.resize(num_robots_, {0.0, 0.0});
     have_odom_.assign(num_robots_, false);
     footprint_radii_.assign(num_robots_, 0.0);
+    footprint_excluded_.assign(num_robots_, 0);
     prev_grid_paths_.assign(num_robots_, lns2::Path{});
     life_.init(num_robots_, max_lives_);
 
@@ -323,7 +324,15 @@ class MapfLns2Node : public rclcpp::Node {
           fp_topic,
           rclcpp::QoS(1),
           [this, i](const geometry_msgs::msg::PolygonStamped::SharedPtr msg) {
-            if (msg->polygon.points.empty()) return;
+            // An explicitly-empty footprint is the formation footprint proxy's
+            // signal that this robot is an active-formation follower: it has no
+            // independent body and must be excluded from the planning grid (the
+            // whole group's volume lives in the leader's enlarged footprint).
+            if (msg->polygon.points.empty()) {
+              std::lock_guard<std::mutex> lk(state_mutex_);
+              footprint_excluded_[i] = 1;
+              return;
+            }
             double cx = 0, cy = 0;
             for (const auto& p : msg->polygon.points) { cx += p.x; cy += p.y; }
             const double n = static_cast<double>(msg->polygon.points.size());
@@ -335,6 +344,7 @@ class MapfLns2Node : public rclcpp::Node {
             }
             std::lock_guard<std::mutex> lk(state_mutex_);
             footprint_radii_[i] = max_r;
+            footprint_excluded_[i] = 0;
           });
 
       // Follower status: the follower publishes its state (IDLE /
@@ -641,6 +651,7 @@ class MapfLns2Node : public rclcpp::Node {
     std::vector<std::pair<double, double>> snap_pos;
     std::vector<bool> snap_have_odom;
     std::vector<double> snap_fp_radii;
+    std::vector<uint8_t> snap_fp_excluded;
     {
       std::lock_guard<std::mutex> lk(state_mutex_);
       stop_monitoring();
@@ -651,6 +662,7 @@ class MapfLns2Node : public rclcpp::Node {
       snap_pos        = current_positions_;
       snap_have_odom  = have_odom_;
       snap_fp_radii   = footprint_radii_;
+      snap_fp_excluded = footprint_excluded_;
     }
 
     publish_rich_feedback(gh, "validating");
@@ -676,6 +688,12 @@ class MapfLns2Node : public rclcpp::Node {
         RCLCPP_WARN(get_logger(), "no odom for robot_%u, skip", rid);
         if (!validation_warnings.empty()) validation_warnings += "; ";
         validation_warnings += "no odom for robot_" + std::to_string(rid);
+        continue;
+      }
+      // Active-formation follower (empty footprint) — excluded from the planner.
+      if (snap_fp_excluded[rid]) {
+        RCLCPP_INFO(get_logger(),
+            "robot_%u is an active-formation follower, excluded from planning", rid);
         continue;
       }
       // Previously-marked unplanable — solver already established that no
@@ -820,8 +838,8 @@ class MapfLns2Node : public rclcpp::Node {
       auto logger = get_logger();
       lns2_node::block_skipped_robots(
           snap_grid, plan_ids_ext, snap_pos, snap_have_odom, snap_fp_radii,
-          default_robot_radius_, snap_ox, snap_oy, snap_res, num_robots_,
-          &logger);
+          snap_fp_excluded, default_robot_radius_, snap_ox, snap_oy, snap_res,
+          num_robots_, &logger);
     }
 
     // Run solver (cold). Uses max_astar_expansions (900000) for initial build
@@ -1445,6 +1463,7 @@ class MapfLns2Node : public rclcpp::Node {
     auto snap_pos     = current_positions_;
     auto snap_odom    = have_odom_;
     auto snap_fp      = footprint_radii_;
+    auto snap_fp_excluded = footprint_excluded_;
     auto snap_ids     = active_robot_ids_;
     auto snap_goals   = active_goals_world_;
     auto snap_prev_paths = prev_grid_paths_;
@@ -1468,6 +1487,7 @@ class MapfLns2Node : public rclcpp::Node {
     for (std::size_t i = 0; i < snap_ids.size(); ++i) {
       const uint32_t rid = snap_ids[i];
       if (rid >= static_cast<uint32_t>(num_robots_) || !snap_odom[rid]) continue;
+      if (snap_fp_excluded[rid]) continue;       // active-formation follower
       if (snap_unplanable.count(rid)) continue;  // already marked
 
       // Arrived robots are treated as settled static obstacles.
@@ -1575,8 +1595,8 @@ class MapfLns2Node : public rclcpp::Node {
       auto logger = get_logger();
       lns2_node::block_skipped_robots(
           snap_grid, all_accounted, snap_pos, snap_odom, snap_fp,
-          default_robot_radius_, snap_ox, snap_oy, snap_res, num_robots_,
-          &logger);
+          snap_fp_excluded, default_robot_radius_, snap_ox, snap_oy, snap_res,
+          num_robots_, &logger);
     }
 
     // Publish planning grid now — shows blocked cells for arrived/skipped
@@ -2053,6 +2073,9 @@ class MapfLns2Node : public rclcpp::Node {
   std::vector<std::pair<double, double>> current_positions_;
   std::vector<bool>   have_odom_;
   std::vector<double> footprint_radii_;
+  // 1 = robot advertised an empty footprint (active-formation follower) and is
+  // excluded from the planning grid entirely — neither planned nor blocked.
+  std::vector<uint8_t> footprint_excluded_;
 
   uint32_t total_replans_ = 0;
   rclcpp::Time mission_start_time_{0, 0, RCL_ROS_TIME};

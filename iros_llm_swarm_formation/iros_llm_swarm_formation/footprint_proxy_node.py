@@ -11,11 +11,15 @@ footprint through unchanged. A robot that leads an active formation must instead
 advertise the formation's bounding footprint so the planner leaves room for the
 whole group along the leader's path.
 
-Per robot it forwards the latest Nav2 PolygonStamped verbatim, except when the
-robot is the leader of an active formation: then the polygon is replaced by that
-formation's footprint until the formation is deactivated. The substituted
-polygon keeps the incoming Nav2 header — the planner only uses the polygon's
-radius, so no frame transform is needed.
+Per robot it forwards the latest Nav2 PolygonStamped verbatim, except:
+  * leader of an active formation -> the polygon is replaced by that formation's
+    footprint until the formation is deactivated;
+  * follower of an active formation -> an *empty* polygon is published. The
+    planner reads an empty footprint as "no body, not an obstacle" and excludes
+    the robot from its grid, so the whole formation's collision volume is carried
+    by the leader's enlarged footprint and the followers don't block the leader.
+The substituted polygon keeps the incoming Nav2 header — the planner only uses
+the polygon's radius, so no frame transform is needed.
 
 Subscriptions
 -------------
@@ -61,6 +65,8 @@ class FootprintProxyNode(Node):
 
         # leader_ns → formation footprint (only formations with active == True)
         self._leader_footprints: dict[str, Polygon] = {}
+        # follower namespaces of active formations — published as empty footprint
+        self._follower_set: set[str] = set()
 
         latched = QoSProfile(
             depth=1,
@@ -95,12 +101,27 @@ class FootprintProxyNode(Node):
         self._leader_footprints = {
             f.leader_ns: f.footprint for f in msg.formations if f.active
         }
+        self._follower_set = {
+            ns for f in msg.formations if f.active for ns in f.follower_ns
+        }
 
     def _on_footprint(self, msg: PolygonStamped, ns: str, pub) -> None:
         out = PolygonStamped()
-        out.header = msg.header
         leader_fp = self._leader_footprints.get(ns)
-        out.polygon = leader_fp if leader_fp is not None else msg.polygon
+        if leader_fp is not None:
+            # The formation footprint is expressed in the leader BODY frame
+            # (centered near the leader). Stamp it in base_link so TF places it
+            # on the robot; copying the Nav2 odom-frame header would draw the
+            # body-frame points at the odom origin instead.
+            out.header.stamp = msg.header.stamp
+            out.header.frame_id = f"{ns}/base_link"
+            out.polygon = leader_fp
+        elif ns in self._follower_set:
+            out.header = msg.header
+            out.polygon = Polygon()  # empty → planner excludes this robot
+        else:
+            out.header = msg.header
+            out.polygon = msg.polygon
         pub.publish(out)
 
 

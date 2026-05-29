@@ -95,6 +95,7 @@ void block_skipped_robots(
     const std::vector<std::pair<double, double>>& positions,
     const std::vector<bool>& have_odom,
     const std::vector<double>& fp_radii,
+    const std::vector<uint8_t>& excluded,
     double default_robot_radius,
     double origin_x, double origin_y, double resolution,
     int num_robots,
@@ -106,6 +107,8 @@ void block_skipped_robots(
   int blocked_count = 0;
   for (int rid = 0; rid < num_robots; ++rid) {
     if (planned_set.count(static_cast<uint32_t>(rid))) continue;
+    // Active-formation followers have no independent body — never block them.
+    if (rid < static_cast<int>(excluded.size()) && excluded[rid]) continue;
     if (!have_odom[rid]) {
       if (logger) {
         RCLCPP_WARN(*logger,
