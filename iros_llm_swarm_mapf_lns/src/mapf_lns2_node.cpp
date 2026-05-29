@@ -136,6 +136,10 @@ class MapfLns2Node : public rclcpp::Node {
     declare_parameter("default_robot_radius",    0.22,
         make_double_desc("Robot footprint radius used when no /local_costmap "
                          "footprint is published (m).", 0.01, 5.0));
+    declare_parameter("footprint_topic_template",
+        std::string("/robot_{id}/local_costmap/published_footprint"),
+        make_string_desc("Per-robot footprint topic to read each agent's radius "
+                         "from; '{id}' is replaced by the robot index."));
     declare_parameter("inflation_radius",        0.0,
         make_double_desc("Soft inflation radius around obstacles (m).",
                          0.0, 10.0));
@@ -236,6 +240,7 @@ class MapfLns2Node : public rclcpp::Node {
     time_step_sec_         = get_parameter("time_step_sec").as_double();
     grid_resolution_       = get_parameter("grid_resolution").as_double();
     default_robot_radius_  = get_parameter("default_robot_radius").as_double();
+    footprint_topic_template_ = get_parameter("footprint_topic_template").as_string();
     inflation_radius_      = get_parameter("inflation_radius").as_double();
     max_speed_             = get_parameter("max_speed").as_double();
     goal_reached_m_        = get_parameter("goal_reached_m").as_double();
@@ -308,9 +313,14 @@ class MapfLns2Node : public rclcpp::Node {
             have_odom_[i] = true;
           });
 
+      std::string fp_topic = footprint_topic_template_;
+      const std::string idstr = std::to_string(i);
+      for (size_t pos = fp_topic.find("{id}"); pos != std::string::npos;
+           pos = fp_topic.find("{id}", pos + idstr.size())) {
+        fp_topic.replace(pos, 4, idstr);
+      }
       footprint_subs_[i] = create_subscription<geometry_msgs::msg::PolygonStamped>(
-          "/robot_" + std::to_string(i) +
-              "/local_costmap/published_footprint",
+          fp_topic,
           rclcpp::QoS(1),
           [this, i](const geometry_msgs::msg::PolygonStamped::SharedPtr msg) {
             if (msg->polygon.points.empty()) return;
@@ -2002,6 +2012,7 @@ class MapfLns2Node : public rclcpp::Node {
   double time_step_sec_;
   double grid_resolution_;
   double default_robot_radius_;
+  std::string footprint_topic_template_;
   double inflation_radius_;
   double max_speed_;
   double goal_reached_m_;

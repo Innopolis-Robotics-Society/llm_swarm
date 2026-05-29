@@ -165,6 +165,9 @@ def generate_launch_description():
         launch_arguments=[
             ('num_robots', num_robots),
             ('use_sim_time', use_sim_time),
+            # Read footprints from the formation footprint proxy so formation
+            # leaders advertise the whole-group footprint to the planner.
+            ('footprint_topic_template', '/robot_{id}/lns/footprint'),
         ],
         condition=is_lns,
     )
@@ -245,6 +248,24 @@ def generate_launch_description():
         condition=use_formation,
     )
 
+    # Relays each robot's Nav2 footprint to /<ns>/lns/footprint, swapping in the
+    # formation footprint for active-formation leaders. LNS-only for now (PBS
+    # wiring is future work), so gated on the planner switch rather than
+    # formation: it is a pure pass-through when no formation is active.
+    footprint_proxy = Node(
+        package='iros_llm_swarm_formation',
+        executable='footprint_proxy_node',
+        name='footprint_proxy',
+        output='screen',
+        parameters=[{
+            'num_robots':            num_robots,
+            'robot_ns_prefix':       'robot_',
+            'output_topic_template': '/{ns}/lns/footprint',
+            'use_sim_time':          use_sim_time,
+        }],
+        condition=is_lns,
+    )
+
     bt_runner = Node(
         package='iros_llm_swarm_bt',
         executable='bt_runner',
@@ -294,6 +315,7 @@ def generate_launch_description():
             LogInfo(msg='Starting formation manager + monitor...'),
             formation_manager,
             formation_monitor,
+            footprint_proxy,
         ]),
 
         TimerAction(period=18.0, actions=[
