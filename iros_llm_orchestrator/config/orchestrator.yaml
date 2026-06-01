@@ -84,7 +84,7 @@ llm_chat_server:
     # NOTE: mutually exclusive with structured_output_enabled — schema-constrained
     # decoding suppresses tool_calls — so keep this off when structured outputs
     # are on. Flip on (and structured_output_enabled off) for tool experiments.
-    tool_calling_enabled: false
+    tool_calling_enabled: true
     tool_max_iterations: 6
     robot_footprint_radius: 0.22
     scan_timeout_sec: 3.0
