@@ -40,10 +40,10 @@ def _load_resolver():
     ast.fix_missing_locations(module)
     namespace = {}
     exec(compile(module, str(launch_path), 'exec'), namespace)
-    return namespace['resolve_llm_endpoint']
+    return namespace['resolve_llm_endpoint'], namespace['DEFAULT_OLLAMA_MODEL']
 
 
-resolve_llm_endpoint = _load_resolver()
+resolve_llm_endpoint, DEFAULT_OLLAMA_MODEL = _load_resolver()
 
 
 class LlmEndpointResolverTest(unittest.TestCase):
@@ -54,7 +54,7 @@ class LlmEndpointResolverTest(unittest.TestCase):
         self.assertEqual(profile['llm_mode'], 'ollama')
         self.assertEqual(
             profile['llm_endpoint'], 'http://localhost:11434/api/chat')
-        self.assertEqual(profile['llm_model'], 'mistral-small3.1')
+        self.assertEqual(profile['llm_model'], DEFAULT_OLLAMA_MODEL)
         self.assertTrue(profile['llm_force_chat'])
         self.assertFalse(profile['llm_enable_stop'])
 
@@ -65,7 +65,7 @@ class LlmEndpointResolverTest(unittest.TestCase):
         self.assertEqual(profile['llm_mode'], 'ollama')
         self.assertEqual(
             profile['llm_endpoint'], 'http://localhost:11434/api/chat')
-        self.assertEqual(profile['llm_model'], 'mistral-small3.1')
+        self.assertEqual(profile['llm_model'], DEFAULT_OLLAMA_MODEL)
 
     def test_loopback_ollama_endpoint_resolves_to_local_ollama(self):
         profile = resolve_llm_endpoint('http://127.0.0.1:11434/api/chat')
@@ -74,9 +74,21 @@ class LlmEndpointResolverTest(unittest.TestCase):
         self.assertEqual(profile['llm_mode'], 'ollama')
         self.assertEqual(
             profile['llm_endpoint'], 'http://localhost:11434/api/chat')
-        self.assertEqual(profile['llm_model'], 'mistral-small3.1')
+        self.assertEqual(profile['llm_model'], DEFAULT_OLLAMA_MODEL)
 
-    def test_qwen32b_endpoint_resolves_to_http_profile(self):
+    def test_qwen32b_aiagent01_endpoint_resolves_to_http_profile(self):
+        endpoint = 'http://10.100.11.182:8000/v1/chat/completions'
+
+        profile = resolve_llm_endpoint(endpoint)
+
+        self.assertEqual(profile['profile'], 'team-qwen32b-aiagent01')
+        self.assertEqual(profile['llm_mode'], 'http')
+        self.assertEqual(profile['llm_endpoint'], endpoint)
+        self.assertEqual(profile['llm_model'], 'qwen32b')
+        self.assertTrue(profile['llm_force_chat'])
+        self.assertFalse(profile['llm_enable_stop'])
+
+    def test_qwen32b_legacy_endpoint_resolves_to_http_profile(self):
         endpoint = 'http://10.100.11.191:8000/v1/chat/completions'
 
         profile = resolve_llm_endpoint(endpoint)
@@ -114,7 +126,7 @@ class LlmEndpointResolverTest(unittest.TestCase):
         self.assertEqual(profile['profile'], 'custom-ollama')
         self.assertEqual(profile['llm_mode'], 'ollama')
         self.assertEqual(profile['llm_endpoint'], endpoint)
-        self.assertEqual(profile['llm_model'], 'mistral-small3.1')
+        self.assertEqual(profile['llm_model'], DEFAULT_OLLAMA_MODEL)
 
     def test_unknown_chat_completions_endpoint_raises_clear_error(self):
         endpoint = 'http://example.com:8000/v1/chat/completions'
@@ -129,6 +141,8 @@ class LlmEndpointResolverTest(unittest.TestCase):
             'Add this endpoint to resolve_llm_endpoint() with its model name.',
             message,
         )
+        self.assertIn(
+            'http://10.100.11.182:8000/v1/chat/completions', message)
         self.assertIn(
             'http://10.100.11.191:8000/v1/chat/completions', message)
         self.assertIn(

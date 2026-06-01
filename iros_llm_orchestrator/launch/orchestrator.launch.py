@@ -37,6 +37,12 @@ _KNOWN_LLM_ENDPOINT_PROFILES = {
         'local-ollama', 'ollama', LOCAL_OLLAMA_ENDPOINT, DEFAULT_OLLAMA_MODEL),
     'http://127.0.0.1:11434/api/chat': _llm_profile(
         'local-ollama', 'ollama', LOCAL_OLLAMA_ENDPOINT, DEFAULT_OLLAMA_MODEL),
+    'http://10.100.11.182:8000/v1/chat/completions': _llm_profile(
+        'team-qwen32b-aiagent01',
+        'http',
+        'http://10.100.11.182:8000/v1/chat/completions',
+        'qwen32b',
+    ),
     'http://10.100.11.191:8000/v1/chat/completions': _llm_profile(
         'team-qwen32b',
         'http',
@@ -59,6 +65,7 @@ _KNOWN_LLM_ENDPOINT_PROFILES = {
 
 _KNOWN_LLM_ENDPOINT_DISPLAY = (
     LOCAL_OLLAMA_ENDPOINT,
+    'http://10.100.11.182:8000/v1/chat/completions',
     'http://10.100.11.191:8000/v1/chat/completions',
     'http://10.100.11.191:8001/v1/chat/completions',
     'https://api.groq.com/openai/v1/chat/completions',

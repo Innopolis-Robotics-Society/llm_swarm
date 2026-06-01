@@ -23,7 +23,7 @@ Examples:
   ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py
   ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py scenario:=warehouse_2 planner:=pbs
   ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py enable_formation:=false
-  ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py llm_endpoint:=http://10.100.11.191:8000/v1/chat/completions
+  ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py llm_endpoint:=http://10.100.11.182:8000/v1/chat/completions
 """
 
 from launch import LaunchDescription

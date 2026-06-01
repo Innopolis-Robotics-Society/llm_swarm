@@ -89,6 +89,14 @@ llm_model=mistral-small3.1
 
 ### Team Qwen32B on ClearML/vLLM
 
+ClearML may start the same Qwen32B vLLM server on different workers/IPs.
+The current known team endpoints are:
+
+```text
+http://10.100.11.182:8000/v1/chat/completions
+http://10.100.11.191:8000/v1/chat/completions
+```
+
 Prerequisite:
 
 ```bash
@@ -98,11 +106,18 @@ export LLM_API_KEY="local-vllm-token"
 Endpoint check:
 
 ```bash
-curl http://10.100.11.191:8000/v1/models \
+curl http://10.100.11.182:8000/v1/models \
   -H "Authorization: Bearer $LLM_API_KEY"
 ```
 
 Launch:
+
+```bash
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py \
+  llm_endpoint:=http://10.100.11.182:8000/v1/chat/completions
+```
+
+Legacy worker endpoint, still accepted:
 
 ```bash
 ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py \
@@ -113,7 +128,7 @@ Resolved internally:
 
 ```text
 llm_mode=http
-llm_endpoint=http://10.100.11.191:8000/v1/chat/completions
+llm_endpoint=http://10.100.11.182:8000/v1/chat/completions
 llm_model=qwen32b
 ```
 
@@ -169,7 +184,7 @@ Expected Qwen32B:
 
 ```text
 String value is: http
-String value is: http://10.100.11.191:8000/v1/chat/completions
+String value is: http://10.100.11.182:8000/v1/chat/completions
 String value is: qwen32b
 ```
 
