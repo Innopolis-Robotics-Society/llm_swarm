@@ -32,7 +32,7 @@ from typing import Awaitable, Callable
 # Validation
 # ---------------------------------------------------------------------------
 
-_LEAF_TYPES      = {'mapf', 'formation', 'idle'}
+_LEAF_TYPES      = {'mapf', 'formation', 'idle', 'disband'}
 _CONTAINER_TYPES = {'sequence', 'parallel'}
 _ALL_TYPES       = _LEAF_TYPES | _CONTAINER_TYPES
 
@@ -142,6 +142,20 @@ def _validate_node(node: dict, path: str = 'plan') -> dict:
             raise ValueError(f'{path}: formation requires formation_id')
         if not node.get('leader_ns'):
             raise ValueError(f'{path}: formation requires leader_ns')
+        if not node.get('follower_ns'):
+            raise ValueError(f'{path}: formation requires follower_ns (at least one follower)')
+        if node.get('offsets_x') is None or node.get('offsets_y') is None:
+            raise ValueError(f'{path}: formation requires offsets_x and offsets_y')
+        fn = node['follower_ns']
+        ox = node['offsets_x']
+        oy = node['offsets_y']
+        if len(fn) != len(ox) or len(fn) != len(oy):
+            raise ValueError(
+                f'{path}: follower_ns({len(fn)}) != offsets_x({len(ox)}) '
+                f'or offsets_y({len(oy)})')
+    elif node_type == 'disband':
+        if not node.get('formation_id'):
+            raise ValueError(f'{path}: disband requires formation_id')
     return node
 
 
@@ -297,8 +311,8 @@ class PlanExecutor:
         elif t == 'mapf':
             n = len(node.get('robot_ids', []))
             self._log(f"{ind}🚀 mapf {n} robot{'s' if n!=1 else ''}: {node.get('reason','')}")
-        elif t == 'formation':
-            # Server-side staging safety net: even when the LLM ignores the
+        elif t == 'disband':
+            self._log(f"{ind}🔴 disband formation {node.get('formation_id','')}: {node.get('reason','')}")
             # MANDATORY prompt rule and emits a bare formation leaf with
             # followers out of position, run the implied mapf staging step
             # first. Skips silently when no hook is configured or when the
