@@ -211,13 +211,17 @@ class BTLeafSender:
         # Phase 2 — wait for the action node to finish. The BT clears
         # @active_action back to "none" on success/partial; a hard failure
         # instead raises @action_status to ERROR/HALTED.
+        #
+        # IMPORTANT: check action_status ONLY when active_action has returned
+        # to "none". Checking it independently causes false failures — the
+        # previous leaf's ERROR status lingers in /bt/state until the new
+        # action actually completes, and we'd bail out on stale data.
         deadline = time.monotonic() + self._step_timeout
         while time.monotonic() < deadline:
             _, _, status_now, err_now, action_now = self._get_mode_state()
-            finished = action_now in ('', 'none')
-            failed   = status_now in ('ERROR', 'HALTED')
-            if finished or failed:
-                if failed:
+            if action_now in ('', 'none'):
+                # Action has finished — now the status is authoritative.
+                if status_now in ('ERROR', 'HALTED'):
                     self._node.get_logger().error(
                         f'leaf {t!r}: BT finished with {status_now}: {err_now}')
                     self._record_failure(leaf_type=t, phase='phase2',

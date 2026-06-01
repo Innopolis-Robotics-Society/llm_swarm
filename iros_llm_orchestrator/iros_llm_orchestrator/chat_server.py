@@ -206,6 +206,10 @@ class ChatServer(Node):
         bt_qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
                             history=HistoryPolicy.KEEP_LAST, depth=10)
         self._last_bt_status     = 'OK'
+        # Cache the most recently fetched runtime context so the formation
+        # prestage hook can fall back to it when pose_cache subscriptions
+        # haven't received data (QoS mismatch, wrong topic, or first run).
+        self._last_runtime_context: dict = {}
         self._bt_event_analyzing = False
         self.create_subscription(BTState, '/bt/state', self._on_bt_state, bt_qos)
 
@@ -291,6 +295,7 @@ class ChatServer(Node):
         # ---- 1. Stream initial reply ----
         self._publish_fb(goal_handle, stage='thinking')
         runtime_context = await self._get_runtime_context()
+        self._last_runtime_context = runtime_context
         messages = build_user_prompt(
             req.user_message,
             history=list(self._history),
@@ -624,17 +629,60 @@ class ChatServer(Node):
 
     def _formation_prestage_hook(self, formation_node: dict) -> dict | None:
         """Auto-stage out-of-tolerance followers when the LLM emits a bare
-        formation leaf. Reads live poses from the chat_server's RobotPoseCache.
+        formation leaf.
+
+        Primary source: RobotPoseCache (live odom subscriptions).
+        Fallback: _last_runtime_context (fetched at the start of this turn)
+        — used when pose_cache has no data yet (QoS mismatch, wrong topic,
+        or node just started).
+
+        Returns None only when the leader pose is genuinely unavailable or
+        all followers are already within tolerance.
         """
-        if self._pose_cache is None:
+        fid = formation_node.get('formation_id', '?')
+
+        # ── Primary: live odom via pose_cache ──────────────────────────
+        snapshot: dict = {}
+        if self._pose_cache is not None:
+            snapshot = self._pose_cache.snapshot(
+                stale_threshold_ms=int(self._context_config.pose_stale_ms))
+
+        leader_ns = formation_node.get('leader_ns', '')
+        leader_id = int(leader_ns.split('_')[1]) if (
+            leader_ns.startswith('robot_')
+            and leader_ns.split('_')[1].isdigit()) else None
+
+        if leader_id is not None and leader_id not in snapshot:
+            # pose_cache has no entry → try fallback
+            ctx_robots = self._last_runtime_context.get('robots') or {}
+            for k, v in ctx_robots.items():
+                try:
+                    rid = int(k)
+                except (TypeError, ValueError):
+                    continue
+                if rid not in snapshot:
+                    snapshot[rid] = v
+
+        if leader_id is not None and leader_id not in snapshot:
+            self.get_logger().warning(
+                f'formation_prestage: leader {leader_ns} not in pose snapshot '
+                f'and not in runtime_context — skipping auto-stage for {fid!r}')
             return None
-        snapshot = self._pose_cache.snapshot(
-            stale_threshold_ms=int(self._context_config.pose_stale_ms))
-        return compute_formation_staging(
+
+        result = compute_formation_staging(
             formation_node,
             snapshot,
             tolerance_m=self._formation_tolerance_m,
         )
+        if result is None and leader_id is not None and leader_id in snapshot:
+            # Hook ran but returned None — either stale leader or all in tolerance
+            leader = snapshot[leader_id]
+            if leader.get('stale'):
+                self.get_logger().warning(
+                    f'formation_prestage: leader {leader_ns} pose is stale '
+                    f'({leader.get("stale_ms", "?")}ms) — skipping auto-stage '
+                    f'for {fid!r}')
+        return result
 
     async def _execute_plan(self, plan: dict) -> tuple[bool, dict | None]:
         """Run a plan via the shared sender; return (ok, failure_info)."""

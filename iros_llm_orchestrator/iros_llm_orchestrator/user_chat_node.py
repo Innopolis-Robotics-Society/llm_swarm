@@ -31,7 +31,10 @@ from iros_llm_orchestrator.common.user_prompt import (
     build_remediation_prompt, build_user_prompt,
     build_bt_event_prompt, load_map_config)
 from iros_llm_orchestrator.context.no_execute import is_help_request
-from iros_llm_orchestrator.context.pose_cache import RobotPoseCache
+from iros_llm_orchestrator.context.pose_cache import (
+    RobotPoseCache,
+    compute_formation_staging,
+)
 
 MAX_HISTORY   = 8
 CLUSTER_SPACE = 1.5
@@ -136,8 +139,58 @@ def _postprocess_plan(node: dict, map_cfg: dict, spread: bool = False) -> dict:
     - sequence/parallel: recurse into steps.
     """
     t = node['type']
-    if t in ('sequence', 'parallel'):
+    if t == 'sequence':
         node['steps'] = [_postprocess_plan(s, map_cfg, spread) for s in node['steps']]
+    elif t == 'parallel':
+        # For sibling mapf nodes with spread=True pointing to the same center,
+        # merge their robot_ids FIRST and apply spread to the combined group.
+        # Without this, each group independently generates the same grid and
+        # robots end up with duplicate goals, blocking each other.
+        steps = list(node['steps'])
+        # Collect spread-eligible mapf siblings (single center goal)
+        ms_idx = [
+            i for i, s in enumerate(steps)
+            if s.get('type') == 'mapf'
+            and (spread or s.get('spread'))
+            and len(s.get('goals', [])) == 1
+            and len(s.get('robot_ids', [])) >= 1
+        ]
+        if len(ms_idx) >= 2:
+            # Cluster by center proximity
+            used: set[int] = set()
+            for a in ms_idx:
+                if a in used:
+                    continue
+                cluster = [a]
+                ca = steps[a]['goals'][0]
+                for b in ms_idx:
+                    if b == a or b in used:
+                        continue
+                    cb = steps[b]['goals'][0]
+                    dx, dy = ca[0] - cb[0], ca[1] - cb[1]
+                    if math.sqrt(dx * dx + dy * dy) < MIN_GOAL_DIST:
+                        cluster.append(b)
+                if len(cluster) < 2:
+                    continue
+                # Merge cluster: pool all robot_ids, spread once, split back
+                merged_ids: list[int] = []
+                for idx in cluster:
+                    merged_ids.extend(steps[idx].get('robot_ids', []))
+                center = steps[cluster[0]]['goals'][0]
+                merged_goals = _clamp_goals(
+                    _spread_goals([list(center)] * len(merged_ids)), map_cfg)
+                ptr = 0
+                for idx in cluster:
+                    n = len(steps[idx].get('robot_ids', []))
+                    steps[idx] = {
+                        **steps[idx],
+                        'goals': merged_goals[ptr:ptr + n],
+                        'spread': False,  # already expanded
+                    }
+                    ptr += n
+                    used.add(idx)
+        # Recurse normally (spread already applied for merged siblings)
+        node['steps'] = [_postprocess_plan(s, map_cfg, spread) for s in steps]
     elif t == 'mapf' and 'goals' in node:
         goals = _clamp_goals(node['goals'], map_cfg)
         if spread or bool(node.get('spread', False)):
@@ -279,6 +332,7 @@ class UserChatNode(Node):
         self.declare_parameter('robot_footprint_radius', 0.22)
         self.declare_parameter('scan_timeout_sec',       3.0)
         self.declare_parameter('tool_max_iterations',    6)
+        self.declare_parameter('formation_tolerance_m',  0.5)
         self.declare_parameter('stream_reasoning',       True)
 
         self._max_remediation_attempts = max(0, int(
@@ -331,6 +385,8 @@ class UserChatNode(Node):
             _all_ids = list(range(20))
 
         self._pose_cache = RobotPoseCache(self, _all_ids)
+        self._formation_tolerance_m = float(
+            self.get_parameter('formation_tolerance_m').value)
 
         _footprint_r = float(self.get_parameter('robot_footprint_radius').value)
         _scan_to     = float(self.get_parameter('scan_timeout_sec').value)
@@ -882,11 +938,26 @@ class UserChatNode(Node):
         self._describe_plan(plan)
         return reply, plan, full_raw
 
+    def _formation_prestage_hook(self, formation_node: dict) -> dict | None:
+        """Auto-stage out-of-tolerance followers before a formation leaf.
+
+        Mirrors chat_server._formation_prestage_hook — uses the same
+        RobotPoseCache and compute_formation_staging logic so the terminal
+        client has identical staging behaviour to the RViz action server.
+        """
+        snapshot = self._pose_cache.snapshot(stale_threshold_ms=2000)
+        return compute_formation_staging(
+            formation_node,
+            snapshot,
+            tolerance_m=self._formation_tolerance_m,
+        )
+
     async def _run_plan(self, plan: dict) -> bool:
         executor = PlanExecutor(
             send_fn=self._send_leaf,
             log_fn=lambda m: (print(f'  {m}', flush=True),
                               self._slog.debug(f'executor: {m}'))[0],
+            formation_prestage_hook=self._formation_prestage_hook,
         )
         return await executor.run(plan)
 
