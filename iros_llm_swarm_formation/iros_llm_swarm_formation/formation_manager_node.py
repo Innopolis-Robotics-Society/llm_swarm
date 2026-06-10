@@ -97,7 +97,7 @@ class _Formation:
         msg.active       = self.active
         for dx, dy in self.offsets:
             msg.offsets.append(Point(x=float(dx), y=float(dy), z=0.0))
-        cx, cy, radius = _bounding_circle(self.offsets, robot_radius)
+        cx, cy, radius = _bounding_circle(self.offsets + [(0.0, 0.0)], robot_radius)
         msg.footprint = _circle_polygon(radius + padding, cx, cy)
         return msg
 
