@@ -34,10 +34,17 @@ from iros_llm_orchestrator.common.leaf_sender import BTLeafSender
 from iros_llm_orchestrator.common.llm_factory import get_llm_client
 from iros_llm_orchestrator.common.plan_executor import PlanExecutor, parse_plan
 from iros_llm_orchestrator.common.user_prompt import (
+    build_execution_repair_prompt,
     build_remediation_prompt,
     build_user_prompt,
     build_bt_event_prompt,
     load_map_config,
+)
+from iros_llm_orchestrator.common.execution_repair import (
+    append_verification_to_reply,
+    should_attempt_repair,
+    verification_failure_info,
+    verification_summary,
 )
 from iros_llm_orchestrator.context import (
     DEFAULT_MCP_READ_TOOLS,
@@ -112,6 +119,10 @@ class ChatServer(Node):
         self.declare_parameter('mcp_tool_allowlist', list(DEFAULT_MCP_READ_TOOLS))
         self.declare_parameter('max_remediation_attempts', 2)
         self.declare_parameter('remediation_enabled', True)
+        self.declare_parameter('llm_repair_enabled', True)
+        self.declare_parameter('llm_max_repair_attempts', 2)
+        self.declare_parameter('llm_repair_require_verification', True)
+        self.declare_parameter('llm_verification_delay_sec', 0.2)
         self.declare_parameter('robot_footprint_radius', 0.22)
         self.declare_parameter('scan_timeout_sec',       3.0)
         self.declare_parameter('tool_max_iterations',    6)
@@ -133,6 +144,14 @@ class ChatServer(Node):
             self.get_parameter('max_remediation_attempts').value))
         self._remediation_enabled = bool(
             self.get_parameter('remediation_enabled').value)
+        self._repair_enabled = bool(
+            self.get_parameter('llm_repair_enabled').value)
+        self._max_repair_attempts = max(0, int(
+            self.get_parameter('llm_max_repair_attempts').value))
+        self._repair_require_verification = bool(
+            self.get_parameter('llm_repair_require_verification').value)
+        self._verification_delay_sec = max(0.0, float(
+            self.get_parameter('llm_verification_delay_sec').value))
         self._tool_max_iterations = max(1, int(
             self.get_parameter('tool_max_iterations').value))
         self._stream_reasoning = bool(self.get_parameter('stream_reasoning').value)
@@ -344,7 +363,14 @@ class ChatServer(Node):
         ok, failure_info = await self._execute_plan(plan)
         result.plan_executed = ok
         if ok:
-            return self._succeed(goal_handle, result)
+            return await self._handle_successful_execution(
+                goal_handle,
+                result,
+                original_user_request=req.user_message,
+                last_reply=reply,
+                last_plan=plan,
+                runtime_context=runtime_context,
+            )
 
         if not self._remediation_enabled or self._max_remediation_attempts == 0:
             return self._fail(goal_handle, result,
@@ -416,7 +442,14 @@ class ChatServer(Node):
             ok, failure_info = await self._execute_plan(r_plan)
             result.plan_executed = ok
             if ok:
-                return self._succeed(goal_handle, result)
+                return await self._handle_successful_execution(
+                    goal_handle,
+                    result,
+                    original_user_request=req.user_message,
+                    last_reply=r_reply,
+                    last_plan=r_plan,
+                    runtime_context=fresh_ctx,
+                )
             attempts.append(failure_info or {})
 
         # Retries exhausted — escalate to operator
@@ -426,6 +459,212 @@ class ChatServer(Node):
             reason=(f'remediation budget '
                     f'{self._max_remediation_attempts} exhausted'),
             last_failure=attempts[-1])
+
+    async def _handle_successful_execution(
+        self,
+        goal_handle,
+        result,
+        *,
+        original_user_request: str,
+        last_reply: str,
+        last_plan: dict,
+        runtime_context: dict,
+    ):
+        verification = await self._verify_plan_execution_state(
+            original_user_request,
+            last_plan,
+            runtime_context=runtime_context,
+        )
+        if verification.get('ok') or not self._repair_require_verification:
+            result.final_reply = append_verification_to_reply(
+                result.final_reply or last_reply,
+                verification,
+            )
+            result.info = f'verification: {verification_summary(verification)}'
+            return self._succeed(goal_handle, result)
+
+        current_plan = last_plan
+        current_reply = last_reply
+        current_verification = verification
+        attempt = 0
+
+        while should_attempt_repair(
+            current_verification,
+            attempt=attempt,
+            max_attempts=self._max_repair_attempts,
+            enabled=self._repair_enabled,
+        ):
+            attempt += 1
+            rec = current_verification.get('repair_recommendation') or {}
+            reason = rec.get('reason') or verification_summary(current_verification)
+            self.get_logger().info(
+                f'LLM repair: attempt={attempt} reason={str(reason)[:180]}')
+            self._publish_fb(
+                goal_handle,
+                stage='repairing',
+                detail=f'attempt={attempt} reason={str(reason)[:160]}',
+            )
+
+            fresh_ctx = await self._get_runtime_context()
+            self._last_runtime_context = fresh_ctx
+            repair_messages = build_execution_repair_prompt(
+                original_user_request,
+                current_plan,
+                current_verification,
+                attempt=attempt,
+                max_attempts=self._max_repair_attempts,
+                fresh_runtime_context=fresh_ctx,
+                history=list(self._history),
+                map_name=self._map_name,
+                obstacle_context=self._get_obstacle_context(),
+            )
+            try:
+                r_reply, r_plan, r_raw = await self._stream_and_parse(
+                    repair_messages,
+                    goal_handle,
+                )
+            except _LlmStageError as exc:
+                self.get_logger().warning(
+                    f'LLM repair: invalid repair response attempt={attempt}: {exc}')
+                result.final_reply = append_verification_to_reply(
+                    current_reply,
+                    current_verification,
+                )
+                return self._fail(
+                    goal_handle,
+                    result,
+                    f'repair LLM failed: {exc}',
+                    got_plan=True,
+                )
+
+            self.get_logger().info(
+                f'LLM repair: generated plan type={r_plan.get("type", "")}')
+            self._history.append({
+                'role': 'user',
+                'content': (
+                    f'[verification repair {attempt}: '
+                    f'{verification_summary(current_verification)[:180]}]'
+                ),
+            })
+            self._history.append({'role': 'assistant', 'content': r_raw})
+            self._trim_history()
+
+            current_plan = r_plan
+            current_reply = r_reply
+            result.final_reply = r_reply
+            result.plan_json = json.dumps(r_plan, ensure_ascii=False)
+            self._publish_fb(goal_handle, stage='parsed', detail=result.plan_json)
+            self._publish_event(
+                channel=LlmEvent.CHANNEL_USER,
+                trigger=original_user_request,
+                output=result.plan_json,
+                reason=r_reply,
+            )
+
+            if is_help_request(r_plan):
+                return self._finalize_help(
+                    goal_handle,
+                    result,
+                    r_reply,
+                    r_plan,
+                    trigger=original_user_request,
+                    reason=f'LLM emitted needs_help on repair {attempt}',
+                    last_failure=verification_failure_info(current_verification),
+                )
+
+            self.get_logger().info(
+                f'LLM repair: executing attempt={attempt}')
+            self._publish_fb(goal_handle, stage='executing')
+            ok, failure_info = await self._execute_plan(r_plan)
+            result.plan_executed = ok
+            current_verification = await self._verify_plan_execution_state(
+                original_user_request,
+                r_plan,
+                runtime_context=fresh_ctx,
+                last_failure=failure_info,
+            )
+            if ok and current_verification.get('ok'):
+                result.final_reply = append_verification_to_reply(
+                    r_reply,
+                    current_verification,
+                )
+                result.info = (
+                    f'verification: {verification_summary(current_verification)}'
+                )
+                return self._succeed(goal_handle, result)
+
+        if not self._repair_enabled:
+            reason = 'repair disabled'
+        elif not (current_verification.get('repair_recommendation') or {}).get('repairable'):
+            reason = 'verification marked failure as non-repairable'
+        else:
+            reason = f'repair attempts exhausted max={self._max_repair_attempts}'
+            self.get_logger().info(
+                f'LLM repair: exhausted attempts max={self._max_repair_attempts}')
+
+        result.final_reply = append_verification_to_reply(
+            current_reply,
+            current_verification,
+        )
+        result.info = f'verification failed: {verification_summary(current_verification)}'
+        return self._fail(
+            goal_handle,
+            result,
+            f'{reason}: {verification_summary(current_verification)}',
+            got_plan=True,
+        )
+
+    async def _verify_plan_execution_state(
+        self,
+        original_user_request: str,
+        last_plan: dict,
+        *,
+        runtime_context: dict | None,
+        last_failure: dict | None = None,
+    ) -> dict:
+        request_id = int(self.get_clock().now().nanoseconds / 1e6)
+        self.get_logger().info(
+            f'LLM verification: start request_id={request_id}')
+        if self._verification_delay_sec > 0.0:
+            await asyncio.sleep(self._verification_delay_sec)
+        fresh_context = await self._get_runtime_context()
+        if not fresh_context:
+            fresh_context = runtime_context or {}
+        self._last_runtime_context = fresh_context
+        args = {
+            'original_user_request': original_user_request,
+            'last_plan': last_plan,
+            'last_failure': last_failure or {},
+            'tolerance_m': self._formation_tolerance_m,
+            '_formations_status': fresh_context.get('formations'),
+            '_bt_state': fresh_context.get('bt_state'),
+            '_recent_events': fresh_context.get('recent_events') or [],
+        }
+        try:
+            verification = await self._tool_executor.call(
+                'verify_plan_execution_state',
+                args,
+            )
+        except Exception as exc:
+            verification = {
+                'ok': False,
+                'confidence': 'partial',
+                'missing_state': ['verify_plan_execution_state'],
+                'summary': f'verification tool failed: {exc}',
+                'checks': {},
+                'repair_recommendation': {
+                    'type': 'wait_for_state',
+                    'reason': 'verification tool failed',
+                    'repairable': False,
+                    'should_recompute_placement': False,
+                },
+            }
+        self.get_logger().info(
+            'LLM verification: result '
+            f"ok={bool(verification.get('ok'))} "
+            f"summary={str(verification.get('summary') or '')[:180]}"
+        )
+        return verification
 
     async def _stream_and_parse(self, messages, goal_handle):
         """Stream → parse → postprocess; raises _LlmStageError.

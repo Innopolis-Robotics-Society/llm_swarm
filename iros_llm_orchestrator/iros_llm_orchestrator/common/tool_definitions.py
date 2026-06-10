@@ -79,6 +79,102 @@ TOOL_DEFINITIONS: list[dict] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "find_group_placement_in_room",
+            "description": (
+                "Find deterministic, non-overlapping leader/follower goal "
+                "placements for one or more robot groups forming formations "
+                "inside the same named room. Read-only: does not move robots. "
+                "Use before planning multiple groups into one room or before "
+                "activating formations there."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "room": {
+                        "type": "string",
+                        "description": "Named room/location, e.g. 'cafeteria'.",
+                    },
+                    "groups": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "description": "Group label, e.g. 'green'.",
+                                },
+                                "robot_ids": {
+                                    "type": "array",
+                                    "items": {"type": "integer"},
+                                    "description": (
+                                        "Robot ids in leader-first order. "
+                                        "First id becomes the leader."
+                                    ),
+                                },
+                                "formation": {
+                                    "type": "string",
+                                    "description": "Formation name: wedge, line, or column.",
+                                },
+                            },
+                            "required": ["name", "robot_ids", "formation"],
+                        },
+                    },
+                    "avoid_existing_robots": {
+                        "type": "boolean",
+                        "description": (
+                            "Avoid live robot footprints not included in the requested groups."
+                        ),
+                    },
+                    "min_clearance_m": {
+                        "type": "number",
+                        "description": "Required free space between robot footprints.",
+                    },
+                },
+                "required": ["room", "groups"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "verify_plan_execution_state",
+            "description": (
+                "Verify read-only post-execution state for an LLM plan. "
+                "Checks expected formations, follower offset errors, recent "
+                "formation failures, and optional room placement. Does not "
+                "move robots or call control services."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "original_user_request": {
+                        "type": "string",
+                        "description": "Original operator command.",
+                    },
+                    "expected": {
+                        "type": "object",
+                        "description": (
+                            "Optional expected outcome with room and groups. "
+                            "Groups may include name, robot_ids, formation, "
+                            "and formation_id."
+                        ),
+                    },
+                    "last_plan": {
+                        "type": "object",
+                        "description": "The plan JSON that was just executed.",
+                    },
+                    "tolerance_m": {
+                        "type": "number",
+                        "description": "Follower offset tolerance in metres.",
+                    },
+                },
+                "required": ["original_user_request", "last_plan"],
+            },
+        },
+    },
 ]
 
 

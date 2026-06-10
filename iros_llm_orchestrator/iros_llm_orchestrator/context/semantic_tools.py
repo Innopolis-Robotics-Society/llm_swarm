@@ -32,6 +32,12 @@ from iros_llm_orchestrator.context.geometry_utils import (
     point_in_circle,
     rms_spread,
 )
+from iros_llm_orchestrator.context.execution_verification import (
+    verify_plan_execution_state as _verify_plan_execution_state,
+)
+from iros_llm_orchestrator.context.group_placement import (
+    find_group_placement_in_room as _find_group_placement_in_room,
+)
 
 
 DEFAULT_FORMATION_SPACING_M = 1.0
@@ -50,6 +56,8 @@ DEFAULT_SEMANTIC_READ_TOOLS = (
     'semantic_get_route_context',
     'semantic_check_goal_feasibility',
     'semantic_check_formation_feasibility',
+    'semantic_find_group_placement_in_room',
+    'semantic_verify_plan_execution_state',
     'semantic_get_allowed_action_schema',
     'semantic_get_recovery_options',
 )
@@ -68,6 +76,10 @@ SEMANTIC_TOOL_DESCRIPTIONS = {
         'bounds/group/heuristic feasibility check for a navigation target',
     'semantic_check_formation_feasibility':
         'formation-zone and group-size check without calling formation services',
+    'semantic_find_group_placement_in_room':
+        'room-aware non-overlapping placement candidates for group formations',
+    'semantic_verify_plan_execution_state':
+        'post-execution formation/pose verification with repair recommendation',
     'semantic_get_allowed_action_schema':
         'the final plan leaf/container types accepted by PlanExecutor',
     'semantic_get_recovery_options':
@@ -110,6 +122,10 @@ class SemanticToolProvider:
             return self.semantic_check_goal_feasibility(args)
         if name == 'semantic_check_formation_feasibility':
             return self.semantic_check_formation_feasibility(args)
+        if name == 'semantic_find_group_placement_in_room':
+            return self.semantic_find_group_placement_in_room(args)
+        if name == 'semantic_verify_plan_execution_state':
+            return self.semantic_verify_plan_execution_state(args)
         if name == 'semantic_get_allowed_action_schema':
             return self.semantic_get_allowed_action_schema()
         if name == 'semantic_get_recovery_options':
@@ -620,6 +636,26 @@ class SemanticToolProvider:
                                            round(3 * math.pi / 2, 3)],
             },
         }
+
+    def semantic_find_group_placement_in_room(self, args: dict) -> dict:
+        return _find_group_placement_in_room(
+            self._map_cfg,
+            args,
+            pose_snapshot=self._pose_snapshot(),
+            robot_footprint_radius=0.22,
+        )
+
+    def semantic_verify_plan_execution_state(self, args: dict) -> dict:
+        context = self._cached_context()
+        return _verify_plan_execution_state(
+            self._map_cfg,
+            args,
+            pose_snapshot=self._pose_snapshot(),
+            formations_status=context.get('formations'),
+            bt_state=_extract_bt_state(context),
+            recent_events=list(context.get('recent_events') or []),
+            tolerance_m=0.5,
+        )
 
     def semantic_get_allowed_action_schema(self) -> dict:
         leaf_types = _ordered_supported(

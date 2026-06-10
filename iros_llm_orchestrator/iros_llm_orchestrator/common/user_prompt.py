@@ -10,6 +10,8 @@ import os
 from functools import lru_cache
 from typing import Any
 
+from iros_llm_orchestrator.common.execution_repair import compact_verification_json
+
 try:
     import yaml as _yaml
     _YAML_OK = True
@@ -385,6 +387,18 @@ _REMEDIATION_RUBRIC = (
 )
 
 
+_EXECUTION_REPAIR_RUBRIC = (
+    'A plan you produced executed, but deterministic post-execution verification '
+    'says the requested outcome does not hold.\n'
+    'Produce a repair plan only. If a formation failed because followers are out '
+    'of position, do not repeat the same activation blindly: stage robots with '
+    'MAPF near the required offsets, preferably using find_group_placement_in_room '
+    'again for multi-group room formations, then activate the formation.\n'
+    'Use read-only tools if needed. Keep the repair bounded and return the same '
+    '{"reasoning":"...","reply":"...","plan":{...}} JSON object format.'
+)
+
+
 def _format_attempts(attempts: list[dict]) -> str:
     lines = []
     for i, att in enumerate(attempts, start=1):
@@ -435,6 +449,44 @@ def build_remediation_prompt(
         f'Per-attempt log:\n{_format_attempts(attempts)}\n'
         f'Original user request: {original_user_message}\n'
         'Produce either a corrected plan or a needs_help: idle reply.'
+    )
+    messages.append({'role': 'user', 'content': summary})
+    return messages
+
+
+def build_execution_repair_prompt(
+    original_user_message: str,
+    last_plan: dict,
+    verification: dict,
+    *,
+    attempt: int,
+    max_attempts: int,
+    fresh_runtime_context: dict | None,
+    history: list | None = None,
+    map_name: str = 'warehouse',
+    obstacle_context: str = '',
+) -> list:
+    """Compose a bounded repair prompt after post-execution verification fails."""
+    messages = build_user_prompt(
+        original_user_message,
+        history=history,
+        map_name=map_name,
+        obstacle_context=obstacle_context,
+        runtime_context=fresh_runtime_context,
+    )
+    messages.append({'role': 'system', 'content': _EXECUTION_REPAIR_RUBRIC})
+    messages.append({
+        'role': 'assistant',
+        'content': json.dumps(last_plan, ensure_ascii=False),
+    })
+    summary = (
+        f'Post-execution verification failed after executing the plan above.\n'
+        f'Repair attempt: {attempt}/{max_attempts}\n'
+        f'Original user request: {original_user_message}\n'
+        f'Verification result JSON:\n'
+        f'{compact_verification_json(verification)}\n'
+        'Produce a corrected repair plan. If verification says repairable=false, '
+        'emit an idle needs_help plan with a clear reason instead.'
     )
     messages.append({'role': 'user', 'content': summary})
     return messages

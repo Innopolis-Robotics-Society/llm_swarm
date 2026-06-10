@@ -15,12 +15,18 @@ from iros_llm_orchestrator.common.tool_definitions import (
 # ---------------------------------------------------------------------------
 
 def test_tool_definitions_count():
-    assert len(TOOL_DEFINITIONS) == 3
+    assert len(TOOL_DEFINITIONS) == 5
 
 
 def test_tool_definitions_names():
     names = {t["function"]["name"] for t in TOOL_DEFINITIONS}
-    assert names == {"check_occupancy", "get_positions", "get_robot_position"}
+    assert names == {
+        "check_occupancy",
+        "get_positions",
+        "get_robot_position",
+        "find_group_placement_in_room",
+        "verify_plan_execution_state",
+    }
 
 
 def test_tool_definitions_have_required_fields():

@@ -55,6 +55,13 @@ llm_chat_server:
     # legacy "fail fast" behaviour.
     remediation_enabled: true
     max_remediation_attempts: 2
+    # Post-execution verification repair: after a plan reports execution
+    # success, read formation/pose state and ask the LLM for bounded repair if
+    # the requested outcome does not actually hold.
+    llm_repair_enabled: true
+    llm_max_repair_attempts: 2
+    llm_repair_require_verification: true
+    llm_verification_delay_sec: 0.2
 
     # Read-only runtime context for /llm/chat.
     # MCP read-only context disabled — uvx ros-mcp fails with BrokenResourceError.

@@ -1,4 +1,4 @@
-"""Tests for ToolExecutor — get_robot_position, get_positions, check_occupancy."""
+"""Tests for ToolExecutor read-only tools."""
 
 import asyncio
 import math
@@ -148,6 +148,53 @@ def test_get_positions_case_insensitive_room():
     ex = _make_executor({})
     result = ex._get_positions("NW_HALL", "center")
     assert result["position"] == [-27.0, 14.0]
+
+
+# ---------------------------------------------------------------------------
+# find_group_placement_in_room
+# ---------------------------------------------------------------------------
+
+def test_find_group_placement_in_room_dispatches_to_pure_tool():
+    ex = _make_executor({})
+    result = ex._find_group_placement_in_room({
+        "room": "nw_hall",
+        "groups": [
+            {"name": "green", "robot_ids": [8, 9, 10, 11], "formation": "wedge"},
+        ],
+        "avoid_existing_robots": True,
+        "min_clearance_m": 0.35,
+    })
+
+    assert result["ok"] is True
+    assert result["room"] == "nw_hall"
+    assert result["placements"][0]["offsets_x"] == [-1.0, -1.0, -2.0]
+
+
+def test_verify_plan_execution_state_dispatches_to_pure_tool():
+    ex = _make_executor({})
+    ex._latest_formations_status = {
+        "formations": [{
+            "formation_id": "green_wedge",
+            "leader_ns": "robot_8",
+            "follower_ns": ["robot_9", "robot_10", "robot_11"],
+            "state": "STABLE",
+            "follower_errors_m": [0.1, 0.2, 0.1],
+        }]
+    }
+    result = ex._verify_plan_execution_state({
+        "original_user_request": "green form wedge",
+        "last_plan": {
+            "type": "formation",
+            "formation_id": "green_wedge",
+            "leader_ns": "robot_8",
+            "follower_ns": ["robot_9", "robot_10", "robot_11"],
+            "offsets_x": [-1.0, -1.0, -2.0],
+            "offsets_y": [0.6, -0.6, 0.0],
+        },
+    })
+
+    assert result["ok"] is True
+    assert "green_wedge" in result["summary"]
 
 
 # ---------------------------------------------------------------------------

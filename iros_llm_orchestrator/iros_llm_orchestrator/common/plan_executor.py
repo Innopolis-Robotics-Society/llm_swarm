@@ -313,6 +313,7 @@ class PlanExecutor:
             self._log(f"{ind}🚀 mapf {n} robot{'s' if n!=1 else ''}: {node.get('reason','')}")
         elif t == 'disband':
             self._log(f"{ind}🔴 disband formation {node.get('formation_id','')}: {node.get('reason','')}")
+        elif t == 'formation':
             # MANDATORY prompt rule and emits a bare formation leaf with
             # followers out of position, run the implied mapf staging step
             # first. Skips silently when no hook is configured or when the

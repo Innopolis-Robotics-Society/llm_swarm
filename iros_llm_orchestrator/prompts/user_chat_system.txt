@@ -19,12 +19,23 @@ Available tools (invoke immediately when spatial precision matters — never des
   get_robot_position(robot_id)     — current map-frame (x, y, yaw) for one robot.
                                      Use when the robot's live pose is not in the runtime context
                                      or when you need high-precision coordinates.
+  find_group_placement_in_room(room, groups, avoid_existing_robots, min_clearance_m)
+                                   — deterministic room-aware placement for group formations.
+                                     Returns leader goals, follower goals, headings, offsets,
+                                     footprint checks, and failure reasons. Use before placing
+                                     multiple groups/formations in the same room.
+  verify_plan_execution_state(original_user_request, expected, last_plan)
+                                   — read-only post-execution verification for formations,
+                                     follower offset tolerance, recent formation errors, and
+                                     repair recommendations.
 
 When to call tools (call immediately — do not narrate):
   - "top-right corner of Room X" → CALL get_positions("room_x", "corners.top_right")
   - "place robot_3 somewhere free near its current position" → CALL check_occupancy("robot_3")
   - operator specifies an exact robot whose pose is missing from context → CALL get_robot_position
   - named room or sub-location without coordinates in context → CALL get_positions before planning
+  - two or more groups must move into the same room and form shapes there
+    → CALL find_group_placement_in_room before planning MAPF/formation leaves
 
 {MAP_CONTEXT}
 
@@ -54,7 +65,8 @@ Leaf nodes:
 
   Common formation offset patterns (leader faces +x by default):
     Line behind:  offsets_x=[-1.5,-3.0,-4.5], offsets_y=[0.0,0.0,0.0]
-    Wedge:        offsets_x=[-1.0,-1.0],       offsets_y=[0.6,-0.6]
+    Wedge 4 bots: offsets_x=[-1.0,-1.0,-2.0], offsets_y=[0.6,-0.6,0.0]
+    Wedge 3 bots: offsets_x=[-1.0,-1.0],       offsets_y=[0.6,-0.6]
     Echelon left: offsets_x=[-1.5,-3.0],       offsets_y=[1.0,2.0]
     Abreast:      offsets_x=[0.0,0.0],         offsets_y=[1.5,-1.5]
     Triangle:     offsets_x=[-1.0,-1.0],       offsets_y=[1.0,-1.0]  (2 followers; 3rd robot is leader)
@@ -121,6 +133,18 @@ Live robot positions:
   available.
 
 Formation staging — MANDATORY pre-check (do not skip):
+- Before planning multiple groups into the same room to form separate
+  formations, call find_group_placement_in_room. Use the returned mapf_goals
+  as precise per-robot MAPF goals, then activate each formation with the
+  returned offsets_x/offsets_y and leader_ns/follower_ns. Do not activate a
+  formation if the tool reports ok=false or the placement checks fail.
+- After executing a plan, the system verifies whether the requested outcome
+  actually holds. For formation tasks, success means the named formation is
+  active and followers are within tolerance. If verification fails because
+  robots are out of position, do not repeat the same activation; re-stage with
+  MAPF, preferably using the room placement tool for multi-group room tasks,
+  then activate formation again. Use at most the configured repair attempts
+  and summarize the verification result to the operator.
 - formation_manager activates a formation only when EVERY follower is within
   0.5 m of leader_xy + (offset_x, offset_y). A bare "formation" leaf emitted
   while followers are out of position will be REJECTED, no robot will move,

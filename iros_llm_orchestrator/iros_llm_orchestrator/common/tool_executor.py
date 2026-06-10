@@ -1,9 +1,11 @@
-"""ToolExecutor — three tool implementations for user chat (channel 3).
+"""ToolExecutor — read-only tool implementations for user chat (channel 3).
 
 Tools:
   get_robot_position(robot_id) — current pose from RobotPoseCache
   get_positions(room, qualifier) — named geometry from map_cfg["geometry"]
   check_occupancy(robot_id)   — one-shot LaserScan → free/occupied cell grid
+  find_group_placement_in_room(...) — deterministic room/formation placement
+  verify_plan_execution_state(...) — deterministic post-execution verification
 """
 
 from __future__ import annotations
@@ -11,7 +13,15 @@ from __future__ import annotations
 import asyncio
 import math
 import threading
+from collections import deque
 from typing import Any
+
+from iros_llm_orchestrator.context.execution_verification import (
+    verify_plan_execution_state,
+)
+from iros_llm_orchestrator.context.group_placement import (
+    find_group_placement_in_room,
+)
 
 
 class ToolExecutor:
@@ -30,6 +40,11 @@ class ToolExecutor:
         self._map_cfg = map_cfg
         self._footprint_radius = robot_footprint_radius
         self._scan_timeout = scan_timeout_sec
+        self._latest_formations_status: Any | None = None
+        self._latest_bt_state: Any | None = None
+        self._recent_events = deque(maxlen=12)
+        self._state_subscriptions: list[Any] = []
+        self._create_verification_state_subscriptions()
 
     async def call(self, name: str, arguments: dict) -> dict:
         """Dispatch a tool call by name, always returns a JSON-serialisable dict."""
@@ -41,7 +56,99 @@ class ToolExecutor:
             )
         if name == "get_robot_position":
             return self._get_robot_position(arguments.get("robot_id", ""))
+        if name == "find_group_placement_in_room":
+            result = self._find_group_placement_in_room(arguments)
+            self._log_tool_result(name, result)
+            return result
+        if name == "verify_plan_execution_state":
+            result = self._verify_plan_execution_state(arguments)
+            self._log_tool_result(name, result)
+            return result
         return {"error": f"unknown tool '{name}'"}
+
+    def _create_verification_state_subscriptions(self) -> None:
+        if self._node is None or not hasattr(self._node, "create_subscription"):
+            return
+        try:
+            from iros_llm_swarm_interfaces.msg import (
+                BTState,
+                FormationsStatus,
+                LlmEvent,
+            )
+            from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
+        except Exception:
+            return
+        qos = QoSProfile(
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=10,
+        )
+        reliable_qos = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=20,
+        )
+        try:
+            self._state_subscriptions.append(
+                self._node.create_subscription(
+                    FormationsStatus,
+                    "/formations/status",
+                    self._on_formations_status,
+                    qos,
+                )
+            )
+            self._state_subscriptions.append(
+                self._node.create_subscription(
+                    BTState,
+                    "/bt/state",
+                    self._on_bt_state,
+                    qos,
+                )
+            )
+            self._state_subscriptions.append(
+                self._node.create_subscription(
+                    LlmEvent,
+                    "/llm/events",
+                    self._on_llm_event,
+                    reliable_qos,
+                )
+            )
+        except Exception:
+            self._state_subscriptions = []
+
+    def _on_formations_status(self, msg: Any) -> None:
+        self._latest_formations_status = msg
+
+    def _on_bt_state(self, msg: Any) -> None:
+        self._latest_bt_state = msg
+
+    def _on_llm_event(self, msg: Any) -> None:
+        self._recent_events.append({
+            "trigger": str(getattr(msg, "trigger", "") or ""),
+            "output": str(getattr(msg, "output", "") or ""),
+            "reason": str(getattr(msg, "reason", "") or ""),
+        })
+
+    def _log_tool_result(self, name: str, result: dict) -> None:
+        logger = self._node.get_logger() if hasattr(self._node, "get_logger") else None
+        if logger is None:
+            return
+        try:
+            if name == "find_group_placement_in_room":
+                logger.info(
+                    "LLM tool: find_group_placement_in_room result "
+                    f"ok={bool(result.get('ok'))} "
+                    f"room={result.get('room', '')} "
+                    f"placements={len(result.get('placements') or [])}"
+                )
+            elif name == "verify_plan_execution_state":
+                logger.info(
+                    "LLM tool: verify_plan_execution_state result "
+                    f"ok={bool(result.get('ok'))} "
+                    f"summary={str(result.get('summary') or '')[:160]}"
+                )
+        except Exception:
+            return
 
     # ------------------------------------------------------------------
     # Tool: get_robot_position
@@ -92,6 +199,55 @@ class ToolExecutor:
             "qualifier": qualifier,
             "position": [float(node[0]), float(node[1])],
         }
+
+    # ------------------------------------------------------------------
+    # Tool: find_group_placement_in_room
+    # ------------------------------------------------------------------
+
+    def _find_group_placement_in_room(self, arguments: dict) -> dict:
+        snapshot = None
+        if self._pose_cache is not None:
+            try:
+                snapshot = self._pose_cache.snapshot()
+            except Exception:
+                snapshot = None
+        return find_group_placement_in_room(
+            self._map_cfg,
+            arguments or {},
+            pose_snapshot=snapshot,
+            robot_footprint_radius=self._footprint_radius,
+        )
+
+    # ------------------------------------------------------------------
+    # Tool: verify_plan_execution_state
+    # ------------------------------------------------------------------
+
+    def _verify_plan_execution_state(self, arguments: dict) -> dict:
+        snapshot = None
+        if self._pose_cache is not None:
+            try:
+                snapshot = self._pose_cache.snapshot()
+            except Exception:
+                snapshot = None
+        return verify_plan_execution_state(
+            self._map_cfg,
+            arguments or {},
+            pose_snapshot=snapshot,
+            formations_status=(
+                (arguments or {}).get('_formations_status')
+                if (arguments or {}).get('_formations_status') is not None
+                else self._latest_formations_status
+            ),
+            bt_state=(
+                (arguments or {}).get('_bt_state')
+                if (arguments or {}).get('_bt_state') is not None
+                else self._latest_bt_state
+            ),
+            recent_events=(
+                list((arguments or {}).get('_recent_events') or [])
+                or list(self._recent_events)
+            ),
+        )
 
     # ------------------------------------------------------------------
     # Tool: check_occupancy

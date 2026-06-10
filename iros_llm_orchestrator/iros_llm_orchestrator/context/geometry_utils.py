@@ -11,6 +11,11 @@ def euclidean_distance(a: tuple[float, float], b: tuple[float, float]) -> float:
     return math.hypot(float(a[0]) - float(b[0]), float(a[1]) - float(b[1]))
 
 
+def distance_2d(a: tuple[float, float], b: tuple[float, float]) -> float:
+    """Alias for Euclidean distance in the map plane."""
+    return euclidean_distance(a, b)
+
+
 def squared_distance(a: tuple[float, float], b: tuple[float, float]) -> float:
     """Return squared Euclidean distance, useful for argmin."""
     dx = float(a[0]) - float(b[0])
@@ -100,6 +105,18 @@ def point_in_circle(
     return squared_distance(p, center) <= float(radius) * float(radius)
 
 
+def point_in_rect(
+    p: tuple[float, float],
+    min_x: float,
+    max_x: float,
+    min_y: float,
+    max_y: float,
+) -> bool:
+    """Return True when p is inside or on an axis-aligned rectangle."""
+    x, y = float(p[0]), float(p[1])
+    return float(min_x) <= x <= float(max_x) and float(min_y) <= y <= float(max_y)
+
+
 def point_in_polygon(
     p: tuple[float, float],
     polygon: list[tuple[float, float]],
@@ -137,6 +154,70 @@ def polygon_bbox(polygon: list[tuple[float, float]]) -> dict[str, float | None]:
     }
 
 
+def rect_polygon(
+    min_x: float,
+    max_x: float,
+    min_y: float,
+    max_y: float,
+) -> list[tuple[float, float]]:
+    """Return a counter-clockwise polygon for an axis-aligned rectangle."""
+    return [
+        (float(min_x), float(min_y)),
+        (float(max_x), float(min_y)),
+        (float(max_x), float(max_y)),
+        (float(min_x), float(max_y)),
+    ]
+
+
+def point_to_polygon_boundary_distance(
+    p: tuple[float, float],
+    polygon: list[tuple[float, float]],
+) -> float:
+    """Shortest distance from a point to any polygon edge."""
+    if len(polygon) < 2:
+        return 0.0
+    return min(
+        point_to_segment_distance(p, polygon[i], polygon[(i + 1) % len(polygon)])
+        for i in range(len(polygon))
+    )
+
+
+def min_pairwise_clearance(
+    points: list[tuple[float, float]],
+    radius_m: float,
+) -> float | None:
+    """Minimum free space between equal-radius robot discs."""
+    if len(points) < 2:
+        return None
+    best: float | None = None
+    diameter = 2.0 * float(radius_m)
+    for i, point in enumerate(points):
+        for other in points[i + 1:]:
+            clearance = euclidean_distance(point, other) - diameter
+            if best is None or clearance < best:
+                best = clearance
+    return best
+
+
+def min_clearance_to_points(
+    points: list[tuple[float, float]],
+    obstacles: list[tuple[float, float]],
+    point_radius_m: float,
+    obstacle_radius_m: float,
+) -> float | None:
+    """Minimum free space between two sets of circular footprints."""
+    if not points or not obstacles:
+        return None
+    best: float | None = None
+    combined_radius = float(point_radius_m) + float(obstacle_radius_m)
+    for point in points:
+        for obstacle in obstacles:
+            clearance = euclidean_distance(point, obstacle) - combined_radius
+            if best is None or clearance < best:
+                best = clearance
+    return best
+
+
 def rotate_point(offset: tuple[float, float], theta_rad: float) -> tuple[float, float]:
     """Return R(theta) @ offset."""
     c = math.cos(float(theta_rad))
@@ -153,6 +234,19 @@ def apply_pose(
     """Return origin + R(theta) @ offset."""
     rx, ry = rotate_point(offset, theta_rad)
     return float(origin[0]) + rx, float(origin[1]) + ry
+
+
+def formation_points_from_offsets(
+    leader_xy: tuple[float, float],
+    offsets_x: list[float],
+    offsets_y: list[float],
+    heading_rad: float,
+) -> list[tuple[float, float]]:
+    """Return [leader, follower...] world points for leader-frame offsets."""
+    points = [(float(leader_xy[0]), float(leader_xy[1]))]
+    for ox, oy in zip(offsets_x, offsets_y):
+        points.append(apply_pose((float(ox), float(oy)), leader_xy, heading_rad))
+    return points
 
 
 def world_to_grid(
