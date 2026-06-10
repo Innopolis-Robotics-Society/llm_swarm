@@ -82,6 +82,76 @@ TOOL_DEFINITIONS: list[dict] = [
     {
         "type": "function",
         "function": {
+            "name": "find_free_group_goals_in_room",
+            "description": (
+                "Find deterministic, occupancy-aware per-robot MAPF goals "
+                "for ordinary group movement into a named room. Read-only: "
+                "does not move robots. Use when sending a group into a room "
+                "that may already contain robots, or when placing a group "
+                "near/around another group without a formation."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "room": {
+                        "type": "string",
+                        "description": "Named room/location, e.g. 'cafeteria'.",
+                    },
+                    "robot_ids": {
+                        "type": "array",
+                        "items": {"type": "integer"},
+                        "description": "Moving robot ids to place.",
+                    },
+                    "avoid_robot_ids": {
+                        "type": "array",
+                        "items": {"type": "integer"},
+                        "description": (
+                            "Robots whose current footprints must be avoided, "
+                            "e.g. the group already in the room."
+                        ),
+                    },
+                    "prefer_near_group": {
+                        "type": "array",
+                        "items": {"type": "integer"},
+                        "description": (
+                            "Optional robot ids to place near/around while "
+                            "still avoiding their footprints."
+                        ),
+                    },
+                    "placement_mode": {
+                        "type": "string",
+                        "enum": ["cluster", "around_group", "line"],
+                        "description": (
+                            "cluster for compact free placement; around_group "
+                            "for commands like 'orange around yellow'."
+                        ),
+                    },
+                    "avoid_existing_robots": {
+                        "type": "boolean",
+                        "description": (
+                            "Avoid live robot footprints not in robot_ids."
+                        ),
+                    },
+                    "min_clearance_m": {
+                        "type": "number",
+                        "description": "Required free space between robot footprints.",
+                    },
+                    "goal_spacing_m": {
+                        "type": "number",
+                        "description": "Preferred center-to-center goal spacing.",
+                    },
+                    "candidate_spacing_m": {
+                        "type": "number",
+                        "description": "Room sampling grid spacing.",
+                    },
+                },
+                "required": ["room", "robot_ids"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "find_group_placement_in_room",
             "description": (
                 "Find deterministic, non-overlapping leader/follower goal "

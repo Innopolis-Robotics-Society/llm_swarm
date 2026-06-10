@@ -27,6 +27,24 @@ def test_flatten_merges_two_disjoint_mapf():
                                     [3.0, 3.0], [4.0, 4.0]]
 
 
+def test_flatten_parallel_expands_single_center_spread_before_merge():
+    p = {'type': 'parallel', 'steps': [
+        _mapf([8, 9, 10, 11], [[2.7, 10.1]], 'green to cafeteria') | {
+            'spread': True,
+        },
+        _mapf([16, 17, 18, 19], [[2.7, 10.1]], 'yellow to cafeteria') | {
+            'spread': True,
+        },
+    ]}
+
+    out = flatten_parallel(p)
+
+    assert len(out) == 1
+    assert out[0]['robot_ids'] == [8, 9, 10, 11, 16, 17, 18, 19]
+    assert len(out[0]['goals']) == 8
+    assert len({tuple(goal) for goal in out[0]['goals']}) == 8
+
+
 def test_flatten_dedup_overlapping_robot_ids():
     """Same robot in two parallel branches → last-write-wins."""
     p = {'type': 'parallel', 'steps': [

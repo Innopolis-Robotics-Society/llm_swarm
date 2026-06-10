@@ -23,15 +23,15 @@ class OllamaClient(LLMClientBase):
         model:    str  = 'qwen2.5:14b',
         max_tokens:  int   = 256,
         temperature: float = 0.2,
-        num_ctx:     int   = 8192,
+        num_ctx:     int   = 32768,
     ):
         self.endpoint    = endpoint
         self.model       = model
         self.max_tokens  = max_tokens
         self.temperature = temperature
-        # Input context window. Ollama defaults to 4096 when unset; the channel-3
-        # chat prompt is ~7000 tokens, so leaving it unset truncates the system
-        # prompt and forces the model into a tool-call/prose loop.
+        # Input context window. Ollama defaults to 4096 when unset; channel-3
+        # planning turns carry a large system prompt, map context, examples,
+        # tool schemas, and runtime state, so 8k can still truncate the prompt.
         self.num_ctx     = num_ctx
 
     # ------------------------------------------------------------------

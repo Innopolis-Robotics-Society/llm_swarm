@@ -150,6 +150,9 @@ def setup(context, *args, **kwargs):
     llm_overrides = {
         key: value for key, value in llm_profile.items() if key != 'profile'
     }
+    llm_num_ctx = LaunchConfiguration('llm_num_ctx').perform(context).strip()
+    if llm_num_ctx:
+        llm_overrides['llm_num_ctx'] = int(llm_num_ctx)
     llm_env = {'LLM_API_KEY': os.environ.get('LLM_API_KEY', '')}
     llm_notice = LogInfo(
         msg=(
@@ -263,6 +266,14 @@ def generate_launch_description():
         choices=['true', 'false'],
     )
 
+    llm_num_ctx_arg = DeclareLaunchArgument(
+        'llm_num_ctx',
+        default_value='32768',
+        description='Requested local context window for Ollama backends. For '
+                    'OpenAI-compatible HTTP endpoints this is logged as a '
+                    'budget hint only; set the server max_model_len separately.',
+    )
+
     scenario_arg = DeclareLaunchArgument(
         'scenario',
         default_value='amongus',
@@ -285,6 +296,7 @@ def generate_launch_description():
         enable_passive_arg,
         enable_rosbridge_arg,
         enable_llm_mapf_proxy_arg,
+        llm_num_ctx_arg,
         scenario_arg,
         scenarios_file_arg,
         OpaqueFunction(function=setup),

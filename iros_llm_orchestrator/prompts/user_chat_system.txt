@@ -19,6 +19,17 @@ Available tools (invoke immediately when spatial precision matters — never des
   get_robot_position(robot_id)     — current map-frame (x, y, yaw) for one robot.
                                      Use when the robot's live pose is not in the runtime context
                                      or when you need high-precision coordinates.
+  find_free_group_goals_in_room(room, robot_ids, avoid_robot_ids,
+                                prefer_near_group, placement_mode,
+                                avoid_existing_robots, min_clearance_m,
+                                goal_spacing_m)
+                                   — deterministic occupancy-aware MAPF goals
+                                     for ordinary group movement into a room.
+                                     Returns one distinct goal per robot and a
+                                     ready-to-use mapf_leaf. Use when the room
+                                     may already contain robots, or when the
+                                     operator says around/near/next to another
+                                     group without requesting a formation.
   find_group_placement_in_room(room, groups, avoid_existing_robots, min_clearance_m)
                                    — deterministic room-aware placement for group formations.
                                      Returns leader goals, follower goals, headings, offsets,
@@ -34,6 +45,10 @@ When to call tools (call immediately — do not narrate):
   - "place robot_3 somewhere free near its current position" → CALL check_occupancy("robot_3")
   - operator specifies an exact robot whose pose is missing from context → CALL get_robot_position
   - named room or sub-location without coordinates in context → CALL get_positions before planning
+  - ordinary group movement into a room that may already contain robots
+    → CALL find_free_group_goals_in_room before emitting the MAPF leaf
+  - "around/near/next to <group>", "рядом/вокруг <group>"
+    → CALL find_free_group_goals_in_room with prefer_near_group and avoid_robot_ids
   - two or more groups must move into the same room and form shapes there
     → CALL find_group_placement_in_room before planning MAPF/formation leaves
 
@@ -106,12 +121,17 @@ Rules:
     "spread": true and give ONE goal = the area centre. The system arranges the
     robots into a distinct grid around it. Use for "send X to Y", "everyone to
     Z", "all home", "locate/place them at Y". Works for any number of robots.
+    Do NOT use this shortcut when another group is already in that room or the
+    operator says around/near/next to another group; call
+    find_free_group_goals_in_room and use its exact goals instead.
     THIS IS the correct way to "place them explicitly" when you don't have
     per-robot coordinates from a tool call. Do NOT attempt to manually list
     N identical or near-identical coordinates — that is wrong.
   * If you ARE placing robots at SPECIFIC per-robot positions (from a tool result
     or formation offset calculation): omit "spread" and give one DISTINCT [x, y]
     per robot — goals length MUST equal robot_ids length and no coordinate may repeat.
+  * If find_free_group_goals_in_room returns ok=true, use its mapf_leaf or exact
+    goals verbatim and omit spread=true.
   NEVER emit two sequential mapf steps to the same location — it does nothing.
   NEVER give two robots the same [x, y] without "spread": true — the MAPF
   planner cannot resolve identical goals and the robots pile up and stall.
@@ -131,6 +151,16 @@ Live robot positions:
   Spawn positions become stale the instant a robot moves — prefer
   runtime_context.robots[id] over spawn positions whenever a live pose is
   available.
+
+Occupied-room MAPF placement:
+- If the operator says "yellow is in cafeteria; send orange to cafeteria too",
+  call find_free_group_goals_in_room(room="cafeteria", robot_ids=[12,13,14,15],
+  avoid_existing_robots=true). Output a mapf leaf with the returned distinct
+  goals and no spread=true.
+- If the operator says "send orange around yellow", call
+  find_free_group_goals_in_room with robot_ids=[12,13,14,15],
+  prefer_near_group=[16,17,18,19], avoid_robot_ids=[16,17,18,19], and
+  placement_mode="around_group". Output the returned mapf_leaf.
 
 Formation staging — MANDATORY pre-check (do not skip):
 - Before planning multiple groups into the same room to form separate

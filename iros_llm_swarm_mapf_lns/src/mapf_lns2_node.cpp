@@ -667,6 +667,22 @@ class MapfLns2Node : public rclcpp::Node {
 
     publish_rich_feedback(gh, "validating");
 
+    // Treat robots outside this request as dynamic static obstacles before
+    // validating starts/goals. Previously this happened only after agents were
+    // built, so a requested goal could pass static-map validation while landing
+    // directly on a robot that was already standing there.
+    std::vector<uint32_t> requested_ids;
+    requested_ids.reserve(req->robot_ids.size());
+    for (const uint32_t rid : req->robot_ids) {
+      if (rid < static_cast<uint32_t>(num_robots_)) {
+        requested_ids.push_back(rid);
+      }
+    }
+    lns2_node::block_skipped_robots(
+        snap_grid, requested_ids, snap_pos, snap_have_odom, snap_fp_radii,
+        snap_fp_excluded, default_robot_radius_, snap_ox, snap_oy, snap_res,
+        num_robots_, nullptr);
+
     // Build agent list with warnings
     // IMPORTANT: lns2::Agent::id must be a DENSE internal index
     // (0..agents.size()-1). The external robot_id is kept in plan_ids_ext.
@@ -713,6 +729,7 @@ class MapfLns2Node : public rclcpp::Node {
       a.goal  = lns2_node::world_to_cell(req->goals[i].x, req->goals[i].y,
                                snap_ox, snap_oy, snap_res,
                                snap_grid.rows, snap_grid.cols);
+      geometry_msgs::msg::Point effective_goal = req->goals[i];
       const double radius = snap_fp_radii[rid] > 0 ? snap_fp_radii[rid]
                                                     : default_robot_radius_;
       a.footprint = lns2::FootprintModel::from_radius(
@@ -752,6 +769,10 @@ class MapfLns2Node : public rclcpp::Node {
             "cell grid(%d,%d) as virtual goal",
             rid, a.goal.row, a.goal.col, rescued.row, rescued.col);
         a.goal = rescued;
+        lns2_node::cell_to_world(
+            a.goal, snap_ox, snap_oy, snap_res,
+            effective_goal.x, effective_goal.y);
+        effective_goal.z = 0.0;
       }
       if (a.start.row == a.goal.row && a.start.col == a.goal.col) {
         RCLCPP_WARN(get_logger(),
@@ -784,7 +805,7 @@ class MapfLns2Node : public rclcpp::Node {
       }
       agents.push_back(std::move(a));
       plan_ids_ext.push_back(rid);
-      plan_goals_world.push_back(req->goals[i]);
+      plan_goals_world.push_back(effective_goal);
     }
 
     //  Send warnings once

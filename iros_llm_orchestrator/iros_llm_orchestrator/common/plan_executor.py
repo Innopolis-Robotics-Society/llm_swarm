@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
 import re
 from typing import Awaitable, Callable
 
@@ -197,23 +198,94 @@ def flatten_parallel(node: dict) -> list[dict]:
     # agents and we'd rather submit a coherent goal than fail the leaf.
     if mapf_leaves:
         merged: dict[int, list] = {}
+        merged_spread: dict[int, bool] = {}
         reasons: list[str]      = []
         for leaf in mapf_leaves:
-            ids   = [coerce_robot_id(r) for r in leaf.get('robot_ids', [])]
-            goals = [[float(g[0]), float(g[1])] for g in leaf.get('goals', [])]
+            ids, goals, should_spread = _mapf_ids_goals_for_merge(leaf)
             for rid, g in zip(ids, goals):
                 merged[rid] = g
+                merged_spread[rid] = should_spread
             if leaf.get('reason'):
                 reasons.append(leaf['reason'])
+        robot_ids = list(merged.keys())
+        goals = list(merged.values())
+        if any(merged_spread.get(rid, False) for rid in robot_ids):
+            goals = _spread_near_duplicate_goals(
+                goals,
+                spread_mask=[merged_spread.get(rid, False) for rid in robot_ids],
+            )
         result.append({
             'type':      'mapf',
-            'robot_ids': list(merged.keys()),
-            'goals':     list(merged.values()),
+            'robot_ids': robot_ids,
+            'goals':     goals,
             'reason':    ' + '.join(reasons),
         })
 
     # Non-mapf (formation etc.) run after the merged mapf
     result.extend(non_mapf_leaves)
+    return result
+
+
+def _mapf_ids_goals_for_merge(
+    leaf: dict,
+) -> tuple[list[int], list[list[float]], bool]:
+    """Return a merge-safe one-goal-per-robot view of a mapf leaf.
+
+    The chat server normally expands ``spread:true`` during post-processing.
+    Keep this fallback here because PlanExecutor is also used directly in
+    tests and replay paths; a single center for N ids must never be truncated
+    to just the first robot by ``zip(ids, goals)``.
+    """
+    ids = [coerce_robot_id(r) for r in leaf.get('robot_ids', [])]
+    goals = [[float(g[0]), float(g[1])] for g in leaf.get('goals', [])]
+    if len(goals) == 1 and len(ids) > 1:
+        goals = [list(goals[0]) for _ in ids]
+    return ids, goals, bool(leaf.get('spread', False))
+
+
+def _spread_near_duplicate_goals(
+    goals: list[list[float]],
+    *,
+    spread_mask: list[bool] | None = None,
+    min_dist_m: float = 0.75,
+    spacing_m: float = 1.0,
+) -> list[list[float]]:
+    if len(goals) <= 1:
+        return goals
+    result = [list(g) for g in goals]
+    visited = [False] * len(goals)
+    for i in range(len(goals)):
+        if visited[i]:
+            continue
+        group = [i]
+        visited[i] = True
+        for j in range(i + 1, len(goals)):
+            if visited[j]:
+                continue
+            dx = goals[j][0] - goals[i][0]
+            dy = goals[j][1] - goals[i][1]
+            if math.hypot(dx, dy) < min_dist_m:
+                group.append(j)
+                visited[j] = True
+        if len(group) <= 1:
+            continue
+        if spread_mask is not None and not any(spread_mask[idx] for idx in group):
+            continue
+        cx = sum(goals[idx][0] for idx in group) / len(group)
+        cy = sum(goals[idx][1] for idx in group) / len(group)
+        if len(group) == 2:
+            offsets = [(-spacing_m / 2.0, 0.0), (spacing_m / 2.0, 0.0)]
+        else:
+            radius = spacing_m / (2.0 * math.sin(math.pi / len(group)))
+            offsets = [
+                (
+                    radius * math.cos(2.0 * math.pi * k / len(group)),
+                    radius * math.sin(2.0 * math.pi * k / len(group)),
+                )
+                for k in range(len(group))
+            ]
+        for idx, (ox, oy) in zip(group, offsets):
+            result[idx] = [round(cx + ox, 2), round(cy + oy, 2)]
     return result
 
 

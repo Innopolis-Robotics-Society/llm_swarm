@@ -46,6 +46,9 @@ from iros_llm_orchestrator.common.execution_repair import (
     verification_failure_info,
     verification_summary,
 )
+from iros_llm_orchestrator.common.occupancy_rewrite import (
+    rewrite_occupied_room_mapf_goals,
+)
 from iros_llm_orchestrator.context import (
     DEFAULT_MCP_READ_TOOLS,
     ChatContextConfig,
@@ -95,7 +98,7 @@ class ChatServer(Node):
         self.declare_parameter('llm_api_key_env',  'LLM_API_KEY')
         self.declare_parameter('llm_force_chat',   True)
         self.declare_parameter('llm_enable_stop',  False)
-        self.declare_parameter('llm_num_ctx',      8192)
+        self.declare_parameter('llm_num_ctx',      32768)
         self.declare_parameter('timeout_sec',      30.0)
         self.declare_parameter('step_timeout_sec', 120.0)
         self.declare_parameter('map_name',         'cave')
@@ -164,21 +167,26 @@ class ChatServer(Node):
 
         self._timeout  = float(self.get_parameter('timeout_sec').value)
         self._map_name = self.get_parameter('map_name').value
+        self._llm_max_tokens = max(
+            1, int(self.get_parameter('llm_max_tokens').value))
+        self._llm_num_ctx = max(
+            0, int(self.get_parameter('llm_num_ctx').value))
 
         mode = self.get_parameter('llm_mode').value
         self._llm = get_llm_client(
             mode=mode,
             endpoint=self.get_parameter('llm_endpoint').value,
             model=self.get_parameter('llm_model').value,
-            max_tokens=int(self.get_parameter('llm_max_tokens').value),
+            max_tokens=self._llm_max_tokens,
             temperature=float(self.get_parameter('llm_temperature').value),
             api_key=self.get_parameter('llm_api_key').value,
             api_key_env=self.get_parameter('llm_api_key_env').value,
             timeout=self._timeout,
             force_chat=bool(self.get_parameter('llm_force_chat').value),
             enable_stop=bool(self.get_parameter('llm_enable_stop').value),
-            num_ctx=int(self.get_parameter('llm_num_ctx').value),
+            num_ctx=self._llm_num_ctx,
         )
+        self._log_llm_context_budget(mode)
         try:
             self._map_cfg = load_map_config(self._map_name)
         except Exception as exc:
@@ -284,6 +292,39 @@ class ChatServer(Node):
             return [value]
         return [str(item) for item in list(value)]
 
+    def _log_llm_context_budget(self, mode: str) -> None:
+        mode_l = str(mode or '').strip().lower()
+        recommended_ctx = 32768
+        minimum_ctx = 16384
+        prompt_headroom_estimate = 10000
+        if self._llm_num_ctx and self._llm_num_ctx < minimum_ctx:
+            self.get_logger().warning(
+                'LLM context window is small for channel-3 planning: '
+                f'llm_num_ctx={self._llm_num_ctx}, recommended>={recommended_ctx}. '
+                'Large map prompts, tool schemas, and runtime context may be '
+                'truncated.')
+        if (
+            self._llm_num_ctx
+            and self._llm_num_ctx
+            <= self._llm_max_tokens + prompt_headroom_estimate
+        ):
+            self.get_logger().warning(
+                'LLM context/output budget is tight: '
+                f'llm_num_ctx={self._llm_num_ctx}, '
+                f'llm_max_tokens={self._llm_max_tokens}. '
+                'Reduce llm_max_tokens or increase the model context window.')
+        if mode_l == 'http':
+            self.get_logger().warning(
+                'OpenAI-compatible HTTP backend does not let this client set '
+                f'the server context window. llm_num_ctx={self._llm_num_ctx} '
+                'is only a local budget hint; configure the Qwen/vLLM server '
+                'with a matching max_model_len/context window.')
+        if self._tool_calling_enabled and self._structured_output_enabled:
+            self.get_logger().warning(
+                'tool_calling_enabled=true disables the plain structured-output '
+                'path for chat turns. This is expected for tool experiments, '
+                'but structured_output_enabled will not constrain those turns.')
+
     # ------------------------------------------------------------------
     # Action execute
     # ------------------------------------------------------------------
@@ -325,7 +366,7 @@ class ChatServer(Node):
 
         try:
             reply, plan, full_raw = await self._stream_and_parse(
-                messages, goal_handle)
+                messages, goal_handle, user_message=req.user_message)
         except _LlmStageError as exc:
             return self._fail(goal_handle, result, str(exc))
 
@@ -404,7 +445,7 @@ class ChatServer(Node):
 
             try:
                 r_reply, r_plan, r_raw = await self._stream_and_parse(
-                    rem_messages, goal_handle)
+                    rem_messages, goal_handle, user_message=req.user_message)
             except _LlmStageError as exc:
                 return self._finalize_help(
                     goal_handle, result, last_reply, last_plan,
@@ -522,6 +563,7 @@ class ChatServer(Node):
                 r_reply, r_plan, r_raw = await self._stream_and_parse(
                     repair_messages,
                     goal_handle,
+                    user_message=original_user_request,
                 )
             except _LlmStageError as exc:
                 self.get_logger().warning(
@@ -666,7 +708,7 @@ class ChatServer(Node):
         )
         return verification
 
-    async def _stream_and_parse(self, messages, goal_handle):
+    async def _stream_and_parse(self, messages, goal_handle, *, user_message: str = ''):
         """Stream → parse → postprocess; raises _LlmStageError.
 
         Uses the tool-calling loop when ``tool_calling_enabled``; otherwise the
@@ -695,7 +737,40 @@ class ChatServer(Node):
                 f'{preview!r}')
             raise _LlmStageError(f'parse error: {exc}') from exc
         plan = _postprocess_plan(plan, self._map_cfg, self._goal_spread_enabled)
+        plan = self._rewrite_occupied_room_mapf_goals(plan, user_message)
         return reply, plan, full_raw
+
+    def _rewrite_occupied_room_mapf_goals(
+        self,
+        plan: dict,
+        user_message: str,
+    ) -> dict:
+        snapshot = {}
+        if self._pose_cache is not None:
+            try:
+                snapshot = self._pose_cache.snapshot(
+                    stale_threshold_ms=int(self._context_config.pose_stale_ms))
+            except Exception as exc:
+                self.get_logger().warning(
+                    f'occupancy_rewrite: pose snapshot unavailable: {exc}')
+                snapshot = {}
+        rewritten, rewrites = rewrite_occupied_room_mapf_goals(
+            plan,
+            self._map_cfg,
+            pose_snapshot=snapshot,
+            user_message=user_message,
+            robot_footprint_radius=float(
+                self.get_parameter('robot_footprint_radius').value),
+        )
+        for rewrite in rewrites:
+            self.get_logger().info(
+                'occupancy_rewrite: mapf goals rewritten '
+                f"room={rewrite.get('room')} "
+                f"robots={rewrite.get('robot_ids')} "
+                f"mode={rewrite.get('mode')} "
+                f"boundary={rewrite.get('room_boundary_source')}"
+            )
+        return rewritten
 
     async def _stream_with_tool_loop(
         self,

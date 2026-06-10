@@ -154,6 +154,26 @@ def test_get_positions_case_insensitive_room():
 # find_group_placement_in_room
 # ---------------------------------------------------------------------------
 
+def test_find_free_group_goals_in_room_dispatches_to_pure_tool():
+    ex = _make_executor({
+        16: {"x": -27.0, "y": 14.0, "yaw": 0.0, "stale": False},
+    })
+    result = ex._find_free_group_goals_in_room({
+        "room": "nw_hall",
+        "robot_ids": [12, 13, 14, 15],
+        "avoid_robot_ids": [16],
+        "avoid_existing_robots": True,
+        "min_clearance_m": 0.45,
+    })
+
+    assert result["ok"] is True
+    assert result["room"] == "nw_hall"
+    assert result["mapf_leaf"]["type"] == "mapf"
+    assert result["mapf_leaf"]["robot_ids"] == [12, 13, 14, 15]
+    assert len(result["goals"]) == 4
+    assert len({tuple(goal) for goal in result["goals"]}) == 4
+
+
 def test_find_group_placement_in_room_dispatches_to_pure_tool():
     ex = _make_executor({})
     result = ex._find_group_placement_in_room({

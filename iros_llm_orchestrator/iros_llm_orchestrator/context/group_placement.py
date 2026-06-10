@@ -28,13 +28,16 @@ from iros_llm_orchestrator.context.geometry_utils import (
 
 
 DEFAULT_MIN_CLEARANCE_M = 0.35
+DEFAULT_FREE_GOAL_CLEARANCE_M = 0.45
 DEFAULT_FOOTPRINT_RADIUS_M = 0.22
 DEFAULT_ROOM_HALF_EXTENT_M = 3.0
 DEFAULT_CANDIDATE_SPACING_M = 0.5
+DEFAULT_FREE_GOAL_SPACING_M = 0.75
 DEFAULT_LINE_SPACING_M = 1.5
 DEFAULT_WEDGE_DEPTH_M = 1.0
 DEFAULT_WEDGE_LATERAL_M = 0.6
 MAX_CANDIDATES_PER_GROUP = 240
+MAX_FREE_GOAL_CANDIDATES = 900
 
 
 def find_group_placement_in_room(
@@ -180,6 +183,259 @@ def find_group_placement_in_room(
         'room_boundary_source': room_boundary['source'],
         'room_boundary': _json_boundary(room_boundary),
         'placements': placements,
+        'warnings': warnings,
+    }
+
+
+def find_free_group_goals_in_room(
+    map_cfg: dict,
+    args: dict,
+    *,
+    pose_snapshot: dict | None = None,
+    robot_footprint_radius: float = DEFAULT_FOOTPRINT_RADIUS_M,
+) -> dict:
+    """Find ordinary MAPF goals for a group in a room while avoiding robots.
+
+    Unlike ``find_group_placement_in_room``, this does not generate formation
+    offsets. It returns one distinct, occupancy-aware MAPF goal per robot.
+    """
+    args = args or {}
+    room_query = _safe_str(args.get('room') or args.get('location') or '').strip()
+    robot_ids = _int_list(args.get('robot_ids') or [])
+    warnings: list[str] = []
+    if not room_query:
+        return _free_goals_failure(
+            room_query,
+            'unknown_room',
+            ['room_resolved'],
+            ['provide a named room/location from the map context'],
+            warnings,
+        )
+    if not robot_ids:
+        return _free_goals_failure(
+            room_query,
+            'no_robot_ids',
+            ['robot_ids'],
+            ['provide at least one robot id to place'],
+            warnings,
+        )
+
+    room_boundary = resolve_room_boundary(map_cfg or {}, room_query, args=args)
+    if room_boundary is None:
+        known = _known_room_names(map_cfg or {})
+        suggestions = get_close_matches(
+            _norm(room_query),
+            [_norm(name) for name in known],
+            n=5,
+            cutoff=0.55,
+        )
+        reverse = {_norm(name): name for name in known}
+        return {
+            'ok': False,
+            'room': room_query,
+            'reason': 'unknown_room',
+            'failed_checks': ['room_resolved'],
+            'known_rooms': known,
+            'suggestions': [
+                reverse.get(item, item) for item in suggestions
+            ] or ['use a named location from the map context'],
+            'warnings': warnings,
+        }
+
+    footprint_radius = _positive_float(
+        args.get('footprint_radius_m'),
+        robot_footprint_radius,
+    )
+    min_clearance = _positive_float(
+        args.get('min_clearance_m'),
+        DEFAULT_FREE_GOAL_CLEARANCE_M,
+    )
+    goal_spacing = _positive_float(
+        args.get('goal_spacing_m'),
+        DEFAULT_FREE_GOAL_SPACING_M,
+    )
+    candidate_spacing = _positive_float(
+        args.get('candidate_spacing_m'),
+        min(DEFAULT_CANDIDATE_SPACING_M, max(0.2, goal_spacing / 2.0)),
+    )
+    max_candidates = int(_positive_float(
+        args.get('max_candidates'),
+        MAX_FREE_GOAL_CANDIDATES,
+    ))
+    max_candidates = max(1, min(max_candidates, 2000))
+    avoid_existing = bool(args.get('avoid_existing_robots', True))
+    avoid_robot_ids = set(_int_list(args.get('avoid_robot_ids') or []))
+    prefer_near_group = set(_int_list(args.get('prefer_near_group') or []))
+    requested_ids = set(robot_ids)
+
+    if pose_snapshot is None and (avoid_existing or avoid_robot_ids or prefer_near_group):
+        warnings.append('no pose snapshot supplied; live robot occupancy was not checked')
+    snapshot = pose_snapshot or {}
+    existing_positions, pose_warnings = _existing_robot_positions(
+        snapshot,
+        requested_ids=requested_ids,
+        avoid_existing=avoid_existing,
+    )
+    warnings.extend(pose_warnings)
+    avoid_positions, avoid_warnings = _pose_points_for_robot_ids(
+        snapshot,
+        avoid_robot_ids - requested_ids,
+        label='avoid_robot_ids',
+    )
+    warnings.extend(avoid_warnings)
+    prefer_positions, prefer_warnings = _pose_points_for_robot_ids(
+        snapshot,
+        prefer_near_group - requested_ids,
+        label='prefer_near_group',
+    )
+    warnings.extend(prefer_warnings)
+
+    # ``avoid_robot_ids`` must be enforced even when avoid_existing_robots=false.
+    obstacle_positions = list(existing_positions)
+    for point in avoid_positions:
+        if point not in obstacle_positions:
+            obstacle_positions.append(point)
+
+    anchor = _points_centroid(prefer_positions)
+    placement_mode = _norm(args.get('placement_mode') or 'cluster')
+    placement_mode_out = placement_mode.replace(' ', '_') or 'cluster'
+    used_prefer_anchor = anchor is not None
+    if anchor is None:
+        anchor = room_boundary.get('center') or _polygon_center(room_boundary.get('polygon') or [])
+        if prefer_near_group:
+            warnings.append('prefer_near_group had no usable live poses; used room center')
+    if anchor is None:
+        anchor = (0.0, 0.0)
+
+    bounds = _map_bounds(map_cfg or {})
+    candidates, failed_checks = _free_goal_candidates(
+        room_boundary,
+        bounds,
+        obstacle_positions,
+        avoid_positions,
+        footprint_radius=footprint_radius,
+        min_clearance=min_clearance,
+        candidate_spacing=candidate_spacing,
+        max_candidates=max_candidates,
+    )
+    if not candidates:
+        return _free_goals_failure(
+            room_boundary['canonical'],
+            'not_enough_free_space',
+            sorted(failed_checks) or ['candidate_generation'],
+            _free_goal_suggestions(),
+            warnings,
+            boundary=room_boundary,
+        )
+
+    candidates.sort(key=_free_candidate_sort_key(
+        anchor,
+        room_boundary,
+        placement_mode=placement_mode,
+        prefer_anchor=used_prefer_anchor,
+    ))
+    candidates = candidates[:max_candidates]
+    min_center_distance = max(goal_spacing, 2.0 * footprint_radius + min_clearance)
+    selected = _select_free_goal_points(
+        candidates,
+        len(robot_ids),
+        min_center_distance=min_center_distance,
+    )
+    if selected is None and used_prefer_anchor:
+        warnings.append('no complete safe placement near preferred group; fell back to room center')
+        fallback_anchor = (
+            room_boundary.get('center')
+            or _polygon_center(room_boundary.get('polygon') or [])
+            or anchor
+        )
+        candidates.sort(key=_free_candidate_sort_key(
+            fallback_anchor,
+            room_boundary,
+            placement_mode='cluster',
+            prefer_anchor=False,
+        ))
+        selected = _select_free_goal_points(
+            candidates,
+            len(robot_ids),
+            min_center_distance=min_center_distance,
+        )
+    if selected is None:
+        return _free_goals_failure(
+            room_boundary['canonical'],
+            'not_enough_free_space',
+            ['pairwise_clearance_ok', 'avoids_existing_robots'],
+            _free_goal_suggestions(),
+            warnings,
+            boundary=room_boundary,
+        )
+
+    goals = [_round_point(candidate['point']) for candidate in selected]
+    points = [candidate['point'] for candidate in selected]
+    pairwise_clearance = min_pairwise_clearance(points, footprint_radius)
+    existing_clearance = min_clearance_to_points(
+        points,
+        existing_positions,
+        footprint_radius,
+        footprint_radius,
+    )
+    avoid_clearance = min_clearance_to_points(
+        points,
+        avoid_positions,
+        footprint_radius,
+        footprint_radius,
+    )
+    boundary_clearance = _min_boundary_clearance(points, room_boundary)
+    boundary_free_clearance = (
+        boundary_clearance - footprint_radius
+        if boundary_clearance is not None else None
+    )
+    clearances = [
+        value for value in (
+            pairwise_clearance,
+            existing_clearance,
+            avoid_clearance,
+            boundary_free_clearance,
+        )
+        if value is not None
+    ]
+    reason = _safe_str(args.get('reason') or '').strip()
+    if not reason:
+        reason = f'free group placement in {room_boundary["canonical"]}'
+    return {
+        'ok': True,
+        'room': room_boundary['canonical'],
+        'room_boundary_source': room_boundary['source'],
+        'room_boundary': _json_boundary(room_boundary),
+        'robot_ids': robot_ids,
+        'goals': goals,
+        'mapf_leaf': {
+            'type': 'mapf',
+            'robot_ids': robot_ids,
+            'goals': goals,
+            'reason': reason,
+        },
+        'placement_mode': placement_mode_out,
+        'anchor': _round_point(anchor),
+        'used_prefer_near_group': used_prefer_anchor,
+        'footprint_radius_m': round(footprint_radius, 3),
+        'min_clearance_m': round(min_clearance, 3),
+        'goal_spacing_m': round(goal_spacing, 3),
+        'clearance_min_m': round(min(clearances), 3) if clearances else None,
+        'checks': {
+            'inside_room': True,
+            'inside_map_bounds': True,
+            'pairwise_clearance_ok': (
+                pairwise_clearance is None or pairwise_clearance >= min_clearance
+            ),
+            'avoids_existing_robots': (
+                not avoid_existing
+                or existing_clearance is None
+                or existing_clearance >= min_clearance
+            ),
+            'avoids_avoid_robot_ids': (
+                avoid_clearance is None or avoid_clearance >= min_clearance
+            ),
+        },
         'warnings': warnings,
     }
 
@@ -644,6 +900,166 @@ def _finalise_placements(
     return placements
 
 
+def _free_goal_candidates(
+    boundary: dict,
+    bounds: dict | None,
+    existing_positions: list[tuple[float, float]],
+    avoid_positions: list[tuple[float, float]],
+    *,
+    footprint_radius: float,
+    min_clearance: float,
+    candidate_spacing: float,
+    max_candidates: int,
+) -> tuple[list[dict], set[str]]:
+    candidates: list[dict] = []
+    failed_checks: set[str] = set()
+    obstacle_positions = list(existing_positions)
+    for point in avoid_positions:
+        if point not in obstacle_positions:
+            obstacle_positions.append(point)
+    for point in _candidate_leader_points(boundary, candidate_spacing):
+        boundary_distance = _min_boundary_clearance([point], boundary)
+        boundary_clearance = (
+            boundary_distance - footprint_radius
+            if boundary_distance is not None else None
+        )
+        inside_room = (
+            boundary_clearance is not None
+            and boundary_clearance >= min_clearance
+        )
+        inside_map_bounds = _points_inside_bounds([point], bounds, footprint_radius)
+        existing_clearance = min_clearance_to_points(
+            [point],
+            existing_positions,
+            footprint_radius,
+            footprint_radius,
+        )
+        avoids_existing = (
+            existing_clearance is None or existing_clearance >= min_clearance
+        )
+        avoid_clearance = min_clearance_to_points(
+            [point],
+            avoid_positions,
+            footprint_radius,
+            footprint_radius,
+        )
+        avoids_avoid_ids = (
+            avoid_clearance is None or avoid_clearance >= min_clearance
+        )
+        obstacle_clearance = min_clearance_to_points(
+            [point],
+            obstacle_positions,
+            footprint_radius,
+            footprint_radius,
+        )
+        if not inside_room:
+            failed_checks.add('inside_room')
+        if not inside_map_bounds:
+            failed_checks.add('inside_map_bounds')
+        if not avoids_existing:
+            failed_checks.add('avoids_existing_robots')
+        if not avoids_avoid_ids:
+            failed_checks.add('avoids_avoid_robot_ids')
+        if inside_room and inside_map_bounds and avoids_existing and avoids_avoid_ids:
+            candidates.append({
+                'point': point,
+                'boundary_clearance_m': boundary_clearance,
+                'existing_clearance_m': existing_clearance,
+                'avoid_clearance_m': avoid_clearance,
+                'obstacle_clearance_m': obstacle_clearance,
+            })
+    return candidates, failed_checks
+
+
+def _free_candidate_sort_key(
+    anchor: tuple[float, float],
+    boundary: dict,
+    *,
+    placement_mode: str,
+    prefer_anchor: bool,
+):
+    room_center = (
+        boundary.get('center')
+        or _polygon_center(boundary.get('polygon') or [])
+        or anchor
+    )
+
+    def _key(candidate: dict) -> tuple:
+        point = candidate['point']
+        anchor_distance = euclidean_distance(point, anchor)
+        center_distance = euclidean_distance(point, room_center)
+        obstacle_clearance = candidate.get('obstacle_clearance_m')
+        clearance_bias = (
+            -round(float(obstacle_clearance), 6)
+            if obstacle_clearance is not None else 0.0
+        )
+        if placement_mode == 'around group' or placement_mode == 'around_group':
+            # Prefer a ring near the referenced group, then higher obstacle
+            # clearance. The obstacle filter already keeps us off the group.
+            return (
+                round(anchor_distance, 6),
+                clearance_bias,
+                round(center_distance, 6),
+                round(point[1], 6),
+                round(point[0], 6),
+            )
+        if placement_mode == 'line':
+            return (
+                round(abs(point[1] - anchor[1]), 6),
+                round(center_distance, 6),
+                clearance_bias,
+                round(point[0], 6),
+            )
+        if prefer_anchor:
+            return (
+                round(anchor_distance, 6),
+                round(center_distance, 6),
+                clearance_bias,
+                round(point[1], 6),
+                round(point[0], 6),
+            )
+        return (
+            round(center_distance, 6),
+            round(anchor_distance, 6),
+            clearance_bias,
+            round(point[1], 6),
+            round(point[0], 6),
+        )
+
+    return _key
+
+
+def _select_free_goal_points(
+    candidates: list[dict],
+    count: int,
+    *,
+    min_center_distance: float,
+) -> list[dict] | None:
+    selected: list[dict] = []
+
+    def _search(start_index: int) -> list[dict] | None:
+        if len(selected) >= count:
+            return list(selected)
+        remaining_needed = count - len(selected)
+        if len(candidates) - start_index < remaining_needed:
+            return None
+        for idx in range(start_index, len(candidates)):
+            candidate = candidates[idx]
+            point = candidate['point']
+            if all(
+                euclidean_distance(point, other['point']) >= min_center_distance
+                for other in selected
+            ):
+                selected.append(candidate)
+                result = _search(idx + 1)
+                if result is not None:
+                    return result
+                selected.pop()
+        return None
+
+    return _search(0)
+
+
 def _candidate_leader_points(boundary: dict, spacing: float) -> list[tuple[float, float]]:
     bbox = boundary.get('bbox') or polygon_bbox(boundary.get('polygon') or [])
     center = boundary.get('center') or _polygon_center(boundary.get('polygon') or [])
@@ -757,6 +1173,43 @@ def _existing_robot_positions(
             continue
         positions.append(point)
     return positions, warnings
+
+
+def _pose_points_for_robot_ids(
+    snapshot: dict,
+    robot_ids: set[int],
+    *,
+    label: str,
+) -> tuple[list[tuple[float, float]], list[str]]:
+    positions: list[tuple[float, float]] = []
+    warnings: list[str] = []
+    for rid in sorted(robot_ids):
+        pose = None
+        for key in (rid, str(rid), f'robot_{rid}'):
+            if key in (snapshot or {}):
+                pose = snapshot[key]
+                break
+        if not isinstance(pose, dict):
+            warnings.append(f'{label}: no usable pose for robot_{rid}')
+            continue
+        if bool(pose.get('stale')):
+            warnings.append(f'{label}: ignored stale pose for robot_{rid}')
+            continue
+        point = coerce_point([pose.get('x'), pose.get('y')])
+        if point is None:
+            warnings.append(f'{label}: invalid pose for robot_{rid}')
+            continue
+        positions.append(point)
+    return positions, warnings
+
+
+def _points_centroid(points: list[tuple[float, float]]) -> tuple[float, float] | None:
+    if not points:
+        return None
+    return (
+        sum(point[0] for point in points) / len(points),
+        sum(point[1] for point in points) / len(points),
+    )
 
 
 def _heading_candidates(args: dict) -> list[float]:
@@ -888,6 +1341,37 @@ def _space_suggestions() -> list[str]:
         'move existing group out of the room',
         'use line formation instead of wedge',
     ]
+
+
+def _free_goal_suggestions() -> list[str]:
+    return [
+        'move existing group out of the room',
+        'try a smaller group',
+        'use a different nearby room',
+    ]
+
+
+def _free_goals_failure(
+    room: str,
+    reason: str,
+    failed_checks: list[str],
+    suggestions: list[str],
+    warnings: list[str],
+    *,
+    boundary: dict | None = None,
+) -> dict:
+    result = {
+        'ok': False,
+        'room': room,
+        'reason': reason,
+        'failed_checks': failed_checks,
+        'suggestions': suggestions,
+        'warnings': warnings,
+    }
+    if boundary is not None:
+        result['room_boundary_source'] = boundary.get('source')
+        result['room_boundary'] = _json_boundary(boundary)
+    return result
 
 
 def _map_bounds(map_cfg: dict) -> dict | None:

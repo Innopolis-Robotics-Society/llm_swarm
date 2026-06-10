@@ -15,7 +15,7 @@ from iros_llm_orchestrator.common.tool_definitions import (
 # ---------------------------------------------------------------------------
 
 def test_tool_definitions_count():
-    assert len(TOOL_DEFINITIONS) == 5
+    assert len(TOOL_DEFINITIONS) == 6
 
 
 def test_tool_definitions_names():
@@ -24,6 +24,7 @@ def test_tool_definitions_names():
         "check_occupancy",
         "get_positions",
         "get_robot_position",
+        "find_free_group_goals_in_room",
         "find_group_placement_in_room",
         "verify_plan_execution_state",
     }

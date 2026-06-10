@@ -4,6 +4,7 @@ Tools:
   get_robot_position(robot_id) — current pose from RobotPoseCache
   get_positions(room, qualifier) — named geometry from map_cfg["geometry"]
   check_occupancy(robot_id)   — one-shot LaserScan → free/occupied cell grid
+  find_free_group_goals_in_room(...) — occupancy-aware normal MAPF room goals
   find_group_placement_in_room(...) — deterministic room/formation placement
   verify_plan_execution_state(...) — deterministic post-execution verification
 """
@@ -20,6 +21,7 @@ from iros_llm_orchestrator.context.execution_verification import (
     verify_plan_execution_state,
 )
 from iros_llm_orchestrator.context.group_placement import (
+    find_free_group_goals_in_room,
     find_group_placement_in_room,
 )
 
@@ -58,6 +60,11 @@ class ToolExecutor:
             return self._get_robot_position(arguments.get("robot_id", ""))
         if name == "find_group_placement_in_room":
             result = self._find_group_placement_in_room(arguments)
+            self._log_tool_result(name, result)
+            return result
+        if name == "find_free_group_goals_in_room":
+            self._log_tool_start(name, arguments)
+            result = self._find_free_group_goals_in_room(arguments)
             self._log_tool_result(name, result)
             return result
         if name == "verify_plan_execution_state":
@@ -141,11 +148,37 @@ class ToolExecutor:
                     f"room={result.get('room', '')} "
                     f"placements={len(result.get('placements') or [])}"
                 )
+            elif name == "find_free_group_goals_in_room":
+                if bool(result.get('ok')):
+                    logger.info(
+                        "LLM tool: find_free_group_goals_in_room result "
+                        f"ok=true room={result.get('room', '')} "
+                        f"goals={len(result.get('goals') or [])}"
+                    )
+                else:
+                    logger.info(
+                        "LLM tool: find_free_group_goals_in_room result "
+                        f"ok=false reason={result.get('reason', '')}"
+                    )
             elif name == "verify_plan_execution_state":
                 logger.info(
                     "LLM tool: verify_plan_execution_state result "
                     f"ok={bool(result.get('ok'))} "
                     f"summary={str(result.get('summary') or '')[:160]}"
+                )
+        except Exception:
+            return
+
+    def _log_tool_start(self, name: str, arguments: dict) -> None:
+        logger = self._node.get_logger() if hasattr(self._node, "get_logger") else None
+        if logger is None:
+            return
+        try:
+            if name == "find_free_group_goals_in_room":
+                logger.info(
+                    "LLM tool: find_free_group_goals_in_room start "
+                    f"room={(arguments or {}).get('room', '')} "
+                    f"robots={(arguments or {}).get('robot_ids', [])}"
                 )
         except Exception:
             return
@@ -212,6 +245,24 @@ class ToolExecutor:
             except Exception:
                 snapshot = None
         return find_group_placement_in_room(
+            self._map_cfg,
+            arguments or {},
+            pose_snapshot=snapshot,
+            robot_footprint_radius=self._footprint_radius,
+        )
+
+    # ------------------------------------------------------------------
+    # Tool: find_free_group_goals_in_room
+    # ------------------------------------------------------------------
+
+    def _find_free_group_goals_in_room(self, arguments: dict) -> dict:
+        snapshot = None
+        if self._pose_cache is not None:
+            try:
+                snapshot = self._pose_cache.snapshot()
+            except Exception:
+                snapshot = None
+        return find_free_group_goals_in_room(
             self._map_cfg,
             arguments or {},
             pose_snapshot=snapshot,

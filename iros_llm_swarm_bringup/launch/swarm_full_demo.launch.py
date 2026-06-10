@@ -97,6 +97,13 @@ def generate_launch_description():
                     'Ollama; known OpenAI-compatible endpoints resolve their '
                     'model names in the orchestrator launch file.',
     )
+    llm_num_ctx_arg = DeclareLaunchArgument(
+        'llm_num_ctx',
+        default_value='32768',
+        description='Requested local context window for Ollama backends. For '
+                    'OpenAI-compatible HTTP endpoints configure the model '
+                    'server context separately.',
+    )
     enable_formation_arg = DeclareLaunchArgument(
         'enable_formation',
         default_value='true',
@@ -121,6 +128,7 @@ def generate_launch_description():
     enable_llm_mapf_proxy = LaunchConfiguration('enable_llm_mapf_proxy')
     llm_endpoint     = LaunchConfiguration('llm_endpoint')
     enable_formation = LaunchConfiguration('enable_formation')
+    llm_num_ctx = LaunchConfiguration('llm_num_ctx')
     rviz_cfg         = LaunchConfiguration('rviz_cfg')
 
     is_lns           = IfCondition(PythonExpression(["'", planner, "' == 'lns'"]))
@@ -206,6 +214,7 @@ def generate_launch_description():
             ('enable_rosbridge', enable_rosbridge),
             ('enable_llm_mapf_proxy', enable_llm_mapf_proxy),
             ('llm_endpoint', llm_endpoint),
+            ('llm_num_ctx', llm_num_ctx),
             ('scenario', scenario),
             ('scenarios_file', scenarios_file),
         ],
@@ -292,6 +301,7 @@ def generate_launch_description():
         enable_rosbridge_arg,
         enable_llm_mapf_proxy_arg,
         llm_endpoint_arg,
+        llm_num_ctx_arg,
         enable_formation_arg,
         rviz_cfg_arg,
 

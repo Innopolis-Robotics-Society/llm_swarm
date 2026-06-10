@@ -227,6 +227,45 @@ def test_semantic_get_route_context_returns_straight_line_distance():
     )
 
 
+def test_semantic_find_free_group_goals_in_room_avoids_existing_robots():
+    cfg = _mock_map()
+    cfg['named_locations']['room'] = [0.0, 0.0]
+    cfg['geometry'] = {
+        'room': {
+            'center': [0.0, 0.0],
+            'width_m': 6.0,
+            'height_m': 6.0,
+        },
+    }
+    provider = _provider_from_config(
+        cfg,
+        pose_cache=_FakePoseCache({
+            16: {'x': 0.0, 'y': 0.0},
+            17: {'x': 0.8, 'y': 0.0},
+        }),
+    )
+
+    result = _run(provider.execute_tool(
+        'semantic_find_free_group_goals_in_room',
+        {
+            'room': 'room',
+            'robot_ids': [12, 13],
+            'avoid_robot_ids': [16, 17],
+            'prefer_near_group': [16, 17],
+            'placement_mode': 'around_group',
+        },
+    ))
+
+    assert 'semantic_find_free_group_goals_in_room' in DEFAULT_SEMANTIC_READ_TOOLS
+    assert result['ok'] is True
+    assert result['robot_ids'] == [12, 13]
+    assert len(result['goals']) == 2
+    assert result['checks']['avoids_existing_robots'] is True
+    assert result['checks']['avoids_avoid_robot_ids'] is True
+    assert result['mapf_leaf']['type'] == 'mapf'
+    assert 'spread' not in result['mapf_leaf']
+
+
 def test_semantic_check_goal_feasibility_scores_risk():
     provider = _provider_from_config(
         _mock_map(),

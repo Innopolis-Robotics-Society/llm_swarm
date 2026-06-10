@@ -24,6 +24,7 @@ class HttpClient(LLMClientBase):
         timeout: float = 30.0,
         force_chat: bool | None = None,
         enable_stop: bool = False,
+        num_ctx: int = 32768,
     ):
         self.endpoint = endpoint
         self.model = model
@@ -34,6 +35,11 @@ class HttpClient(LLMClientBase):
         self.timeout = timeout
         self.force_chat = force_chat
         self.enable_stop = enable_stop
+        # OpenAI-compatible APIs do not expose a standard per-request context
+        # window knob. Keep this as a local budget hint for diagnostics; the
+        # actual window must be configured server-side (for example vLLM
+        # --max-model-len).
+        self.num_ctx = num_ctx
 
     async def generate(
         self,

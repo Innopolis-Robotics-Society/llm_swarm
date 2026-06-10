@@ -76,7 +76,7 @@ def get_llm_client(
     timeout: float = 30.0,
     force_chat: bool | None = None,
     enable_stop: bool = False,
-    num_ctx: int = 8192,
+    num_ctx: int = 32768,
 ) -> LLMClientBase:
     """Return an LLM client for the requested mode.
 
@@ -122,6 +122,7 @@ def get_llm_client(
             timeout=timeout,
             force_chat=force_chat,
             enable_stop=enable_stop,
+            num_ctx=num_ctx,
         )
 
     raise ValueError(

@@ -35,7 +35,7 @@ class LlmDecisionServer(Node):
         self.declare_parameter('llm_api_key_env', 'LLM_API_KEY')
         self.declare_parameter('llm_force_chat',  True)
         self.declare_parameter('llm_enable_stop', False)
-        self.declare_parameter('llm_num_ctx',     8192)
+        self.declare_parameter('llm_num_ctx',     32768)
         self.declare_parameter('timeout_sec',     10.0)
         self.declare_parameter('default_on_error','wait')
         self.declare_parameter('log_tail',        20)

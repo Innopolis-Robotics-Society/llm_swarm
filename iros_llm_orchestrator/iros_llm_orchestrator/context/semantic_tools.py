@@ -36,6 +36,7 @@ from iros_llm_orchestrator.context.execution_verification import (
     verify_plan_execution_state as _verify_plan_execution_state,
 )
 from iros_llm_orchestrator.context.group_placement import (
+    find_free_group_goals_in_room as _find_free_group_goals_in_room,
     find_group_placement_in_room as _find_group_placement_in_room,
 )
 
@@ -56,6 +57,7 @@ DEFAULT_SEMANTIC_READ_TOOLS = (
     'semantic_get_route_context',
     'semantic_check_goal_feasibility',
     'semantic_check_formation_feasibility',
+    'semantic_find_free_group_goals_in_room',
     'semantic_find_group_placement_in_room',
     'semantic_verify_plan_execution_state',
     'semantic_get_allowed_action_schema',
@@ -76,6 +78,8 @@ SEMANTIC_TOOL_DESCRIPTIONS = {
         'bounds/group/heuristic feasibility check for a navigation target',
     'semantic_check_formation_feasibility':
         'formation-zone and group-size check without calling formation services',
+    'semantic_find_free_group_goals_in_room':
+        'occupancy-aware ordinary MAPF goals for placing a group inside a room',
     'semantic_find_group_placement_in_room':
         'room-aware non-overlapping placement candidates for group formations',
     'semantic_verify_plan_execution_state':
@@ -122,6 +126,8 @@ class SemanticToolProvider:
             return self.semantic_check_goal_feasibility(args)
         if name == 'semantic_check_formation_feasibility':
             return self.semantic_check_formation_feasibility(args)
+        if name == 'semantic_find_free_group_goals_in_room':
+            return self.semantic_find_free_group_goals_in_room(args)
         if name == 'semantic_find_group_placement_in_room':
             return self.semantic_find_group_placement_in_room(args)
         if name == 'semantic_verify_plan_execution_state':
@@ -639,6 +645,14 @@ class SemanticToolProvider:
 
     def semantic_find_group_placement_in_room(self, args: dict) -> dict:
         return _find_group_placement_in_room(
+            self._map_cfg,
+            args,
+            pose_snapshot=self._pose_snapshot(),
+            robot_footprint_radius=0.22,
+        )
+
+    def semantic_find_free_group_goals_in_room(self, args: dict) -> dict:
+        return _find_free_group_goals_in_room(
             self._map_cfg,
             args,
             pose_snapshot=self._pose_snapshot(),
