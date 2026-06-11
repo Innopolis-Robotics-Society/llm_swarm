@@ -24,6 +24,7 @@ Examples:
   ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py scenario:=warehouse_2 planner:=pbs
   ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py enable_formation:=false
   ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py llm_endpoint:=http://10.100.11.182:8000/v1/chat/completions
+  ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py footprint_type:=convex_hull
 """
 
 from launch import LaunchDescription
@@ -110,6 +111,12 @@ def generate_launch_description():
         choices=['true', 'false'],
         description='Start formation_manager + formation_monitor nodes.',
     )
+    footprint_type_arg = DeclareLaunchArgument(
+        'footprint_type',
+        default_value='convex_hull',
+        choices=['circle', 'convex_hull'],
+        description='Formation footprint type',
+    )
     rviz_cfg_arg = DeclareLaunchArgument(
         'rviz_cfg',
         default_value=PathJoinSubstitution([
@@ -129,6 +136,7 @@ def generate_launch_description():
     llm_endpoint     = LaunchConfiguration('llm_endpoint')
     enable_formation = LaunchConfiguration('enable_formation')
     llm_num_ctx = LaunchConfiguration('llm_num_ctx')
+    footprint_type = LaunchConfiguration('footprint_type')
     rviz_cfg         = LaunchConfiguration('rviz_cfg')
 
     is_lns           = IfCondition(PythonExpression(["'", planner, "' == 'lns'"]))
@@ -236,6 +244,7 @@ def generate_launch_description():
             # first /formation/set doesn't race the first odom message.
             'num_robots':         num_robots,
             'robot_ns_prefix':    'robot_',
+            'footprint_type':     footprint_type,
         }],
         condition=use_formation,
     )
@@ -303,6 +312,7 @@ def generate_launch_description():
         llm_endpoint_arg,
         llm_num_ctx_arg,
         enable_formation_arg,
+        footprint_type_arg,
         rviz_cfg_arg,
 
         # t=0

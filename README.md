@@ -394,24 +394,11 @@ ros2 run iros_llm_swarm_mapf test_send_goals --random --radius 5.0
 ros2 run iros_llm_swarm_mapf test_send_goals --json-file goals.json
 ```
 
-### Formations and MAPF tests
+### Formations tests
 
-Launch the full stack and send the goals:
-
+Two launch arguments allowed for formation footprint shape: circle and convex hull (default).
 ```bash
-ros2 launch iros_llm_swarm_bringup swarm_mapf_formation.launch.py
-
-# In second terminal
-ros2 run iros_llm_swarm_mapf test_send_goals --json-file src/iros_llm_swarm_mapf/config/goals_1.json
-```
-
-or
-
-```bash
-ros2 launch iros_llm_swarm_bringup swarm_lns_formation.launch.py
-
-# In second terminal
-ros2 run iros_llm_swarm_mapf test_send_goals --json-file src/iros_llm_swarm_mapf/config/goals_2.json
+ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py footprint_type:=convex_hull
 ```
 
 ## Packages
