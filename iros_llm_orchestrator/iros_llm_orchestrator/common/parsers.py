@@ -109,6 +109,8 @@ def parse_llm_command(raw: str) -> dict:
         result['follower_ns']  = [str(f) for f in obj.get('follower_ns', [])]
         result['offsets_x']    = [float(o) for o in obj.get('offsets_x', [])]
         result['offsets_y']    = [float(o) for o in obj.get('offsets_y', [])]
+        if not result['follower_ns']:
+            raise ValueError('mode=formation requires at least 1 follower in follower_ns')
         if len(result['follower_ns']) != len(result['offsets_x']) or \
            len(result['follower_ns']) != len(result['offsets_y']):
             raise ValueError('follower_ns / offsets length mismatch')
