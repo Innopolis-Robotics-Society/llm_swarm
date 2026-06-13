@@ -206,7 +206,10 @@ COMMAND_SCENARIOS = [
         'command': {
             'mode': 'mapf',
             'robot_ids': [0, 1, 2, 4, 5, 6, 8, 9],
-            'goals': [[15.0, 15.0]] * 8,
+            'goals': [
+                [14.5, 14.5], [15.5, 14.5], [16.5, 14.5], [14.5, 15.5],
+                [15.5, 15.5], [16.5, 15.5], [14.5, 16.5], [15.5, 16.5],
+            ],
             'reason': 'replan without stalled robots 3 and 7',
         },
     },
