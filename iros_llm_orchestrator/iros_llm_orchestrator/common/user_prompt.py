@@ -36,8 +36,9 @@ def _prompts_dir() -> str:
                 get_package_share_directory('iros_llm_orchestrator'), 'prompts')
         except Exception:
             pass
+    # Without ament: common/ → package-root/prompts/ (2 levels up, not 3)
     return os.path.normpath(
-        os.path.join(os.path.dirname(__file__), '..', '..', '..', 'prompts'))
+        os.path.join(os.path.dirname(__file__), '..', '..', 'prompts'))
 
 
 def _map_descriptions_dir() -> str:
