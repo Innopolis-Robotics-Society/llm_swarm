@@ -821,7 +821,7 @@ class ChatServer(Node):
                         'content': (
                             'Your response above is not valid JSON. '
                             'Output ONLY the JSON object now:\n'
-                            '{"reasoning":"...","reply":"...","plan":{...}}\n'
+                            '{"reply":"...","plan":{...}}\n'
                             'No prose, no explanation — just the JSON.'
                         ),
                     })

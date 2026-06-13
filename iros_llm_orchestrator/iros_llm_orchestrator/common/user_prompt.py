@@ -395,7 +395,7 @@ _EXECUTION_REPAIR_RUBRIC = (
     'MAPF near the required offsets, preferably using find_group_placement_in_room '
     'again for multi-group room formations, then activate the formation.\n'
     'Use read-only tools if needed. Keep the repair bounded and return the same '
-    '{"reasoning":"...","reply":"...","plan":{...}} JSON object format.'
+    '{"reply":"...","plan":{...}} JSON object format.'
 )
 
 
