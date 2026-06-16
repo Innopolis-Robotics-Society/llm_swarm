@@ -3,7 +3,7 @@ from geometry_msgs.msg import Point, Vector3
 from std_msgs.msg import ColorRGBA
 from builtin_interfaces.msg import Duration
 
-from .task_model import CARRY, DONE, PENDING, TaskInstance
+from .task_model import CARRY, CARRYING, DONE, PENDING, TaskInstance
 
 # Slot offsets within each task's marker namespace
 _SLOT_ZONE = 0
@@ -12,10 +12,10 @@ _SLOT_DROPOFF = 2
 _SLOT_ARROW = 3
 _SLOT_CARGO = 4
 
-_COLOR_PENDING = ColorRGBA(r=0.0, g=0.8, b=0.8, a=0.5)   # cyan
-_COLOR_DONE = ColorRGBA(r=0.3, g=0.3, b=0.3, a=0.3)       # grey
-_COLOR_DROPOFF = ColorRGBA(r=0.0, g=1.0, b=0.4, a=0.5)    # green
-_COLOR_CARGO = ColorRGBA(r=1.0, g=0.6, b=0.0, a=0.9)      # orange
+_COLOR_PENDING  = ColorRGBA(r=0.0, g=0.8, b=0.8, a=0.5)  # cyan  — pickup waiting
+_COLOR_INACTIVE = ColorRGBA(r=0.3, g=0.3, b=0.3, a=0.3)  # grey  — picked up / done
+_COLOR_DROP_ACT = ColorRGBA(r=1.0, g=0.5, b=0.0, a=0.6)  # orange — dropoff awaiting delivery
+_COLOR_DROP_DONE= ColorRGBA(r=0.0, g=1.0, b=0.4, a=0.5)  # green  — delivered
 
 _LIFETIME = Duration(sec=0, nanosec=0)  # never expire
 
@@ -56,7 +56,8 @@ def _markers_for(inst: TaskInstance, frame_id: str) -> list[Marker]:
     status = inst.status
     markers: list[Marker] = []
 
-    color = _COLOR_DONE if status == DONE else _COLOR_PENDING
+    # Pickup zone: cyan while pending, grey once picked up or done
+    pickup_color = _COLOR_PENDING if status == PENDING else _COLOR_INACTIVE
     x, y = task.position
 
     # Zone cylinder
@@ -64,7 +65,7 @@ def _markers_for(inst: TaskInstance, frame_id: str) -> list[Marker]:
     zone.type = Marker.CYLINDER
     zone.pose.position = Point(x=x, y=y, z=0.05)
     zone.scale = Vector3(x=task.radius * 2.0, y=task.radius * 2.0, z=0.1)
-    zone.color = color
+    zone.color = pickup_color
     markers.append(zone)
 
     # Label
@@ -79,12 +80,13 @@ def _markers_for(inst: TaskInstance, frame_id: str) -> list[Marker]:
     if task.type == CARRY:
         dx, dy = task.dropoff
 
-        # Dropoff cylinder
+        # Dropoff cylinder: orange while awaiting delivery, green once done
+        drop_color = _COLOR_DROP_DONE if status == DONE else _COLOR_DROP_ACT
         drop = _base(inst, _SLOT_DROPOFF, frame_id)
         drop.type = Marker.CYLINDER
         drop.pose.position = Point(x=dx, y=dy, z=0.05)
         drop.scale = Vector3(x=task.radius * 2.0, y=task.radius * 2.0, z=0.1)
-        drop.color = _COLOR_DROPOFF
+        drop.color = drop_color
         markers.append(drop)
 
         # Arrow pickup → dropoff
