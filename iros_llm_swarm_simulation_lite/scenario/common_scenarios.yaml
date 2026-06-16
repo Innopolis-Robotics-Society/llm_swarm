@@ -210,3 +210,49 @@ scenarios:
           width: 2.55
           height: 0.2
           default_open: true
+    tasks:
+      # Point tasks — robot must reach the zone
+      - id: task_reactor
+        type: point
+        label: "Fix Reactor"
+        radius: 2.0
+        position: [-28.0, 7.0]
+
+      - id: task_cafeteria
+        type: point
+        label: "Cafeteria"
+        radius: 2.0
+        position: [-10.0, 12.0]
+
+      - id: task_nav
+        type: point
+        label: "Navigation"
+        radius: 2.0
+        position: [20.0, -2.0]
+
+      - id: task_weapons
+        type: point
+        label: "Weapons"
+        radius: 2.0
+        position: [18.0, -8.0]
+
+      - id: task_engine_lower
+        type: point
+        label: "Lower Engine"
+        radius: 2.0
+        position: [-15.0, -14.0]
+
+      # Carry tasks — pick up at position, deliver to dropoff
+      - id: carry_reactor_fuel
+        type: carry
+        label: "Fuel to Reactor"
+        radius: 1.5
+        position: [-6.0, 2.0]
+        dropoff: [-28.0, 7.0]
+
+      - id: carry_med_cafeteria
+        type: carry
+        label: "Meds to Cafeteria"
+        radius: 1.5
+        position: [2.0, -5.0]
+        dropoff: [-10.0, 12.0]
