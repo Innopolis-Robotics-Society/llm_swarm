@@ -1,4 +1,5 @@
 var searchData=
 [
-  ['placeobstacletool_13',['PlaceObstacleTool',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_rviz_tool/generated/doxygen/html/classiros__llm__rviz__tool_1_1PlaceObstacleTool.html',1,'iros_llm_rviz_tool']]]
+  ['placeobstacletool_14',['PlaceObstacleTool',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_rviz_tool/generated/doxygen/html/classiros__llm__rviz__tool_1_1PlaceObstacleTool.html',1,'iros_llm_rviz_tool']]],
+  ['placetasktool_15',['PlaceTaskTool',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_rviz_tool/generated/doxygen/html/classiros__llm__rviz__tool_1_1PlaceTaskTool.html',1,'iros_llm_rviz_tool']]]
 ];

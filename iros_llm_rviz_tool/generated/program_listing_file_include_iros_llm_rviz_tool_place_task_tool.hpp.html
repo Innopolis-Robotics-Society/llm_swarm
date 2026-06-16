@@ -1,0 +1,177 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Program Listing for File place_task_tool.hpp &mdash; iros_llm_rviz_tool</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/collapsible-lists/css/tree_view.css?v=a885cde7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/collapsible-lists/js/CollapsibleLists.compressed.js?v=73120307"></script>
+      <script src="../_static/collapsible-lists/js/apply-collapsible-lists.js?v=660e4f45"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            iros_llm_rviz_tool
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">Program Listing for File place_task_tool.hpp</a></li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">iros_llm_rviz_tool</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Program Listing for File place_task_tool.hpp</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/generated/program_listing_file_include_iros_llm_rviz_tool_place_task_tool.hpp.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <p style="margin: 0 0 1em 0;">
+  <a href="../iros_llm_swarm_docs/index.html">&laquo; IROS LLM Swarm — back to overview</a>
+</p><section id="program-listing-for-file-place-task-tool-hpp">
+<span id="program-listing-file-include-iros-llm-rviz-tool-place-task-tool-hpp"></span><h1>Program Listing for File place_task_tool.hpp<a class="headerlink" href="#program-listing-for-file-place-task-tool-hpp" title="Link to this heading"></a></h1>
+<p>↰ <a class="reference internal" href="file_include_iros_llm_rviz_tool_place_task_tool.hpp.html#file-include-iros-llm-rviz-tool-place-task-tool-hpp"><span class="std std-ref">Return to documentation for file</span></a> (<code class="docutils literal notranslate"><span class="pre">include/iros_llm_rviz_tool/place_task_tool.hpp</span></code>)</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#pragma once</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;atomic&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;map&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;memory&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;optional&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;string&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;utility&gt;</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;rclcpp/rclcpp.hpp&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;rviz_common/tool.hpp&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;rviz_common/properties/enum_property.hpp&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;rviz_common/properties/float_property.hpp&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;rviz_common/properties/string_property.hpp&gt;</span>
+
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;iros_llm_swarm_interfaces/srv/add_task.hpp&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;iros_llm_swarm_interfaces/srv/reset_task.hpp&quot;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;iros_llm_swarm_interfaces/srv/remove_task.hpp&quot;</span>
+
+<span class="k">namespace</span><span class="w"> </span><span class="nn">iros_llm_rviz_tool</span>
+<span class="p">{</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">PlaceTaskTool</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="k">public</span><span class="w"> </span><span class="n">rviz_common</span><span class="o">::</span><span class="n">Tool</span>
+<span class="p">{</span>
+<span class="w">  </span><span class="n">Q_OBJECT</span>
+
+<span class="k">public</span><span class="o">:</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">AddTask</span><span class="w">    </span><span class="o">=</span><span class="w"> </span><span class="n">iros_llm_swarm_interfaces</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">AddTask</span><span class="p">;</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">ResetTask</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">iros_llm_swarm_interfaces</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">ResetTask</span><span class="p">;</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">RemoveTask</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">iros_llm_swarm_interfaces</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">RemoveTask</span><span class="p">;</span>
+
+<span class="w">  </span><span class="n">PlaceTaskTool</span><span class="p">();</span>
+<span class="w">  </span><span class="o">~</span><span class="n">PlaceTaskTool</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">default</span><span class="p">;</span>
+
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onInitialize</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">activate</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">deactivate</span><span class="p">()</span><span class="w"> </span><span class="k">override</span><span class="p">;</span>
+<span class="w">  </span><span class="kt">int</span><span class="w">  </span><span class="nf">processMouseEvent</span><span class="p">(</span><span class="n">rviz_common</span><span class="o">::</span><span class="n">ViewportMouseEvent</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">event</span><span class="p">)</span><span class="w"> </span><span class="k">override</span><span class="p">;</span>
+
+<span class="k">private</span><span class="o">:</span>
+<span class="w">  </span><span class="kt">bool</span><span class="w"> </span><span class="n">getGroundPosition</span><span class="p">(</span><span class="n">rviz_common</span><span class="o">::</span><span class="n">ViewportMouseEvent</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">event</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">wx</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">wy</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">placePoint</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">wx</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">wy</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">placeCarry</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">px</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">py</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">dx</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">dy</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">resetNearest</span><span class="p">(</span><span class="kt">double</span><span class="w"> </span><span class="n">wx</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="w"> </span><span class="n">wy</span><span class="p">);</span>
+
+<span class="w">  </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">Node</span><span class="o">::</span><span class="n">SharedPtr</span><span class="w"> </span><span class="n">node_</span><span class="p">;</span>
+
+<span class="w">  </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">Client</span><span class="o">&lt;</span><span class="n">AddTask</span><span class="o">&gt;::</span><span class="n">SharedPtr</span><span class="w">    </span><span class="n">add_client_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">Client</span><span class="o">&lt;</span><span class="n">ResetTask</span><span class="o">&gt;::</span><span class="n">SharedPtr</span><span class="w">  </span><span class="n">reset_client_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">Client</span><span class="o">&lt;</span><span class="n">RemoveTask</span><span class="o">&gt;::</span><span class="n">SharedPtr</span><span class="w"> </span><span class="n">remove_client_</span><span class="p">;</span>
+
+<span class="w">  </span><span class="n">rviz_common</span><span class="o">::</span><span class="n">properties</span><span class="o">::</span><span class="n">EnumProperty</span><span class="w">   </span><span class="o">*</span><span class="w"> </span><span class="n">type_prop_</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">;</span>
+<span class="w">  </span><span class="n">rviz_common</span><span class="o">::</span><span class="n">properties</span><span class="o">::</span><span class="n">StringProperty</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">label_prop_</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">;</span>
+<span class="w">  </span><span class="n">rviz_common</span><span class="o">::</span><span class="n">properties</span><span class="o">::</span><span class="n">FloatProperty</span><span class="w">  </span><span class="o">*</span><span class="w"> </span><span class="n">radius_prop_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">nullptr</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// carry two-click state</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">pending_pickup_</span><span class="p">;</span>
+
+<span class="w">  </span><span class="c1">// tasks placed this session: id -&gt; position (for nearest-reset lookup)</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">map</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="p">,</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">pair</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="n">placed_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">atomic</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="w"> </span><span class="n">pending_reset_</span><span class="p">{</span><span class="nb">false</span><span class="p">};</span>
+<span class="w">  </span><span class="kt">int</span><span class="w"> </span><span class="n">task_counter_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="p">};</span>
+
+<span class="p">}</span><span class="w">  </span><span class="c1">// namespace iros_llm_rviz_tool</span>
+</pre></div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright .</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

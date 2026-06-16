@@ -50,6 +50,32 @@
     <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1a9b815a8962d8f47eafd4a3f9a1c31990" kind="function"><name>processMouseEvent</name></member>
     <member refid="classiros__llm__rviz__tool_1_1PlaceObstacleTool_1abd45cf0541fe36a1fc878a661ac5b9b6" kind="function"><name>getGroundPosition</name></member>
   </compound>
+  <compound refid="classiros__llm__rviz__tool_1_1PlaceTaskTool" kind="class"><name>iros_llm_rviz_tool::PlaceTaskTool</name>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a3683efa7924efe3b8878739d0b5085c0" kind="typedef"><name>AddTask</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1afa56466e64a6991f4ec3a350d549fc6a" kind="typedef"><name>ResetTask</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a79123f19d43a25954aaf232f620c0756" kind="typedef"><name>RemoveTask</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a9f053542eacea3cd4cfcbf2d80f2f03d" kind="variable"><name>node_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a5f181dced87d5448ea19c9030178dd09" kind="variable"><name>add_client_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a31b4c6c255f5c2707dbb74ddefa3df15" kind="variable"><name>reset_client_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a492fea298e87ca14866f05f41e47691a" kind="variable"><name>remove_client_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a2f707d120d134b17cb5219cbe2d6c585" kind="variable"><name>type_prop_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1ab5eae25c5f7e232114b306553254b200" kind="variable"><name>label_prop_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1aa76a9d0dea64750e28829e0e8161c1fb" kind="variable"><name>radius_prop_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a37e958c288cd5bf7ad79572c79948222" kind="variable"><name>pending_pickup_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a0d753398bbcdd232757da8f90752fcd0" kind="variable"><name>placed_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1ac8ee3e182f199d3f912f2e60a21ba237" kind="variable"><name>pending_reset_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1adf4abb3789ad3e4bf63f7bfc158a3e4e" kind="variable"><name>task_counter_</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a4b5cbdcc53ab89e6e315ae00f5bcf5f5" kind="function"><name>PlaceTaskTool</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a67830d3015a0cc0ed7a44139e10a763b" kind="function"><name>~PlaceTaskTool</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a60c9aa27925aedc02dfd3efd330bd56b" kind="function"><name>onInitialize</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a37f02bfcd59b3f822ba13bb6930251ac" kind="function"><name>activate</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a40ed2e547b4472d4d8d25c4ca9e1496b" kind="function"><name>deactivate</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1aa480c449bfd5f1d2c79de90058fe2694" kind="function"><name>processMouseEvent</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a83f193c17038ef8a754843c0803fe5e8" kind="function"><name>getGroundPosition</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a1352854c7ab47c940491254450fe67ad" kind="function"><name>placePoint</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a5910d330d90707385d3c3bfe8eca4978" kind="function"><name>placeCarry</name></member>
+    <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a3c4089b2fab8b2aaf9b68e227950248a" kind="function"><name>resetNearest</name></member>
+  </compound>
   <compound refid="structiros__llm__rviz__tool_1_1RobotGroup" kind="struct"><name>iros_llm_rviz_tool::RobotGroup</name>
     <member refid="structiros__llm__rviz__tool_1_1RobotGroup_1a06219d5db429ec43679e428add2ed2ca" kind="variable"><name>color</name></member>
     <member refid="structiros__llm__rviz__tool_1_1RobotGroup_1af2e74d0042c15e5d7464ac6c7f58431d" kind="variable"><name>ids</name></member>
@@ -80,6 +106,8 @@
   <compound refid="door__tool_8hpp" kind="file"><name>door_tool.hpp</name>
   </compound>
   <compound refid="place__obstacle__tool_8hpp" kind="file"><name>place_obstacle_tool.hpp</name>
+  </compound>
+  <compound refid="place__task__tool_8hpp" kind="file"><name>place_task_tool.hpp</name>
   </compound>
   <compound refid="send__llm__goal__tool_8hpp" kind="file"><name>send_llm_goal_tool.hpp</name>
   </compound>

@@ -1,0 +1,433 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.1" xml:lang="en-US">
+  <compounddef id="classiros__llm__rviz__tool_1_1PlaceTaskTool" kind="class" language="C++" prot="public">
+    <compoundname>iros_llm_rviz_tool::PlaceTaskTool</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">rviz_common::Tool</basecompoundref>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a3683efa7924efe3b8878739d0b5085c0" prot="public" static="no">
+        <type>iros_llm_swarm_interfaces::srv::AddTask</type>
+        <definition>using iros_llm_rviz_tool::PlaceTaskTool::AddTask =  iros_llm_swarm_interfaces::srv::AddTask</definition>
+        <argsstring></argsstring>
+        <name>AddTask</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="28" column="3" bodyfile="include/iros_llm_rviz_tool/place_task_tool.hpp" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1afa56466e64a6991f4ec3a350d549fc6a" prot="public" static="no">
+        <type>iros_llm_swarm_interfaces::srv::ResetTask</type>
+        <definition>using iros_llm_rviz_tool::PlaceTaskTool::ResetTask =  iros_llm_swarm_interfaces::srv::ResetTask</definition>
+        <argsstring></argsstring>
+        <name>ResetTask</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="29" column="3" bodyfile="include/iros_llm_rviz_tool/place_task_tool.hpp" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a79123f19d43a25954aaf232f620c0756" prot="public" static="no">
+        <type>iros_llm_swarm_interfaces::srv::RemoveTask</type>
+        <definition>using iros_llm_rviz_tool::PlaceTaskTool::RemoveTask =  iros_llm_swarm_interfaces::srv::RemoveTask</definition>
+        <argsstring></argsstring>
+        <name>RemoveTask</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="30" column="3" bodyfile="include/iros_llm_rviz_tool/place_task_tool.hpp" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a9f053542eacea3cd4cfcbf2d80f2f03d" prot="private" static="no" mutable="no">
+        <type>rclcpp::Node::SharedPtr</type>
+        <definition>rclcpp::Node::SharedPtr iros_llm_rviz_tool::PlaceTaskTool::node_</definition>
+        <argsstring></argsstring>
+        <name>node_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="46" column="27" bodyfile="include/iros_llm_rviz_tool/place_task_tool.hpp" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a5f181dced87d5448ea19c9030178dd09" prot="private" static="no" mutable="no">
+        <type>rclcpp::Client&lt; AddTask &gt;::SharedPtr</type>
+        <definition>rclcpp::Client&lt;AddTask&gt;::SharedPtr iros_llm_rviz_tool::PlaceTaskTool::add_client_</definition>
+        <argsstring></argsstring>
+        <name>add_client_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="48" column="33" bodyfile="include/iros_llm_rviz_tool/place_task_tool.hpp" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a31b4c6c255f5c2707dbb74ddefa3df15" prot="private" static="no" mutable="no">
+        <type>rclcpp::Client&lt; ResetTask &gt;::SharedPtr</type>
+        <definition>rclcpp::Client&lt;ResetTask&gt;::SharedPtr iros_llm_rviz_tool::PlaceTaskTool::reset_client_</definition>
+        <argsstring></argsstring>
+        <name>reset_client_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="49" column="31" bodyfile="include/iros_llm_rviz_tool/place_task_tool.hpp" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a492fea298e87ca14866f05f41e47691a" prot="private" static="no" mutable="no">
+        <type>rclcpp::Client&lt; RemoveTask &gt;::SharedPtr</type>
+        <definition>rclcpp::Client&lt;RemoveTask&gt;::SharedPtr iros_llm_rviz_tool::PlaceTaskTool::remove_client_</definition>
+        <argsstring></argsstring>
+        <name>remove_client_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="50" column="30" bodyfile="include/iros_llm_rviz_tool/place_task_tool.hpp" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a2f707d120d134b17cb5219cbe2d6c585" prot="private" static="no" mutable="no">
+        <type>rviz_common::properties::EnumProperty *</type>
+        <definition>rviz_common::properties::EnumProperty* iros_llm_rviz_tool::PlaceTaskTool::type_prop_</definition>
+        <argsstring></argsstring>
+        <name>type_prop_</name>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="52" column="44" bodyfile="include/iros_llm_rviz_tool/place_task_tool.hpp" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1ab5eae25c5f7e232114b306553254b200" prot="private" static="no" mutable="no">
+        <type>rviz_common::properties::StringProperty *</type>
+        <definition>rviz_common::properties::StringProperty* iros_llm_rviz_tool::PlaceTaskTool::label_prop_</definition>
+        <argsstring></argsstring>
+        <name>label_prop_</name>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="53" column="44" bodyfile="include/iros_llm_rviz_tool/place_task_tool.hpp" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1aa76a9d0dea64750e28829e0e8161c1fb" prot="private" static="no" mutable="no">
+        <type>rviz_common::properties::FloatProperty *</type>
+        <definition>rviz_common::properties::FloatProperty* iros_llm_rviz_tool::PlaceTaskTool::radius_prop_</definition>
+        <argsstring></argsstring>
+        <name>radius_prop_</name>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="54" column="44" bodyfile="include/iros_llm_rviz_tool/place_task_tool.hpp" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a37e958c288cd5bf7ad79572c79948222" prot="private" static="no" mutable="no">
+        <type>std::optional&lt; std::pair&lt; double, double &gt; &gt;</type>
+        <definition>std::optional&lt;std::pair&lt;double, double&gt; &gt; iros_llm_rviz_tool::PlaceTaskTool::pending_pickup_</definition>
+        <argsstring></argsstring>
+        <name>pending_pickup_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="57" column="17" bodyfile="include/iros_llm_rviz_tool/place_task_tool.hpp" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a0d753398bbcdd232757da8f90752fcd0" prot="private" static="no" mutable="no">
+        <type>std::map&lt; std::string, std::pair&lt; double, double &gt; &gt;</type>
+        <definition>std::map&lt;std::string, std::pair&lt;double, double&gt; &gt; iros_llm_rviz_tool::PlaceTaskTool::placed_</definition>
+        <argsstring></argsstring>
+        <name>placed_</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="60" column="12" bodyfile="include/iros_llm_rviz_tool/place_task_tool.hpp" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1ac8ee3e182f199d3f912f2e60a21ba237" prot="private" static="no" mutable="no">
+        <type>std::atomic&lt; bool &gt;</type>
+        <definition>std::atomic&lt;bool&gt; iros_llm_rviz_tool::PlaceTaskTool::pending_reset_</definition>
+        <argsstring></argsstring>
+        <name>pending_reset_</name>
+        <initializer>{false}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="61" column="15" bodyfile="include/iros_llm_rviz_tool/place_task_tool.hpp" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1adf4abb3789ad3e4bf63f7bfc158a3e4e" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int iros_llm_rviz_tool::PlaceTaskTool::task_counter_</definition>
+        <argsstring></argsstring>
+        <name>task_counter_</name>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="62" column="7" bodyfile="include/iros_llm_rviz_tool/place_task_tool.hpp" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a4b5cbdcc53ab89e6e315ae00f5bcf5f5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>iros_llm_rviz_tool::PlaceTaskTool::PlaceTaskTool</definition>
+        <argsstring>()</argsstring>
+        <name>PlaceTaskTool</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="32" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a67830d3015a0cc0ed7a44139e10a763b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>iros_llm_rviz_tool::PlaceTaskTool::~PlaceTaskTool</definition>
+        <argsstring>() override=default</argsstring>
+        <name>~PlaceTaskTool</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="33" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a60c9aa27925aedc02dfd3efd330bd56b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_tool::PlaceTaskTool::onInitialize</definition>
+        <argsstring>() override</argsstring>
+        <name>onInitialize</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="35" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a37f02bfcd59b3f822ba13bb6930251ac" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_tool::PlaceTaskTool::activate</definition>
+        <argsstring>() override</argsstring>
+        <name>activate</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="36" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a40ed2e547b4472d4d8d25c4ca9e1496b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_tool::PlaceTaskTool::deactivate</definition>
+        <argsstring>() override</argsstring>
+        <name>deactivate</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="37" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1aa480c449bfd5f1d2c79de90058fe2694" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int iros_llm_rviz_tool::PlaceTaskTool::processMouseEvent</definition>
+        <argsstring>(rviz_common::ViewportMouseEvent &amp;event) override</argsstring>
+        <name>processMouseEvent</name>
+        <param>
+          <type>rviz_common::ViewportMouseEvent &amp;</type>
+          <declname>event</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="38" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a83f193c17038ef8a754843c0803fe5e8" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool iros_llm_rviz_tool::PlaceTaskTool::getGroundPosition</definition>
+        <argsstring>(rviz_common::ViewportMouseEvent &amp;event, double &amp;wx, double &amp;wy)</argsstring>
+        <name>getGroundPosition</name>
+        <param>
+          <type>rviz_common::ViewportMouseEvent &amp;</type>
+          <declname>event</declname>
+        </param>
+        <param>
+          <type>double &amp;</type>
+          <declname>wx</declname>
+        </param>
+        <param>
+          <type>double &amp;</type>
+          <declname>wy</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="41" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a1352854c7ab47c940491254450fe67ad" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_tool::PlaceTaskTool::placePoint</definition>
+        <argsstring>(double wx, double wy)</argsstring>
+        <name>placePoint</name>
+        <param>
+          <type>double</type>
+          <declname>wx</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>wy</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="42" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a5910d330d90707385d3c3bfe8eca4978" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_tool::PlaceTaskTool::placeCarry</definition>
+        <argsstring>(double px, double py, double dx, double dy)</argsstring>
+        <name>placeCarry</name>
+        <param>
+          <type>double</type>
+          <declname>px</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>py</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>dx</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>dy</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="43" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a3c4089b2fab8b2aaf9b68e227950248a" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void iros_llm_rviz_tool::PlaceTaskTool::resetNearest</definition>
+        <argsstring>(double wx, double wy)</argsstring>
+        <name>resetNearest</name>
+        <param>
+          <type>double</type>
+          <declname>wx</declname>
+        </param>
+        <param>
+          <type>double</type>
+          <declname>wy</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="44" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>rviz_common::Tool</label>
+      </node>
+      <node id="1">
+        <label>iros_llm_rviz_tool::PlaceTaskTool</label>
+        <link refid="classiros__llm__rviz__tool_1_1PlaceTaskTool"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>rviz_common::Tool</label>
+      </node>
+      <node id="1">
+        <label>iros_llm_rviz_tool::PlaceTaskTool</label>
+        <link refid="classiros__llm__rviz__tool_1_1PlaceTaskTool"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="include/iros_llm_rviz_tool/place_task_tool.hpp" line="23" column="1" bodyfile="include/iros_llm_rviz_tool/place_task_tool.hpp" bodystart="24" bodyend="63"/>
+    <listofallmembers>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a37f02bfcd59b3f822ba13bb6930251ac" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>activate</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a5f181dced87d5448ea19c9030178dd09" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>add_client_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a3683efa7924efe3b8878739d0b5085c0" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>AddTask</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a40ed2e547b4472d4d8d25c4ca9e1496b" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>deactivate</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a83f193c17038ef8a754843c0803fe5e8" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>getGroundPosition</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1ab5eae25c5f7e232114b306553254b200" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>label_prop_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a9f053542eacea3cd4cfcbf2d80f2f03d" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>node_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a60c9aa27925aedc02dfd3efd330bd56b" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>onInitialize</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a37e958c288cd5bf7ad79572c79948222" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>pending_pickup_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1ac8ee3e182f199d3f912f2e60a21ba237" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>pending_reset_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a5910d330d90707385d3c3bfe8eca4978" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>placeCarry</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a0d753398bbcdd232757da8f90752fcd0" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>placed_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a1352854c7ab47c940491254450fe67ad" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>placePoint</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a4b5cbdcc53ab89e6e315ae00f5bcf5f5" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>PlaceTaskTool</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1aa480c449bfd5f1d2c79de90058fe2694" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>processMouseEvent</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1aa76a9d0dea64750e28829e0e8161c1fb" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>radius_prop_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a492fea298e87ca14866f05f41e47691a" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>remove_client_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a79123f19d43a25954aaf232f620c0756" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>RemoveTask</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a31b4c6c255f5c2707dbb74ddefa3df15" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>reset_client_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a3c4089b2fab8b2aaf9b68e227950248a" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>resetNearest</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1afa56466e64a6991f4ec3a350d549fc6a" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>ResetTask</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1adf4abb3789ad3e4bf63f7bfc158a3e4e" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>task_counter_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a2f707d120d134b17cb5219cbe2d6c585" prot="private" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>type_prop_</name></member>
+      <member refid="classiros__llm__rviz__tool_1_1PlaceTaskTool_1a67830d3015a0cc0ed7a44139e10a763b" prot="public" virt="non-virtual"><scope>iros_llm_rviz_tool::PlaceTaskTool</scope><name>~PlaceTaskTool</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

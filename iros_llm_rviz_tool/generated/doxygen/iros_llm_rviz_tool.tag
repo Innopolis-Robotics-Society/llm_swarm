@@ -12,6 +12,10 @@
     <name>iros_llm_rviz_tool::PlaceObstacleTool</name>
     <filename>classiros__llm__rviz__tool_1_1PlaceObstacleTool.html</filename>
   </compound>
+  <compound kind="class">
+    <name>iros_llm_rviz_tool::PlaceTaskTool</name>
+    <filename>classiros__llm__rviz__tool_1_1PlaceTaskTool.html</filename>
+  </compound>
   <compound kind="struct">
     <name>iros_llm_rviz_tool::RobotGroup</name>
     <filename>structiros__llm__rviz__tool_1_1RobotGroup.html</filename>
