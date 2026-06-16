@@ -27,6 +27,19 @@ def build_marker_array(instances: list[TaskInstance], frame_id: str = "map") -> 
     return arr
 
 
+def delete_markers_for(task_id: str, frame_id: str = "map") -> list[Marker]:
+    """Explicit DELETE markers for all slots of a removed task."""
+    markers = []
+    for slot in (_SLOT_ZONE, _SLOT_LABEL, _SLOT_DROPOFF, _SLOT_ARROW, _SLOT_CARGO):
+        m = Marker()
+        m.header.frame_id = frame_id
+        m.ns = f"task_{task_id}"
+        m.id = slot
+        m.action = Marker.DELETE
+        markers.append(m)
+    return markers
+
+
 def _base(inst: TaskInstance, slot: int, frame_id: str) -> Marker:
     m = Marker()
     m.header.frame_id = frame_id
@@ -88,8 +101,3 @@ def _markers_for(inst: TaskInstance, frame_id: str) -> list[Marker]:
     return markers
 
 
-def delete_all_marker(ns_prefix: str = "task_") -> Marker:
-    """Returns a single DELETE_ALL marker to clear the task namespace."""
-    m = Marker()
-    m.action = Marker.DELETEALL
-    return m

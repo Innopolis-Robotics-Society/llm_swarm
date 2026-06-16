@@ -16,7 +16,7 @@ from iros_llm_swarm_interfaces.srv import (
     ResetTask,
 )
 
-from .marker_builder import build_marker_array, delete_all_marker
+from .marker_builder import build_marker_array, delete_markers_for
 from .task_loader import load_tasks
 from .task_model import CARRY, CARRYING, DONE, PENDING, Task, TaskInstance
 
@@ -96,7 +96,10 @@ class TaskManagerNode(Node):
             res.message = f"Task {req.id!r} not found"
             return res
         del self._instances[req.id]
-        self._publish_markers()
+        arr = MarkerArray()
+        arr.markers.extend(delete_markers_for(req.id, _MAP_FRAME))
+        arr.markers.extend(build_marker_array(list(self._instances.values()), _MAP_FRAME).markers)
+        self._marker_pub.publish(arr)
         res.success = True
         res.message = ""
         return res
