@@ -957,8 +957,9 @@ services.
 #### Topics
 
 - `/tasks/markers` — `visualization_msgs/MarkerArray`, TRANSIENT_LOCAL.
-  Flat cyan cylinders for task zones; green cylinders for carry dropoff zones;
-  yellow arrows connecting pickup to dropoff; grey when done.
+  Cyan cylinders for pending pickup/point zones; grey when picked up or done.
+  Carry dropoff zones are orange (awaiting delivery) → green (delivered).
+  Yellow arrows connect pickup to dropoff.
 
 #### Services
 
