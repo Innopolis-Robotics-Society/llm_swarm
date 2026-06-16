@@ -284,6 +284,18 @@ def generate_launch_description():
         condition=is_lns,
     )
 
+    task_manager = Node(
+        package='iros_llm_swarm_tasks',
+        executable='task_manager_node',
+        name='task_manager',
+        output='screen',
+        parameters=[{
+            'scenario_yaml': scenarios_file,
+            'scenario':      scenario,
+            'num_robots':    num_robots,
+        }],
+    )
+
     bt_runner = Node(
         package='iros_llm_swarm_bt',
         executable='bt_runner',
@@ -332,10 +344,11 @@ def generate_launch_description():
         ]),
 
         TimerAction(period=12.0, actions=[
-            LogInfo(msg='Starting formation manager + monitor...'),
+            LogInfo(msg='Starting formation manager + monitor + task manager...'),
             formation_manager,
             formation_monitor,
             footprint_proxy,
+            task_manager,
         ]),
 
         TimerAction(period=18.0, actions=[

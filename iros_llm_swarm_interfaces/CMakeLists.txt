@@ -46,6 +46,13 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/obstacles/OpenDoor.srv"
   "srv/obstacles/CloseDoor.srv"
   "srv/obstacles/ListObstacles.srv"
+  "msg/tasks/Task.msg"
+  "msg/tasks/TaskState.msg"
+  "srv/tasks/AddTask.srv"
+  "srv/tasks/RemoveTask.srv"
+  "srv/tasks/ListTasks.srv"
+  "srv/tasks/ResetTask.srv"
+  "srv/tasks/ResetAll.srv"
   DEPENDENCIES std_msgs geometry_msgs
 )
 

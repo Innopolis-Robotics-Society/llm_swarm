@@ -210,3 +210,60 @@ scenarios:
           width: 2.55
           height: 0.2
           default_open: true
+    tasks:
+      - id: task_med
+        type: point
+        label: "Med Task"
+        radius: 1.5
+        position: [-6.84, 1.37]
+
+      - id: task_electrical
+        type: point
+        label: "Electrical Task"
+        radius: 1.5
+        position: [-6.31, -3.66]
+
+      - id: carry_engine_to_reactor
+        type: carry
+        label: "Engine to Reactor"
+        radius: 1.5
+        position: [-23.67, -10.86]
+        dropoff: [-29.65, -2.85]
+
+      - id: task_reactor
+        type: point
+        label: "Reactor Task"
+        radius: 1.5
+        position: [-29.51, 5.02]
+
+      - id: carry_security_to_admin
+        type: carry
+        label: "Security to Admin"
+        radius: 1.5
+        position: [-15.99, 3.65]
+        dropoff: [12.29, -5.06]
+
+      - id: task_hall
+        type: point
+        label: "Hall Task"
+        radius: 1.5
+        position: [-2.58, 16.10]
+
+      - id: task_comms
+        type: point
+        label: "Communications Task"
+        radius: 1.5
+        position: [7.84, -15.76]
+
+      - id: task_o2
+        type: point
+        label: "O2"
+        radius: 1.5
+        position: [12.13, 2.05]
+
+      - id: carry_shields_to_reactor
+        type: carry
+        label: "Shields to Reactor"
+        radius: 1.5
+        position: [16.51, -12.19]
+        dropoff: [-29.65, -2.85]

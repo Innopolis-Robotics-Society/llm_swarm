@@ -1,6 +1,6 @@
 # IROS LLM Swarm — Simulation
 
-Multi-robot simulation on ROS 2 Humble with Nav2 local navigation stack. Runs 20 differential-drive robots in a 2D Stage environment with per-robot navigation controllers, a shared map, two MAPF planners (PBS, LNS2), leader-follower formations, BehaviorTree.CPP orchestration, an LLM advisory layer with three channels (reactive, proactive, operator chat), an RViz operator panel with chat / STOP-ALL / status views, click-to-command RViz tools, and a dynamic-obstacle layer.
+Multi-robot simulation on ROS 2 Humble with Nav2 local navigation stack. Runs 20 differential-drive robots in a 2D Stage environment with per-robot navigation controllers, a shared map, two MAPF planners (PBS, LNS2), leader-follower formations, BehaviorTree.CPP orchestration, an LLM advisory layer with three channels (reactive, proactive, operator chat), an RViz operator panel with chat / STOP-ALL / status views, click-to-command RViz tools, a dynamic-obstacle layer, and a proximity-driven task system (point and carry tasks) for LLM mission planning.
 
 ## Quick Start (Docker)
 
@@ -938,16 +938,69 @@ ros2 service call /doors/close iros_llm_swarm_interfaces/srv/CloseDoor \
 ros2 service call /obstacles/list iros_llm_swarm_interfaces/srv/ListObstacles "{}"
 ```
 
+### `iros_llm_swarm_tasks`
+
+Proximity-driven task system. The `task_manager_node` polls TF at 5 Hz and
+transitions task state when a robot enters a task's radius.
+
+Two task types:
+
+- **point** — robot reaches the zone (`position` ± `radius`) → done.
+- **carry** — robot enters the pickup zone (`position`) → status becomes
+  `carrying`; the assigned robot then delivers to `dropoff` ± `radius` → done.
+
+Tasks are defined inline in `common_scenarios.yaml` under each scenario's
+`tasks:` list and loaded at startup via `scenario_yaml` + `scenario`
+parameters. Tasks can also be added, removed, and reset at runtime via
+services.
+
+#### Topics
+
+- `/tasks/markers` — `visualization_msgs/MarkerArray`, TRANSIENT_LOCAL.
+  Cyan cylinders for pending pickup/point zones; grey when picked up or done.
+  Carry dropoff zones are orange (awaiting delivery) → green (delivered).
+  Yellow arrows connect pickup to dropoff.
+
+#### Services
+
+| Service           | Description                                        |
+| ----------------- | -------------------------------------------------- |
+| `/tasks/add`      | Add a task at runtime (`Task` definition)          |
+| `/tasks/remove`   | Remove a task by id                                |
+| `/tasks/list`     | List all task states (id, status, assigned robots) |
+| `/tasks/reset`    | Reset a single task back to `pending`              |
+| `/tasks/reset_all`| Reset all tasks back to `pending`                  |
+
+#### Scenario YAML format
+
+```yaml
+tasks:
+  - id: pick_reactor
+    type: carry
+    label: "Fuel to Reactor"
+    radius: 1.5
+    position: [-6.0, 2.0]    # pickup
+    dropoff: [-28.0, 7.0]
+
+  - id: inspect_east
+    type: point
+    label: "East Inspection"
+    radius: 2.0
+    position: [22.0, 2.0]    # dropoff field ignored for point tasks
+```
+
 ### `iros_llm_swarm_interfaces`
 
 Custom ROS 2 messages, services, and actions. Includes the swarm action
 (`SetGoals`), the LLM channels (`LlmDecision`, `LlmCommand`, `LlmChat`,
 `LlmExecutePlan`, `LlmEvent`), the BT state stream (`BTState`), the
 LNS2 follower contract (`MAPFPlan` + `MAPFStep`, `FollowerStatus`), the
-formation CRUD set, and the dynamic-obstacle messages and services
+formation CRUD set, the dynamic-obstacle messages and services
 (`CircleObstacle`, `RectangleObstacle`, `Door`, `AddCircle`,
 `AddRectangle`, `AddDoor`, `RemoveObstacle`, `ListObstacles`,
-`OpenDoor`, `CloseDoor`).
+`OpenDoor`, `CloseDoor`), and the task system types (`Task`,
+`TaskState`, `AddTask`, `RemoveTask`, `ListTasks`, `ResetTask`,
+`ResetAll`).
 
 ### `iros_llm_swarm_robot`
 
@@ -1023,7 +1076,7 @@ widgets from an executor thread.
 
 ### `iros_llm_rviz_tool`
 
-Three click-to-command RViz2 tool plugins (no LLM in the loop):
+Four click-to-command RViz2 tool plugins (no LLM in the loop):
 
 - **SendLlmGoalTool** (`g`) — pick a robot group, click on the map, N
   goals are spread around the click and dispatched to `/llm/command`
@@ -1033,6 +1086,10 @@ Three click-to-command RViz2 tool plugins (no LLM in the loop):
   removes the nearest obstacle.
 - **DoorTool** (`d`) — left-click opens, right-click closes the door
   whose ID is set in the Tool Properties panel.
+- **PlaceTaskTool** (`k`) — places tasks on the map. Point tasks: one
+  left-click at the goal position. Carry tasks: first left-click sets
+  the pickup position, second left-click sets the dropoff and places
+  the task. Right-click resets the nearest placed task back to pending.
 
 ### `iros_llm_swarm_simulation`
 

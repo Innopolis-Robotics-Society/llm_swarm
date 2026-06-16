@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-ROS 2 Humble (Jazzy forward-compatible) multi-robot swarm simulation. ~20 differential-drive robots in a 2D Stage world with per-robot Nav2, two MAPF planners (PBS in `iros_llm_swarm_mapf`, LNS2 in `iros_llm_swarm_mapf_lns`), leader-follower formations, BehaviorTree.CPP v3 orchestration, and an LLM orchestrator with two control channels (reactive + passive observer). All packages live as a flat `colcon` workspace mounted into the dev container at `/home/fabian/ros2_ws/src`.
+ROS 2 Humble (Jazzy forward-compatible) multi-robot swarm simulation. ~20 differential-drive robots in a 2D Stage world with per-robot Nav2, two MAPF planners (PBS in `iros_llm_swarm_mapf`, LNS2 in `iros_llm_swarm_mapf_lns`), leader-follower formations, BehaviorTree.CPP v3 orchestration, an LLM orchestrator with three control channels (reactive, proactive, operator chat), and a proximity-driven task system for LLM mission planning. All packages live as a flat `colcon` workspace mounted into the dev container at `/home/fabian/ros2_ws/src`.
 
 ## Development environment
 
@@ -122,11 +122,12 @@ End-user usage is in README. Files:
 | `iros_llm_swarm_local_nav` | Python | Spawns one Nav2 stack per robot under `robot_N/` namespace; uses `zone_map_server` from `iros_llm_swarm_costmap_plugins` |
 | `iros_llm_swarm_costmap_plugins` | C++17 | `ResettingObstacleLayer` (fixes ghost-trail bug in stock `nav2_costmap_2d::ObstacleLayer`) and `zone_map_server` (the project's actual map server) |
 | `iros_llm_swarm_obstacles` | C++17 | `dynamic_obstacle_manager` — overlays runtime circles / rectangles / stateful doors onto `/raw_map` and republishes the merged grid on `/map` (TRANSIENT_LOCAL). Not yet wired into bringup launches. |
+| `iros_llm_swarm_tasks` | Python | `task_manager_node` — proximity-driven task system. Polls TF at 5 Hz; transitions point tasks (reach zone → done) and carry tasks (pickup → carrying → dropoff → done). Services: `/tasks/{add,remove,list,reset,reset_all}`. Tasks defined inline in `common_scenarios.yaml` under `tasks:` per scenario. |
 | `iros_llm_swarm_formation` | Python | Leader-follower formations + manager + monitor |
 | `iros_llm_swarm_bt` | C++17 | BehaviorTree.CPP v3 nodes (`MapfPlan`, `SetFormation`, `DisableFormation`, `CheckMode`) + `bt_runner`, `fleet_cmd`, `LlmCommandReceiver` |
 | `iros_llm_orchestrator` | Python | LLM glue: `decision_server` (channel 1), `passive_observer` (channel 2), `chat_server` + `execute_server` + `user_chat` (channel 3); MCP read-only context provider; JSONL dataset writers |
 | `iros_llm_rviz_panel` | C++ (Qt) | RViz2 operator panel — Chat / MAPF / Events / BT / Info tabs, status bar, STOP ALL, goal markers on `/llm_panel/markers` |
-| `iros_llm_rviz_tool` | C++ (Qt) | RViz2 tool plugins — `SendLlmGoalTool` (`g`), `PlaceObstacleTool` (`b`), `DoorTool` (`d`) |
+| `iros_llm_rviz_tool` | C++ (Qt) | RViz2 tool plugins — `SendLlmGoalTool` (`g`), `PlaceObstacleTool` (`b`), `DoorTool` (`d`), `PlaceTaskTool` (`k`) |
 | `iros_llm_swarm_simulation_lite` | Python | Stage 2D simulator launcher, world files, robot `.inc` |
 | `iros_llm_swarm_simulation` | Python | Gazebo Harmonic (3D) — **not stable for 20 robots, prefer `_lite`** |
 | `iros_llm_swarm_bringup` | Python | Top-level launch composition |
@@ -207,7 +208,7 @@ Three-channel design:
 - AMCL disabled (see TF section). Don't re-enable without a plan for cross-robot laser interference.
 - 3D Gazebo (`iros_llm_swarm_simulation`) is not stable yet — use `_simulation_lite` (Stage).
 - `iros_llm_rviz_panel` does Qt from ROS callbacks via `Qt::QueuedConnection` signals only — never touch widgets from an executor thread (segfaults under load, passes silently on a quiet workstation).
-- `iros_llm_rviz_tool` provides three click-to-command tools (`g` / `b` / `d`) that bypass the LLM and call ROS actions / services directly — handy for ground-truth comparisons and demos. `PlaceObstacleTool` and `DoorTool` need `iros_llm_swarm_obstacles` running.
+- `iros_llm_rviz_tool` provides four click-to-command tools (`g` / `b` / `d` / `k`) that bypass the LLM and call ROS actions / services directly — handy for ground-truth comparisons and demos. `PlaceObstacleTool` and `DoorTool` need `iros_llm_swarm_obstacles` running. `PlaceTaskTool` needs `iros_llm_swarm_tasks` running.
 - `iros_llm_swarm_obstacles` and `iros_llm_swarm_costmap_plugins/zone_map_server` both publish `/map` with `TRANSIENT_LOCAL` QoS — only one can own the topic at a time. Today the bringup launches use `zone_map_server` and the obstacle manager is **not** wired in; if you compose it manually, repoint the static map server to `/raw_map` first.
 - Always rebuild `iros_llm_swarm_interfaces` (and `_mapf_lns` if its types changed) before dependents when adding messages — symlink-install will not save you here.
 
