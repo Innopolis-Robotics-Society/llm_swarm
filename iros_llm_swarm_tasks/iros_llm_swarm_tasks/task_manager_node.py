@@ -209,7 +209,12 @@ def _within(a: tuple[float, float], b: tuple[float, float], radius: float) -> bo
 
 def _to_state_msg(inst: TaskInstance) -> TaskStateMsg:
     msg = TaskStateMsg()
-    msg.id = inst.task.id
+    msg.task.id = inst.task.id
+    msg.task.type = inst.task.type
+    msg.task.label = inst.task.label
+    msg.task.radius = inst.task.radius
+    msg.task.position = list(inst.task.position)
+    msg.task.dropoff = list(inst.task.dropoff)
     msg.status = inst.status
     msg.assigned_robot_ids = list(inst.assigned_robot_ids)
     return msg
