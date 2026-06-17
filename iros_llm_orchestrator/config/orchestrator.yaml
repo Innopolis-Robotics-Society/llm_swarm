@@ -50,6 +50,10 @@ llm_chat_server:
     # Keep output budget bounded so it does not consume the whole context
     # window. Plans should fit comfortably under 3k generated tokens.
     llm_max_tokens: 3072
+    llm_context_window_tokens: 16384
+    llm_context_margin_tokens: 512
+    llm_default_max_completion_tokens: 2048
+    llm_min_completion_tokens: 512
     timeout_sec: 60.0
     step_timeout_sec: 120.0
 
@@ -66,6 +70,16 @@ llm_chat_server:
     llm_max_repair_attempts: 2
     llm_repair_require_verification: true
     llm_verification_delay_sec: 0.2
+    # Mission supervision: bounded execute -> verify -> continuation loop.
+    # This wraps the existing PlanExecutor, ToolExecutor, and verification
+    # repair prompt; it does not add new control tools.
+    llm_mission_supervision_enabled: true
+    llm_mission_max_duration_sec: 180.0
+    llm_mission_max_steps: 6
+    llm_mission_verify_delay_sec: 0.8
+    llm_mission_min_progress_required: true
+    llm_mission_allow_repair: true
+    llm_mission_no_progress_limit: 2
 
     # Read-only runtime context for /llm/chat.
     # MCP read-only context disabled — uvx ros-mcp fails with BrokenResourceError.

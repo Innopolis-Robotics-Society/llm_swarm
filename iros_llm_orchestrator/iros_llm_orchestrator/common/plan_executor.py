@@ -309,6 +309,7 @@ LogFn  = Callable[[str], None]
 # skip staging. Used to inject server-side staging when the LLM emits a bare
 # ``formation`` leaf with followers out of position.
 PrestageHook = Callable[[dict], dict | None]
+PlanGuardHook = Callable[[dict], tuple[dict, dict | None]]
 
 
 class PlanExecutor:
@@ -318,17 +319,35 @@ class PlanExecutor:
         log_fn: LogFn | None = None,
         *,
         formation_prestage_hook: PrestageHook | None = None,
+        plan_guard_hook: PlanGuardHook | None = None,
     ):
         self._send  = send_fn
         self._log   = log_fn or (lambda _: None)
         self._depth = 0
         self._prestage_hook = formation_prestage_hook
+        self._plan_guard_hook = plan_guard_hook
         # Set to the leaf node that produced a False return; remediation
         # callers use this to brief the LLM about which step broke.
         self.failed_leaf: dict | None = None
+        self.guard_failure: dict | None = None
 
     async def run(self, plan: dict) -> bool:
         self.failed_leaf = None
+        self.guard_failure = None
+        if self._plan_guard_hook is not None:
+            plan, failure = self._plan_guard_hook(plan)
+            if failure:
+                self.guard_failure = failure
+                failed_leaf = failure.get('failed_leaf')
+                if isinstance(failed_leaf, dict):
+                    self.failed_leaf = failed_leaf
+                else:
+                    self.failed_leaf = {'type': failure.get('leaf_type', 'mapf')}
+                self._log(
+                    '✗ plan guard rejected execution: '
+                    f"{failure.get('reason') or failure.get('last_error', '')}"
+                )
+                return False
         return await self._execute(plan)
 
     async def _execute(self, node: dict) -> bool:

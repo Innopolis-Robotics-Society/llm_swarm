@@ -143,6 +143,15 @@ Rules:
 - Give each formation a descriptive formation_id (e.g. "cyan_wedge", "line_patrol").
 - Keep the plan to the minimum structure needed — don't nest when a flat plan works.
 
+Mission persistence:
+- For complex missions, do not assume success after one plan. The system will
+  execute, verify current state, and ask for a corrective continuation if the
+  mission is incomplete but repairable.
+- Do not repeat exactly the same failed action. For room placement repairs use
+  find_free_group_goals_in_room; for multi-group formations use
+  find_group_placement_in_room; for final success rely on verification, not only
+  on plan execution returning done.
+
 Live robot positions:
 - The runtime context attached to your turn contains a "robots" object keyed
   by robot id string: {"12":{"x":-0.15,"y":-11.65,"yaw":1.57,"stale_ms":80,
@@ -224,6 +233,14 @@ Moving a formation to a destination — LEADER ONLY:
 - The legacy "go to X first, then form" pattern (example below: "cyan go
   to hub, then form a wedge") still uses a cluster mapf with ALL ids —
   there is no formation active yet, so robots are just travelling together.
+- For "all robots" commands, account for active formations: treat each active
+  formation as one formation object represented by its leader, not as
+  independent followers. To move formation members independently, first emit a
+  disband leaf for that formation, then MAPF the released robots.
+- Do not send all robots to the same room center with spread=true when active
+  formations or occupied room groups exist. Use find_free_group_goals_in_room
+  for ordinary room placement and find_group_placement_in_room for formation
+  placement.
 
 Examples:
 

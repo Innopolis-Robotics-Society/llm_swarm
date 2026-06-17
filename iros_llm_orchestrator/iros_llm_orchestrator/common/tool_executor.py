@@ -136,6 +136,10 @@ class ToolExecutor:
             "reason": str(getattr(msg, "reason", "") or ""),
         })
 
+    def formations_status_snapshot(self) -> Any | None:
+        """Return the latest raw /formations/status message, if available."""
+        return self._latest_formations_status
+
     def _log_tool_result(self, name: str, result: dict) -> None:
         logger = self._node.get_logger() if hasattr(self._node, "get_logger") else None
         if logger is None:
