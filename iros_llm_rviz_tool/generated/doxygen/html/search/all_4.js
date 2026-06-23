@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['sendllmgoaltool_5',['SendLlmGoalTool',['../classiros__llm__rviz__tool_1_1SendLlmGoalTool.html',1,'iros_llm_rviz_tool']]]
+  ['mapbounds_4',['MapBounds',['../structiros__llm__rviz__tool_1_1MapBounds.html',1,'iros_llm_rviz_tool']]]
 ];

@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['doortool_11',['DoorTool',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_rviz_tool/generated/doxygen/html/classiros__llm__rviz__tool_1_1DoorTool.html',1,'iros_llm_rviz_tool']]]
+  ['llmpanel_4',['LlmPanel',['../classiros__llm__rviz__panel_1_1LlmPanel.html',1,'iros_llm_rviz_panel']]]
 ];
