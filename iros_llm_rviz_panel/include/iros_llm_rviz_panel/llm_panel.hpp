@@ -46,6 +46,9 @@
 #include <iros_llm_swarm_interfaces/action/llm_command.hpp>
 #include <iros_llm_swarm_interfaces/action/llm_chat.hpp>
 #include <iros_llm_swarm_interfaces/action/llm_execute_plan.hpp>
+#include <iros_llm_swarm_interfaces/srv/list_tasks.hpp>
+#include <iros_llm_swarm_interfaces/srv/reset_task.hpp>
+#include <iros_llm_swarm_interfaces/srv/reset_all.hpp>
 
 class QCheckBox;
 class QHBoxLayout;
@@ -74,6 +77,9 @@ public:
   using LlmCommand      = iros_llm_swarm_interfaces::action::LlmCommand;
   using LlmChat         = iros_llm_swarm_interfaces::action::LlmChat;
   using LlmExecutePlan  = iros_llm_swarm_interfaces::action::LlmExecutePlan;
+  using ListTasks       = iros_llm_swarm_interfaces::srv::ListTasks;
+  using ResetTask       = iros_llm_swarm_interfaces::srv::ResetTask;
+  using ResetAll        = iros_llm_swarm_interfaces::srv::ResetAll;
   using ChatGoalH       = rclcpp_action::ClientGoalHandle<LlmChat>;
   using ExecGoalH       = rclcpp_action::ClientGoalHandle<LlmExecutePlan>;
 
@@ -101,6 +107,7 @@ Q_SIGNALS:
   void eventReceived(qint64 stamp_ms, int channel,
                      QString trigger, QString output, QString reason);
   void systemInfoChanged();
+  void tasksUpdateReady();
 
 private Q_SLOTS:
   // User actions
@@ -133,6 +140,12 @@ private Q_SLOTS:
   void onInfoRefresh();
   void onSystemInfoChanged();
 
+  // Tasks tab
+  void onTasksRefresh();
+  void onTasksUpdateReady();
+  void onTasksResetSelected();
+  void onTasksResetAll();
+
 private:
   // ---- Construction ------------------------------------------------------
   void buildUi();
@@ -142,6 +155,7 @@ private:
   void buildEventsTab(QWidget * tab);
   void buildBtTab(QWidget * tab);
   void buildInfoTab(QWidget * tab);
+  void buildTasksTab(QWidget * tab);
   void setupRos();
 
   // System info collection (called from GUI thread via info_timer_).
@@ -189,6 +203,9 @@ private:
   rclcpp_action::Client<LlmChat>::SharedPtr                         chat_client_;
   rclcpp_action::Client<LlmCommand>::SharedPtr                      cmd_client_;
   rclcpp_action::Client<LlmExecutePlan>::SharedPtr                  exec_client_;
+  rclcpp::Client<ListTasks>::SharedPtr                              list_tasks_client_;
+  rclcpp::Client<ResetTask>::SharedPtr                              reset_task_client_;
+  rclcpp::Client<ResetAll>::SharedPtr                               reset_all_client_;
 
   // TF
   std::shared_ptr<tf2_ros::Buffer>            tf_buffer_;
@@ -235,6 +252,22 @@ private:
   // ---- Widgets — Info tab -----------------------------------------------
   QTableWidget * info_table_      {nullptr};
   QLabel       * info_updated_lbl_{nullptr};
+
+  // ---- Widgets — Tasks tab -----------------------------------------------
+  QTableWidget * tasks_table_           {nullptr};
+  QPushButton  * tasks_reset_selected_  {nullptr};
+  QPushButton  * tasks_reset_all_       {nullptr};
+
+  // ---- Tasks data (written on ROS thread, read on GUI thread) ------------
+  struct TaskRowData {
+    std::string id;
+    std::string type;
+    std::string label;
+    std::string status;
+    std::string assigned;
+  };
+  mutable std::mutex         tasks_mutex_;
+  std::vector<TaskRowData>   pending_task_rows_;
 
   QTabWidget   * tabs_   {nullptr};
 

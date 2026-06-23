@@ -28,7 +28,7 @@ from rclpy.node import Node
 
 from iros_llm_swarm_interfaces.action import LlmChat
 from iros_llm_swarm_interfaces.msg import LlmEvent
-from iros_llm_swarm_interfaces.srv import ListObstacles
+from iros_llm_swarm_interfaces.srv import ListObstacles, ListTasks
 
 from iros_llm_orchestrator.common.leaf_sender import BTLeafSender
 from iros_llm_orchestrator.common.llm_factory import get_llm_client
@@ -216,6 +216,7 @@ class ChatServer(Node):
             step_timeout_sec=float(self.get_parameter('step_timeout_sec').value),
         )
         self._list_obstacles = self.create_client(ListObstacles, '/obstacles/list')
+        self._list_tasks = self.create_client(ListTasks, '/tasks/list')
 
         # /llm/events publisher — channel 3 emits one event per turn.
         self._event_pub = self.create_publisher(LlmEvent, '/llm/events', 10)
@@ -344,6 +345,29 @@ class ChatServer(Node):
         except Exception:
             return ''
 
+    def _get_task_context(self) -> dict:
+        """Return {task_id: {type, label, status, position, [dropoff], assigned}} or {}."""
+        if not self._list_tasks.wait_for_service(timeout_sec=0.3):
+            return {}
+        try:
+            resp = self._list_tasks.call(ListTasks.Request())
+            tasks: dict = {}
+            for state in resp.states:
+                t = state.task
+                entry: dict = {
+                    'type': t.type,
+                    'label': t.label,
+                    'status': state.status,
+                    'position': [round(t.position[0], 2), round(t.position[1], 2)],
+                    'assigned': list(state.assigned_robot_ids),
+                }
+                if t.type == 'carry':
+                    entry['dropoff'] = [round(t.dropoff[0], 2), round(t.dropoff[1], 2)]
+                tasks[t.id] = entry
+            return tasks
+        except Exception:
+            return {}
+
     async def _execute_async(self, goal_handle):
         async with self._chat_lock:
             return await self._execute_body(goal_handle)
@@ -356,6 +380,13 @@ class ChatServer(Node):
         self._publish_fb(goal_handle, stage='thinking')
         runtime_context = await self._get_runtime_context()
         self._last_runtime_context = runtime_context
+        task_ctx = self._get_task_context()
+        if task_ctx:
+            runtime_context['tasks'] = task_ctx
+            # Ensure tasks are rendered in the prompt even when context_provider='none'
+            # (build_user_prompt skips context whose source == 'none').
+            if runtime_context.get('source') == 'none':
+                runtime_context['source'] = 'tasks_only'
         messages = build_user_prompt(
             req.user_message,
             history=list(self._history),

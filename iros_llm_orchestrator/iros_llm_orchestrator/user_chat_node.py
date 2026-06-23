@@ -50,26 +50,33 @@ BOT='BOT'; THK='🧠'; WRN='⚠ '; OK='✓'; ERR='✗'; ARR='→'
 def _build_tool_use_assistant_message(calls: list[dict]) -> dict:
     """Build the assistant message that records tool call requests.
 
-    OpenAI format embeds tool_calls in the message; Ollama uses the same shape.
-    This message must appear in the thread before the tool result messages.
+    Uses Ollama native /api/chat format: arguments as a dict (not a JSON string),
+    content as empty string (not null), no id/type wrapper fields.
+    Ollama returns arguments as dicts; re-serialising as a string causes HTTP 400
+    on the follow-up request ("Value looks like object, but can't find closing '}'").
     """
-    tool_calls_field = [
-        {
-            "id": c.get("call_id", f"call_{c['name']}"),
-            "type": "function",
-            "function": {
-                "name": c["name"],
-                "arguments": json.dumps(c.get("arguments", {})),
-            },
-        }
-        for c in calls
-    ]
-    return {"role": "assistant", "content": None, "tool_calls": tool_calls_field}
+    return {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+            {
+                "function": {
+                    "name": c["name"],
+                    "arguments": c.get("arguments", {}),
+                },
+            }
+            for c in calls
+        ],
+    }
 
 
 def _build_tool_result_message(call_id: str, result_str: str) -> dict:
-    """Build the tool result message to append to the conversation."""
-    return {"role": "tool", "tool_call_id": call_id, "content": result_str}
+    """Build the tool result message to append to the conversation.
+
+    Ollama native format has no tool_call_id field; omitting it avoids
+    deserialization errors on the follow-up /api/chat request.
+    """
+    return {"role": "tool", "content": result_str}
 
 
 def _fmt_args(args: dict) -> str:

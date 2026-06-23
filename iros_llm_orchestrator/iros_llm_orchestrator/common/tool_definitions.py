@@ -245,6 +245,45 @@ TOOL_DEFINITIONS: list[dict] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_tasks",
+            "description": (
+                "Query the current state of all tasks. "
+                "Returns id, type, label, status (pending|carrying|done), "
+                "position [x,y], dropoff [x,y] (carry tasks only), and assigned robot ids. "
+                "Use when the operator asks about task status, or before routing robots "
+                "to task zones to confirm the task is still pending."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "reset_task",
+            "description": (
+                "Reset a single task back to 'pending' so it can be attempted again. "
+                "Use when the operator says to retry or reassign a task that is stuck "
+                "or was completed incorrectly."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task_id": {
+                        "type": "string",
+                        "description": "Task identifier, e.g. 'task_med' or 'carry_engine_to_reactor'",
+                    }
+                },
+                "required": ["task_id"],
+            },
+        },
+    },
 ]
 
 

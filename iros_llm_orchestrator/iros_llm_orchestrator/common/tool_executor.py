@@ -47,6 +47,9 @@ class ToolExecutor:
         self._recent_events = deque(maxlen=12)
         self._state_subscriptions: list[Any] = []
         self._create_verification_state_subscriptions()
+        self._list_tasks_client: Any | None = None
+        self._reset_task_client: Any | None = None
+        self._create_task_clients()
 
     async def call(self, name: str, arguments: dict) -> dict:
         """Dispatch a tool call by name, always returns a JSON-serialisable dict."""
@@ -71,6 +74,10 @@ class ToolExecutor:
             result = self._verify_plan_execution_state(arguments)
             self._log_tool_result(name, result)
             return result
+        if name == "list_tasks":
+            return self._call_list_tasks()
+        if name == "reset_task":
+            return self._call_reset_task(arguments.get("task_id", ""))
         return {"error": f"unknown tool '{name}'"}
 
     def _create_verification_state_subscriptions(self) -> None:
@@ -299,6 +306,75 @@ class ToolExecutor:
                 or list(self._recent_events)
             ),
         )
+
+    # ------------------------------------------------------------------
+    # Task service clients
+    # ------------------------------------------------------------------
+
+    def _create_task_clients(self) -> None:
+        if self._node is None or not hasattr(self._node, 'create_client'):
+            return
+        try:
+            from iros_llm_swarm_interfaces.srv import ListTasks, ResetTask
+            self._list_tasks_client = self._node.create_client(ListTasks, '/tasks/list')
+            self._reset_task_client = self._node.create_client(ResetTask, '/tasks/reset')
+        except Exception:
+            pass
+
+    # ------------------------------------------------------------------
+    # Tool: list_tasks
+    # ------------------------------------------------------------------
+
+    def _call_list_tasks(self) -> dict:
+        if self._list_tasks_client is None:
+            return {"error": "task service client not initialised"}
+        try:
+            from iros_llm_swarm_interfaces.srv import ListTasks
+        except ImportError:
+            return {"error": "iros_llm_swarm_interfaces not available"}
+        if not self._list_tasks_client.wait_for_service(timeout_sec=0.3):
+            return {"error": "/tasks/list service not available"}
+        try:
+            resp = self._list_tasks_client.call(ListTasks.Request())
+            tasks: dict = {}
+            for state in resp.states:
+                t = state.task
+                entry: dict = {
+                    'type': t.type,
+                    'label': t.label,
+                    'status': state.status,
+                    'position': [round(t.position[0], 2), round(t.position[1], 2)],
+                    'assigned': list(state.assigned_robot_ids),
+                }
+                if t.type == 'carry':
+                    entry['dropoff'] = [round(t.dropoff[0], 2), round(t.dropoff[1], 2)]
+                tasks[t.id] = entry
+            return {"tasks": tasks}
+        except Exception as exc:
+            return {"error": str(exc)}
+
+    # ------------------------------------------------------------------
+    # Tool: reset_task
+    # ------------------------------------------------------------------
+
+    def _call_reset_task(self, task_id: str) -> dict:
+        if not task_id:
+            return {"error": "task_id is required"}
+        if self._reset_task_client is None:
+            return {"error": "task service client not initialised"}
+        try:
+            from iros_llm_swarm_interfaces.srv import ResetTask
+        except ImportError:
+            return {"error": "iros_llm_swarm_interfaces not available"}
+        if not self._reset_task_client.wait_for_service(timeout_sec=0.3):
+            return {"error": "/tasks/reset service not available"}
+        try:
+            req = ResetTask.Request()
+            req.id = task_id
+            resp = self._reset_task_client.call(req)
+            return {"success": resp.success, "message": resp.message}
+        except Exception as exc:
+            return {"error": str(exc)}
 
     # ------------------------------------------------------------------
     # Tool: check_occupancy

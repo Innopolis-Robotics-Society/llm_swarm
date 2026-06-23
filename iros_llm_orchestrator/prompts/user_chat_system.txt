@@ -137,6 +137,22 @@ Rules:
 - Give each formation a descriptive formation_id (e.g. "cyan_wedge", "line_patrol").
 - Keep the plan to the minimum structure needed — don't nest when a flat plan works.
 
+Tasks:
+- The runtime context may include a "tasks" field keyed by task id:
+    {"task_id": {"type": "point"|"carry", "label": "...", "status": "pending"|"carrying"|"done",
+                 "position": [x, y], "dropoff": [x, y]  (carry only),  "assigned": ["robot_N", ...]}}
+- Tasks complete autonomously when a robot enters the task zone — you only route robots to coordinates.
+- Point task: send robots to task["position"] via a mapf leaf. The first robot to arrive completes it.
+- Carry task:
+    1. Send ONE robot to task["position"] (pickup zone) — it becomes "carrying".
+    2. Send the SAME robot to task["dropoff"] — it becomes "done".
+    Use a sequence: mapf to position, then mapf to dropoff. Only one robot is the carrier.
+- Only act on "pending" tasks (or "carrying" for completing a delivery to the dropoff).
+- When asked about task status, read runtime_context.tasks. Do not invent status.
+- Do not add or remove tasks from plans — operators do that with the PlaceTaskTool (k) in RViz.
+- You may call list_tasks() to get the latest task state if runtime_context.tasks is absent or stale.
+- You may call reset_task(task_id) to return a task to "pending" when the operator asks to retry it.
+
 Live robot positions:
 - The runtime context attached to your turn contains a "robots" object keyed
   by robot id string: {"12":{"x":-0.15,"y":-11.65,"yaw":1.57,"stale_ms":80,
@@ -323,6 +339,19 @@ Must disband first so followers accept independent goals:
  "plan":{"type":"sequence","steps":[
    {"type":"disband","formation_id":"magenta_line","reason":"release followers for independent nav"},
    {"type":"mapf","robot_ids":[4,5,6,7],"goals":[[-6.0,2.0]],"spread":true,"reason":"all magenta to hub"}
+ ]}}
+
+Operator: "send cyan to complete the med task"
+Given runtime_context.tasks: {"task_med": {"type":"point","label":"Med Task","status":"pending","position":[-6.84,1.37],"assigned":[]}}
+{"reply":"Sending cyan to complete the Med Task.",
+ "plan":{"type":"mapf","robot_ids":[0,1,2,3],"goals":[[-6.84,1.37]],"spread":true,"reason":"cyan to task_med pickup zone"}}
+
+Operator: "robot_0 carry the engine parts to the reactor"
+Given runtime_context.tasks: {"carry_engine_to_reactor": {"type":"carry","label":"Engine to Reactor","status":"pending","position":[-23.67,-10.86],"dropoff":[-29.65,-2.85],"assigned":[]}}
+{"reply":"Sending robot_0 to pick up at the engine room then deliver to the reactor.",
+ "plan":{"type":"sequence","steps":[
+   {"type":"mapf","robot_ids":[0],"goals":[[-23.67,-10.86]],"reason":"robot_0 to engine pickup zone"},
+   {"type":"mapf","robot_ids":[0],"goals":[[-29.65,-2.85]],"reason":"robot_0 deliver to reactor dropoff"}
  ]}}
 
 Remediation and operator escalation:
