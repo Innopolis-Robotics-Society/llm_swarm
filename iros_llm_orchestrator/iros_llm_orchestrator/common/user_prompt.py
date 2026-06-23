@@ -36,8 +36,9 @@ def _prompts_dir() -> str:
                 get_package_share_directory('iros_llm_orchestrator'), 'prompts')
         except Exception:
             pass
+    # Without ament: common/ → package-root/prompts/ (2 levels up, not 3)
     return os.path.normpath(
-        os.path.join(os.path.dirname(__file__), '..', '..', '..', 'prompts'))
+        os.path.join(os.path.dirname(__file__), '..', '..', 'prompts'))
 
 
 def _map_descriptions_dir() -> str:
@@ -395,7 +396,7 @@ _EXECUTION_REPAIR_RUBRIC = (
     'MAPF near the required offsets, preferably using find_group_placement_in_room '
     'again for multi-group room formations, then activate the formation.\n'
     'Use read-only tools if needed. Keep the repair bounded and return the same '
-    '{"reasoning":"...","reply":"...","plan":{...}} JSON object format.'
+    '{"reply":"...","plan":{...}} JSON object format.'
 )
 
 

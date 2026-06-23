@@ -23,7 +23,7 @@
 | 9 | `mapf_explicit_02` | place cyan in a 2x2 grid at cafeteria | `mapf` — robot_ids == [0,1,2,3]; len(goals) == 4 and all goals distinct; all near (2.7, 10.1) |
 | 10 | `parallel_01` | yellow to navigation, green to reactor | `parallel` — two mapf steps; yellow goals near (29.5, 1.9); green goals near (-28.4, 0.9) |
 | 11 | `parallel_02` | cyan and magenta both go to cafeteria | `parallel` — steps cover [0,1,2,3] and [4,5,6,7]; all goals near (2.7, 10.1) |
-| 12 | `parallel_03` | magenta to green home, green to magenta home | `parallel` — two mapf steps; magenta [4-7] goals near navigation (28.5, 1.9); green [8-11] goals near electrical (-8.7, -5.9) |
+| 12 | `parallel_03` | magenta to green home, green to magenta home | `parallel` — two mapf steps; magenta [4-7] goals near green home (28.5, 1.9); green [8-11] goals near electrical (-8.7, -5.9) |
 | 13 | `parallel_04` | send all five groups to their home positions | `parallel` — five mapf steps; cyan→(-21.9,9.9); magenta→(-8.7,-5.9); green→(28.5,1.9); orange→(0.6,-10.9); yellow→(17.6,10.7) |
 | 14 | `sequence_01` | cyan go to cafeteria, then form a wedge | `sequence` — step[0]: mapf [0-3] to (2.7,10.1); step[1]: formation leader_ns='robot_0', wedge offsets, follower_ns 3 entries |
 | 15 | `sequence_02` | move orange to cafeteria, then send them to storage | `sequence` — step[0]: mapf [12-15] to (2.7,10.1); step[1]: mapf [12-15] to (0.6,-10.9) |

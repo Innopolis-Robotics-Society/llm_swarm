@@ -28,6 +28,8 @@ add_library(${PROJECT_NAME} SHARED
   src/place_obstacle_tool.cpp
   include/iros_llm_rviz_tool/door_tool.hpp
   src/door_tool.cpp
+  include/iros_llm_rviz_tool/place_task_tool.hpp
+  src/place_task_tool.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC
