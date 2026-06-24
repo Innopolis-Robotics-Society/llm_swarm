@@ -400,6 +400,176 @@ _EXECUTION_REPAIR_RUBRIC = (
 )
 
 
+_MISSION_CONTINUATION_RUBRIC = (
+    'You are still executing the same operator mission. Do not declare success '
+    'unless deterministic verification says the mission is complete.\n'
+    'Use read-only tools to inspect current state before producing the next '
+    'plan when state or placement is uncertain. Prefer find_free_group_goals_in_room '
+    'for occupied-room MAPF placement and find_group_placement_in_room for '
+    'multi-group formations. If the last failure was an out-of-position '
+    'formation, re-stage followers before activation. If occupied room goals '
+    'were unsafe, recompute free room goals before MAPF.\n'
+    'If a formation is active, do not plan MAPF for its followers directly. '
+    'Move an active formation by moving only its leader; disband/deactivate '
+    'the formation first if the operator wants independent follower movement. '
+    'For all-robots commands, treat active formations as formation objects, '
+    'not as independent robots.\n'
+    'Return only the next bounded corrective JSON plan in the normal '
+    '{"reasoning":"...","reply":"...","plan":{...}} format. Do not repeat '
+    'the exact same failed plan.'
+)
+
+
+def _trim_text(value: Any, max_chars: int) -> str:
+    text = '' if value is None else str(value)
+    if len(text) <= max_chars:
+        return text
+    return text[:max(0, max_chars - 18)] + '...[truncated]'
+
+
+def _compact_json_value(value: Any, max_chars: int = 2400) -> Any:
+    text = json.dumps(value or {}, ensure_ascii=False, separators=(',', ':'))
+    if len(text) <= max_chars:
+        return value or {}
+    return {
+        'truncated': True,
+        'original_chars': len(text),
+        'json_prefix': _trim_text(text, max_chars),
+    }
+
+
+def _compact_runtime_context(runtime_context: dict | None) -> dict:
+    if not isinstance(runtime_context, dict) or not runtime_context:
+        return {}
+    out: dict[str, Any] = {
+        'source': runtime_context.get('source', 'unknown'),
+    }
+    if runtime_context.get('warnings'):
+        out['warnings'] = [
+            _trim_text(w, 180)
+            for w in list(runtime_context.get('warnings') or [])[:4]
+        ]
+    bt = runtime_context.get('bt_state') or {}
+    if isinstance(bt, dict) and bt:
+        out['bt_state'] = {
+            key: bt.get(key)
+            for key in (
+                'mode', 'action_status', 'active_action', 'last_error',
+                'formation_id', 'leader_ns', 'formation_state',
+                'formation_failure_reason',
+            )
+            if bt.get(key) not in (None, '', [])
+        }
+    formations = runtime_context.get('formations') or []
+    if isinstance(formations, list) and formations:
+        compact_formations = []
+        for item in formations[:10]:
+            if not isinstance(item, dict):
+                continue
+            compact_formations.append({
+                key: item.get(key)
+                for key in (
+                    'formation_id', 'leader_ns', 'followers', 'follower_ns',
+                    'status', 'state', 'failure_reason', 'max_error_m',
+                    'mean_error_m',
+                )
+                if item.get(key) not in (None, '', [])
+            })
+        out['formations'] = compact_formations
+    robots = runtime_context.get('robots') or {}
+    if isinstance(robots, dict) and robots:
+        compact_robots = {}
+        for key in sorted(robots.keys(), key=str)[:24]:
+            pose = robots.get(key) or {}
+            if not isinstance(pose, dict):
+                continue
+            compact_robots[str(key)] = {
+                pose_key: pose.get(pose_key)
+                for pose_key in ('x', 'y', 'yaw', 'stale', 'stale_ms')
+                if pose.get(pose_key) is not None
+            }
+        out['robots'] = compact_robots
+    if runtime_context.get('robot_assignment'):
+        out['robot_assignment'] = _compact_json_value(
+            runtime_context.get('robot_assignment'),
+            max_chars=1200,
+        )
+    events = runtime_context.get('recent_events') or []
+    if isinstance(events, list) and events:
+        out['recent_events'] = [_trim_text(e, 220) for e in events[-4:]]
+    return out
+
+
+def build_compact_mission_context(
+    original_user_message: str,
+    last_plan: dict,
+    execution_result: dict,
+    verification: dict,
+    *,
+    step: int,
+    max_steps: int,
+    remaining_time_sec: float,
+    fresh_runtime_context: dict | None,
+    previous_verification: dict | None = None,
+    history: list | None = None,
+) -> dict:
+    """Return bounded mission context for continuation prompts."""
+    return {
+        'original_request': _trim_text(original_user_message, 800),
+        'step': int(step),
+        'max_steps': int(max_steps),
+        'remaining_time_sec': round(float(remaining_time_sec), 1),
+        'last_plan': _compact_json_value(last_plan, max_chars=2400),
+        'execution_result': _compact_json_value(execution_result, max_chars=1000),
+        'current_verification': _compact_json_value(verification, max_chars=1800),
+        'previous_verification': _compact_json_value(
+            previous_verification or {},
+            max_chars=1200,
+        ),
+        'state_digest': _compact_runtime_context(fresh_runtime_context),
+        'history': {'omitted_turns': len(history or [])},
+        'available_tools': [
+            'get_robot_position',
+            'get_positions',
+            'check_occupancy',
+            'find_free_group_goals_in_room',
+            'find_group_placement_in_room',
+            'verify_plan_execution_state',
+        ],
+        'valid_plan_node_types': [
+            'mapf', 'formation', 'disband', 'idle', 'sequence', 'parallel',
+        ],
+        'next_action_rules': [
+            'do not declare success unless verification is ok',
+            'do not repeat the exact same failed plan',
+            'do not MAPF active formation followers directly',
+            'move active formations by leader only',
+            'disband active formations before independent follower movement',
+            'use free/group placement tools before crowded room movement',
+        ],
+    }
+
+
+def _compact_mission_system(map_name: str, obstacle_context: str) -> str:
+    try:
+        map_context = _trim_text(build_map_context(map_name), 3600)
+    except Exception:
+        map_context = f'Map: {map_name}'
+    content = (
+        'You are producing the next JSON plan for an already-running robot '
+        'mission. Return exactly one JSON object with keys reasoning, reply, '
+        'and plan. Valid plan node types: mapf, formation, disband, idle, '
+        'sequence, parallel. Do not output prose outside JSON.\n\n'
+        f'{map_context}\n\n'
+        'Active formation safety rule: followers of active formations must not '
+        'be moved directly by MAPF. Move the leader to move the formation, or '
+        'disband first for independent movement.'
+    )
+    if obstacle_context:
+        content += '\n\n' + _trim_text(obstacle_context, 1200)
+    return content
+
+
 def _format_attempts(attempts: list[dict]) -> str:
     lines = []
     for i, att in enumerate(attempts, start=1):
@@ -488,6 +658,56 @@ def build_execution_repair_prompt(
         f'{compact_verification_json(verification)}\n'
         'Produce a corrected repair plan. If verification says repairable=false, '
         'emit an idle needs_help plan with a clear reason instead.'
+    )
+    messages.append({'role': 'user', 'content': summary})
+    return messages
+
+
+def build_mission_continuation_prompt(
+    original_user_message: str,
+    last_plan: dict,
+    execution_result: dict,
+    verification: dict,
+    *,
+    step: int,
+    max_steps: int,
+    remaining_time_sec: float,
+    fresh_runtime_context: dict | None,
+    previous_verification: dict | None = None,
+    history: list | None = None,
+    map_name: str = 'warehouse',
+    obstacle_context: str = '',
+) -> list:
+    """Compose a strict continuation prompt for mission supervision."""
+    messages = [{
+        'role': 'system',
+        'content': _compact_mission_system(map_name, obstacle_context),
+    }]
+    messages.append({'role': 'system', 'content': _MISSION_CONTINUATION_RUBRIC})
+    compact_context = build_compact_mission_context(
+        original_user_message,
+        last_plan,
+        execution_result,
+        verification,
+        step=step,
+        max_steps=max_steps,
+        remaining_time_sec=remaining_time_sec,
+        fresh_runtime_context=fresh_runtime_context,
+        previous_verification=previous_verification,
+        history=history,
+    )
+    summary = (
+        'Mission supervision requires another corrective/continuation plan.\n'
+        'Use this compact mission context; full history and large tool outputs '
+        'were intentionally omitted.\n'
+        f'Remaining mission time: {remaining_time_sec:.1f}s\n'
+        'Compact mission context JSON:\n'
+        f'{json.dumps(compact_context, ensure_ascii=False, separators=(",", ":"))}\n'
+        'If the last failure says mapf_targets_active_formation_followers, '
+        'the previous plan tried to move followers of an active formation '
+        'directly with MAPF. This is invalid: either move only the leader, '
+        'or disband the formation first.\n'
+        'Produce the next plan only. Do not repeat the exact same failed plan.'
     )
     messages.append({'role': 'user', 'content': summary})
     return messages

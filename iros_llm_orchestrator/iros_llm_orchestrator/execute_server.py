@@ -19,7 +19,11 @@ from rclpy.node import Node
 from iros_llm_swarm_interfaces.action import LlmExecutePlan
 
 from iros_llm_orchestrator.common.leaf_sender import BTLeafSender
+from iros_llm_orchestrator.common.active_formation_guard import (
+    guard_plan_for_active_formations,
+)
 from iros_llm_orchestrator.common.plan_executor import PlanExecutor, parse_plan
+from iros_llm_orchestrator.common.tool_executor import ToolExecutor
 from iros_llm_orchestrator.common.user_prompt import load_map_config
 from iros_llm_orchestrator.user_chat_node import _postprocess_plan
 
@@ -45,6 +49,11 @@ class ExecuteServer(Node):
         self._sender = BTLeafSender(
             self,
             step_timeout_sec=float(self.get_parameter('step_timeout_sec').value),
+        )
+        self._tool_executor = ToolExecutor(
+            node=self,
+            pose_cache=None,
+            map_cfg=self._map_cfg,
         )
 
         self._loop = asyncio.new_event_loop()
@@ -86,10 +95,14 @@ class ExecuteServer(Node):
         self._publish_fb(goal_handle, stage='executing')
         executor = PlanExecutor(
             send_fn=self._sender.send,
-            log_fn=lambda m: self.get_logger().info(f'executor: {m}'))
+            log_fn=lambda m: self.get_logger().info(f'executor: {m}'),
+            plan_guard_hook=self._formation_guard_hook,
+        )
         ok = await executor.run(plan)
         if not ok:
-            return self._fail(goal_handle, result, 'plan execution failed')
+            failure = executor.guard_failure or {}
+            info = failure.get('last_error') or 'plan execution failed'
+            return self._fail(goal_handle, result, info)
 
         self._publish_fb(goal_handle, stage='done')
         result.success = True
@@ -109,6 +122,18 @@ class ExecuteServer(Node):
         result.info    = info
         gh.succeed()
         return result
+
+    def _formation_guard_hook(self, plan: dict) -> tuple[dict, dict | None]:
+        status = None
+        try:
+            status = self._tool_executor.formations_status_snapshot()
+        except Exception:
+            status = None
+        return guard_plan_for_active_formations(
+            plan,
+            status,
+            log_fn=lambda m: self.get_logger().info(m),
+        )
 
 
 def main(args=None):

@@ -15,6 +15,12 @@ FORMATION_PLAN = {
     'offsets_x': [-1.0, -1.0, -2.0],
     'offsets_y': [0.6, -0.6, 0.0],
 }
+MAPF_PLAN = {
+    'type': 'mapf',
+    'robot_ids': [12, 13],
+    'goals': [[1.0, 1.0], [2.0, 1.0]],
+    'reason': 'orange around yellow',
+}
 
 
 def _args(**extra):
@@ -118,6 +124,48 @@ class ExecutionVerificationTests(unittest.TestCase):
             result['repair_recommendation']['type'],
             'activate_or_restage',
         )
+
+    def test_no_formation_execution_failure_is_repairable(self):
+        result = verify_plan_execution_state(
+            {},
+            {
+                'original_user_request': 'send orange to cafeteria',
+                'last_plan': {
+                    'type': 'mapf',
+                    'robot_ids': [12],
+                    'goals': [[1.0, 1.0]],
+                },
+                'last_failure': {
+                    'action_status': 'FAILED',
+                    'last_error': 'MAPF goal rejected',
+                },
+            },
+        )
+
+        self.assertIs(result['ok'], False)
+        self.assertEqual(result['repair_recommendation']['type'], 'replan')
+        self.assertTrue(result['repair_recommendation']['repairable'])
+
+    def test_mapf_around_group_spacing_violation_is_repairable(self):
+        result = verify_plan_execution_state(
+            {},
+            {
+                'original_user_request': 'send orange around yellow',
+                'last_plan': MAPF_PLAN,
+            },
+            pose_snapshot={
+                12: {'x': 1.0, 'y': 1.0, 'stale': False},
+                13: {'x': 2.0, 'y': 1.0, 'stale': False},
+                16: {'x': 1.2, 'y': 1.0, 'stale': False},
+            },
+        )
+
+        self.assertIs(result['ok'], False)
+        self.assertEqual(
+            result['repair_recommendation']['type'],
+            'replan_mapf',
+        )
+        self.assertTrue(result['checks']['mapf_goals_reached']['spacing']['too_close'])
 
 
 if __name__ == '__main__':

@@ -40,6 +40,17 @@ ERROR_HINTS = (
     'leader lost',
     'broken',
 )
+RELATION_HINTS = (
+    'around',
+    'near',
+    'next to',
+    'beside',
+    'close to',
+    'рядом',
+    'вокруг',
+    'около',
+    'возле',
+)
 
 
 def verify_plan_execution_state(
@@ -72,6 +83,118 @@ def verify_plan_execution_state(
     checks: dict[str, Any] = {}
 
     if not formation_expectations:
+        mapf_expectations = _collect_mapf_leaves(last_plan)
+        execution_failed = _last_failure_failed(args.get('last_failure'))
+        active_formation_failure = _active_formation_guard_failure(
+            args.get('last_failure'))
+        if active_formation_failure:
+            checks['active_formation_guard'] = active_formation_failure
+            return {
+                'ok': False,
+                'confidence': 'full',
+                'summary': (
+                    'direct MAPF attempted for followers of an active formation; '
+                    f"{active_formation_failure.get('repair_hint', '')}"
+                ),
+                'missing_state': [],
+                'checks': checks,
+                'recent_errors': recent_errors,
+                'repair_recommendation': {
+                    'type': 'active_formation_conflict',
+                    'reason': 'MAPF targeted active formation followers',
+                    'repairable': True,
+                    'should_recompute_placement': False,
+                },
+                'progress': {
+                    'active_formation_conflict': True,
+                    'robots_at_goals': False,
+                },
+            }
+        complex_mapf = _should_verify_mapf(original_request)
+        if mapf_expectations and (
+            complex_mapf
+            or _mapf_targets_have_all_poses(mapf_expectations, pose_snapshot or {})
+        ):
+            mapf_check = _check_mapf_goals(
+                mapf_expectations,
+                pose_snapshot or {},
+                tolerance=max(0.75, tolerance),
+                check_spacing=complex_mapf,
+            )
+            checks['mapf_goals_reached'] = mapf_check
+            if mapf_check.get('missing_state'):
+                missing_state.extend(mapf_check['missing_state'])
+            ok = (
+                bool(mapf_check.get('ok'))
+                and not execution_failed
+                and not _recent_error_is_hard_failure(recent_errors)
+            )
+            if not ok:
+                if recent_errors:
+                    checks['recent_errors'] = recent_errors
+                summary = _mapf_summary(
+                    mapf_check,
+                    recent_errors,
+                    missing_state,
+                    execution_failed=execution_failed,
+                )
+                return {
+                    'ok': False,
+                    'confidence': 'partial' if missing_state else 'full',
+                    'summary': summary,
+                    'missing_state': sorted(dict.fromkeys(missing_state)),
+                    'checks': checks,
+                    'recent_errors': recent_errors,
+                    'repair_recommendation': {
+                        'type': 'replan_mapf',
+                        'reason': 'MAPF goal state did not verify',
+                        'repairable': True,
+                        'should_recompute_placement': complex_mapf,
+                    },
+                    'progress': {
+                        'robots_at_goals': bool(mapf_check.get('ok')),
+                        'collision_free_spacing': bool(
+                            (mapf_check.get('spacing') or {'ok': True}).get('ok')
+                        ),
+                    },
+                }
+            return {
+                'ok': True,
+                'confidence': 'full',
+                'summary': 'MAPF goals reached and spacing checks passed',
+                'checks': checks,
+                'recent_errors': recent_errors,
+                'repair_recommendation': {
+                    'type': 'none',
+                    'reason': 'verification passed',
+                    'repairable': False,
+                    'should_recompute_placement': False,
+                },
+                'progress': {
+                    'robots_at_goals': True,
+                    'collision_free_spacing': True,
+                },
+            }
+        if execution_failed or recent_errors:
+            if recent_errors:
+                checks['recent_errors'] = recent_errors
+            return {
+                'ok': False,
+                'confidence': 'partial',
+                'summary': (
+                    'plan execution reported failure'
+                    + (f': {recent_errors[0]}' if recent_errors else '')
+                ),
+                'missing_state': [],
+                'checks': checks,
+                'recent_errors': recent_errors,
+                'repair_recommendation': {
+                    'type': 'replan',
+                    'reason': 'last plan execution failed',
+                    'repairable': True,
+                    'should_recompute_placement': False,
+                },
+            }
         checks['formations_active'] = {
             'ok': True,
             'details': 'no formation leaves or expected formations to verify',
@@ -285,6 +408,163 @@ def _collect_formation_leaves(node: Any) -> list[dict]:
     for child in list(node.get('steps') or []):
         leaves.extend(_collect_formation_leaves(child))
     return leaves
+
+
+def _collect_mapf_leaves(node: Any) -> list[dict]:
+    if not isinstance(node, dict):
+        return []
+    if node.get('type') == 'mapf':
+        return [dict(node)]
+    leaves = []
+    for child in list(node.get('steps') or []):
+        leaves.extend(_collect_mapf_leaves(child))
+    return leaves
+
+
+def _check_mapf_goals(
+    mapf_leaves: list[dict],
+    pose_snapshot: dict,
+    *,
+    tolerance: float,
+    check_spacing: bool,
+) -> dict:
+    failed = []
+    missing = []
+    checked = 0
+    final_targets: dict[int, tuple[float, float]] = {}
+    for leaf in mapf_leaves:
+        robot_ids = _int_list(leaf.get('robot_ids') or [])
+        goals = _coerce_goals(leaf.get('goals') or [])
+        if len(goals) == 1 and len(robot_ids) > 1:
+            goals = [goals[0] for _ in robot_ids]
+        for rid, goal in zip(robot_ids, goals):
+            final_targets[rid] = goal
+
+    positions: dict[int, tuple[float, float]] = {}
+    for rid, goal in final_targets.items():
+        pose = _snapshot_get(pose_snapshot, rid)
+        if pose is None or pose.get('stale'):
+            missing.append(f'robot_{rid}')
+            continue
+        pos = (float(pose['x']), float(pose['y']))
+        positions[rid] = pos
+        checked += 1
+        dist = math.hypot(pos[0] - goal[0], pos[1] - goal[1])
+        if dist > tolerance:
+            failed.append({
+                'robot': f'robot_{rid}',
+                'distance_to_goal_m': round(dist, 3),
+                'tolerance_m': round(tolerance, 3),
+                'goal': [round(goal[0], 3), round(goal[1], 3)],
+            })
+
+    result: dict[str, Any] = {
+        'ok': not failed and not missing,
+        'checked_robots': checked,
+    }
+    if failed:
+        result['failed'] = failed
+    if missing:
+        result['missing'] = missing
+        result['missing_state'] = ['robot_poses']
+    if check_spacing and positions:
+        spacing = _check_final_spacing(positions, pose_snapshot)
+        result['spacing'] = spacing
+        if not spacing.get('ok'):
+            result['ok'] = False
+    return result
+
+
+def _mapf_targets_have_all_poses(mapf_leaves: list[dict], pose_snapshot: dict) -> bool:
+    robot_ids: set[int] = set()
+    for leaf in mapf_leaves:
+        robot_ids.update(_int_list(leaf.get('robot_ids') or []))
+    if not robot_ids:
+        return False
+    for rid in robot_ids:
+        pose = _snapshot_get(pose_snapshot, rid)
+        if pose is None or pose.get('stale'):
+            return False
+    return True
+
+
+def _check_final_spacing(
+    requested_positions: dict[int, tuple[float, float]],
+    pose_snapshot: dict,
+    *,
+    min_center_distance: float = 0.75,
+) -> dict:
+    too_close = []
+    ids = sorted(requested_positions)
+    for i, rid_a in enumerate(ids):
+        for rid_b in ids[i + 1:]:
+            dist = math.hypot(
+                requested_positions[rid_a][0] - requested_positions[rid_b][0],
+                requested_positions[rid_a][1] - requested_positions[rid_b][1],
+            )
+            if dist < min_center_distance:
+                too_close.append({
+                    'a': f'robot_{rid_a}',
+                    'b': f'robot_{rid_b}',
+                    'distance_m': round(dist, 3),
+                })
+    requested_ids = set(requested_positions)
+    for raw_id, pose in (pose_snapshot or {}).items():
+        rid = _int_or_none(raw_id)
+        if rid is None or rid in requested_ids:
+            continue
+        if not isinstance(pose, dict) or pose.get('stale'):
+            continue
+        other = _snapshot_point(pose)
+        if other is None:
+            continue
+        for req_id, req_pos in requested_positions.items():
+            dist = math.hypot(req_pos[0] - other[0], req_pos[1] - other[1])
+            if dist < min_center_distance:
+                too_close.append({
+                    'a': f'robot_{req_id}',
+                    'b': f'robot_{rid}',
+                    'distance_m': round(dist, 3),
+                })
+    return {'ok': not too_close, 'too_close': too_close}
+
+
+def _coerce_goals(value: Any) -> list[tuple[float, float]]:
+    goals = []
+    for item in list(value or []):
+        if not isinstance(item, (list, tuple)) or len(item) < 2:
+            continue
+        try:
+            goals.append((float(item[0]), float(item[1])))
+        except (TypeError, ValueError):
+            continue
+    return goals
+
+
+def _should_verify_mapf(original_request: str) -> bool:
+    lower = _safe_str(original_request).lower()
+    return any(hint in lower for hint in RELATION_HINTS)
+
+
+def _mapf_summary(
+    mapf_check: dict,
+    recent_errors: list[str],
+    missing_state: list[str],
+    *,
+    execution_failed: bool,
+) -> str:
+    if execution_failed and recent_errors:
+        return f'plan execution failed: {recent_errors[0]}'
+    if mapf_check.get('failed'):
+        return f"{len(mapf_check['failed'])} robot(s) not at requested MAPF goals"
+    spacing = mapf_check.get('spacing') or {}
+    if spacing.get('too_close'):
+        return f"{len(spacing['too_close'])} final robot spacing violation(s)"
+    if missing_state:
+        return 'could not fully verify MAPF goal state; missing ' + ', '.join(missing_state)
+    if recent_errors:
+        return 'recent execution error: ' + recent_errors[0]
+    return 'MAPF goal state did not verify'
 
 
 def _check_formations_active(expectations: list[dict], by_id: dict) -> dict:
@@ -583,6 +863,37 @@ def _snapshot_get(snapshot: dict, rid: int | None) -> dict | None:
     return None
 
 
+def _snapshot_point(pose: dict) -> tuple[float, float] | None:
+    try:
+        return (float(pose['x']), float(pose['y']))
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def _last_failure_failed(value: Any) -> bool:
+    if not isinstance(value, dict) or not value:
+        return False
+    status = _safe_str(value.get('action_status')).upper()
+    if status and status not in {'OK', 'SUCCEEDED', 'SUCCESS'}:
+        return True
+    return any(value.get(key) for key in ('last_error', 'error', 'failed_at_phase'))
+
+
+def _active_formation_guard_failure(value: Any) -> dict | None:
+    if not isinstance(value, dict) or not value:
+        return None
+    reason = _safe_str(value.get('reason') or value.get('last_error')).lower()
+    if 'mapf_targets_active_formation_followers' not in reason:
+        return None
+    return {
+        'ok': False,
+        'formation_id': _safe_str(value.get('formation_id')),
+        'followers': list(value.get('followers') or []),
+        'leader': _safe_str(value.get('leader')),
+        'repair_hint': _safe_str(value.get('repair_hint')),
+    }
+
+
 def _state_name(value: Any) -> str:
     if isinstance(value, str):
         text = value.strip()
@@ -609,13 +920,22 @@ def _formation_name_from_id(fid: str) -> str:
 def _int_list(value: Any) -> list[int]:
     out = []
     for item in list(value or []):
-        try:
-            out.append(int(item))
-        except (TypeError, ValueError):
-            match = re.fullmatch(r'robot[_-]?(\d+)', _safe_str(item))
-            if match:
-                out.append(int(match.group(1)))
+        parsed = _int_or_none(item)
+        if parsed is not None:
+            out.append(parsed)
     return out
+
+
+def _int_or_none(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        match = re.fullmatch(r'robot[_-]?(\d+)', _safe_str(value))
+        if match:
+            return int(match.group(1))
+    return None
 
 
 def _positive_float(value: Any, default: float) -> float:

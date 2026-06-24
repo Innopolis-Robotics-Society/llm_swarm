@@ -35,6 +35,7 @@ from iros_llm_orchestrator.common.llm_factory import get_llm_client
 from iros_llm_orchestrator.common.plan_executor import PlanExecutor, parse_plan
 from iros_llm_orchestrator.common.user_prompt import (
     build_execution_repair_prompt,
+    build_mission_continuation_prompt,
     build_remediation_prompt,
     build_user_prompt,
     build_bt_event_prompt,
@@ -46,8 +47,19 @@ from iros_llm_orchestrator.common.execution_repair import (
     verification_failure_info,
     verification_summary,
 )
+from iros_llm_orchestrator.common.context_budget import (
+    completion_budget_for_prompt,
+)
 from iros_llm_orchestrator.common.occupancy_rewrite import (
     rewrite_occupied_room_mapf_goals,
+)
+from iros_llm_orchestrator.common.active_formation_guard import (
+    guard_plan_for_active_formations,
+)
+from iros_llm_orchestrator.common.mission_supervision import (
+    MissionConfig,
+    MissionContinuation,
+    supervise_mission,
 )
 from iros_llm_orchestrator.context import (
     DEFAULT_MCP_READ_TOOLS,
@@ -99,6 +111,10 @@ class ChatServer(Node):
         self.declare_parameter('llm_force_chat',   True)
         self.declare_parameter('llm_enable_stop',  False)
         self.declare_parameter('llm_num_ctx',      32768)
+        self.declare_parameter('llm_context_window_tokens', 16384)
+        self.declare_parameter('llm_context_margin_tokens', 512)
+        self.declare_parameter('llm_default_max_completion_tokens', 2048)
+        self.declare_parameter('llm_min_completion_tokens', 512)
         self.declare_parameter('timeout_sec',      30.0)
         self.declare_parameter('step_timeout_sec', 120.0)
         self.declare_parameter('map_name',         'cave')
@@ -126,6 +142,13 @@ class ChatServer(Node):
         self.declare_parameter('llm_max_repair_attempts', 2)
         self.declare_parameter('llm_repair_require_verification', True)
         self.declare_parameter('llm_verification_delay_sec', 0.2)
+        self.declare_parameter('llm_mission_supervision_enabled', True)
+        self.declare_parameter('llm_mission_max_duration_sec', 180.0)
+        self.declare_parameter('llm_mission_max_steps', 6)
+        self.declare_parameter('llm_mission_verify_delay_sec', 0.8)
+        self.declare_parameter('llm_mission_min_progress_required', True)
+        self.declare_parameter('llm_mission_allow_repair', True)
+        self.declare_parameter('llm_mission_no_progress_limit', 2)
         self.declare_parameter('robot_footprint_radius', 0.22)
         self.declare_parameter('scan_timeout_sec',       3.0)
         self.declare_parameter('tool_max_iterations',    6)
@@ -155,6 +178,31 @@ class ChatServer(Node):
             self.get_parameter('llm_repair_require_verification').value)
         self._verification_delay_sec = max(0.0, float(
             self.get_parameter('llm_verification_delay_sec').value))
+        self._mission_supervision_enabled = bool(
+            self.get_parameter('llm_mission_supervision_enabled').value)
+        self._mission_config = MissionConfig(
+            enabled=self._mission_supervision_enabled,
+            max_duration_sec=max(
+                0.1,
+                float(self.get_parameter('llm_mission_max_duration_sec').value),
+            ),
+            max_steps=max(
+                1,
+                int(self.get_parameter('llm_mission_max_steps').value),
+            ),
+            no_progress_limit=max(
+                1,
+                int(self.get_parameter('llm_mission_no_progress_limit').value),
+            ),
+            min_progress_required=bool(
+                self.get_parameter('llm_mission_min_progress_required').value),
+            allow_repair=bool(
+                self.get_parameter('llm_mission_allow_repair').value),
+        )
+        self._mission_verify_delay_sec = max(
+            0.0,
+            float(self.get_parameter('llm_mission_verify_delay_sec').value),
+        )
         self._tool_max_iterations = max(1, int(
             self.get_parameter('tool_max_iterations').value))
         self._stream_reasoning = bool(self.get_parameter('stream_reasoning').value)
@@ -171,6 +219,20 @@ class ChatServer(Node):
             1, int(self.get_parameter('llm_max_tokens').value))
         self._llm_num_ctx = max(
             0, int(self.get_parameter('llm_num_ctx').value))
+        self._llm_context_window_tokens = max(
+            0, int(self.get_parameter('llm_context_window_tokens').value))
+        self._llm_context_margin_tokens = max(
+            0, int(self.get_parameter('llm_context_margin_tokens').value))
+        self._llm_default_completion_tokens = max(
+            1,
+            min(
+                self._llm_max_tokens,
+                int(self.get_parameter(
+                    'llm_default_max_completion_tokens').value),
+            ),
+        )
+        self._llm_min_completion_tokens = max(
+            1, int(self.get_parameter('llm_min_completion_tokens').value))
 
         mode = self.get_parameter('llm_mode').value
         self._llm = get_llm_client(
@@ -430,6 +492,16 @@ class ChatServer(Node):
         if not req.execute_after_planning:
             return self._succeed(goal_handle, result)
 
+        if self._mission_supervision_enabled:
+            return await self._run_supervised_mission(
+                goal_handle,
+                result,
+                original_user_request=req.user_message,
+                initial_reply=reply,
+                initial_plan=plan,
+                runtime_context=runtime_context,
+            )
+
         # ---- 3. Execute ----
         self._publish_fb(goal_handle, stage='executing')
         ok, failure_info = await self._execute_plan(plan)
@@ -531,6 +603,149 @@ class ChatServer(Node):
             reason=(f'remediation budget '
                     f'{self._max_remediation_attempts} exhausted'),
             last_failure=attempts[-1])
+
+    async def _run_supervised_mission(
+        self,
+        goal_handle,
+        result,
+        *,
+        original_user_request: str,
+        initial_reply: str,
+        initial_plan: dict,
+        runtime_context: dict,
+    ):
+        request_id = int(self.get_clock().now().nanoseconds / 1e6)
+        self.get_logger().info(
+            'LLM mission: start '
+            f'request_id={request_id} '
+            f'max_duration={self._mission_config.max_duration_sec:.1f} '
+            f'max_steps={self._mission_config.max_steps}'
+        )
+
+        async def _execute(plan: dict, step: int) -> tuple[bool, dict | None]:
+            self._publish_fb(
+                goal_handle,
+                stage='executing',
+                detail=f'mission_step={step}',
+            )
+            return await self._execute_plan(plan)
+
+        async def _verify(
+            plan: dict,
+            execution_ok: bool,
+            failure_info: dict | None,
+            previous_verification: dict | None,
+            step: int,
+        ) -> dict:
+            return await self._verify_plan_execution_state(
+                original_user_request,
+                plan,
+                runtime_context=runtime_context,
+                last_failure=failure_info,
+                delay_sec=self._mission_verify_delay_sec,
+            )
+
+        async def _continue(ctx) -> MissionContinuation:
+            self._publish_fb(
+                goal_handle,
+                stage='repairing',
+                detail=f'mission_step={ctx.step} remaining={ctx.remaining_time_sec:.1f}s',
+            )
+            fresh_ctx = await self._get_runtime_context()
+            self._last_runtime_context = fresh_ctx
+            execution_result = {
+                'ok': ctx.execution_ok,
+                'failure_info': ctx.failure_info or {},
+            }
+            messages = build_mission_continuation_prompt(
+                original_user_request,
+                ctx.current_plan,
+                execution_result,
+                ctx.verification,
+                step=ctx.step,
+                max_steps=self._mission_config.max_steps,
+                remaining_time_sec=ctx.remaining_time_sec,
+                fresh_runtime_context=fresh_ctx,
+                previous_verification=ctx.previous_verification,
+                history=list(self._history),
+                map_name=self._map_name,
+                obstacle_context=self._get_obstacle_context(),
+            )
+            compact_chars = len(json.dumps(
+                messages,
+                ensure_ascii=False,
+                separators=(',', ':'),
+            ))
+            self.get_logger().info(
+                'LLM mission context: '
+                f'compacted chars={compact_chars} '
+                f'est_tokens={max(1, compact_chars // 4)}'
+            )
+            reply, plan, raw = await self._stream_and_parse(
+                messages,
+                goal_handle,
+                user_message=original_user_request,
+            )
+            self._history.append({
+                'role': 'user',
+                'content': (
+                    f'[mission continuation step {ctx.step}: '
+                    f'{verification_summary(ctx.verification)[:180]}]'
+                ),
+            })
+            self._history.append({'role': 'assistant', 'content': raw})
+            self._trim_history()
+            plan_json = json.dumps(plan, ensure_ascii=False)
+            self._publish_fb(goal_handle, stage='parsed', detail=plan_json)
+            self._publish_event(
+                channel=LlmEvent.CHANNEL_USER,
+                trigger=original_user_request,
+                output=plan_json,
+                reason=reply,
+            )
+            return MissionContinuation(reply=reply, plan=plan, raw=raw)
+
+        outcome = await supervise_mission(
+            original_request=original_user_request,
+            initial_plan=initial_plan,
+            initial_reply=initial_reply,
+            config=self._mission_config,
+            execute_plan=_execute,
+            verify_plan=_verify,
+            generate_continuation=_continue,
+            is_help_plan=is_help_request,
+            log_fn=lambda msg: self.get_logger().info(msg),
+        )
+
+        result.plan_executed = bool(outcome.plan_executed)
+        result.plan_json = json.dumps(outcome.final_plan, ensure_ascii=False)
+        result.final_reply = append_verification_to_reply(
+            outcome.final_reply,
+            outcome.final_verification,
+        )
+        result.info = (
+            f'mission {outcome.status}: '
+            f'{verification_summary(outcome.final_verification)}'
+        )
+
+        if outcome.ok:
+            return self._succeed(goal_handle, result)
+        if outcome.status == 'needs_help':
+            return self._finalize_help(
+                goal_handle,
+                result,
+                outcome.final_reply,
+                outcome.final_plan,
+                trigger=original_user_request,
+                reason=outcome.reason,
+                last_failure=outcome.last_failure,
+            )
+        return self._fail(
+            goal_handle,
+            result,
+            f'{outcome.reason}: {verification_summary(outcome.final_verification)}',
+            got_plan=True,
+        )
 
     async def _handle_successful_execution(
         self,
@@ -694,12 +909,14 @@ class ChatServer(Node):
         *,
         runtime_context: dict | None,
         last_failure: dict | None = None,
+        delay_sec: float | None = None,
     ) -> dict:
         request_id = int(self.get_clock().now().nanoseconds / 1e6)
         self.get_logger().info(
             f'LLM verification: start request_id={request_id}')
-        if self._verification_delay_sec > 0.0:
-            await asyncio.sleep(self._verification_delay_sec)
+        delay = self._verification_delay_sec if delay_sec is None else delay_sec
+        if delay > 0.0:
+            await asyncio.sleep(delay)
         fresh_context = await self._get_runtime_context()
         if not fresh_context:
             fresh_context = runtime_context or {}
@@ -803,6 +1020,46 @@ class ChatServer(Node):
             )
         return rewritten
 
+    def _prepare_llm_context_budget(
+        self,
+        messages,
+        *,
+        extra=None,
+        phase: str = 'chat',
+    ) -> None:
+        decision = completion_budget_for_prompt(
+            messages,
+            context_window_tokens=self._llm_context_window_tokens,
+            default_completion_tokens=self._llm_default_completion_tokens,
+            min_completion_tokens=self._llm_min_completion_tokens,
+            margin_tokens=self._llm_context_margin_tokens,
+            extra=extra,
+        )
+        self.get_logger().info(
+            'LLM context guard: '
+            f"phase={phase} "
+            f"input_est_tokens={decision['input_est_tokens']} "
+            f"max_completion={decision['max_completion_tokens']} "
+            f"available_completion={decision['available_completion_tokens']} "
+            f"action={decision['action']}"
+        )
+        if not decision.get('ok'):
+            self.get_logger().error(
+                'LLM context guard: abort context too large '
+                f"input_est_tokens={decision['input_est_tokens']} "
+                f"available_completion={decision['available_completion_tokens']}"
+            )
+            raise RuntimeError('mission continuation context too large after compaction')
+        max_completion = int(decision['max_completion_tokens'])
+        old_max = int(getattr(self._llm, 'max_tokens', self._llm_max_tokens))
+        if old_max != max_completion:
+            if max_completion < old_max:
+                self.get_logger().info(
+                    'LLM context guard: reducing completion tokens from '
+                    f'{old_max} to {max_completion}'
+                )
+            setattr(self._llm, 'max_tokens', max_completion)
+
     async def _stream_with_tool_loop(
         self,
         messages: list[dict],
@@ -818,6 +1075,11 @@ class ChatServer(Node):
         for iteration in range(self._tool_max_iterations):
             full_text = ''
             terminal: dict | None = None
+            self._prepare_llm_context_budget(
+                msgs,
+                extra=TOOL_DEFINITIONS,
+                phase=f'tool_loop_{iteration + 1}',
+            )
 
             if self._stream_reasoning:
                 async for event in self._llm.stream_with_tools(msgs, TOOL_DEFINITIONS):
@@ -873,7 +1135,7 @@ class ChatServer(Node):
                                 'RULES — "plan" must be a single node with "type" at the TOP level:\n'
                                 '  WRONG: {"plan":{"actions":[{"type":"..."}]}}\n'
                                 '  WRONG: tool names (check_occupancy, get_positions) are not plan types\n'
-                                '  Valid types: mapf | formation | idle | sequence | parallel\n'
+                                '  Valid types: mapf | formation | disband | idle | sequence | parallel\n'
                                 '\n'
                                 'Correct examples:\n'
                                 '  Move robots:  {"type":"mapf","robot_ids":[12,13,14,15],"goals":[[-9.5,4.0],[-9.5,4.0],[-9.5,4.0],[-9.5,4.0]],"reason":"orange to medbay"}\n'
@@ -919,6 +1181,11 @@ class ChatServer(Node):
         """
         full = ''
         schema = PLAN_RESPONSE_SCHEMA if self._structured_output_enabled else None
+        self._prepare_llm_context_budget(
+            messages,
+            extra=schema,
+            phase='plain',
+        )
         async for chunk in self._llm.stream(messages, response_format=schema):
             if not chunk:
                 continue
@@ -1035,11 +1302,12 @@ class ChatServer(Node):
             send_fn=self._sender.send,
             log_fn=lambda m: self.get_logger().info(f'executor: {m}'),
             formation_prestage_hook=self._formation_prestage_hook,
+            plan_guard_hook=self._formation_guard_hook,
         )
         ok = await executor.run(plan)
         if ok:
             return True, None
-        failure = dict(self._sender.last_failure() or {})
+        failure = dict(executor.guard_failure or self._sender.last_failure() or {})
         # If sender did not record one (executor refused to send for some
         # other reason) fall back to the leaf type from the executor.
         if not failure and executor.failed_leaf:
@@ -1050,6 +1318,20 @@ class ChatServer(Node):
                 'action_status': '',
             }
         return False, failure
+
+    def _formation_guard_hook(self, plan: dict) -> tuple[dict, dict | None]:
+        status = None
+        try:
+            status = self._tool_executor.formations_status_snapshot()
+        except Exception:
+            status = None
+        if status is None:
+            status = (self._last_runtime_context or {}).get('formations')
+        return guard_plan_for_active_formations(
+            plan,
+            status,
+            log_fn=lambda m: self.get_logger().info(m),
+        )
 
     async def _get_targeted_runtime_context(
         self,
