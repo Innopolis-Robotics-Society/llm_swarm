@@ -61,6 +61,9 @@
 <li><a class="reference internal" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel10LlmCommandE"><code class="docutils literal notranslate"><span class="pre">LlmCommand</span></code></a></li>
 <li><a class="reference internal" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel7LlmChatE"><code class="docutils literal notranslate"><span class="pre">LlmChat</span></code></a></li>
 <li><a class="reference internal" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel14LlmExecutePlanE"><code class="docutils literal notranslate"><span class="pre">LlmExecutePlan</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel9ListTasksE"><code class="docutils literal notranslate"><span class="pre">ListTasks</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel9ResetTaskE"><code class="docutils literal notranslate"><span class="pre">ResetTask</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel8ResetAllE"><code class="docutils literal notranslate"><span class="pre">ResetAll</span></code></a></li>
 <li><a class="reference internal" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel9ChatGoalHE"><code class="docutils literal notranslate"><span class="pre">ChatGoalH</span></code></a></li>
 <li><a class="reference internal" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel9ExecGoalHE"><code class="docutils literal notranslate"><span class="pre">ExecGoalH</span></code></a></li>
 <li><a class="reference internal" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel8LlmPanelEP7QWidget"><code class="docutils literal notranslate"><span class="pre">LlmPanel()</span></code></a></li>
@@ -76,6 +79,7 @@
 <li><a class="reference internal" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel12execFinishedEb7QString"><code class="docutils literal notranslate"><span class="pre">execFinished</span></code></a></li>
 <li><a class="reference internal" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel13eventReceivedE6qint64i7QString7QString7QString"><code class="docutils literal notranslate"><span class="pre">eventReceived</span></code></a></li>
 <li><a class="reference internal" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel17systemInfoChangedEv"><code class="docutils literal notranslate"><span class="pre">systemInfoChanged</span></code></a></li>
+<li><a class="reference internal" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel16tasksUpdateReadyEv"><code class="docutils literal notranslate"><span class="pre">tasksUpdateReady</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -122,6 +126,7 @@
 <ul class="simple">
 <li><p><a class="reference internal" href="structiros__llm__rviz__panel_1_1LlmPanel_1_1FormationZone.html#exhale-struct-structiros-llm-rviz-panel-1-1llmpanel-1-1formationzone"><span class="std std-ref">Struct LlmPanel::FormationZone</span></a></p></li>
 <li><p><a class="reference internal" href="structiros__llm__rviz__panel_1_1LlmPanel_1_1RobotGroup.html#exhale-struct-structiros-llm-rviz-panel-1-1llmpanel-1-1robotgroup"><span class="std std-ref">Struct LlmPanel::RobotGroup</span></a></p></li>
+<li><p><a class="reference internal" href="structiros__llm__rviz__panel_1_1LlmPanel_1_1TaskRowData.html#exhale-struct-structiros-llm-rviz-panel-1-1llmpanel-1-1taskrowdata"><span class="std std-ref">Struct LlmPanel::TaskRowData</span></a></p></li>
 </ul>
 </section>
 </section>
@@ -164,6 +169,21 @@
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel14LlmExecutePlanE">
 <span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel14LlmExecutePlanE"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel14LlmExecutePlanE"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1a85b5bc18030d5b9c0f53c5d56ed2bb60"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">LlmExecutePlan</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">iros_llm_swarm_interfaces</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">action</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">LlmExecutePlan</span></span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel14LlmExecutePlanE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel9ListTasksE">
+<span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel9ListTasksE"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel9ListTasksE"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1a9c30475dc674d2c3b7dd8038eca1f174"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ListTasks</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">iros_llm_swarm_interfaces</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">srv</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ListTasks</span></span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel9ListTasksE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel9ResetTaskE">
+<span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel9ResetTaskE"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel9ResetTaskE"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1ad21ce951f97d3c744155367ed05c94a7"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResetTask</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">iros_llm_swarm_interfaces</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">srv</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ResetTask</span></span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel9ResetTaskE" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel8ResetAllE">
+<span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel8ResetAllE"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel8ResetAllE"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1aff9d2265edeec9c36a43562b5eee92fd"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">ResetAll</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">iros_llm_swarm_interfaces</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">srv</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ResetAll</span></span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel8ResetAllE" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp type">
@@ -245,6 +265,11 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel17systemInfoChangedEv">
 <span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel17systemInfoChangedEv"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel17systemInfoChangedEv"></span><span id="iros_llm_rviz_panel::LlmPanel::systemInfoChanged"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1a1ed1e58af0c61f3be12e33aeff496de7"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">systemInfoChanged</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel17systemInfoChangedEv" title="Link to this definition"></a><br /></dt>
+<dd></dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N19iros_llm_rviz_panel8LlmPanel16tasksUpdateReadyEv">
+<span id="_CPPv3N19iros_llm_rviz_panel8LlmPanel16tasksUpdateReadyEv"></span><span id="_CPPv2N19iros_llm_rviz_panel8LlmPanel16tasksUpdateReadyEv"></span><span id="iros_llm_rviz_panel::LlmPanel::tasksUpdateReady"></span><span class="target" id="classiros__llm__rviz__panel_1_1LlmPanel_1a0c251750dc174de97e22ac427021a7f3"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tasksUpdateReady</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N19iros_llm_rviz_panel8LlmPanel16tasksUpdateReadyEv" title="Link to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 </div>

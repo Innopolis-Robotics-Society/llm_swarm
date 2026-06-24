@@ -125,6 +125,9 @@
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iros_llm_swarm_interfaces/action/llm_command.hpp&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iros_llm_swarm_interfaces/action/llm_chat.hpp&gt;</span>
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iros_llm_swarm_interfaces/action/llm_execute_plan.hpp&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iros_llm_swarm_interfaces/srv/list_tasks.hpp&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iros_llm_swarm_interfaces/srv/reset_task.hpp&gt;</span>
+<span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;iros_llm_swarm_interfaces/srv/reset_all.hpp&gt;</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">QCheckBox</span><span class="p">;</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">QHBoxLayout</span><span class="p">;</span>
@@ -153,6 +156,9 @@
 <span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">LlmCommand</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="n">iros_llm_swarm_interfaces</span><span class="o">::</span><span class="n">action</span><span class="o">::</span><span class="n">LlmCommand</span><span class="p">;</span>
 <span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">LlmChat</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="n">iros_llm_swarm_interfaces</span><span class="o">::</span><span class="n">action</span><span class="o">::</span><span class="n">LlmChat</span><span class="p">;</span>
 <span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">LlmExecutePlan</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">iros_llm_swarm_interfaces</span><span class="o">::</span><span class="n">action</span><span class="o">::</span><span class="n">LlmExecutePlan</span><span class="p">;</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">ListTasks</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="n">iros_llm_swarm_interfaces</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">ListTasks</span><span class="p">;</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">ResetTask</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="n">iros_llm_swarm_interfaces</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">ResetTask</span><span class="p">;</span>
+<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">ResetAll</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="n">iros_llm_swarm_interfaces</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">ResetAll</span><span class="p">;</span>
 <span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">ChatGoalH</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="n">rclcpp_action</span><span class="o">::</span><span class="n">ClientGoalHandle</span><span class="o">&lt;</span><span class="n">LlmChat</span><span class="o">&gt;</span><span class="p">;</span>
 <span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">ExecGoalH</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="n">rclcpp_action</span><span class="o">::</span><span class="n">ClientGoalHandle</span><span class="o">&lt;</span><span class="n">LlmExecutePlan</span><span class="o">&gt;</span><span class="p">;</span>
 
@@ -180,6 +186,7 @@
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">eventReceived</span><span class="p">(</span><span class="n">qint64</span><span class="w"> </span><span class="n">stamp_ms</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">channel</span><span class="p">,</span>
 <span class="w">                     </span><span class="n">QString</span><span class="w"> </span><span class="n">trigger</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">output</span><span class="p">,</span><span class="w"> </span><span class="n">QString</span><span class="w"> </span><span class="n">reason</span><span class="p">);</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">systemInfoChanged</span><span class="p">();</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">tasksUpdateReady</span><span class="p">();</span>
 
 <span class="k">private</span><span class="w"> </span><span class="n">Q_SLOTS</span><span class="o">:</span>
 <span class="w">  </span><span class="c1">// User actions</span>
@@ -212,6 +219,12 @@
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onInfoRefresh</span><span class="p">();</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onSystemInfoChanged</span><span class="p">();</span>
 
+<span class="w">  </span><span class="c1">// Tasks tab</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onTasksRefresh</span><span class="p">();</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onTasksUpdateReady</span><span class="p">();</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onTasksResetSelected</span><span class="p">();</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">onTasksResetAll</span><span class="p">();</span>
+
 <span class="k">private</span><span class="o">:</span>
 <span class="w">  </span><span class="c1">// ---- Construction ------------------------------------------------------</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="n">buildUi</span><span class="p">();</span>
@@ -221,6 +234,7 @@
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">buildEventsTab</span><span class="p">(</span><span class="n">QWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tab</span><span class="p">);</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">buildBtTab</span><span class="p">(</span><span class="n">QWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tab</span><span class="p">);</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">buildInfoTab</span><span class="p">(</span><span class="n">QWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tab</span><span class="p">);</span>
+<span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">buildTasksTab</span><span class="p">(</span><span class="n">QWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tab</span><span class="p">);</span>
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">setupRos</span><span class="p">();</span>
 
 <span class="w">  </span><span class="c1">// System info collection (called from GUI thread via info_timer_).</span>
@@ -268,6 +282,9 @@
 <span class="w">  </span><span class="n">rclcpp_action</span><span class="o">::</span><span class="n">Client</span><span class="o">&lt;</span><span class="n">LlmChat</span><span class="o">&gt;::</span><span class="n">SharedPtr</span><span class="w">                         </span><span class="n">chat_client_</span><span class="p">;</span>
 <span class="w">  </span><span class="n">rclcpp_action</span><span class="o">::</span><span class="n">Client</span><span class="o">&lt;</span><span class="n">LlmCommand</span><span class="o">&gt;::</span><span class="n">SharedPtr</span><span class="w">                      </span><span class="n">cmd_client_</span><span class="p">;</span>
 <span class="w">  </span><span class="n">rclcpp_action</span><span class="o">::</span><span class="n">Client</span><span class="o">&lt;</span><span class="n">LlmExecutePlan</span><span class="o">&gt;::</span><span class="n">SharedPtr</span><span class="w">                  </span><span class="n">exec_client_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">Client</span><span class="o">&lt;</span><span class="n">ListTasks</span><span class="o">&gt;::</span><span class="n">SharedPtr</span><span class="w">                              </span><span class="n">list_tasks_client_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">Client</span><span class="o">&lt;</span><span class="n">ResetTask</span><span class="o">&gt;::</span><span class="n">SharedPtr</span><span class="w">                              </span><span class="n">reset_task_client_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">Client</span><span class="o">&lt;</span><span class="n">ResetAll</span><span class="o">&gt;::</span><span class="n">SharedPtr</span><span class="w">                               </span><span class="n">reset_all_client_</span><span class="p">;</span>
 
 <span class="w">  </span><span class="c1">// TF</span>
 <span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">tf2_ros</span><span class="o">::</span><span class="n">Buffer</span><span class="o">&gt;</span><span class="w">            </span><span class="n">tf_buffer_</span><span class="p">;</span>
@@ -314,6 +331,22 @@
 <span class="w">  </span><span class="c1">// ---- Widgets — Info tab -----------------------------------------------</span>
 <span class="w">  </span><span class="n">QTableWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">info_table_</span><span class="w">      </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
 <span class="w">  </span><span class="n">QLabel</span><span class="w">       </span><span class="o">*</span><span class="w"> </span><span class="n">info_updated_lbl_</span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// ---- Widgets — Tasks tab -----------------------------------------------</span>
+<span class="w">  </span><span class="n">QTableWidget</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">tasks_table_</span><span class="w">           </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QPushButton</span><span class="w">  </span><span class="o">*</span><span class="w"> </span><span class="n">tasks_reset_selected_</span><span class="w">  </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+<span class="w">  </span><span class="n">QPushButton</span><span class="w">  </span><span class="o">*</span><span class="w"> </span><span class="n">tasks_reset_all_</span><span class="w">       </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
+
+<span class="w">  </span><span class="c1">// ---- Tasks data (written on ROS thread, read on GUI thread) ------------</span>
+<span class="w">  </span><span class="k">struct</span><span class="w"> </span><span class="nc">TaskRowData</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">id</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">type</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">label</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">status</span><span class="p">;</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">assigned</span><span class="p">;</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="w">  </span><span class="k">mutable</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="w">         </span><span class="n">tasks_mutex_</span><span class="p">;</span>
+<span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">TaskRowData</span><span class="o">&gt;</span><span class="w">   </span><span class="n">pending_task_rows_</span><span class="p">;</span>
 
 <span class="w">  </span><span class="n">QTabWidget</span><span class="w">   </span><span class="o">*</span><span class="w"> </span><span class="n">tabs_</span><span class="w">   </span><span class="p">{</span><span class="nb">nullptr</span><span class="p">};</span>
 

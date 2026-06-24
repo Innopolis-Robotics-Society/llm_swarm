@@ -20,6 +20,9 @@
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a93e33c9469d19b4f52d65eccb0a5b148" kind="typedef"><name>LlmCommand</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a23bafeb8b5338f56111a61d5b9bceadf" kind="typedef"><name>LlmChat</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a85b5bc18030d5b9c0f53c5d56ed2bb60" kind="typedef"><name>LlmExecutePlan</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a9c30475dc674d2c3b7dd8038eca1f174" kind="typedef"><name>ListTasks</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ad21ce951f97d3c744155367ed05c94a7" kind="typedef"><name>ResetTask</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1aff9d2265edeec9c36a43562b5eee92fd" kind="typedef"><name>ResetAll</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a3971a2426bbf9d27ca86d40edd2c74ce" kind="typedef"><name>ChatGoalH</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1af9b9cf60408b839deb2419681908fdc5" kind="typedef"><name>ExecGoalH</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1aadaf894b2d261cd37bb89e2ded9c2644" kind="variable"><name>node_</name></member>
@@ -29,6 +32,9 @@
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a921f251e29da2408783c801da8fddad1" kind="variable"><name>chat_client_</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ae54f13ab53af8ef1fa87fb08527024ba" kind="variable"><name>cmd_client_</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ae8dcce32a18da56bfe5be5923f5ef961" kind="variable"><name>exec_client_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a69f6c176ebc96cbdc2d760aa15bd57cf" kind="variable"><name>list_tasks_client_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a00595f7e8bdaeb830c98cfaeb996a8f4" kind="variable"><name>reset_task_client_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a2d5eed1d5c34d65f30568c52e48dafd6" kind="variable"><name>reset_all_client_</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ac6081ea8706f3489d1da1e7eb6928cbd" kind="variable"><name>tf_buffer_</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a26d268b38f67fb5c690699ba0d53f591" kind="variable"><name>tf_listener_</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ad10f7fe7cc6c5d375d2a99c7eb0895bf" kind="variable"><name>mode_badge_</name></member>
@@ -61,6 +67,11 @@
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a16c8a654c92b4e261af642bdb8ec5c86" kind="variable"><name>bt_log_table_</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a5008609e517c36c04370e7df29e84f97" kind="variable"><name>info_table_</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a8303726810e4e406f1b9c2361bde66b3" kind="variable"><name>info_updated_lbl_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1af876c618299375e132f86892815a892a" kind="variable"><name>tasks_table_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a1e24733b9111c741c7a2fa3757a4bd4c" kind="variable"><name>tasks_reset_selected_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1afb2cfee364a83f257b7bbf79e81dc7e8" kind="variable"><name>tasks_reset_all_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a2f8b191603d02cf1356a4ec189a8d24c" kind="variable"><name>tasks_mutex_</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1aeb97b47d0ca18572252e6385771675b1" kind="variable"><name>pending_task_rows_</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1acd678d35a804b271d10d916dd39d352b" kind="variable"><name>tabs_</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a53d8f1723fc871428661b808d5d9df5c" kind="variable"><name>cached_state_mutex_</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a7237ebd8e19919aab997f824bc2016fb" kind="variable"><name>cached_mode_</name></member>
@@ -112,6 +123,7 @@
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a546df40b4e9efeabcfe067473020684d" kind="signal"><name>execFinished</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ace4037a1782ec5aa89e9e506bf2b4f13" kind="signal"><name>eventReceived</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a1ed1e58af0c61f3be12e33aeff496de7" kind="signal"><name>systemInfoChanged</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a0c251750dc174de97e22ac427021a7f3" kind="signal"><name>tasksUpdateReady</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a1dcba9a246bf6c217b5c9e23aa9eabfe" kind="slot"><name>onSendChat</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1afd05b8010fcdfe147f5c3971468b4504" kind="slot"><name>onStopAll</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ae60cd64513a41a4aec9f28aadbb9a716" kind="slot"><name>onPreviewToggled</name></member>
@@ -127,6 +139,10 @@
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a2bd413bd01f0cdda161f101cd8af5443" kind="slot"><name>onMarkerTick</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a448b29b51118457bbc00db963df4d679" kind="slot"><name>onInfoRefresh</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a8905ee11d186c0a24ae83c6b4d32c66f" kind="slot"><name>onSystemInfoChanged</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a065e83b9ef74e88cb01fbae763e818e7" kind="slot"><name>onTasksRefresh</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a807d591ab0239990df26f43844b27a2d" kind="slot"><name>onTasksUpdateReady</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a28b0938cacb599d747f9e1d6f1af768b" kind="slot"><name>onTasksResetSelected</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a17f458f8e50c0a8c1c52be5deb3a045d" kind="slot"><name>onTasksResetAll</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a563fba37c74081a3a763e26a986ca950" kind="function"><name>buildUi</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a4263771a14a520394dfdd0706682a010" kind="function"><name>buildStatusRow</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a7c81e50b436e3ab8138b68c7f8173cd0" kind="function"><name>buildChatTab</name></member>
@@ -134,6 +150,7 @@
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1acf83a2ba5696e54c7b34095966d789f9" kind="function"><name>buildEventsTab</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ac8ea6222cf881191fab3b27d10646c6a" kind="function"><name>buildBtTab</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a8ec1dddf928ec9beb273744fdf076df3" kind="function"><name>buildInfoTab</name></member>
+    <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a942cfcd8dd8f65ad7a92bc7a28678c53" kind="function"><name>buildTasksTab</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a02a9390a6a04bf1a24210aaa6ab981ef" kind="function"><name>setupRos</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1ad030ee814fa3cf9041cd2f47c1cb9559" kind="function"><name>refreshSystemInfo</name></member>
     <member refid="classiros__llm__rviz__panel_1_1LlmPanel_1a8fe1d87d3ee022eb9efe9922fcc1f1b4" kind="function"><name>requestRemoteParam</name></member>
@@ -168,6 +185,13 @@
     <member refid="classiros__llm__rviz__panel_1_1Sparkline_1a8a736899d4e380797e219f10d2ee0e87" kind="function"><name>sizeHint</name></member>
     <member refid="classiros__llm__rviz__panel_1_1Sparkline_1a73fc572e13b9344a805a6530340a36e3" kind="function"><name>minimumSizeHint</name></member>
     <member refid="classiros__llm__rviz__panel_1_1Sparkline_1af4cfb8e33d245131f2c9fcaedab83d20" kind="function"><name>paintEvent</name></member>
+  </compound>
+  <compound refid="structiros__llm__rviz__panel_1_1LlmPanel_1_1TaskRowData" kind="struct"><name>iros_llm_rviz_panel::LlmPanel::TaskRowData</name>
+    <member refid="structiros__llm__rviz__panel_1_1LlmPanel_1_1TaskRowData_1a3ebd7355d36299196b352f5e7a8c0af8" kind="variable"><name>id</name></member>
+    <member refid="structiros__llm__rviz__panel_1_1LlmPanel_1_1TaskRowData_1aafeacff0d854f10a8df2f0bf6ecab9d1" kind="variable"><name>type</name></member>
+    <member refid="structiros__llm__rviz__panel_1_1LlmPanel_1_1TaskRowData_1a00f4685c8751aea54f7a92c59bc3a053" kind="variable"><name>label</name></member>
+    <member refid="structiros__llm__rviz__panel_1_1LlmPanel_1_1TaskRowData_1a4a1f38c16ffb2d8238bfc440ba34e65d" kind="variable"><name>status</name></member>
+    <member refid="structiros__llm__rviz__panel_1_1LlmPanel_1_1TaskRowData_1a3e8fd646944497ba3d1b9d6472311662" kind="variable"><name>assigned</name></member>
   </compound>
   <compound refid="namespaceiros__llm__rviz__panel" kind="namespace"><name>iros_llm_rviz_panel</name>
     <member refid="action__summary_8hpp_1a6faf31c1ddac1ed3bf4dcd05aee98a0d" kind="function"><name>parseActionSummary</name></member>
