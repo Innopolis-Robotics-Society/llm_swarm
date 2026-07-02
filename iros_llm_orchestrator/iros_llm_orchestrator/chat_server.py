@@ -438,6 +438,12 @@ class ChatServer(Node):
         req = goal_handle.request
         result = LlmChat.Result()
 
+        # Fresh {{ref.path}} registry for this operator command — shared by
+        # the initial plan and every mission-supervision continuation step
+        # below, since a repair/continuation still legitimately wants to
+        # reference a room placement computed earlier in the same mission.
+        self._tool_executor.reset_turn()
+
         # ---- 1. Stream initial reply ----
         self._publish_fb(goal_handle, stage='thinking')
         runtime_context = await self._get_runtime_context()
@@ -973,7 +979,11 @@ class ChatServer(Node):
         except Exception as exc:
             raise _LlmStageError(f'LLM error: {exc}') from exc
         try:
-            reply, plan = _parse_response(full_raw)
+            reply, plan = _parse_response(
+                full_raw,
+                template_registry=self._tool_executor.template_registry,
+                log_fn=self.get_logger().info,
+            )
         except ValueError as exc:
             # Diagnostic: surface exactly what the LLM returned so a parse
             # failure (e.g. tool-calling making the model answer in prose

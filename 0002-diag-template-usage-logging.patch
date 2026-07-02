@@ -1,0 +1,173 @@
+From 2bdf6210b63ee7f3fff31a1470123518ed97ef24 Mon Sep 17 00:00:00 2001
+From: Claude <claude@anthropic.com>
+Date: Thu, 2 Jul 2026 16:47:40 +0000
+Subject: [PATCH] diag(llm): log whether the plan cited or ignored available
+ {{ref}} tool results
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+One INFO line per chat turn answers "did the model reference or retype?"
+without needing debug-level raw-JSON logging: 'plan templates: N used (...)
+of M available (...)', or the neutral 'plan templates: 0 used, M available'
+when nothing was cited (doesn't presume the model is wrong to skip a ref —
+e.g. a failed tool call or an idle/needs_help plan legitimately has nothing
+to reference).
+
+- common/plan_templating.py: find_used_refs() — pre-resolution scan, read-only
+- user_chat_node.py: _log_template_usage() + log_fn wired into the terminal client
+- chat_server.py: log_fn wired into the RViz/ROS action-server path
+---
+ .../iros_llm_orchestrator/chat_server.py      |  5 +-
+ .../common/plan_templating.py                 | 26 +++++++++++
+ .../iros_llm_orchestrator/user_chat_node.py   | 46 ++++++++++++++++++-
+ 3 files changed, 74 insertions(+), 3 deletions(-)
+
+diff --git a/iros_llm_orchestrator/iros_llm_orchestrator/chat_server.py b/iros_llm_orchestrator/iros_llm_orchestrator/chat_server.py
+index 0954760..68469ba 100644
+--- a/iros_llm_orchestrator/iros_llm_orchestrator/chat_server.py
++++ b/iros_llm_orchestrator/iros_llm_orchestrator/chat_server.py
+@@ -980,7 +980,10 @@ class ChatServer(Node):
+             raise _LlmStageError(f'LLM error: {exc}') from exc
+         try:
+             reply, plan = _parse_response(
+-                full_raw, template_registry=self._tool_executor.template_registry)
++                full_raw,
++                template_registry=self._tool_executor.template_registry,
++                log_fn=self.get_logger().info,
++            )
+         except ValueError as exc:
+             # Diagnostic: surface exactly what the LLM returned so a parse
+             # failure (e.g. tool-calling making the model answer in prose
+diff --git a/iros_llm_orchestrator/iros_llm_orchestrator/common/plan_templating.py b/iros_llm_orchestrator/iros_llm_orchestrator/common/plan_templating.py
+index f7039eb..cdb5dcb 100644
+--- a/iros_llm_orchestrator/iros_llm_orchestrator/common/plan_templating.py
++++ b/iros_llm_orchestrator/iros_llm_orchestrator/common/plan_templating.py
+@@ -40,6 +40,7 @@ __all__ = [
+     "is_template",
+     "resolve_template",
+     "resolve_plan_templates",
++    "find_used_refs",
+ ]
+ 
+ 
+@@ -133,3 +134,28 @@ def resolve_plan_templates(node: Any, registry: dict[str, dict] | None) -> Any:
+     if isinstance(node, dict):
+         return {key: resolve_plan_templates(val, registry) for key, val in node.items()}
+     return node
++
++
++def find_used_refs(node: Any) -> list[str]:
++    """Scan ``node`` for ``{{ref.path}}`` strings and return the referenced ids.
++
++    Read-only, no resolution/validation — purely for logging/diagnostics, so
++    a caller can report "plan cited t1, t3 out of 3 tool results available"
++    without needing a registry at all. Order of first appearance, deduped.
++    """
++    seen: list[str] = []
++
++    def _walk(value: Any) -> None:
++        if isinstance(value, str):
++            match = _TEMPLATE_RE.match(value)
++            if match and match.group(1) not in seen:
++                seen.append(match.group(1))
++        elif isinstance(value, list):
++            for item in value:
++                _walk(item)
++        elif isinstance(value, dict):
++            for val in value.values():
++                _walk(val)
++
++    _walk(node)
++    return seen
+diff --git a/iros_llm_orchestrator/iros_llm_orchestrator/user_chat_node.py b/iros_llm_orchestrator/iros_llm_orchestrator/user_chat_node.py
+index 99da66f..9c45807 100644
+--- a/iros_llm_orchestrator/iros_llm_orchestrator/user_chat_node.py
++++ b/iros_llm_orchestrator/iros_llm_orchestrator/user_chat_node.py
+@@ -11,6 +11,7 @@ import threading
+ import time
+ from datetime import datetime, timezone
+ from pathlib import Path
++from typing import Callable
+ 
+ import rclpy
+ from geometry_msgs.msg import Point
+@@ -25,6 +26,7 @@ from iros_llm_swarm_interfaces.msg import BTState, LlmEvent
+ from iros_llm_orchestrator.common.llm_factory import get_llm_client
+ from iros_llm_orchestrator.common.plan_executor import (
+     PlanExecutor, coerce_robot_id, parse_plan)
++from iros_llm_orchestrator.common.plan_templating import find_used_refs
+ from iros_llm_orchestrator.common.tool_definitions import TOOL_DEFINITIONS
+ from iros_llm_orchestrator.common.tool_executor import ToolExecutor
+ from iros_llm_orchestrator.common.user_prompt import (
+@@ -234,6 +236,7 @@ def _parse_response(
+     raw: str,
+     *,
+     template_registry: dict[str, dict] | None = None,
++    log_fn: Callable[[str], None] | None = None,
+ ) -> tuple[str, dict]:
+     text = raw.strip()
+     start = text.find('{')
+@@ -268,10 +271,46 @@ def _parse_response(
+     except json.JSONDecodeError as exc:
+         raise ValueError(f'invalid JSON: {exc}') from exc
+     reply = obj.get('reply', text[:start].strip()) or text[:start].strip()
+-    plan  = parse_plan(obj, template_registry=template_registry)
++    if log_fn is not None:
++        _log_template_usage(obj, template_registry, log_fn)
++    plan = parse_plan(obj, template_registry=template_registry)
+     return reply, plan
+ 
+ 
++def _log_template_usage(
++    obj: dict,
++    template_registry: dict[str, dict] | None,
++    log_fn: Callable[[str], None],
++) -> None:
++    """One INFO-level line answering "did the model reference or retype?".
++
++    Must run BEFORE parse_plan resolves/replaces the "{{ref.path}}" strings —
++    by the time PlanExecutor logs a leaf, templates (if any) are already gone,
++    so this is the only point in the pipeline where it's still visible.
++    """
++    plan_node = obj.get('plan', obj)
++    used = find_used_refs(plan_node)
++    available = sorted((template_registry or {}).keys())
++    if used:
++        log_fn(
++            f'plan templates: {len(used)} used ({", ".join(used)}) '
++            f'of {len(available)} available ({", ".join(available)})'
++        )
++    elif available:
++        # Purely factual — 0 used does NOT necessarily mean the model retyped
++        # numbers by hand. A failed tool call (ok=false) still mints a ref
++        # with nothing usable in it, and an idle/disband/needs_help plan
++        # legitimately has no geometry to reference at all. Whether 0-used
++        # is a problem depends on the plan/tool-result shown right above
++        # this line — this only tells you refs existed and went unused.
++        log_fn(
++            f'plan templates: 0 used, {len(available)} tool result(s) available '
++            f'({", ".join(available)}) — check plan/tool-result above if this '
++            f'plan type expected placement data'
++        )
++    # else: no tool calls this turn — nothing to report, stay silent.
++
++
+ # ---------------------------------------------------------------------------
+ # Session logger
+ # ---------------------------------------------------------------------------
+@@ -838,7 +877,10 @@ class UserChatNode(Node):
+         self._slog.debug(f'LLM raw ({len(full_raw)} chars):\n{full_raw}')
+         try:
+             reply, plan = _parse_response(
+-                full_raw, template_registry=self._tool_executor.template_registry)
++                full_raw,
++                template_registry=self._tool_executor.template_registry,
++                log_fn=self._slog.info,
++            )
+         except ValueError as exc:
+             self._out(f'  {ERR}  Parse error: {exc}')
+             self._out(f'       Raw: {full_raw[:400]}')
+-- 
+2.43.0
+

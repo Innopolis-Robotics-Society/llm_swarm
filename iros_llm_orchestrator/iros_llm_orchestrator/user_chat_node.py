@@ -11,6 +11,7 @@ import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Callable
 
 import rclpy
 from geometry_msgs.msg import Point
@@ -25,6 +26,7 @@ from iros_llm_swarm_interfaces.msg import BTState, LlmEvent
 from iros_llm_orchestrator.common.llm_factory import get_llm_client
 from iros_llm_orchestrator.common.plan_executor import (
     PlanExecutor, coerce_robot_id, parse_plan)
+from iros_llm_orchestrator.common.plan_templating import find_used_refs
 from iros_llm_orchestrator.common.tool_definitions import TOOL_DEFINITIONS
 from iros_llm_orchestrator.common.tool_executor import ToolExecutor
 from iros_llm_orchestrator.common.user_prompt import (
@@ -230,7 +232,12 @@ def _postprocess_plan(node: dict, map_cfg: dict, spread: bool = False) -> dict:
 # Response parsing
 # ---------------------------------------------------------------------------
 
-def _parse_response(raw: str) -> tuple[str, dict]:
+def _parse_response(
+    raw: str,
+    *,
+    template_registry: dict[str, dict] | None = None,
+    log_fn: Callable[[str], None] | None = None,
+) -> tuple[str, dict]:
     text = raw.strip()
     start = text.find('{')
     if start == -1:
@@ -264,8 +271,44 @@ def _parse_response(raw: str) -> tuple[str, dict]:
     except json.JSONDecodeError as exc:
         raise ValueError(f'invalid JSON: {exc}') from exc
     reply = obj.get('reply', text[:start].strip()) or text[:start].strip()
-    plan  = parse_plan(obj)
+    if log_fn is not None:
+        _log_template_usage(obj, template_registry, log_fn)
+    plan = parse_plan(obj, template_registry=template_registry)
     return reply, plan
+
+
+def _log_template_usage(
+    obj: dict,
+    template_registry: dict[str, dict] | None,
+    log_fn: Callable[[str], None],
+) -> None:
+    """One INFO-level line answering "did the model reference or retype?".
+
+    Must run BEFORE parse_plan resolves/replaces the "{{ref.path}}" strings —
+    by the time PlanExecutor logs a leaf, templates (if any) are already gone,
+    so this is the only point in the pipeline where it's still visible.
+    """
+    plan_node = obj.get('plan', obj)
+    used = find_used_refs(plan_node)
+    available = sorted((template_registry or {}).keys())
+    if used:
+        log_fn(
+            f'plan templates: {len(used)} used ({", ".join(used)}) '
+            f'of {len(available)} available ({", ".join(available)})'
+        )
+    elif available:
+        # Purely factual — 0 used does NOT necessarily mean the model retyped
+        # numbers by hand. A failed tool call (ok=false) still mints a ref
+        # with nothing usable in it, and an idle/disband/needs_help plan
+        # legitimately has no geometry to reference at all. Whether 0-used
+        # is a problem depends on the plan/tool-result shown right above
+        # this line — this only tells you refs existed and went unused.
+        log_fn(
+            f'plan templates: 0 used, {len(available)} tool result(s) available '
+            f'({", ".join(available)}) — check plan/tool-result above if this '
+            f'plan type expected placement data'
+        )
+    # else: no tool calls this turn — nothing to report, stay silent.
 
 
 # ---------------------------------------------------------------------------
@@ -707,6 +750,10 @@ class UserChatNode(Node):
     async def _handle_body(self, text: str):
         safe_text = text.encode('utf-8', errors='replace').decode('utf-8')
         self._slog.info(f'USER: {safe_text}')
+        # Fresh {{ref.path}} registry per operator command — a ref from a
+        # previous command could point at a robot position that has since
+        # moved, and start=0/no-collision refs read more clearly in logs.
+        self._tool_executor.reset_turn()
 
         self._out(f'\n  {THK} ')
         messages = build_user_prompt(text, history=self._history,
@@ -829,7 +876,11 @@ class UserChatNode(Node):
 
         self._slog.debug(f'LLM raw ({len(full_raw)} chars):\n{full_raw}')
         try:
-            reply, plan = _parse_response(full_raw)
+            reply, plan = _parse_response(
+                full_raw,
+                template_registry=self._tool_executor.template_registry,
+                log_fn=self._slog.info,
+            )
         except ValueError as exc:
             self._out(f'  {ERR}  Parse error: {exc}')
             self._out(f'       Raw: {full_raw[:400]}')
