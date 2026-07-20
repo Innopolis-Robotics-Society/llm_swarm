@@ -28,6 +28,8 @@ import math
 import re
 from typing import Awaitable, Callable
 
+from iros_llm_orchestrator.common.plan_templating import resolve_plan_templates
+
 
 # ---------------------------------------------------------------------------
 # Validation
@@ -64,8 +66,22 @@ def coerce_robot_id(value) -> int:
     raise ValueError(f'cannot parse robot id: {value!r}')
 
 
-def parse_plan(raw: str | dict) -> dict:
-    """Parse and validate a plan tree. Raises ValueError on any error."""
+def parse_plan(
+    raw: str | dict,
+    *,
+    template_registry: dict[str, dict] | None = None,
+) -> dict:
+    """Parse and validate a plan tree. Raises ValueError on any error.
+
+    ``template_registry``, when not None, resolves any ``{{ref.path}}``
+    template string (see ``plan_templating.py``) against tool-call results
+    from this chat turn *before* validation/coercion runs, so a resolved
+    template is validated exactly like a literal the model typed by hand.
+    Passing None (the default) skips resolution entirely and preserves the
+    exact prior behaviour, which is what ``execute_server.py`` wants: an
+    operator-approved plan already had every template resolved when it was
+    first generated, and must replay byte-for-byte identically.
+    """
     if isinstance(raw, str):
         raw = raw.strip()
         fenced = re.search(r'```(?:json)?\s*(\{.*\})\s*```', raw, re.DOTALL)
@@ -84,6 +100,13 @@ def parse_plan(raw: str | dict) -> dict:
     # Unwrap {"reply":"...", "plan":{...}}
     if 'plan' in obj:
         obj = obj['plan']
+
+    if template_registry is not None:
+        # PlanTemplateError is a ValueError subclass, so it lands in the same
+        # exception surface parse_plan already raises for malformed JSON or a
+        # bad schema — every existing caller's `except ValueError` retry/repair
+        # path picks it up for free, no separate handling needed there.
+        obj = resolve_plan_templates(obj, template_registry)
 
     return _validate_node(obj)
 

@@ -40,6 +40,23 @@ Available tools (invoke immediately when spatial precision matters — never des
                                      follower offset tolerance, recent formation errors, and
                                      repair recommendations.
 
+Referencing tool results instead of retyping numbers:
+  Every geometry tool result above (check_occupancy, get_positions, get_robot_position,
+  find_free_group_goals_in_room, find_group_placement_in_room) includes an id,
+  e.g. "_ref":"t3". Any plan field that would otherwise need a number/array/string
+  copied from that result can instead be the STRING "{{<ref>.<path>}}" pointing into
+  that exact tool result — the system substitutes the real value for you.
+    tool t3 returned {"_ref":"t3","mapf_leaf":{"goals":[[1.2,3.4]]}}
+      → "goals": "{{t3.mapf_leaf.goals}}"                    (whole array, one reference)
+    tool t2 returned {"_ref":"t2","placements":[{"offsets_x":[...],"follower_ns":[...]}]}
+      → "offsets_x":   "{{t2.placements[0].offsets_x}}"
+      → "follower_ns": "{{t2.placements[0].follower_ns}}"
+  ALWAYS prefer a "{{ref.path}}" reference over retyping numbers from a tool result by
+  hand — a reference can never be mistyped or copied to the wrong robot. Only write a
+  literal number when you did NOT get it from a tool (a coordinate the operator stated
+  directly, or a hand-picked offset from the patterns below). The path must match the
+  tool's JSON result exactly — do not invent a field that isn't there.
+
 When to call tools (call immediately — do not narrate):
   - "top-right corner of Room X" → CALL get_positions("room_x", "corners.top_right")
   - "place robot_3 somewhere free near its current position" → CALL check_occupancy("robot_3")
@@ -77,6 +94,8 @@ Leaf nodes:
    "reason":"..."}
   follower_ns, offsets_x, offsets_y are MANDATORY. Never omit them.
   len(follower_ns) == len(offsets_x) == len(offsets_y) — always.
+  If these came from find_group_placement_in_room, set them to "{{ref.placements[i].offsets_x}}"
+  etc. (see "Referencing tool results" above) instead of retyping the numbers.
 
   Common formation offset patterns (leader faces +x by default):
     Line behind:  offsets_x=[-1.5,-3.0,-4.5], offsets_y=[0.0,0.0,0.0]
@@ -124,8 +143,12 @@ Rules:
   * If you ARE placing robots at SPECIFIC per-robot positions (from a tool result
     or formation offset calculation): omit "spread" and give one DISTINCT [x, y]
     per robot — goals length MUST equal robot_ids length and no coordinate may repeat.
-  * If find_free_group_goals_in_room returns ok=true, use its mapf_leaf or exact
-    goals verbatim and omit spread=true.
+    If the positions came from a tool call, set "goals" to a "{{ref.path}}"
+    reference into that result instead of retyping the numbers.
+  * If find_free_group_goals_in_room returns ok=true, set "goals" to a
+    "{{ref.mapf_leaf.goals}}" reference (or the whole "{{ref.mapf_leaf}}" is NOT
+    valid — mapf_leaf is not a plan node, reference its .goals/.robot_ids fields
+    individually) and omit spread=true. Do not retype the numbers by hand.
   NEVER emit two sequential mapf steps to the same location — it does nothing.
   NEVER give two robots the same [x, y] without "spread": true — the MAPF
   planner cannot resolve identical goals and the robots pile up and stall.
@@ -165,19 +188,21 @@ Live robot positions:
 Occupied-room MAPF placement:
 - If the operator says "yellow is in cafeteria; send orange to cafeteria too",
   call find_free_group_goals_in_room(room="cafeteria", robot_ids=[12,13,14,15],
-  avoid_existing_robots=true). Output a mapf leaf with the returned distinct
-  goals and no spread=true.
+  avoid_existing_robots=true). Set "goals" to "{{ref.mapf_leaf.goals}}" from the
+  result (no spread=true) — do not retype the returned coordinates.
 - If the operator says "send orange around yellow", call
   find_free_group_goals_in_room with robot_ids=[12,13,14,15],
   prefer_near_group=[16,17,18,19], avoid_robot_ids=[16,17,18,19], and
-  placement_mode="around_group". Output the returned mapf_leaf.
+  placement_mode="around_group". Reference the returned mapf_leaf.goals the same way.
 
 Formation staging — MANDATORY pre-check (do not skip):
 - Before planning multiple groups into the same room to form separate
-  formations, call find_group_placement_in_room. Use the returned mapf_goals
-  as precise per-robot MAPF goals, then activate each formation with the
-  returned offsets_x/offsets_y and leader_ns/follower_ns. Do not activate a
-  formation if the tool reports ok=false or the placement checks fail.
+  formations, call find_group_placement_in_room. Reference the returned
+  placements[i].mapf_goals as the staging MAPF goals, then activate each
+  formation with "{{ref.placements[i].offsets_x}}"/offsets_y and
+  leader_ns/follower_ns from the same placement — do not retype any of it.
+  Do not activate a formation if the tool reports ok=false or the placement
+  checks fail.
 - After executing a plan, the system verifies whether the requested outcome
   actually holds. For formation tasks, success means the named formation is
   active and followers are within tolerance. If verification fails because

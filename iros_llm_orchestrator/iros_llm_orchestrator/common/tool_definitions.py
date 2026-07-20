@@ -88,7 +88,9 @@ TOOL_DEFINITIONS: list[dict] = [
                 "for ordinary group movement into a named room. Read-only: "
                 "does not move robots. Use when sending a group into a room "
                 "that may already contain robots, or when placing a group "
-                "near/around another group without a formation."
+                "near/around another group without a formation. Result is "
+                "tagged with a '_ref' id — reference its mapf_leaf.goals in "
+                "the plan as \"{{ref.mapf_leaf.goals}}\" instead of retyping."
             ),
             "parameters": {
                 "type": "object",
@@ -158,7 +160,10 @@ TOOL_DEFINITIONS: list[dict] = [
                 "placements for one or more robot groups forming formations "
                 "inside the same named room. Read-only: does not move robots. "
                 "Use before planning multiple groups into one room or before "
-                "activating formations there."
+                "activating formations there. Result is tagged with a '_ref' "
+                "id — reference placements[i].mapf_goals/offsets_x/offsets_y/"
+                "follower_ns in the plan as \"{{ref.placements[0].offsets_x}}\" "
+                "etc. instead of retyping."
             ),
             "parameters": {
                 "type": "object",

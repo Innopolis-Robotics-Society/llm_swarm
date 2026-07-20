@@ -20,6 +20,7 @@ Two non-obvious bits the panel relies on:
 import asyncio
 import json
 import threading
+import time
 
 import rclpy
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
@@ -31,6 +32,7 @@ from iros_llm_swarm_interfaces.msg import LlmEvent
 from iros_llm_swarm_interfaces.srv import ListObstacles, ListTasks
 
 from iros_llm_orchestrator.common.leaf_sender import BTLeafSender
+from iros_llm_orchestrator.common.logger import DecisionLogger
 from iros_llm_orchestrator.common.llm_factory import get_llm_client
 from iros_llm_orchestrator.common.plan_executor import PlanExecutor, parse_plan
 from iros_llm_orchestrator.common.user_prompt import (
@@ -118,6 +120,7 @@ class ChatServer(Node):
         self.declare_parameter('timeout_sec',      30.0)
         self.declare_parameter('step_timeout_sec', 120.0)
         self.declare_parameter('map_name',         'cave')
+        self.declare_parameter('dataset_path',     '~/.ros/llm_chat')
         self.declare_parameter('context_provider', 'none')
         self.declare_parameter('context_timeout_sec', 2.0)
         self.declare_parameter('context_max_chars', 6000)
@@ -235,6 +238,9 @@ class ChatServer(Node):
             1, int(self.get_parameter('llm_min_completion_tokens').value))
 
         mode = self.get_parameter('llm_mode').value
+        self._llm_mode_name  = mode
+        self._llm_model_name = self.get_parameter('llm_model').value
+        self._logger_ds = DecisionLogger(self.get_parameter('dataset_path').value)
         self._llm = get_llm_client(
             mode=mode,
             endpoint=self.get_parameter('llm_endpoint').value,
@@ -437,6 +443,13 @@ class ChatServer(Node):
     async def _execute_body(self, goal_handle):
         req = goal_handle.request
         result = LlmChat.Result()
+        self._req_t0 = time.monotonic()
+
+        # Fresh {{ref.path}} registry for this operator command — shared by
+        # the initial plan and every mission-supervision continuation step
+        # below, since a repair/continuation still legitimately wants to
+        # reference a room placement computed earlier in the same mission.
+        self._tool_executor.reset_turn()
 
         # ---- 1. Stream initial reply ----
         self._publish_fb(goal_handle, stage='thinking')
@@ -973,7 +986,11 @@ class ChatServer(Node):
         except Exception as exc:
             raise _LlmStageError(f'LLM error: {exc}') from exc
         try:
-            reply, plan = _parse_response(full_raw)
+            reply, plan = _parse_response(
+                full_raw,
+                template_registry=self._tool_executor.template_registry,
+                log_fn=self.get_logger().info,
+            )
         except ValueError as exc:
             # Diagnostic: surface exactly what the LLM returned so a parse
             # failure (e.g. tool-calling making the model answer in prose
@@ -1471,12 +1488,30 @@ class ChatServer(Node):
         ev.reason   = reason
         self._event_pub.publish(ev)
 
+    def _log_mission(self, gh, result, **extra):
+        req = gh.request
+        record = {
+            'user_message':   req.user_message,
+            'llm_mode':       self._llm_mode_name,
+            'llm_model':      self._llm_model_name,
+            'map_name':       self._map_name,
+            'success':        result.success,
+            'plan_executed':  result.plan_executed,
+            'info':           result.info,
+            'final_reply':    result.final_reply,
+            'plan_json':      result.plan_json,
+            'elapsed_sec':    round(time.monotonic() - self._req_t0, 3),
+        }
+        record.update(extra)
+        self._logger_ds.log(record)
+
     def _fail(self, gh, result, info, got_plan=False):
         self._publish_fb(gh, stage='error', detail=info)
         result.success = False
         result.info    = info
         if not got_plan:
             result.plan_json = ''
+        self._log_mission(gh, result)
         gh.succeed()
         return result
 
@@ -1485,6 +1520,7 @@ class ChatServer(Node):
         result.success = True
         if not result.info:
             result.info = ''
+        self._log_mission(gh, result)
         gh.succeed()
         return result
 
@@ -1525,6 +1561,8 @@ class ChatServer(Node):
         result.success       = True
         result.info          = info
 
+        self._log_mission(gh, result, trigger=trigger,
+                          last_failure=last_failure or {})
         self._publish_fb(gh, stage='needs_help', detail=info)
         self._publish_event(
             channel=LlmEvent.CHANNEL_USER,

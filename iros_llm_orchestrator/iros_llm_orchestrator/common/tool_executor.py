@@ -7,6 +7,11 @@ Tools:
   find_free_group_goals_in_room(...) — occupancy-aware normal MAPF room goals
   find_group_placement_in_room(...) — deterministic room/formation placement
   verify_plan_execution_state(...) — deterministic post-execution verification
+
+Every result from a geometry-bearing tool (see ``_REFERENCEABLE_TOOLS``) is
+tagged with a ``"_ref": "t<n>"`` id, scoped to the current chat turn. The
+model may cite that id from the final plan instead of retyping the numbers
+— see ``plan_templating.py`` for the ``{{ref.path}}`` syntax this enables.
 """
 
 from __future__ import annotations
@@ -50,9 +55,57 @@ class ToolExecutor:
         self._list_tasks_client: Any | None = None
         self._reset_task_client: Any | None = None
         self._create_task_clients()
+        self._ref_counter = 0
+        self._template_registry: dict[str, dict] = {}
+
+    def reset_turn(self) -> None:
+        """Clear the per-turn tool-call reference registry.
+
+        Call once at the start of handling a new operator command (or mission
+        continuation step). Referenced tool results (see ``call()``) are only
+        meaningful within the turn that produced them — a stale ref from a
+        previous command could point at a robot position that has since
+        moved, so each turn starts with an empty, unambiguous registry.
+        """
+        self._ref_counter = 0
+        self._template_registry = {}
+
+    @property
+    def template_registry(self) -> dict[str, dict]:
+        """Snapshot of this turn's ``{ref_id: tool_result}`` map.
+
+        Pass straight into ``plan_executor.parse_plan(..., template_registry=...)``
+        so the model's final plan can cite a tool result (``"{{t3.goals}}"``)
+        instead of retyping numbers by hand.
+        """
+        return self._template_registry
+
+    # Tool results worth letting the model reference by id — the ones that
+    # hand back geometry (goals, offsets, namespaces) rather than plain
+    # status/errors. Keeping this a whitelist means adding a new read tool
+    # never silently starts minting refs for it without a decision to do so.
+    _REFERENCEABLE_TOOLS = frozenset({
+        "check_occupancy",
+        "get_positions",
+        "get_robot_position",
+        "find_group_placement_in_room",
+        "find_free_group_goals_in_room",
+    })
+
+    def _mint_ref(self, result: dict) -> dict:
+        self._ref_counter += 1
+        ref = f"t{self._ref_counter}"
+        self._template_registry[ref] = result
+        return {**result, "_ref": ref}
 
     async def call(self, name: str, arguments: dict) -> dict:
         """Dispatch a tool call by name, always returns a JSON-serialisable dict."""
+        result = await self._dispatch(name, arguments)
+        if name in self._REFERENCEABLE_TOOLS and isinstance(result, dict):
+            result = self._mint_ref(result)
+        return result
+
+    async def _dispatch(self, name: str, arguments: dict) -> dict:
         if name == "check_occupancy":
             return await self._check_occupancy(arguments.get("robot_id", ""))
         if name == "get_positions":

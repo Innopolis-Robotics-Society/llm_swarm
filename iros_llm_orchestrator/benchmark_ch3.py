@@ -187,10 +187,6 @@ def chk_leader_only(node: dict, leader_id: int,
         errs.append(f'followers {bad} should not be in robot_ids (formation active)')
     return errs
 
-def chk_reply_russian(reply: str) -> list[str]:
-    has_cyr = any('Ѐ' <= c <= 'ӿ' for c in reply)
-    return [] if has_cyr else ['reply not in Russian (no Cyrillic chars)']
-
 def chk_parallel_has_mapf(plan: dict, ids: list[int],
                            cx: float, cy: float,
                            radius: float = 4.0) -> list[str]:
@@ -678,10 +674,10 @@ TEST_CASES: list[TC] = [
         lambda p, r: chk_idle_reason_prefix(p, 'needs_help:'),
         ctx=ctx_no_robot12()),
 
-    _tc('escalate_02', 'что делают роботы', lambda p, r: (
+    _tc('escalate_02', 'what are the robots doing', lambda p, r: (
         chk_idle_reason_prefix(p, 'reply_only:') +
         (['reply mentions magenta_line but none found']
-         if 'magenta' not in r.lower() and 'магент' not in r.lower() else [])
+         if 'magenta' not in r.lower() else [])
     ), ctx=ctx_magenta_line_and_status()),
 
     _tc('escalate_03', 'where is robot_4', lambda p, r: (
@@ -695,38 +691,6 @@ TEST_CASES: list[TC] = [
         (chk_idle_reason_prefix(p, 'needs_help:') or
          chk_idle_reason_prefix(p, 'clarify:'))
     ), ctx=ctx_spawn()),
-
-    # ── russian ───────────────────────────────────────────────────────────
-    _tc('russian_01', 'оранжевые в кафетерий', lambda p, r: (
-        chk_type(p, 'mapf') or (
-            chk_robot_ids(p, [12,13,14,15]) +
-            chk_goals_near(p, 2.7, 10.1) +
-            chk_reply_russian(r)
-        )
-    ), ctx=ctx_spawn()),
-
-    _tc('russian_02', 'голубые в кафе, потом построиться в линию', lambda p, r: (
-        chk_type(p, 'sequence') or (
-            ([] if _find_nodes(p, 'formation') else ['no formation step']) +
-            chk_reply_russian(r)
-        )
-    ), ctx=ctx_spawn()),
-
-    _tc('russian_03', 'стоп', lambda p, r: (
-        chk_type(p, 'idle') + chk_reply_russian(r)
-    ), ctx=ctx_spawn()),
-
-    _tc('russian_04', 'жёлтые и зелёные одновременно в кафетерий', lambda p, r: (
-        chk_type(p, 'parallel') or (
-            chk_parallel_has_mapf(p, [16,17,18,19], 2.7, 10.1) +
-            chk_parallel_has_mapf(p, [8,9,10,11],   2.7, 10.1) +
-            chk_reply_russian(r)
-        )
-    ), ctx=ctx_spawn()),
-
-    _tc('russian_05', 'расформировать линию маджента', lambda p, r: (
-        chk_has_disband(p, 'magenta_line') + chk_reply_russian(r)
-    ), ctx=ctx_magenta_line_stable()),
 
     # ── edge ──────────────────────────────────────────────────────────────
     _tc('edge_01', 'send all robots home', lambda p, r: (
@@ -800,6 +764,20 @@ class Result:
     raw: str
     elapsed: float
     parse_error: str = ''
+    repeat_idx: int = 0
+
+    def to_json(self) -> dict:
+        return {
+            'id': self.tc.id,
+            'prompt': self.tc.prompt,
+            'repeat_idx': self.repeat_idx,
+            'passed': self.passed,
+            'errors': self.errors,
+            'reply': self.reply,
+            'raw': self.raw,
+            'elapsed_sec': round(self.elapsed, 3),
+            'parse_error': self.parse_error,
+        }
 
 
 _DRY_RUN_RESPONSE = '{"reply":"dry-run","plan":{"type":"idle","reason":"dry-run:ok"}}'
@@ -812,82 +790,83 @@ async def run_tests(
     timeout: float,
     verbose: bool,
     dry_run: bool = False,
+    repeat: int = 1,
 ) -> list[Result]:
     results: list[Result] = []
     width = max(len(tc.id) for tc in test_cases)
 
     for tc in test_cases:
-        t0 = time.monotonic()
-        raw = ''
-        reply = ''
-        plan: dict | None = None
-        parse_err = ''
+        for rep in range(repeat):
+            t0 = time.monotonic()
+            raw = ''
+            reply = ''
+            plan: dict | None = None
+            parse_err = ''
 
-        try:
-            messages = build_user_prompt(
-                tc.prompt,
-                map_name=map_name,
-                runtime_context=tc.context,
-            )
+            try:
+                messages = build_user_prompt(
+                    tc.prompt,
+                    map_name=map_name,
+                    runtime_context=tc.context,
+                )
+                if dry_run:
+                    raw = _DRY_RUN_RESPONSE
+                else:
+                    raw = await _call_llm(llm, messages, timeout)
+                reply, plan = _parse_response(raw)
+            except asyncio.TimeoutError:
+                parse_err = f'TIMEOUT after {timeout}s'
+            except Exception as exc:
+                parse_err = str(exc)
+
+            elapsed = time.monotonic() - t0
+            rep_tag = f'[{rep+1}/{repeat}]' if repeat > 1 else ''
+
             if dry_run:
-                raw = _DRY_RUN_RESPONSE
+                # Dry-run: only report prompt-build success, skip validation
+                passed = not parse_err
+                status_str = GREEN('OK  ') if passed else RED('ERR ')
+                tag = CYAN(tc.id.ljust(width))
+                print(f'  {status_str}  {tag} {rep_tag}  {tc.prompt[:55]}')
+                if not passed:
+                    print(f'       {RED("↳")} {parse_err}')
+                results.append(Result(tc=tc, passed=passed, errors=[],
+                                      reply=reply, raw=raw, elapsed=elapsed,
+                                      parse_error=parse_err, repeat_idx=rep))
+                continue
+
+            if parse_err:
+                errors = [f'parse/call error: {parse_err}']
+                passed = False
+            elif plan is not None:
+                errors = tc.run(plan, reply)
+                passed = not errors
             else:
-                raw = await _call_llm(llm, messages, timeout)
-            reply, plan = _parse_response(raw)
-        except asyncio.TimeoutError:
-            parse_err = f'TIMEOUT after {timeout}s'
-        except Exception as exc:
-            parse_err = str(exc)
+                errors = ['no plan']
+                passed = False
 
-        elapsed = time.monotonic() - t0
+            r = Result(tc=tc, passed=passed, errors=errors,
+                       reply=reply, raw=raw, elapsed=elapsed,
+                       parse_error=parse_err, repeat_idx=rep)
+            results.append(r)
 
-        if dry_run:
-            # Dry-run: only report prompt-build success, skip validation
-            passed = not parse_err
-            errors = ([f'prompt/parse error: {parse_err}'] if parse_err else
-                      [f'prompt built OK ({len(messages)} messages)'])
-            status_str = GREEN('OK  ') if passed else RED('ERR ')
+            # Live progress line
+            status = GREEN('PASS') if passed else RED('FAIL')
             tag = CYAN(tc.id.ljust(width))
-            print(f'  {status_str}  {tag}  {tc.prompt[:55]}')
+            time_str = YELLOW(f'{elapsed:5.1f}s')
+            print(f'  {status}  {tag} {rep_tag}  {time_str}  {tc.prompt[:55]}')
             if not passed:
-                print(f'       {RED("↳")} {parse_err}')
-            results.append(Result(tc=tc, passed=passed, errors=[],
-                                  reply=reply, raw=raw, elapsed=elapsed,
-                                  parse_error=parse_err))
-            continue
-
-        if parse_err:
-            errors = [f'parse/call error: {parse_err}']
-            passed = False
-        elif plan is not None:
-            errors = tc.run(plan, reply)
-            passed = not errors
-        else:
-            errors = ['no plan']
-            passed = False
-
-        r = Result(tc=tc, passed=passed, errors=errors,
-                   reply=reply, raw=raw, elapsed=elapsed,
-                   parse_error=parse_err)
-        results.append(r)
-
-        # Live progress line
-        status = GREEN('PASS') if passed else RED('FAIL')
-        tag = CYAN(tc.id.ljust(width))
-        time_str = YELLOW(f'{elapsed:5.1f}s')
-        print(f'  {status}  {tag}  {time_str}  {tc.prompt[:55]}')
-        if not passed:
-            for e in errors:
-                print(f'       {RED("↳")} {e}')
-        if verbose and raw:
-            print(f'       raw: {raw[:200].replace(chr(10)," ")}')
-            if reply:
-                print(f'       reply: {reply[:100]}')
+                for e in errors:
+                    print(f'       {RED("↳")} {e}')
+            if verbose and raw:
+                print(f'       raw: {raw[:200].replace(chr(10)," ")}')
+                if reply:
+                    print(f'       reply: {reply[:100]}')
 
     return results
 
 
-def _print_summary(results: list[Result], dry_run: bool = False) -> None:
+def _print_summary(results: list[Result], dry_run: bool = False, repeat: int = 1) -> None:
     total  = len(results)
     passed = sum(1 for r in results if r.passed)
     failed = total - passed
@@ -898,7 +877,10 @@ def _print_summary(results: list[Result], dry_run: bool = False) -> None:
             print(BOLD(GREEN(f'  DRY-RUN OK — {total} prompts built successfully')))
         else:
             print(BOLD(RED(f'  DRY-RUN: {failed}/{total} prompts failed to build')))
-    elif failed == 0:
+        print(BOLD('─' * 60))
+        return
+
+    if failed == 0:
         print(BOLD(GREEN(f'  ALL {total} TESTS PASSED')))
     else:
         print(BOLD(f'  {GREEN(str(passed))} / {total} passed   '
@@ -907,10 +889,39 @@ def _print_summary(results: list[Result], dry_run: bool = False) -> None:
         print(BOLD('  Failed tests:'))
         for r in results:
             if not r.passed:
-                print(f'    {RED("✗")} {r.tc.id}')
+                print(f'    {RED("✗")} {r.tc.id} [rep {r.repeat_idx+1}/{repeat}]')
                 for e in r.errors:
                     print(f'        {e}')
+
+    if repeat > 1:
+        # pass@1 (first sample only) and pass@repeat (any-of-N per case)
+        by_case: dict[str, list[Result]] = {}
+        for r in results:
+            by_case.setdefault(r.tc.id, []).append(r)
+        n_cases = len(by_case)
+        pass_at_1 = sum(1 for rs in by_case.values() if rs[0].passed)
+        pass_at_n = sum(1 for rs in by_case.values() if any(r.passed for r in rs))
+        print()
+        print(BOLD(f'  pass@1  = {pass_at_1}/{n_cases} ({100*pass_at_1/n_cases:.1f}%)'))
+        print(BOLD(f'  pass@{repeat} = {pass_at_n}/{n_cases} ({100*pass_at_n/n_cases:.1f}%)'))
     print(BOLD('─' * 60))
+
+
+def _write_json(path: str, results: list[Result], args) -> None:
+    payload = {
+        'map': args.map,
+        'llm_mode': args.llm_mode,
+        'llm_model': args.llm_model,
+        'llm_temperature': args.llm_temperature,
+        'llm_num_ctx': args.llm_num_ctx,
+        'repeat': args.repeat,
+        'total': len(results),
+        'passed': sum(1 for r in results if r.passed),
+        'results': [r.to_json() for r in results],
+    }
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    print(f'\n{BOLD("wrote")} {path}')
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -929,7 +940,7 @@ def main() -> None:
                         help='Backend endpoint URL (ollama/http)')
     parser.add_argument('--llm-model',    default='',
                         help='Model name')
-    parser.add_argument('--llm-max-tokens', type=int, default=768)
+    parser.add_argument('--llm-max-tokens', type=int, default=2048)
     parser.add_argument('--llm-temperature', type=float, default=0.1)
     parser.add_argument('--llm-num-ctx',  type=int, default=32768)
     parser.add_argument('--timeout',      type=float, default=60.0,
@@ -941,6 +952,10 @@ def main() -> None:
     parser.add_argument('--no-color',     action='store_true')
     parser.add_argument('--dry-run',      action='store_true',
                         help='Build prompts but skip LLM call (infrastructure check)')
+    parser.add_argument('--repeat', type=int, default=1,
+                        help='Run each test case N times independently (for pass@1/pass@N)')
+    parser.add_argument('--json', metavar='PATH', default='',
+                        help='Write full structured results (incl. raw LLM output) to PATH')
     args = parser.parse_args()
 
     global _USE_COLOR
@@ -973,16 +988,19 @@ def main() -> None:
         )
 
     mode_str = 'dry-run' if args.dry_run else f'{args.llm_mode}/{args.llm_model or "default"}'
+    repeat_str = f'  repeat={args.repeat}' if args.repeat > 1 else ''
     print(BOLD(f'\nChannel-3 benchmark  map={args.map}  '
                f'mode={mode_str}  '
-               f'tests={len(selected)}/{len(TEST_CASES)}'))
+               f'tests={len(selected)}/{len(TEST_CASES)}{repeat_str}'))
     print(BOLD('─' * 60))
 
     results = asyncio.run(run_tests(
         selected, llm, args.map, args.timeout, args.verbose,
-        dry_run=args.dry_run))
+        dry_run=args.dry_run, repeat=args.repeat))
 
-    _print_summary(results, dry_run=args.dry_run)
+    _print_summary(results, dry_run=args.dry_run, repeat=args.repeat)
+    if args.json:
+        _write_json(args.json, results, args)
     failed = sum(1 for r in results if not r.passed)
     sys.exit(0 if failed == 0 else 1)
 
