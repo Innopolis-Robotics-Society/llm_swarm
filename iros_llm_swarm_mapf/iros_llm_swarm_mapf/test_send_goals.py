@@ -41,6 +41,7 @@ class GoalSender(Node):
         self.args = args
         self.client = ActionClient(self, SetGoals, '/swarm/set_goals')
         self.goal_handle = None
+        self.last_result: dict = {}
 
         # RViz publisher
         self.marker_pub = self.create_publisher(MarkerArray, '/goal_markers', 10)
@@ -195,6 +196,22 @@ class GoalSender(Node):
     # ------------------------------------------------------------------
 
     def _print_result(self, res):
+        self.last_result = {
+            'success':            res.success,
+            'message':            res.message,
+            'planning_time_ms':   res.planning_time_ms,
+            'num_agents_planned': res.num_agents_planned,
+            'pbs_expansions':     res.pbs_expansions,
+            'max_path_length':    res.max_path_length,
+            'path_lengths':       list(res.path_lengths),
+            'astar_ok_count':     res.astar_ok_count,
+            'astar_fail_count':   res.astar_fail_count,
+            'astar_avg_exp':      res.astar_avg_exp,
+            'astar_max_exp':      res.astar_max_exp,
+            'error_code':         res.error_code,
+            'total_replans':      res.total_replans,
+            'total_execution_sec': res.total_execution_sec,
+        }
         if res.success:
             self.get_logger().info(
                 f'=== MISSION COMPLETE ===\n'
@@ -234,7 +251,7 @@ class GoalSender(Node):
                 if a.random:
                     ang = random.uniform(0.0, 2 * math.pi)
                     r   = a.radius * math.sqrt(random.random())
-                    cx, cy = 15.0, 15.0
+                    cx, cy = a.center_x, a.center_y
                     gx = cx + r * math.cos(ang)
                     gy = cy + r * math.sin(ang)
                 elif a.goal_x is not None and a.goal_y is not None:
@@ -262,15 +279,31 @@ def main():
     parser.add_argument('--goal-y',    type=float, default=None)
     parser.add_argument('--random',    action='store_true')
     parser.add_argument('--radius',    type=float, default=5.0)
+    parser.add_argument('--center-x',  type=float, default=15.0,
+                        help='Center x for --random goal scatter (default: 15.0)')
+    parser.add_argument('--center-y',  type=float, default=15.0,
+                        help='Center y for --random goal scatter (default: 15.0)')
     parser.add_argument('--json-file', type=str,   default=None)
     parser.add_argument('--timeout',   type=float, default=600.0)
+    parser.add_argument('--json-out',  type=str,   default=None,
+                        help='Write the SetGoals.Result fields as JSON to this path')
     args = parser.parse_args()
 
     rclpy.init()
     node = GoalSender(args)
 
+    def _write_json_out(extra: dict | None = None):
+        if not args.json_out:
+            return
+        payload = dict(node.last_result)
+        if extra:
+            payload.update(extra)
+        with open(args.json_out, 'w', encoding='utf-8') as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+
     def sigint_handler(sig, frame):
         node.cancel()
+        _write_json_out({'success': False, 'message': 'cancelled (SIGINT)'})
         node.destroy_node()
         rclpy.shutdown()
         sys.exit(0)
@@ -278,11 +311,13 @@ def main():
     signal.signal(signal.SIGINT, sigint_handler)
 
     if not node.send():
+        _write_json_out({'success': False, 'message': 'goal send/accept failed'})
         node.destroy_node()
         rclpy.shutdown()
         sys.exit(1)
 
     success = node.wait_for_result(timeout_sec=args.timeout)
+    _write_json_out()
 
     node.destroy_node()
     rclpy.shutdown()
