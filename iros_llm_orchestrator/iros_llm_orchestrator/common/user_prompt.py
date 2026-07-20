@@ -360,13 +360,11 @@ def build_user_prompt(
     if obstacle_context:
         system_content += '\n\n' + obstacle_context
 
+    if runtime_context and runtime_context.get('source') != 'none':
+        system_content += '\n\n' + _format_runtime_context(runtime_context)
+
     messages = [{'role': 'system', 'content': system_content}]
 
-    if runtime_context and runtime_context.get('source') != 'none':
-        messages.append({
-            'role': 'system',
-            'content': _format_runtime_context(runtime_context),
-        })
     for ex in _get_examples(map_name):
         messages.append({'role': 'user',      'content': ex['user']})
         messages.append({'role': 'assistant', 'content': ex['out']})
@@ -605,7 +603,11 @@ def build_remediation_prompt(
         obstacle_context=obstacle_context,
         runtime_context=fresh_runtime_context,
     )
-    messages.append({'role': 'system', 'content': _REMEDIATION_RUBRIC})
+    # Merged into the single leading system message rather than appended as a
+    # second system-role entry: some chat templates (e.g. Qwen3.5) statically
+    # reject any non-first system message when generating a structured-output
+    # grammar.
+    messages[0]['content'] += '\n\n' + _REMEDIATION_RUBRIC
     messages.append({
         'role': 'assistant',
         'content': json.dumps(original_plan, ensure_ascii=False),
@@ -645,7 +647,8 @@ def build_execution_repair_prompt(
         obstacle_context=obstacle_context,
         runtime_context=fresh_runtime_context,
     )
-    messages.append({'role': 'system', 'content': _EXECUTION_REPAIR_RUBRIC})
+    # See build_remediation_prompt: merge rather than append a second system message.
+    messages[0]['content'] += '\n\n' + _EXECUTION_REPAIR_RUBRIC
     messages.append({
         'role': 'assistant',
         'content': json.dumps(last_plan, ensure_ascii=False),
@@ -679,11 +682,12 @@ def build_mission_continuation_prompt(
     obstacle_context: str = '',
 ) -> list:
     """Compose a strict continuation prompt for mission supervision."""
+    # Single leading system message — see build_remediation_prompt for why.
     messages = [{
         'role': 'system',
-        'content': _compact_mission_system(map_name, obstacle_context),
+        'content': (_compact_mission_system(map_name, obstacle_context)
+                    + '\n\n' + _MISSION_CONTINUATION_RUBRIC),
     }]
-    messages.append({'role': 'system', 'content': _MISSION_CONTINUATION_RUBRIC})
     compact_context = build_compact_mission_context(
         original_user_message,
         last_plan,
