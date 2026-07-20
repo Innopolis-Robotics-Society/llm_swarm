@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['mapbounds_13',['MapBounds',['../structiros__llm__rviz__tool_1_1MapBounds.html',1,'iros_llm_rviz_tool']]]
+  ['robotgroup_10',['RobotGroup',['../structiros__llm__rviz__tool_1_1RobotGroup.html',1,'iros_llm_rviz_tool']]]
 ];

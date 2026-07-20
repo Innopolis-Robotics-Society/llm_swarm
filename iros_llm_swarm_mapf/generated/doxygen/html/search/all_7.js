@@ -1,6 +1,7 @@
 var searchData=
 [
-  ['mapbounds_12',['MapBounds',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_rviz_tool/generated/doxygen/html/structiros__llm__rviz__tool_1_1MapBounds.html',1,'iros_llm_rviz_tool']]],
-  ['move_13',['Move',['../structMove.html',1,'']]],
-  ['moveset_14',['MoveSet',['../structMoveSet.html',1,'']]]
+  ['pbssolver_12',['PBSSolver',['../classPBSSolver.html',1,'']]],
+  ['placeobstacletool_13',['PlaceObstacleTool',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_rviz_tool/generated/doxygen/html/classiros__llm__rviz__tool_1_1PlaceObstacleTool.html',1,'iros_llm_rviz_tool']]],
+  ['placetasktool_14',['PlaceTaskTool',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_rviz_tool/generated/doxygen/html/classiros__llm__rviz__tool_1_1PlaceTaskTool.html',1,'iros_llm_rviz_tool']]],
+  ['prioritygraph_15',['PriorityGraph',['../classPriorityGraph.html',1,'']]]
 ];
