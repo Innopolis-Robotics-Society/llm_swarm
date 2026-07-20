@@ -5,6 +5,7 @@ from launch.actions import (
     LogInfo,
     TimerAction,
 )
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
@@ -42,12 +43,16 @@ def generate_launch_description():
             FindPackageShare('iros_llm_swarm_bringup'),
             'rviz', 'swarm_20.rviz',
         ]))
+    use_rviz_arg = DeclareLaunchArgument(
+        'use_rviz', default_value='true',
+        description='Launch RViz (set false for headless/no-X11 runs)')
 
     num_robots    = LaunchConfiguration('num_robots')
     use_sim_time  = LaunchConfiguration('use_sim_time')
     rviz_cfg      = LaunchConfiguration('rviz_cfg')
     scenario = LaunchConfiguration('scenario')
     scenarios_file = LaunchConfiguration('scenarios_file')
+    use_rviz      = LaunchConfiguration('use_rviz')
 
     stage = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([ PathJoinSubstitution([FindPackageShare('iros_llm_swarm_simulation_lite'),'launch','warehouse_swarm.launch.py']) ]),
@@ -93,6 +98,7 @@ def generate_launch_description():
         arguments=['-d', rviz_cfg, '--ros-args', '--log-level', 'WARN'],
         parameters=[{'use_sim_time': use_sim_time}],
         output='log',
+        condition=IfCondition(use_rviz),
     )
 
     return LaunchDescription([
@@ -102,6 +108,7 @@ def generate_launch_description():
         num_robots_arg,
         use_sim_time_arg,
         rviz_cfg_arg,
+        use_rviz_arg,
 
         # launch in sequence
         stage,
