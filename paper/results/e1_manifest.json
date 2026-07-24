@@ -1,0 +1,32 @@
+{
+  "experiment": "E1 — hermetic channel-3 planning accuracy",
+  "git_commit": "b31fdbd48d454b2ae185cd3bfac174b5f1128f93",
+  "started_at": "2026-07-18T18:05:41Z",
+  "benchmark": "iros_llm_orchestrator/benchmark_ch3.py",
+  "test_case_count": 49,
+  "repeat": 5,
+  "timeout_sec": 90,
+  "models_planned": [
+    "qwen2.5:14b",
+    "qwen3.5-9b:latest",
+    "qwen3.5-9b-32k:latest"
+  ],
+  "models_completed": [
+    "qwen2.5:14b",
+    "qwen3.5-9b:latest"
+  ],
+  "models_cancelled": [
+    "qwen3.5-9b-32k:latest"
+  ],
+  "finished_at": "2026-07-18T19:32:19Z",
+  "backend": "ollama (local, host network via docker-compose network_mode: host)",
+  "gpu": "NVIDIA GeForce RTX 5060 Ti, 16GB VRAM",
+  "summary_file": "e1_summary.json",
+  "notes": [
+    "Fixed a real bug in common/user_prompt.py:build_user_prompt before running: it emitted two leading system-role messages (base system prompt + runtime context). Ollama's structured-output (format=json_schema) template compiler for the qwen3.5 chat template statically rejects any non-first system message ('System message must be at the beginning'), which made every qwen3.5 call with runtime context fail before the fix. Fix: merge runtime context into the single leading system message. Verified all 3 models now pass structured-output calls with runtime context. Also applied the same fix (merge instead of append) to the three retry-loop prompt builders (build_remediation_prompt, build_execution_repair_prompt, build_mission_continuation_prompt) since they had the same latent issue for mid-mission repairs.",
+    "qwen2.5:14b supports Ollama tool-calling (capabilities include 'tools'); qwen3.5-9b variants do not advertise 'tools' capability in /api/tags -- channel 3 does not use native tool-calling in this benchmark path (schema-constrained JSON only), so this is not expected to affect E1 pass rates, but is a relevant model-capability note for the paper.",
+    "First call per model incurs Ollama model-load latency (~6-10s); subsequent repeats reuse the warm model within Ollama's keep_alive window.",
+    "qwen3.5-9b-32k was cancelled ~28 min into its run after discovering (via `ollama show`) it is weight- and quantization-identical to qwen3.5-9b (same FROM blob SHA256s, same Q8_0 quant) -- the only Modelfile difference is a baked-in num_ctx=32768 default, which this harness overrides explicitly via --llm-num-ctx for every model anyway. Under this invocation the two tags are the same model, so it was not a genuine third condition. No JSON was written for the cancelled run (benchmark_ch3.py writes --json once at the end of a full run, not incrementally) -- see build_e1_summary.py's checkpointing note as a follow-up for future sweeps. E1's reported results cover 2 distinct models.",
+    "Unrelated to E1 itself: the same colcon workspace also had --symlink-install broken for ament_python packages (setuptools 80.10.2 incompatible with the legacy setup.py develop/editable commands used by colcon). Fixed by using plain `colcon build` (no --symlink-install) after `rm -rf build/<pkg> install/<pkg>` -- this is the working rebuild procedure for this container going forward."
+  ]
+}
