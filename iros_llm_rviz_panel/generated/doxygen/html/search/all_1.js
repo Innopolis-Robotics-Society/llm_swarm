@@ -1,6 +1,4 @@
 var searchData=
 [
-  ['cell_3',['Cell',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_swarm_mapf/generated/doxygen/html/structCell.html',1,'']]],
-  ['conflict_4',['Conflict',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_swarm_mapf/generated/doxygen/html/structConflict.html',1,'']]],
-  ['conflictdetector_5',['ConflictDetector',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_swarm_mapf/generated/doxygen/html/classConflictDetector.html',1,'']]]
+  ['doortool_1',['DoorTool',['https://innopolis-robotics-society.github.io/llm_swarm/iros_llm_rviz_tool/generated/doxygen/html/classiros__llm__rviz__tool_1_1DoorTool.html',1,'iros_llm_rviz_tool']]]
 ];
