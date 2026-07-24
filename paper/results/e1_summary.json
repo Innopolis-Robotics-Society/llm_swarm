@@ -1,0 +1,233 @@
+{
+  "experiment": "E1 -- hermetic channel-3 planning accuracy",
+  "note": "A third model, qwen3.5-9b-32k, was originally planned as a third condition but was found to be byte-identical in weights/quantization to qwen3.5-9b (ollama show: same FROM blob SHA256s, same Q8_0 quantization); the only Modelfile difference is a baked-in num_ctx=32768 default, which our harness overrides explicitly via --llm-num-ctx for every model regardless. Under our invocation the two tags are functionally the same model, so the run was cancelled mid-sweep rather than reported as a distinct third condition. E1 therefore covers 2 distinct models: qwen2.5:14b and qwen3.5-9b.",
+  "models": {
+    "qwen2.5:14b": {
+      "source_file": "/home/zifka/Personal/inno_study/llm_swarm/paper/results/raw/e1_qwen2_5_14b.json",
+      "llm_mode": "ollama",
+      "llm_model": "qwen2.5:14b",
+      "repeat": 5,
+      "num_cases": 49,
+      "total_calls": 245,
+      "total_passed_calls": 163,
+      "pass_at_1": {
+        "count": 32,
+        "of": 49,
+        "pct": 65.3
+      },
+      "pass_at_5": {
+        "count": 34,
+        "of": 49,
+        "pct": 69.4
+      },
+      "elapsed_sec": {
+        "mean": 10.6,
+        "median": 9.3,
+        "p90": 20.9,
+        "max": 90.1
+      },
+      "timeouts": 1,
+      "by_category": {
+        "disband": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0
+        },
+        "edge": {
+          "n": 6,
+          "pass_at_1_pct": 50.0,
+          "pass_at_5_pct": 50.0
+        },
+        "escalate": {
+          "n": 4,
+          "pass_at_1_pct": 25.0,
+          "pass_at_5_pct": 25.0
+        },
+        "formation_complex": {
+          "n": 3,
+          "pass_at_1_pct": 33.3,
+          "pass_at_5_pct": 66.7
+        },
+        "formation_create": {
+          "n": 5,
+          "pass_at_1_pct": 40.0,
+          "pass_at_5_pct": 60.0
+        },
+        "formation_move": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0
+        },
+        "idle": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0
+        },
+        "mapf_basic": {
+          "n": 5,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0
+        },
+        "mapf_explicit": {
+          "n": 2,
+          "pass_at_1_pct": 50.0,
+          "pass_at_5_pct": 50.0
+        },
+        "mapf_spread": {
+          "n": 2,
+          "pass_at_1_pct": 50.0,
+          "pass_at_5_pct": 50.0
+        },
+        "parallel": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0
+        },
+        "russian": {
+          "n": 5,
+          "pass_at_1_pct": 20.0,
+          "pass_at_5_pct": 20.0
+        },
+        "sequence": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0
+        }
+      },
+      "cases_with_any_failure": [
+        "edge_02",
+        "edge_03",
+        "edge_06",
+        "escalate_01",
+        "escalate_02",
+        "escalate_04",
+        "formation_complex_01",
+        "formation_complex_02",
+        "formation_create_01",
+        "formation_create_03",
+        "formation_create_04",
+        "formation_create_05",
+        "mapf_explicit_02",
+        "mapf_spread_02",
+        "parallel_02",
+        "russian_01",
+        "russian_02",
+        "russian_04",
+        "russian_05"
+      ]
+    },
+    "qwen3.5-9b": {
+      "source_file": "/home/zifka/Personal/inno_study/llm_swarm/paper/results/raw/e1_qwen3_5-9b_latest.json",
+      "llm_mode": "ollama",
+      "llm_model": "qwen3.5-9b:latest",
+      "repeat": 5,
+      "num_cases": 49,
+      "total_calls": 245,
+      "total_passed_calls": 182,
+      "pass_at_1": {
+        "count": 37,
+        "of": 49,
+        "pct": 75.5
+      },
+      "pass_at_5": {
+        "count": 41,
+        "of": 49,
+        "pct": 83.7
+      },
+      "elapsed_sec": {
+        "mean": 10.6,
+        "median": 8.0,
+        "p90": 19.8,
+        "max": 25.8
+      },
+      "timeouts": 0,
+      "by_category": {
+        "disband": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0
+        },
+        "edge": {
+          "n": 6,
+          "pass_at_1_pct": 50.0,
+          "pass_at_5_pct": 66.7
+        },
+        "escalate": {
+          "n": 4,
+          "pass_at_1_pct": 75.0,
+          "pass_at_5_pct": 75.0
+        },
+        "formation_complex": {
+          "n": 3,
+          "pass_at_1_pct": 33.3,
+          "pass_at_5_pct": 66.7
+        },
+        "formation_create": {
+          "n": 5,
+          "pass_at_1_pct": 40.0,
+          "pass_at_5_pct": 60.0
+        },
+        "formation_move": {
+          "n": 3,
+          "pass_at_1_pct": 66.7,
+          "pass_at_5_pct": 66.7
+        },
+        "idle": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0
+        },
+        "mapf_basic": {
+          "n": 5,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0
+        },
+        "mapf_explicit": {
+          "n": 2,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0
+        },
+        "mapf_spread": {
+          "n": 2,
+          "pass_at_1_pct": 50.0,
+          "pass_at_5_pct": 50.0
+        },
+        "parallel": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0
+        },
+        "russian": {
+          "n": 5,
+          "pass_at_1_pct": 80.0,
+          "pass_at_5_pct": 100.0
+        },
+        "sequence": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0
+        }
+      },
+      "cases_with_any_failure": [
+        "edge_02",
+        "edge_03",
+        "edge_05",
+        "edge_06",
+        "escalate_01",
+        "escalate_04",
+        "formation_complex_01",
+        "formation_complex_02",
+        "formation_create_02",
+        "formation_create_03",
+        "formation_create_04",
+        "formation_create_05",
+        "formation_move_03",
+        "mapf_basic_03",
+        "mapf_spread_02",
+        "russian_02",
+        "sequence_01",
+        "sequence_03"
+      ]
+    }
+  }
+}

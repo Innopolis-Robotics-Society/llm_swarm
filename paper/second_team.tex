@@ -1,0 +1,925 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{url}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+    urlcolor=blue,
+}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\begin{document}
+
+\title{Hierarchical Multi-Agent Control by LLM:\\
+Simulation Environment, Per-Robot Navigation, and LLM Orchestration}
+
+\author{
+\IEEEauthorblockN{Dmitriy Vizitei}
+\IEEEauthorblockA{\textit{Innopolis University} \\
+Innopolis, Russia \\
+d.vizitei@innopolis.university}
+\and
+\IEEEauthorblockN{Artyom Tuzov}
+\IEEEauthorblockA{\textit{Innopolis University} \\
+Innopolis, Russia \\
+a.tuzov@innopolis.university}
+\and
+\IEEEauthorblockN{Dmitry Ryabov}
+\IEEEauthorblockA{\textit{Innopolis University} \\
+Innopolis, Russia \\
+d.ryabov@innopolis.university}
+}
+
+\maketitle
+
+\begin{abstract}
+This report describes the Level-1 and Level-3 components of a
+three-level hierarchical multi-agent system for natural-language
+control of a 20-robot differential-drive swarm. Level~3 owns the
+simulation environment and the per-robot navigation stack:
+robot models, sensor pipelines, world files, transform tree,
+and per-robot Nav2 lifecycle nodes. Level~1 is the LLM
+orchestration layer that converts free-form natural-language
+commands into concrete primitive invocations on the Level-2
+swarm controller via three communication channels: a reactive
+decision server, a passive observer, and an operator chat
+interface. Our implementation is built on ROS~2 Humble inside
+the shared \texttt{iros\_llm\_swarm} workspace. We deliberately
+pivoted from Gazebo Harmonic to the 2D Stage simulator after
+empirical evaluation showed that Gazebo could not sustain a
+20-robot fleet at the per-robot complexity our project requires.
+We document the simulation pivot and its rationale, describe the
+per-robot Nav2 spawner and its parameter rewriting machinery,
+present the five simulated scenarios including a dynamic obstacle
+system and a richly-named map based on \emph{Among Us: The
+Skeld}, and lay out the evaluation methodology planned for the
+completed system.
+\end{abstract}
+
+\begin{IEEEkeywords}
+multi-robot simulation, Stage, Gazebo, ROS~2, Nav2, LLM, tool
+calling, behavior trees, dynamic obstacles
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+A hierarchical multi-agent system organizes control into a
+small number of clearly-typed layers. In this project, three
+levels are defined: Level~1, an LLM agent that interprets
+free-form natural-language commands into structured tasks for
+the fleet; Level~2, a classical swarm controller that turns
+those tasks into conflict-free paths and stable formations;
+and Level~3, the robots themselves, embedded in a simulated
+environment that publishes ground-truth state, sensor data,
+and consumes velocity commands. \emph{This report describes
+the Level-1 and Level-3 contributions.} The Level-2 layer is
+documented separately by the partner team.
+
+The two ends of the hierarchy share a single concern that
+makes them natural to discuss together: they both define the
+\emph{interfaces} that the Level-2 layer is built against.
+Level~3 fixes the topic graph the controller observes (every
+\texttt{/robot\_N/odom}, every \texttt{/robot\_N/scan}, the
+\texttt{/tf} tree, the static \texttt{/map}). Level~1 fixes
+the action graph the controller is expected to expose
+(\texttt{/swarm/set\_goals}, the \texttt{/formation/*}
+services, the BT-node primitives). If either of those
+contracts is wrong, the Level-2 layer cannot meet its
+specification. The overall three-level structure is illustrated
+in Fig.~\ref{fig:arch}.
+
+\subsection*{Scope and contributions}
+
+We focus on a 20-robot fleet of identical differential-drive
+robots in five simulated scenarios. The Level-3 layer provides:
+a deterministic, reproducible simulation environment that scales
+to 20 simultaneously-spawned robots; plausible sensor and
+odometry streams consumable by Nav2 and the upstream MAPF
+planner; a per-robot Nav2 stack that comes up reliably under
+DDS load; a dynamic obstacle system with runtime-togglable doors
+and placeable obstacles; and a rich set of named map locations
+that the Level-1 LLM can reference symbolically.
+
+The Level-1 layer exposes a small, well-typed primitive surface
+to the LLM; grounds free-form commands in the simulator's world
+state without leaking low-level robot details; and integrates
+with the existing behavior tree as the runtime substrate via
+three distinct channels: a reactive decision server triggered
+by BT/MAPF warnings, a passive observer that monitors fleet
+state continuously, and an operator chat interface accessible
+from RViz.
+
+Our specific contributions are:
+(1)~a documented pivot from Gazebo Harmonic to Stage 2D, with
+the Gazebo configuration kept in tree for future use;
+(2)~per-robot Nav2 spawning machinery using
+\texttt{ReplaceString} and \texttt{RewrittenYaml} with
+staggered launches to absorb DDS discovery cost;
+(3)~a static \textsf{map} $\to$ \textsf{robot\_N/odom}
+identity transform replacing AMCL at this fleet density;
+(4)~five world files and associated map description YAMLs for
+scenarios \textsf{cave}, \textsf{large\_cave},
+\textsf{warehouse\_2}, \textsf{warehouse\_4}, and
+\textsf{amongus} (\emph{Among Us: The Skeld});
+(5)~a dynamic obstacle manager with runtime door and obstacle
+APIs and scenario-level YAML configuration;
+(6)~a three-channel LLM orchestration architecture
+(decision server, passive observer, operator chat) grounded in
+a behavior-tree interface over Level-2 primitives.
+
+\section{Related Work}
+\label{sec:related}
+
+\subsection{Multi-robot simulation}
+
+The two dominant simulation backends in the ROS ecosystem are
+Stage \cite{vaughan2008stage} and Gazebo
+\cite{koenig2004gazebo}, with Gazebo Harmonic
+(\texttt{gz-sim}) being the modern split from the classic
+Gazebo project. Stage is a lightweight 2D simulator built
+explicitly for massively multi-robot scenarios, emphasizing
+aggregate fleet throughput over per-robot fidelity. Gazebo
+provides full 3D dynamics, rich sensor models, and physics
+engines. The choice between them is a function of fleet size
+and required fidelity: at small fleet sizes Gazebo's higher
+fidelity is essentially free; at large fleet sizes Stage's
+throughput is decisive. Stage's suitability for massive
+multi-robot simulation is well documented
+\cite{vaughan2008stage}. Recent generalised distributed
+experimental grids such as Gengrid \cite{kedia2025gengrid}
+target reproducible multi-robot experimentation.
+
+\subsection{Differential-drive kinematics}
+
+The differential-drive kinematic model is a well-studied
+mobile-robot abstraction \cite{siwek2023diffdrive,siegwart2011}.
+The robot is described by linear and angular velocity inputs
+$(v, \omega)$ subject to nonholonomic constraints
+$\dot{x} = v\cos\theta$, $\dot{y} = v\sin\theta$,
+$\dot{\theta} = \omega$. Stage's differential drive model
+implements this directly, with optional first-order lag on the
+velocity inputs to mimic actuator dynamics. Recent work on
+swarm-enabling technology \cite{chamanbaz2017swarmenabling}
+demonstrates that this level of fidelity is sufficient for many
+fleet-coordination questions when the upstream controller
+already accounts for tracking error.
+
+\subsection{ROS~2 and DDS at scale}
+
+ROS~2 \cite{macenski2022ros2} replaces ROS~1's centralized
+master with a peer-to-peer DDS middleware layer. At scale, DDS
+discovery overhead becomes the dominant cost
+\cite{maruyama2016dds,kronauer2024empirical}; tuning the RMW
+implementation and pinning a profile is required to keep
+multi-robot systems responsive. Nav2
+\cite{macenski2020marathon,macenski2023nav2} is the de facto
+ROS~2 navigation stack, with the layered costmap framework of
+\cite{lu2014layered} as its obstacle-handling substrate.
+
+\subsection{LLM-driven robotics}
+
+A rapidly maturing line of work places large language models
+in the loop with embodied agents.
+SayCan~\cite{ahn2022saycan} grounds LLM proposals in a learned
+affordance function. Code as Policies~\cite{liang2023codepolicies}
+treats the LLM as a code generator over a fixed primitive API.
+ProgPrompt~\cite{singh2023progprompt} extends this with situated
+programs that include scene context. Inner
+Monologue~\cite{huang2022inner} adds environmental feedback to
+the prompt loop. RT-1~\cite{brohan2022rt1} and
+RT-2~\cite{brohan2023rt2} take a different route, training
+end-to-end models that output low-level control. For our
+Level-1 layer the Code-as-Policies / SayCan / ProgPrompt
+direction is the relevant one: we expose a fixed,
+small-vocabulary primitive surface and ask the LLM to compose
+it. Recent surveys of LLM agents in robotics
+\cite{zeng2023llmrobsurvey} and tool-augmented language models
+\cite{schick2023toolformer} cover the orchestration landscape.
+
+\subsection{Behavior trees as an interface substrate}
+
+Behavior trees \cite{colledanchise2018bt,iovino2022btsurvey}
+compose atomic actions and conditions into a hierarchical
+structure that is both executable and human-readable.
+BehaviorTree.CPP \cite{btcpp} is a mature C++ implementation
+that integrates with ROS~2 actions. For an LLM orchestration
+layer, behavior trees offer two specific advantages: the tree
+structure can be generated by the LLM, and runtime ticking is
+handled by a deterministic engine rather than the LLM itself,
+keeping latency and cost predictable.
+
+\subsection{Multi-robot formation and fault tolerance}
+
+The Level-2 contribution draws on
+\cite{santos2020segregative,wang2025apf,jiang2020formation,martinez2023pso,debie2023swarmsurvey,elamvazhuthi2019meanfield,elsayed2024faulttolerant};
+the partner team's report covers them in detail.
+
+\section{Methodology}
+\label{sec:method}
+
+\subsection{Pivot from Gazebo to Stage}
+
+The original proposal targeted Gazebo Harmonic (\texttt{gz-sim})
+as the simulation backend. We implemented this configuration
+end-to-end: URDF/Xacro robot descriptions, an SDF world file,
+Nav2 bridges via \texttt{ros\_gz\_bridge}, and the same launch
+orchestration we use today. The configuration is preserved in
+the tree as \texttt{iros\_llm\_swarm\_simulation}.
+
+Empirically, this configuration could not sustain a 20-robot
+fleet on a single workstation. The dominant cost was the
+simulator itself: physics step time, collision broadphase, and
+sensor rendering scaled with fleet size in a way that pushed
+the real-time factor well below usable thresholds before any
+navigation stack was attached. With Nav2 also running, the
+system was no longer viable for the coordination experiments
+the project requires.
+
+We therefore pivoted to Stage 2D \cite{vaughan2008stage} via
+\texttt{stage\_ros2}. Stage's design assumption---many robots,
+simple kinematics, simple sensors---is exactly aligned with the
+project's needs. Our Stage configuration uses a unified TF tree
+(\texttt{one\_tf\_tree: true}), enforced namespace prefixes
+(\texttt{enforce\_prefixes: true}), a differential drive robot
+model (\texttt{warehouse\_robot.inc}) with a planar laser
+scanner, and five world files sharing the same robot model and
+spawn protocol.
+
+The Gazebo configuration is retained as the target for two
+future activities: an aggressive performance pass (GPU-accelerated
+sensors, simplified collision meshes, selective sensor-rate
+degradation), and eventual hardware deployment where it serves as
+a hardware-realistic preview environment.
+
+\subsection{Simulation environment}
+
+\paragraph{Robot model} The robot is a differential drive unit
+defined by a footprint polygon, maximum linear and angular
+velocities, and a planar laser sensor with configurable range
+and angular resolution. Stage publishes
+\texttt{nav\_msgs/Odometry} on \texttt{/robot\_N/odom} from
+integration of commanded velocities (with optional Gaussian
+noise), and \texttt{sensor\_msgs/LaserScan} on
+\texttt{/robot\_N/scan} from raycasts against the world bitmap.
+
+\paragraph{Scenarios and world files}
+Five scenarios are defined in a shared
+\texttt{common\_scenarios.yaml}. Each scenario specifies a
+world file, a map YAML for Nav2, a map description YAML for the
+LLM, 20 initial robot poses, and optional obstacle
+configurations.
+
+The \textsf{cave} scenario (75$\times$75~m) is a
+narrow-passage dungeon-style map stressing single-file corridor
+handling. \textsf{large\_cave} (150$\times$150~m) is the same
+topology at double scale, intended for long-range path planning
+experiments. \textsf{warehouse\_2} (30$\times$30~m) arranges
+20 robots in two groups at opposite corners of a shelved
+warehouse, while \textsf{warehouse\_4} places five robots in
+each of the four corners for symmetric multi-group experiments.
+The fifth scenario, \textsf{amongus}, maps the spaceship layout
+of \emph{Among Us: The Skeld} (66.6$\times$37.75~m) with 14
+named rooms (Cafeteria, Reactor, Navigation, Weapons, Storage,
+MedBay, Admin, O$_2$, Security, Shields, Electrical,
+Communications, Upper Engine, Lower Engine) and narrow corridor
+choke-points that stress conflict resolution. The Among Us map
+is included both as an engaging stress-test topology and as a
+demonstration that the LLM can operate with fully symbolic
+location references rather than raw coordinates.
+
+\paragraph{Map descriptions for the LLM}
+Each scenario ships a machine-readable map description YAML
+consumed by the orchestration layer. These files enumerate
+named locations with coordinates, location aliases in English
+and Russian, colour-coded robot groups with home positions and
+spawn coordinates, viable formation zones with free-space
+radii, and planning heuristics. The heuristics encode
+map-specific knowledge: bottleneck locations, unreachable goal
+patterns, and guidance on when to abort versus replan. The LLM
+is therefore able to reason about \emph{rooms}, \emph{groups},
+and \emph{regions} rather than raw $(x,y)$ pairs.
+
+\paragraph{TF tree}
+A unified TF tree is enforced across all namespaces:
+\[
+\textsf{map}
+  \to \textsf{robot\_N/odom}
+  \to \textsf{robot\_N/base\_link}
+\]
+where the first link is a static identity transform published
+by the per-robot Nav2 spawner (see
+Section~\ref{sec:method:nav2}) and the second is published by
+Stage. Sensor frames such as \textsf{robot\_N/laser\_link} are
+children of \textsf{robot\_N/base\_link}.
+
+\paragraph{Time source}
+\texttt{use\_sim\_time=true} is the default everywhere. Stage
+owns the simulated clock and publishes it on \texttt{/clock},
+which is critical for timestamp-aware components such as
+Nav2's costmaps and the MAPF schedule monitor.
+
+\paragraph{Containerization}
+The full development environment ships as a Docker image with
+ROS~2 Humble, all dependencies, and the project workspace
+pre-built. The image pins \texttt{ROS\_DOMAIN\_ID=42},
+\texttt{RMW\_IMPLEMENTATION=rmw\_cyclonedds\_cpp}, and a
+\texttt{CYCLONEDDS\_URI} pointing at the project DDS profile.
+A \texttt{docker-compose.yaml} file provides standard service
+definitions and X11 forwarding for RViz and Stage GUIs.
+
+\subsection{Dynamic obstacle system}
+
+The \texttt{iros\_llm\_swarm\_obstacles} package provides a
+runtime-configurable obstacle manager. Two obstacle types are
+supported: circles and axis-aligned rectangles (walls). In
+addition, \emph{door} obstacles can be toggled open or closed
+at runtime, allowing scenarios to model access-controlled
+corridors. Obstacle layouts are loaded from scenario YAML at
+launch time: \textsf{warehouse\_2} ships with a central
+corridor door, while \textsf{amongus} ships with six
+pre-placed corridor choke-point doors matching the map
+geometry. New obstacles can also be placed interactively via a
+custom RViz tool (\texttt{PlaceObstacleTool},
+\texttt{DoorTool}) at any time during a run.
+
+When an obstacle is added or a door state changes, the manager
+recomputes the occupancy grid and publishes an updated
+\texttt{/map}, triggering a MAPF replan on the Level-2 side.
+This closes the loop between the LLM's ability to command
+obstacle state changes and the planner's ability to respond.
+
+\subsection{Per-robot Nav2 stack}
+\label{sec:method:nav2}
+
+Each robot runs its own Nav2 stack:
+\texttt{controller\_server} (DWB local trajectory tracking),
+\texttt{behavior\_server} (recovery actions), a
+\texttt{lifecycle\_manager} that brings the above to the
+\textsf{active} state, and a static
+\textsf{map}$\to$\textsf{robot\_N/odom} identity transform
+publisher. A single shared \texttt{map\_server} serves all
+robots; the static map is namespace-independent.
+
+\paragraph{Parameter rewriting}
+The Nav2 parameter file is written once, with per-namespace
+fields parameterised by template strings. Two facilities are
+used to expand them at launch time. \texttt{ReplaceString}
+substitutes the robot namespace into hard-coded occurrences of
+the placeholder. \texttt{RewrittenYaml} re-keys the YAML file
+at the top level and overrides specific values such as
+\texttt{use\_sim\_time}. The combination produces, from a
+single template, a fully-namespaced parameter file for every
+robot.
+
+\paragraph{Costmap configuration}
+The local costmap is configured with the project-specific
+\texttt{ResettingObstacleLayer} (Level-2 contribution) and an
+inflation layer. The \texttt{observation\_persistence}
+parameter is set to \texttt{0.0} so the costmap does not
+retain stale lethal zones once a robot has moved; the local
+costmap radius is chosen to exceed
+\texttt{obstacle\_max\_range}.
+
+\paragraph{Static localization}
+AMCL is intentionally disabled. With 20 robots in a shared
+workspace, every robot's laser scan contains the bodies of
+every other robot, which are not reflected in the static map;
+the particle filter degrades. We replace AMCL with a static
+identity transform from \textsf{map} to
+\textsf{robot\_N/odom}, which is correct in simulation since
+the simulator's odometry is ground-truth-aligned. On hardware,
+this identity transform must be replaced by a multi-robot
+localization or SLAM pipeline.
+
+\paragraph{Staggered bring-up}
+Per-robot Nav2 instances are launched with a $\sim$0.3~s
+stagger to absorb DDS discovery cost. Without stagger,
+simultaneous launches reliably miss discovery on a fraction of
+the robots and the system comes up incomplete.
+
+\subsection{LLM orchestration layer}
+
+The Level-1 LLM agent is implemented as the
+\texttt{iros\_llm\_orchestrator} package. It communicates with
+the rest of the system via three channels, each serving a
+different interaction pattern. The underlying model is
+configurable at launch time via a shared YAML; the deployed
+configuration targets Llama-3.3-70B served through a
+Groq-hosted OpenAI-compatible endpoint, with temperature 0.1
+to suppress non-determinism.
+
+\paragraph{Channel 1 --- reactive decision server}
+The \texttt{llm\_decision\_server} node receives
+\texttt{/llm/decision} requests from the behavior tree
+whenever a BT or MAPF node emits a \texttt{WARN} or
+\texttt{ERROR} status. Given the current fleet state---mode,
+active formation, recent BT events, and the map
+description---the server returns one of three decisions:
+\texttt{wait}, \texttt{abort}, or \texttt{replan}. The
+decision is logged to a per-run dataset at
+\texttt{\~{}/.ros/llm\_decisions} for offline analysis. At
+most one decision is processed concurrently; concurrent
+requests queue behind it.
+
+\paragraph{Channel 2 --- passive observer}
+The \texttt{llm\_passive\_observer} node subscribes to
+\texttt{/bt/state} and monitors fleet status continuously.
+When a \texttt{WARN} or \texttt{ERROR} condition persists
+beyond a configurable cooldown, the observer autonomously
+composes a recovery command and publishes it on
+\texttt{/llm/command}, bypassing the BT's decision request
+flow. This channel is disabled by default and activated with
+the \texttt{enable\_passive\_observer:=true} launch argument.
+A dataset of autonomous interventions is logged to
+\texttt{\~{}/.ros/llm\_commands}.
+
+\paragraph{Channel 3 --- operator chat}
+The \texttt{llm\_chat\_server} node exposes a conversational
+interface on \texttt{/llm/chat}. The operator types a
+natural-language command in the RViz panel; the server
+assembles a context packet (BT state, active formations, map
+summary, recent event history) and sends it together with the
+command to the LLM, which returns a structured JSON plan that
+is dispatched as a \texttt{/swarm/set\_goals} action or a
+formation service call. Context is optionally populated via an
+MCP bridge (\texttt{ros-mcp} over stdio), which provides
+read-only access to live ROS topics without requiring the
+orchestrator to subscribe to them directly.
+
+\paragraph{Primitive surface}
+All three channels operate over the same underlying primitive
+surface exposed by Level-2: the \texttt{/swarm/set\_goals}
+action, the \texttt{/formation/*} CRUD services, and the
+\texttt{/obstacles/*} API introduced by this team.
+Corresponding behavior-tree action nodes are
+\texttt{MapfPlan}, \texttt{SetFormation},
+\texttt{DisableFormation}, \texttt{CheckMode}, and
+\texttt{ObstaclesMode}. The LLM is not permitted to publish
+raw \texttt{cmd\_vel} or per-robot paths; the abstraction
+boundary is enforced by the BT engine.
+
+\paragraph{BT as the substrate}
+The behavior tree is the runtime substrate over which the LLM
+operates. The LLM does not directly call ROS~2 actions;
+instead, it generates a behavior-tree XML (or selects from a
+template library) whose action nodes are the primitive
+wrappers listed above. The BT is then ticked by the
+deterministic \texttt{BehaviorTree.CPP}~v4 engine. This
+decomposition has three consequences: the LLM's output space
+is structured XML against a known schema and is easy to
+validate; the LLM is invoked only at decision boundaries, not
+on every tick; and behavior-tree fallbacks and guards encode
+safety properties that the LLM cannot bypass even if its
+output is degenerate.
+
+\paragraph{Grounding and state context}
+The LLM receives a compact summary of fleet state derived from
+\texttt{FollowerStatus}, \texttt{FormationsStatus}, and the
+aggregated BT event stream. Raw scans and per-cell costmap
+data are deliberately excluded: the LLM is expected to reason
+about robots, formations, and named regions of the map, not
+laser pixels. The map description YAML (Section~\ref{sec:method})
+is included verbatim in the system prompt, giving the LLM
+access to named locations, viable formation zones, and
+planning heuristics without any runtime lookup.
+
+\section{Code Availability}
+\label{sec:github}
+
+The full implementation, shared with the Level-2 team, is
+hosted at:
+\begin{center}
+\url{https://github.com/innopolis-robotics-society/llm_swarm}
+\end{center}
+The repository contains a top-level \texttt{README.md} with
+Docker bring-up instructions, scenario launch commands, and a
+description of the goal JSON format. Per-package documentation
+is generated by \texttt{rosdoc2} and aggregated into a Sphinx
+site under \texttt{iros\_llm\_swarm\_docs/}.
+
+The packages owned by this team are
+\texttt{iros\_llm\_swarm\_simulation\_lite} (Stage~2D worlds,
+robot model, scenario definitions, map descriptions),
+\texttt{iros\_llm\_swarm\_simulation} (Gazebo Harmonic
+preview), \texttt{iros\_llm\_swarm\_local\_nav} (per-robot
+Nav2 spawner), \texttt{iros\_llm\_swarm\_obstacles} (dynamic
+obstacle manager and RViz tools), \texttt{iros\_llm\_orchestrator}
+(three-channel LLM orchestration), and
+\texttt{iros\_llm\_rviz\_panel} (operator chat panel).
+
+\section{Evaluation}
+\label{sec:exp}
+
+All tests run inside the project's Docker image on a single
+workstation with \texttt{ROS\_DOMAIN\_ID=42},
+\texttt{RMW\_IMPLEMENTATION=rmw\_cyclonedds\_cpp}, and the
+project CycloneDDS profile.
+
+\subsection{Unit and integration tests}
+
+The orchestration layer is covered by a suite of offline
+Python tests that run without a live ROS graph.
+\texttt{test\_decision\_parser} verifies that
+\texttt{parse\_llm\_decision()} correctly extracts the
+\texttt{wait}/\texttt{abort}/\texttt{replan} verdict from
+plain JSON, fenced JSON, prose-wrapped JSON, and degenerate
+inputs (empty string, wrong type, unknown enum value); all
+cases fall back to \texttt{wait} on malformed input.
+\texttt{test\_decision\_server} spins a
+\texttt{LlmDecisionServer} in mock mode in a background thread
+and fires action-client requests over loopback, verifying that
+the correct decision is returned, feedback stages
+(\texttt{received}/\texttt{thinking}/\texttt{done}) are
+observed in order, and a JSONL dataset entry is written per
+call. \texttt{test\_passive\_observer} stands up a fake
+\texttt{/llm/command} action server and verifies that a
+sustained \texttt{WARN} \texttt{BTState} message triggers
+exactly one proactive goal, while a second \texttt{WARN}
+within the cooldown window is suppressed.
+\texttt{test\_prompt\_builder} and
+\texttt{test\_command\_parser} cover the structured-output
+parsing path end-to-end with fixtures that exercise all
+supported plan fields and edge cases.
+
+The MAPF solver is validated by two compiled stress tests.
+A smoke test places three agents on crossing straight paths
+in a 20$\times$20 empty grid and checks that
+\texttt{LNS2Solver::solve()} returns \texttt{ok=true} with
+zero final collisions. A corridor stress test places eight
+agents in opposing pairs that must share a four-cell-wide
+corridor in a 30$\times$30 grid with blocked interior; the
+solver must resolve all head-on conflicts within a 3~s
+budget. Both tests pass deterministically at the fixed seeds
+used in CI.
+
+The behavior tree is exercised by \texttt{test\_bt\_runner},
+a standalone ROS~2 node that runs the full
+\texttt{FleetMain} tree against a live 20-robot Stage
+simulation without an LLM in the loop. A scripted six-step
+scenario is executed: (1)~all 20 robots converge to the
+warehouse centre in a $4{\times}5$ grid; (2)~a wedge
+formation is activated over the orange squad; (3)~a line
+formation is activated over the blue squad; (4)~a full
+cross-swap sends orange to the top-right and blue to the
+bottom-left, stressing MAPF conflict resolution over the
+full 30~m diagonal; (5)~all robots return home; (6)~idle.
+The scenario completes successfully in the warehouse
+scenario with staggered DDS bring-up.
+
+\subsection{Scenario bring-up}
+
+All five world presets (\textsf{cave}, \textsf{large\_cave},
+\textsf{warehouse\_2}, \textsf{warehouse\_4},
+\textsf{amongus}) bring up cleanly with the full stack via
+\texttt{swarm\_lns.launch.py}. All 20 robots reach the
+\textsf{active} Nav2 lifecycle state within the staggered
+bring-up window. The MAPF planner produces valid plans in
+each scenario; the \textsf{large\_cave} scenario requires
+longer initial planning time due to map scale but does not
+time out. In the \textsf{amongus} scenario, named-location
+references (\emph{Cafeteria}, \emph{Reactor}, etc.) resolve
+correctly via the map description YAML, and toggling a
+corridor door triggers a MAPF replan within one planning
+cycle.
+
+\subsection{Limitations}
+
+Several aspects of the system have not been subjected to
+systematic quantitative evaluation and constitute open items
+for future work.
+
+\textit{Simulator throughput.} The Gazebo-vs-Stage throughput
+comparison---real-time factor as a function of $N$ and
+navigation load---has not been measured beyond the qualitative
+observation that motivated the pivot. A controlled sweep
+across $N \in \{1,5,10,15,20\}$ with and without Nav2
+attached would quantify the crossover point and the headroom
+available per robot in the Stage configuration.
+
+\textit{Nav2 bring-up reliability at scale.} We observe that
+staggered launch reliably brings up all 20 robots, but we
+have not collected statistics over repeated cold boots.
+Failure rates as a function of stagger interval and DDS
+profile have not been measured.
+
+\textit{LLM decision quality.} The decision server and
+passive observer have been tested in mock mode and with
+live LLM calls in ad-hoc sessions, but no held-out incident
+dataset with ground-truth labels has been assembled. Metrics
+such as decision accuracy, schema validity rate, and
+command-to-execution latency remain unmeasured.
+
+\textit{End-to-end command grounding.} The full pipeline from
+natural-language operator command to completed fleet mission
+has been demonstrated interactively but not evaluated on a
+systematic command set. Coverage across the five scenarios
+and the three orchestration channels is therefore anecdotal.
+
+\section{Analysis and Observations}
+\label{sec:analysis}
+
+\paragraph{Gazebo did not scale to our fleet}
+The pivot to Stage was driven by the simulator alone, not by
+the algorithms running on top. Gazebo's per-robot
+cost---collision broadphase, sensor rendering, physics solver
+work---scales steeply with fleet size, and a 20-robot
+configuration on a single workstation leaves no usable
+headroom for navigation, planning, and behavior-tree ticking.
+The corollary is that the Gazebo configuration is not wrong;
+it is correct for a smaller fleet or a multi-machine
+deployment. The pivot is recorded as such, not as a deletion.
+
+\paragraph{Static localization is required, not preferred}
+We attempted several AMCL configurations before disabling it.
+The fundamental issue is that 19 of the 20 laser scans visible
+to any given robot contain the bodies of other robots, which
+the static map does not predict; the particle filter's
+likelihood field collapses onto incorrect hypotheses. The
+static identity transform replaces this with a
+known-correct fact (the simulator's odometry is
+ground-truth-aligned). The system will require a multi-robot
+SLAM solution before any hardware deployment.
+
+\paragraph{Parameter rewriting is a fragile point}
+Per-namespace Nav2 parameter files are produced from templates
+by \texttt{ReplaceString} and \texttt{RewrittenYaml}. A
+specific failure mode required several days to diagnose: the
+\texttt{use\_sim\_time} key, when nested incorrectly under the
+\texttt{root\_key} introduced by \texttt{RewrittenYaml},
+silently fails to propagate to the costmap layer. The costmap
+then runs on wall-clock timestamps while the rest of the stack
+uses simulated time; every laser scan is rejected as too old,
+the local planner produces no obstacles, and the costmap
+remains empty with no explicit error. Any Nav2 deployment
+using \texttt{RewrittenYaml} should validate
+\texttt{use\_sim\_time} propagation as a first-class test.
+
+\paragraph{Costmap radius constraints are silent}
+A second silent failure: if the local costmap's physical radius
+is smaller than \texttt{obstacle\_max\_range}, laser returns
+at long range fall outside the costmap window and are dropped
+at the range check, leaving a costmap that contains only
+short-range obstacles. The robot drives past mid-range
+obstacles because, from its costmap's perspective, they do not
+exist.
+
+\paragraph{Minimal Nav2 needs both planner and BT}
+An early configuration ran only \texttt{controller\_server},
+on the hypothesis that the Level-2 planner would supply
+complete paths and the local controller would track them. This
+configuration is unstable: DWB relies on a global path from
+\texttt{planner\_server}, and recovery behaviors are only
+available through \texttt{bt\_navigator}. Nav2 expects both,
+even when the global path is externally authoritative.
+
+\paragraph{DDS is the dominant bring-up cost}
+On the wall-clock budget of a 20-robot launch, DDS discovery
+is larger than physics step time, larger than Nav2
+initialization, and larger than the planner's first plan.
+Without the project DDS profile, a non-trivial fraction of
+bring-up runs fails to register all robots within the
+staggered timeline.
+
+\paragraph{The LLM interface is not a free choice}
+Choosing to expose the system to the LLM at the level of the
+behavior tree---rather than at the level of individual actions
+or raw \texttt{cmd\_vel}---reflects a specific architectural
+bet: the LLM should be a slow, infrequent reasoner over
+semantic primitives, not a tight controller. This matches both
+the latency profile of current frontier models and the safety
+properties required for 20-robot control. The three-channel
+structure (reactive, passive, and operator-driven) allows the
+system to mix LLM-initiated and human-initiated commands
+without a unified arbitration mechanism at the BT level.
+
+\paragraph{Named map locations improve command quality}
+Early testing with raw coordinates in LLM prompts produced a
+higher rate of out-of-bounds and wall-interior goal
+coordinates than symbolic references. Providing the
+\textsf{named\_locations} and \textsf{formation\_zones}
+blocks in the system prompt, together with planning heuristics
+specific to each map, substantially reduced goal validation
+failures on the Level-2 side. The \textsf{amongus} map, with
+its 14 named rooms and rich alias table, is the clearest
+demonstration of this principle.
+
+\section{Conclusion and Future Work}
+\label{sec:conclusion}
+
+We described the Level-1 and Level-3 layers of a hierarchical
+multi-robot control stack: a Stage 2D simulation environment
+chosen after an explicit and documented pivot from Gazebo
+Harmonic; five simulated scenarios including a dynamic
+obstacle system and a richly-named map; a per-robot Nav2 stack
+with parameter rewriting and staggered bring-up suitable for
+20-robot fleets; a static localization strategy replacing AMCL
+at this density; and a three-channel LLM orchestration
+architecture grounded in a behavior-tree interface over
+Level-2 primitives.
+
+Future work falls into three directions. First,
+\emph{simulator return path}: the preserved Gazebo Harmonic
+configuration is the target for a performance pass (GPU
+sensors, simplified collision geometry, selective sensor
+degradation) that would restore 3D simulation at this fleet
+size, and ultimately for hardware deployment where physical
+robots replace the simulator entirely. Second,
+\emph{multi-robot localization}: the static identity
+transform from \textsf{map} to \textsf{robot\_N/odom} is
+correct in simulation but must be replaced by a multi-robot
+SLAM or inter-robot range-sharing pipeline before any hardware
+transfer. Third, \emph{systematic evaluation of the LLM
+layer}: assembling held-out incident and command datasets to
+measure decision accuracy, schema validity rate, and
+end-to-end grounding quality across all three orchestration
+channels and all five scenarios, as described in
+Section~\ref{sec:exp}.
+
+\begin{thebibliography}{00}
+
+\bibitem{vaughan2008stage}
+R. Vaughan,
+``Massively multi-robot simulation in Stage,''
+\emph{Swarm Intell.}, vol. 2, pp. 189--208, 2008.
+
+\bibitem{koenig2004gazebo}
+N. Koenig and A. Howard,
+``Design and use paradigms for Gazebo, an open-source
+multi-robot simulator,''
+in \emph{Proc. IROS}, 2004.
+
+\bibitem{kedia2025gengrid}
+P. Kedia and M. Rao,
+``Gengrid: A generalised distributed experimental
+environmental grid for swarm robotics,''
+arXiv:2504.20071, 2025.
+
+\bibitem{siwek2023diffdrive}
+M. Siwek, J. Panasiuk, L. Baranowski, W. Kaczmarek,
+P. Prusaczyk, and S. Borys,
+``Identification of differential drive robot dynamic model
+parameters,''
+\emph{Materials}, vol. 16, no. 2, p. 683, 2023.
+
+\bibitem{siegwart2011}
+R. Siegwart, I. R. Nourbakhsh, and D. Scaramuzza,
+\emph{Introduction to Autonomous Mobile Robots}, 2nd ed.
+Cambridge, MA, USA: MIT Press, 2011.
+
+\bibitem{chamanbaz2017swarmenabling}
+M. Chamanbaz \emph{et al.},
+``Swarm-enabling technology for multi-robot systems,''
+\emph{Front. Robot. AI}, vol. 4, p. 12, 2017.
+
+\bibitem{macenski2022ros2}
+S. Macenski, T. Foote, B. Gerkey, C. Lalancette, and
+W. Woodall,
+``Robot Operating System 2: Design, architecture, and uses
+in the wild,''
+\emph{Sci. Robot.}, vol. 7, no. 66, 2022.
+
+\bibitem{maruyama2016dds}
+Y. Maruyama, S. Kato, and T. Azumi,
+``Exploring the performance of ROS2,''
+in \emph{Proc. EMSOFT}, 2016.
+
+\bibitem{kronauer2024empirical}
+T. Kronauer, J. Pohlmann, M. Matthe, T. Smejkal, and
+G. Fettweis,
+``Latency analysis of ROS2 multi-node systems,'' 2023.
+
+\bibitem{macenski2020marathon}
+S. Macenski, F. Mart\'in, R. White, and J. Gin\'es Clavero,
+``The Marathon 2: A navigation system,''
+in \emph{Proc. IROS}, 2020.
+
+\bibitem{macenski2023nav2}
+S. Macenski \emph{et al.},
+``From the desks of ROS maintainers: A survey of modern \&
+capable mobile robotics algorithms in the robot operating
+system 2,''
+\emph{Robot. Auton. Syst.}, 2023.
+
+\bibitem{lu2014layered}
+D. V. Lu, D. Hershberger, and W. D. Smart,
+``Layered costmaps for context-sensitive navigation,''
+in \emph{Proc. IROS}, 2014.
+
+\bibitem{ahn2022saycan}
+M. Ahn \emph{et al.},
+``Do as I can, not as I say: Grounding language in robotic
+affordances,''
+in \emph{Proc. CoRL}, 2022.
+
+\bibitem{liang2023codepolicies}
+J. Liang \emph{et al.},
+``Code as policies: Language model programs for embodied
+control,''
+in \emph{Proc. ICRA}, 2023.
+
+\bibitem{singh2023progprompt}
+I. Singh \emph{et al.},
+``ProgPrompt: Generating situated robot task plans using
+large language models,''
+in \emph{Proc. ICRA}, 2023.
+
+\bibitem{huang2022inner}
+W. Huang \emph{et al.},
+``Inner monologue: Embodied reasoning through planning with
+language models,''
+in \emph{Proc. CoRL}, 2022.
+
+\bibitem{brohan2022rt1}
+A. Brohan \emph{et al.},
+``RT-1: Robotics transformer for real-world control at
+scale,'' arXiv:2212.06817, 2022.
+
+\bibitem{brohan2023rt2}
+A. Brohan \emph{et al.},
+``RT-2: Vision-language-action models transfer web knowledge
+to robotic control,'' arXiv:2307.15818, 2023.
+
+\bibitem{schick2023toolformer}
+T. Schick \emph{et al.},
+``Toolformer: Language models can teach themselves to use
+tools,''
+in \emph{Proc. NeurIPS}, 2023.
+
+\bibitem{zeng2023llmrobsurvey}
+F. Zeng \emph{et al.},
+``Large language models for robotics: A survey,'' 2023.
+
+\bibitem{colledanchise2018bt}
+M. Colledanchise and P. {\"O}gren,
+\emph{Behavior Trees in Robotics and AI: An Introduction}.
+CRC Press, 2018.
+
+\bibitem{iovino2022btsurvey}
+M. Iovino, E. Scukins, J. Styrud, P. {\"O}gren, and C. Smith,
+``A survey of behavior trees in robotics and AI,''
+\emph{Robot. Auton. Syst.}, vol. 154, 2022.
+
+\bibitem{btcpp}
+D. Faconti and M. Colledanchise,
+``BehaviorTree.CPP,''
+\url{https://www.behaviortree.dev}, accessed 2026.
+
+\bibitem{santos2020segregative}
+V. G. Santos \emph{et al.},
+``Spatial segregative behaviors in robotic swarms using
+differential potentials,''
+\emph{Swarm Intelligence}, vol. 14, no. 4, pp. 259--284, 2020.
+
+\bibitem{wang2025apf}
+H. Wang, M. Yue, X. Sun, and X. Zhao,
+``Cooperative formation control strategy for multi-robot
+system based on APF algorithm and sliding mode estimator,''
+\emph{Robot. Auton. Syst.}, vol. 193, p. 105075, 2025.
+
+\bibitem{jiang2020formation}
+C. Jiang, Z. Chen, and Y. Guo,
+``Multi-robot formation control: a comparison between
+model-based and learning-based methods,''
+\emph{J. Control Decis.}, vol. 7, no. 1, pp. 90--108, 2020.
+
+\bibitem{martinez2023pso}
+F. Martinez and A. Rendon,
+``Autonomous motion planning for a differential robot using
+particle swarm optimization,''
+\emph{Int. J. Adv. Comput. Sci. Appl.}, vol. 14, 2023.
+
+\bibitem{debie2023swarmsurvey}
+E. Debie, K. Kasmarik, and M. Garratt,
+``Swarm robotics: A survey from a multi-tasking
+perspective,''
+\emph{ACM Comput. Surv.}, vol. 56, no. 2, 2023.
+
+\bibitem{elamvazhuthi2019meanfield}
+K. Elamvazhuthi and S. Berman,
+``Mean-field models in swarm robotics: A survey,'' 2019.
+
+\bibitem{elsayed2024faulttolerant}
+A. M. Elsayed, M. Elshalakani, S. A. Hammad, and S. A. Maged,
+``Decentralized fault-tolerant control of multi-mobile robot
+system addressing LiDAR sensor faults,''
+\emph{Sci. Rep.}, vol. 14, no. 1, p. 25713, 2024.
+
+\bibitem{li2021lns2}
+J. Li, Z. Chen, D. Harabor, P. J. Stuckey, and S. Koenig,
+``Anytime multi-agent path finding via large neighborhood
+search,''
+in \emph{Proc. IJCAI}, 2021.
+
+\end{thebibliography}
+
+\end{document}
