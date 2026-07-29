@@ -1,0 +1,738 @@
+{
+  "analysis": "E2 Part 0 — emitted top-level plan node type distribution",
+  "note": "Post-hoc over existing E2/E1b raw files; no new model calls. Emitted type is parsed from the recorded `raw` field with the harness's own _parse_response, so it matches what the validators saw.",
+  "oneOf_branch_order": [
+    "mapf",
+    "formation",
+    "disband",
+    "idle",
+    "sequence",
+    "parallel"
+  ],
+  "required_field_count_per_branch": {
+    "mapf": 4,
+    "formation": 7,
+    "disband": 3,
+    "idle": 2,
+    "sequence": 2,
+    "parallel": 2
+  },
+  "expected_type_per_case": {
+    "mapf_basic_01": "mapf",
+    "mapf_basic_02": "mapf",
+    "mapf_basic_03": "mapf",
+    "mapf_basic_04": "mapf",
+    "mapf_basic_05": "mapf",
+    "mapf_spread_01": "mapf",
+    "mapf_spread_02": "mapf",
+    "mapf_explicit_01": "mapf",
+    "mapf_explicit_02": "mapf",
+    "parallel_01": "parallel",
+    "parallel_02": "parallel",
+    "parallel_03": "parallel",
+    "parallel_04": "parallel",
+    "sequence_01": "sequence",
+    "sequence_02": "sequence",
+    "sequence_03": "sequence",
+    "sequence_04": "sequence",
+    "formation_create_01": "sequence",
+    "formation_create_02": "sequence",
+    "formation_create_03": "sequence",
+    "formation_create_04": "sequence",
+    "formation_create_05": "sequence",
+    "formation_move_01": "mapf",
+    "formation_move_02": "mapf",
+    "formation_move_03": "sequence",
+    "disband_02": "sequence",
+    "disband_03": "sequence",
+    "formation_complex_01": "sequence",
+    "formation_complex_02": "sequence",
+    "formation_complex_03": "sequence",
+    "idle_01": "idle",
+    "idle_02": "idle",
+    "idle_03": "idle",
+    "escalate_01": "idle",
+    "escalate_02": "idle",
+    "escalate_03": "idle",
+    "escalate_04": "idle",
+    "edge_01": "parallel",
+    "edge_02": "idle",
+    "edge_03": "mapf",
+    "edge_04": "mapf",
+    "edge_05": "sequence",
+    "edge_06": "idle",
+    "disband_01": "disband"
+  },
+  "cells": {
+    "qwen3.5:4b|baseline": {
+      "source_file": "e1b_qwen3.5-4b.json",
+      "llm_model": "qwen3.5:4b",
+      "grounding": "full",
+      "schema_constrained": false,
+      "total_calls": 220,
+      "emitted_type_counts": {
+        "sequence": 59,
+        "mapf": 49,
+        "idle": 48,
+        "parallel": 30,
+        "<unparseable>": 26,
+        "disband": 5,
+        "formation": 3
+      },
+      "emitted_type_pct": {
+        "sequence": 26.8,
+        "mapf": 22.3,
+        "idle": 21.8,
+        "parallel": 13.6,
+        "<unparseable>": 11.8,
+        "disband": 2.3,
+        "formation": 1.4
+      },
+      "first_top_level_key": {
+        "reply": 204,
+        "<not-strict-json>": 16
+      },
+      "first_plan_key": {
+        "type": 204
+      },
+      "plan_prefix_top10": [
+        "67x {\"type\": \"sequence\", \"steps\": ",
+        "50x {\"type\": \"mapf\", \"robot_ids\": ",
+        "30x {\"type\": \"parallel\", \"steps\": ",
+        "15x {\"type\": \"idle\", \"reason\": \"cl",
+        "13x {\"type\": \"idle\", \"reason\": \"op",
+        "10x {\"type\": \"idle\", \"reason\": \"re",
+        "8x {\"type\": \"idle\", \"reason\": \"ne",
+        "5x {\"type\": \"disband\", \"formation",
+        "4x {\"type\": \"formation\", \"formati",
+        "2x {\"type\": \"idle\", \"reason\": \"ca"
+      ],
+      "confusion_expected_to_emitted": {
+        "disband": {
+          "disband": 5
+        },
+        "idle": {
+          "idle": 43,
+          "sequence": 1,
+          "formation": 1
+        },
+        "mapf": {
+          "mapf": 48,
+          "parallel": 5,
+          "idle": 5,
+          "<unparseable>": 4,
+          "sequence": 2,
+          "formation": 1
+        },
+        "parallel": {
+          "parallel": 25
+        },
+        "sequence": {
+          "sequence": 56,
+          "<unparseable>": 22,
+          "formation": 1,
+          "mapf": 1
+        }
+      }
+    },
+    "qwen3.5:4b|schema_on": {
+      "source_file": "e2_schema_on_qwen3.5-4b.json",
+      "llm_model": "qwen3.5:4b",
+      "grounding": "full",
+      "schema_constrained": true,
+      "total_calls": 220,
+      "emitted_type_counts": {
+        "sequence": 76,
+        "mapf": 52,
+        "idle": 45,
+        "parallel": 31,
+        "<unparseable>": 9,
+        "disband": 5,
+        "formation": 2
+      },
+      "emitted_type_pct": {
+        "sequence": 34.5,
+        "mapf": 23.6,
+        "idle": 20.5,
+        "parallel": 14.1,
+        "<unparseable>": 4.1,
+        "disband": 2.3,
+        "formation": 0.9
+      },
+      "first_top_level_key": {
+        "reply": 219,
+        "<not-strict-json>": 1
+      },
+      "first_plan_key": {
+        "type": 219
+      },
+      "plan_prefix_top10": [
+        "82x {\"type\": \"sequence\", \"steps\": ",
+        "52x {\"type\": \"mapf\", \"robot_ids\": ",
+        "31x {\"type\": \"parallel\", \"steps\": ",
+        "12x {\"type\": \"idle\", \"reason\": \"cl",
+        "11x {\"type\": \"idle\", \"reason\": \"op",
+        "10x {\"type\": \"idle\", \"reason\": \"re",
+        "9x {\"type\": \"idle\", \"reason\": \"ne",
+        "5x {\"type\": \"disband\", \"formation",
+        "4x {\"type\": \"formation\", \"formati",
+        "3x {\"type\": \"idle\", \"reason\": \"ca"
+      ],
+      "confusion_expected_to_emitted": {
+        "disband": {
+          "disband": 5
+        },
+        "idle": {
+          "idle": 44,
+          "<unparseable>": 1
+        },
+        "mapf": {
+          "mapf": 51,
+          "sequence": 7,
+          "parallel": 5,
+          "<unparseable>": 1,
+          "idle": 1
+        },
+        "parallel": {
+          "parallel": 25
+        },
+        "sequence": {
+          "sequence": 69,
+          "<unparseable>": 7,
+          "formation": 2,
+          "mapf": 1,
+          "parallel": 1
+        }
+      }
+    },
+    "qwen3.5:4b|grounding_locations_only": {
+      "source_file": "e2_grounding_locations_only_qwen3.5-4b.json",
+      "llm_model": "qwen3.5:4b",
+      "grounding": "locations_only",
+      "schema_constrained": false,
+      "total_calls": 220,
+      "emitted_type_counts": {
+        "mapf": 58,
+        "sequence": 57,
+        "idle": 47,
+        "parallel": 25,
+        "<unparseable>": 24,
+        "disband": 5,
+        "formation": 4
+      },
+      "emitted_type_pct": {
+        "mapf": 26.4,
+        "sequence": 25.9,
+        "idle": 21.4,
+        "parallel": 11.4,
+        "<unparseable>": 10.9,
+        "disband": 2.3,
+        "formation": 1.8
+      },
+      "first_top_level_key": {
+        "reply": 208,
+        "<not-strict-json>": 12
+      },
+      "first_plan_key": {
+        "type": 208
+      },
+      "plan_prefix_top10": [
+        "70x {\"type\": \"sequence\", \"steps\": ",
+        "57x {\"type\": \"mapf\", \"robot_ids\": ",
+        "25x {\"type\": \"parallel\", \"steps\": ",
+        "13x {\"type\": \"idle\", \"reason\": \"op",
+        "12x {\"type\": \"idle\", \"reason\": \"cl",
+        "10x {\"type\": \"idle\", \"reason\": \"ne",
+        "10x {\"type\": \"idle\", \"reason\": \"re",
+        "5x {\"type\": \"disband\", \"formation",
+        "4x {\"type\": \"formation\", \"formati",
+        "2x {\"type\": \"idle\", \"reason\": \"ca"
+      ],
+      "confusion_expected_to_emitted": {
+        "disband": {
+          "disband": 5
+        },
+        "idle": {
+          "idle": 45
+        },
+        "mapf": {
+          "mapf": 57,
+          "sequence": 3,
+          "<unparseable>": 3,
+          "idle": 2
+        },
+        "parallel": {
+          "parallel": 25
+        },
+        "sequence": {
+          "sequence": 54,
+          "<unparseable>": 21,
+          "formation": 4,
+          "mapf": 1
+        }
+      }
+    },
+    "qwen3.5:4b|grounding_coords_only": {
+      "source_file": "e2_grounding_coords_only_qwen3.5-4b.json",
+      "llm_model": "qwen3.5:4b",
+      "grounding": "coords_only",
+      "schema_constrained": false,
+      "total_calls": 220,
+      "emitted_type_counts": {
+        "sequence": 54,
+        "idle": 50,
+        "mapf": 48,
+        "<unparseable>": 28,
+        "parallel": 26,
+        "formation": 9,
+        "disband": 5
+      },
+      "emitted_type_pct": {
+        "sequence": 24.5,
+        "idle": 22.7,
+        "mapf": 21.8,
+        "<unparseable>": 12.7,
+        "parallel": 11.8,
+        "formation": 4.1,
+        "disband": 2.3
+      },
+      "first_top_level_key": {
+        "reply": 209,
+        "<not-strict-json>": 11
+      },
+      "first_plan_key": {
+        "type": 209
+      },
+      "plan_prefix_top10": [
+        "66x {\"type\": \"sequence\", \"steps\": ",
+        "48x {\"type\": \"mapf\", \"robot_ids\": ",
+        "29x {\"type\": \"parallel\", \"steps\": ",
+        "13x {\"type\": \"idle\", \"reason\": \"cl",
+        "12x {\"type\": \"idle\", \"reason\": \"ne",
+        "11x {\"type\": \"formation\", \"formati",
+        "11x {\"type\": \"idle\", \"reason\": \"op",
+        "10x {\"type\": \"idle\", \"reason\": \"re",
+        "5x {\"type\": \"disband\", \"formation",
+        "4x {\"type\": \"idle\", \"reason\": \"ca"
+      ],
+      "confusion_expected_to_emitted": {
+        "disband": {
+          "disband": 5
+        },
+        "idle": {
+          "idle": 45
+        },
+        "mapf": {
+          "mapf": 47,
+          "<unparseable>": 6,
+          "parallel": 5,
+          "idle": 4,
+          "sequence": 3
+        },
+        "parallel": {
+          "parallel": 21,
+          "<unparseable>": 3,
+          "sequence": 1
+        },
+        "sequence": {
+          "sequence": 50,
+          "<unparseable>": 19,
+          "formation": 9,
+          "idle": 1,
+          "mapf": 1
+        }
+      }
+    },
+    "qwen3.5-9b:latest|baseline": {
+      "source_file": "e1b_qwen3.5-9b.json",
+      "llm_model": "qwen3.5-9b:latest",
+      "grounding": "full",
+      "schema_constrained": false,
+      "total_calls": 220,
+      "emitted_type_counts": {
+        "sequence": 73,
+        "mapf": 58,
+        "idle": 41,
+        "parallel": 26,
+        "<unparseable>": 10,
+        "formation": 7,
+        "disband": 5
+      },
+      "emitted_type_pct": {
+        "sequence": 33.2,
+        "mapf": 26.4,
+        "idle": 18.6,
+        "parallel": 11.8,
+        "<unparseable>": 4.5,
+        "formation": 3.2,
+        "disband": 2.3
+      },
+      "first_top_level_key": {
+        "reply": 214,
+        "<not-strict-json>": 6
+      },
+      "first_plan_key": {
+        "type": 214
+      },
+      "plan_prefix_top10": [
+        "75x {\"type\": \"sequence\", \"steps\": ",
+        "59x {\"type\": \"mapf\", \"robot_ids\": ",
+        "26x {\"type\": \"parallel\", \"steps\": ",
+        "15x {\"type\": \"idle\", \"reason\": \"op",
+        "10x {\"type\": \"idle\", \"reason\": \"re",
+        "10x {\"type\": \"idle\", \"reason\": \"cl",
+        "8x {\"type\": \"formation\", \"formati",
+        "6x {\"type\": \"idle\", \"reason\": \"ne",
+        "5x {\"type\": \"disband\", \"formation"
+      ],
+      "confusion_expected_to_emitted": {
+        "disband": {
+          "disband": 5
+        },
+        "idle": {
+          "idle": 41,
+          "formation": 2,
+          "sequence": 2
+        },
+        "mapf": {
+          "mapf": 58,
+          "<unparseable>": 5,
+          "parallel": 1,
+          "sequence": 1
+        },
+        "parallel": {
+          "parallel": 25
+        },
+        "sequence": {
+          "sequence": 70,
+          "formation": 5,
+          "<unparseable>": 5
+        }
+      }
+    },
+    "qwen3.5-9b:latest|schema_on": {
+      "source_file": "e2_schema_on_qwen3.5-9b.json",
+      "llm_model": "qwen3.5-9b:latest",
+      "grounding": "full",
+      "schema_constrained": true,
+      "total_calls": 220,
+      "emitted_type_counts": {
+        "idle": 104,
+        "sequence": 85,
+        "parallel": 24,
+        "disband": 4,
+        "<unparseable>": 3
+      },
+      "emitted_type_pct": {
+        "idle": 47.3,
+        "sequence": 38.6,
+        "parallel": 10.9,
+        "disband": 1.8,
+        "<unparseable>": 1.4
+      },
+      "first_top_level_key": {
+        "plan": 217,
+        "<not-strict-json>": 3
+      },
+      "first_plan_key": {
+        "steps": 109,
+        "reason": 104,
+        "formation_id": 4
+      },
+      "plan_prefix_top10": [
+        "17x {\"steps\": [{\"reason\": \"cyan to",
+        "15x {\"steps\": [{\"formation_id\": \"o",
+        "12x {\"steps\": [{\"formation_id\": \"c",
+        "10x {\"reason\": \"move magenta_line ",
+        "9x {\"steps\": [{\"reason\": \"yellow ",
+        "9x {\"reason\": \"operator stop\", \"t",
+        "7x {\"steps\": [{\"reason\": \"stage m",
+        "6x {\"reason\": \"cyan to cafeteria\"",
+        "6x {\"steps\": [{\"formation_id\": \"g",
+        "5x {\"reason\": \"yellow to navigati"
+      ],
+      "confusion_expected_to_emitted": {
+        "disband": {
+          "idle": 5
+        },
+        "idle": {
+          "idle": 42,
+          "disband": 2,
+          "sequence": 1
+        },
+        "mapf": {
+          "idle": 55,
+          "sequence": 8,
+          "parallel": 1,
+          "<unparseable>": 1
+        },
+        "parallel": {
+          "parallel": 22,
+          "sequence": 3
+        },
+        "sequence": {
+          "sequence": 73,
+          "<unparseable>": 2,
+          "idle": 2,
+          "disband": 2,
+          "parallel": 1
+        }
+      }
+    },
+    "qwen3.5-9b:latest|grounding_locations_only": {
+      "source_file": "e2_grounding_locations_only_qwen3.5-9b.json",
+      "llm_model": "qwen3.5-9b:latest",
+      "grounding": "locations_only",
+      "schema_constrained": false,
+      "total_calls": 220,
+      "emitted_type_counts": {
+        "sequence": 74,
+        "mapf": 57,
+        "idle": 45,
+        "parallel": 25,
+        "<unparseable>": 7,
+        "formation": 7,
+        "disband": 5
+      },
+      "emitted_type_pct": {
+        "sequence": 33.6,
+        "mapf": 25.9,
+        "idle": 20.5,
+        "parallel": 11.4,
+        "<unparseable>": 3.2,
+        "formation": 3.2,
+        "disband": 2.3
+      },
+      "first_top_level_key": {
+        "reply": 219,
+        "<not-strict-json>": 1
+      },
+      "first_plan_key": {
+        "type": 219
+      },
+      "plan_prefix_top10": [
+        "75x {\"type\": \"sequence\", \"steps\": ",
+        "62x {\"type\": \"mapf\", \"robot_ids\": ",
+        "25x {\"type\": \"parallel\", \"steps\": ",
+        "14x {\"type\": \"idle\", \"reason\": \"op",
+        "10x {\"type\": \"idle\", \"reason\": \"ne",
+        "10x {\"type\": \"idle\", \"reason\": \"re",
+        "10x {\"type\": \"idle\", \"reason\": \"cl",
+        "7x {\"type\": \"formation\", \"formati",
+        "5x {\"type\": \"disband\", \"formation",
+        "1x {\"type\": \"idle\", \"reason\": \"ca"
+      ],
+      "confusion_expected_to_emitted": {
+        "disband": {
+          "disband": 5
+        },
+        "idle": {
+          "idle": 44,
+          "sequence": 1
+        },
+        "mapf": {
+          "mapf": 57,
+          "<unparseable>": 7,
+          "idle": 1
+        },
+        "parallel": {
+          "parallel": 25
+        },
+        "sequence": {
+          "sequence": 73,
+          "formation": 7
+        }
+      }
+    },
+    "qwen3.5-9b:latest|grounding_coords_only": {
+      "source_file": "e2_grounding_coords_only_qwen3.5-9b.json",
+      "llm_model": "qwen3.5-9b:latest",
+      "grounding": "coords_only",
+      "schema_constrained": false,
+      "total_calls": 220,
+      "emitted_type_counts": {
+        "sequence": 79,
+        "mapf": 55,
+        "idle": 48,
+        "parallel": 25,
+        "formation": 7,
+        "disband": 5,
+        "<unparseable>": 1
+      },
+      "emitted_type_pct": {
+        "sequence": 35.9,
+        "mapf": 25.0,
+        "idle": 21.8,
+        "parallel": 11.4,
+        "formation": 3.2,
+        "disband": 2.3,
+        "<unparseable>": 0.5
+      },
+      "first_top_level_key": {
+        "reply": 220
+      },
+      "first_plan_key": {
+        "type": 220
+      },
+      "plan_prefix_top10": [
+        "79x {\"type\": \"sequence\", \"steps\": ",
+        "56x {\"type\": \"mapf\", \"robot_ids\": ",
+        "25x {\"type\": \"parallel\", \"steps\": ",
+        "15x {\"type\": \"idle\", \"reason\": \"op",
+        "13x {\"type\": \"idle\", \"reason\": \"ne",
+        "10x {\"type\": \"idle\", \"reason\": \"re",
+        "10x {\"type\": \"idle\", \"reason\": \"cl",
+        "7x {\"type\": \"formation\", \"formati",
+        "5x {\"type\": \"disband\", \"formation"
+      ],
+      "confusion_expected_to_emitted": {
+        "disband": {
+          "disband": 5
+        },
+        "idle": {
+          "idle": 43,
+          "formation": 2
+        },
+        "mapf": {
+          "mapf": 55,
+          "idle": 5,
+          "sequence": 4,
+          "<unparseable>": 1
+        },
+        "parallel": {
+          "parallel": 25
+        },
+        "sequence": {
+          "sequence": 75,
+          "formation": 5
+        }
+      }
+    },
+    "qwen2.5:14b|baseline": {
+      "source_file": "e1b_qwen2.5-14b.json",
+      "llm_model": "qwen2.5:14b",
+      "grounding": "full",
+      "schema_constrained": false,
+      "total_calls": 220,
+      "emitted_type_counts": {
+        "sequence": 89,
+        "mapf": 57,
+        "idle": 30,
+        "parallel": 25,
+        "formation": 9,
+        "disband": 5,
+        "<unparseable>": 5
+      },
+      "emitted_type_pct": {
+        "sequence": 40.5,
+        "mapf": 25.9,
+        "idle": 13.6,
+        "parallel": 11.4,
+        "formation": 4.1,
+        "disband": 2.3,
+        "<unparseable>": 2.3
+      },
+      "first_top_level_key": {
+        "reply": 210,
+        "<not-strict-json>": 10
+      },
+      "first_plan_key": {
+        "type": 210
+      },
+      "plan_prefix_top10": [
+        "86x {\"type\": \"sequence\", \"steps\": ",
+        "57x {\"type\": \"mapf\", \"robot_ids\": ",
+        "25x {\"type\": \"parallel\", \"steps\": ",
+        "15x {\"type\": \"idle\", \"reason\": \"op",
+        "10x {\"type\": \"idle\", \"reason\": \"re",
+        "7x {\"type\": \"formation\", \"formati",
+        "5x {\"type\": \"disband\", \"formation",
+        "5x {\"type\": \"idle\", \"reason\": \"cl"
+      ],
+      "confusion_expected_to_emitted": {
+        "disband": {
+          "disband": 5
+        },
+        "idle": {
+          "idle": 30,
+          "sequence": 14,
+          "mapf": 1
+        },
+        "mapf": {
+          "mapf": 56,
+          "<unparseable>": 5,
+          "sequence": 4
+        },
+        "parallel": {
+          "parallel": 25
+        },
+        "sequence": {
+          "sequence": 71,
+          "formation": 9
+        }
+      }
+    },
+    "qwen2.5:14b|schema_on": {
+      "source_file": "e2_schema_on_qwen2.5-14b.json",
+      "llm_model": "qwen2.5:14b",
+      "grounding": "full",
+      "schema_constrained": true,
+      "total_calls": 220,
+      "emitted_type_counts": {
+        "sequence": 91,
+        "mapf": 61,
+        "idle": 30,
+        "parallel": 25,
+        "formation": 7,
+        "disband": 5,
+        "<unparseable>": 1
+      },
+      "emitted_type_pct": {
+        "sequence": 41.4,
+        "mapf": 27.7,
+        "idle": 13.6,
+        "parallel": 11.4,
+        "formation": 3.2,
+        "disband": 2.3,
+        "<unparseable>": 0.5
+      },
+      "first_top_level_key": {
+        "reply": 220
+      },
+      "first_plan_key": {
+        "type": 220
+      },
+      "plan_prefix_top10": [
+        "92x {\"type\": \"sequence\", \"steps\": ",
+        "61x {\"type\": \"mapf\", \"robot_ids\": ",
+        "25x {\"type\": \"parallel\", \"steps\": ",
+        "15x {\"type\": \"idle\", \"reason\": \"op",
+        "10x {\"type\": \"idle\", \"reason\": \"re",
+        "7x {\"type\": \"formation\", \"formati",
+        "5x {\"type\": \"disband\", \"formation",
+        "5x {\"type\": \"idle\", \"reason\": \"cl"
+      ],
+      "confusion_expected_to_emitted": {
+        "disband": {
+          "disband": 5
+        },
+        "idle": {
+          "idle": 30,
+          "sequence": 15
+        },
+        "mapf": {
+          "mapf": 61,
+          "sequence": 4
+        },
+        "parallel": {
+          "parallel": 25
+        },
+        "sequence": {
+          "sequence": 72,
+          "formation": 7,
+          "<unparseable>": 1
+        }
+      }
+    }
+  }
+}

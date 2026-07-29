@@ -1,0 +1,884 @@
+{
+  "map": "amongus",
+  "llm_mode": "ollama",
+  "llm_model": "qwen3.5-9b:latest",
+  "llm_temperature": 0.1,
+  "llm_num_ctx": 32768,
+  "llm_max_tokens": 2048,
+  "repeat": 5,
+  "grounding": "full",
+  "schema_constrained": true,
+  "schema_variant": "s1_noidle",
+  "schema_branches": [
+    "mapf",
+    "formation",
+    "disband",
+    "sequence",
+    "parallel"
+  ],
+  "test_subset": [
+    "edge_03",
+    "edge_04",
+    "formation_move_01",
+    "formation_move_02",
+    "mapf_basic_01",
+    "mapf_basic_02",
+    "mapf_basic_03",
+    "mapf_basic_04",
+    "mapf_basic_05",
+    "mapf_explicit_01",
+    "mapf_explicit_02",
+    "mapf_spread_01",
+    "mapf_spread_02"
+  ],
+  "prompt_fingerprint": "42d660fe681eaa3857c239bbe8d8e97043ae15c07ef8fe088a202e49048c37ed",
+  "total": 65,
+  "passed": 0,
+  "results": [
+    {
+      "id": "mapf_basic_01",
+      "prompt": "send cyan to cafeteria",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending cyan robots to cafeteria.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending cyan robots to cafeteria.\"}",
+      "elapsed_sec": 8.228,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_01",
+      "prompt": "send cyan to cafeteria",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending cyan robots to cafeteria.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending cyan robots to cafeteria.\"}",
+      "elapsed_sec": 5.146,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_01",
+      "prompt": "send cyan to cafeteria",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending cyan robots to cafeteria.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"type\": \"mapf\", \"spread\": true}],\"type\": \"sequence\"}, \"reply\": \"Sending cyan robots to cafeteria.\"}",
+      "elapsed_sec": 4.965,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_01",
+      "prompt": "send cyan to cafeteria",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "plan.type='parallel', want 'mapf'"
+      ],
+      "reply": "Sending cyan robots to cafeteria.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"type\": \"mapf\"}], \"type\": \"parallel\"}, \"reply\": \"Sending cyan robots to cafeteria.\"}",
+      "elapsed_sec": 4.972,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_01",
+      "prompt": "send cyan to cafeteria",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending cyan robots to cafeteria.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"type\": \"mapf\", \"spread\": true}],\"type\": \"sequence\"}, \"reply\": \"Sending cyan robots to cafeteria.\"}",
+      "elapsed_sec": 4.374,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_02",
+      "prompt": "orange robots go home",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending orange robots to their home position.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[0.6, -10.9]], \"reason\": \"orange robots home\", \"robot_ids\": [12, 13, 14, 15], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending orange robots to their home position.\"}",
+      "elapsed_sec": 4.629,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_02",
+      "prompt": "orange robots go home",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending orange robots to their spawn location.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[0.6, -10.9]], \"reason\": \"orange robots go home\", \"robot_ids\": [12, 13, 14, 15], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending orange robots to their spawn location.\"}",
+      "elapsed_sec": 4.561,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_02",
+      "prompt": "orange robots go home",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending orange robots to their home position.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[0.6, -10.9]], \"reason\": \"orange robots go home\", \"robot_ids\": [12, 13, 14, 15], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending orange robots to their home position.\"}",
+      "elapsed_sec": 4.594,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_02",
+      "prompt": "orange robots go home",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending orange robots to their spawn location.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[0.6, -10.9]], \"reason\": \"orange robots go home\", \"robot_ids\": [12, 13, 14, 15], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending orange robots to their spawn location.\"}",
+      "elapsed_sec": 4.542,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_02",
+      "prompt": "orange robots go home",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending orange robots to their spawn location.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[0.6, -10.9]], \"reason\": \"orange home\", \"robot_ids\": [12, 13, 14, 15], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending orange robots to their spawn location.\"}",
+      "elapsed_sec": 4.373,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_03",
+      "prompt": "move all robots to cafeteria",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending all robots to cafeteria.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[2.7, 10.1]], \"reason\": \"all robots to cafeteria\", \"robot_ids\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], \"type\": \"mapf\", \"spread\": true}],\"type\": \"sequence\"}, \"reply\": \"Sending all robots to cafeteria.\"}",
+      "elapsed_sec": 8.296,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_03",
+      "prompt": "move all robots to cafeteria",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "plan.type='parallel', want 'mapf'"
+      ],
+      "reply": "Sending all robots to cafeteria.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[-9.5, 4.0], [-8.7, -5.9], [13.4, 3.4], [17.6, -9.7]], \"reason\": \"orange robots to cafeteria\", \"robot_ids\": [12, 13, 14, 15], \"type\": \"mapf\"}, {\"goals\": [[-8.7, -5.9], [0.6, -10.9], [-21.9, 0.8], [2.7, 10.1]], \"reason\": \"magenta robots to cafeteria\", \"robot_ids\": [4, 5, 6, 7], \"type\": \"mapf\"}, {\"goals\": [[-21.9, 9.9], [-21.9, -8.4], [10.4, -3.7], [17.6, 10.7]], \"reason\": \"cyan robots to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"type\": \"mapf\"}, {\"goals\": [[-9.5, 4.0], [-8.7, -5.9], [13.4, 3.4], [17.6, -9.7]], \"reason\": \"green robots to cafeteria\", \"robot_ids\": [8, 9, 10, 11], \"type\": \"mapf\"}, {\"goals\": [[-21.9, 9.9], [-21.9, -8.4], [10.4, -3.7], [17.6, 10.7]], \"reason\": \"yellow robots to cafeteria\", \"robot_ids\": [16, 17, 18, 19], \"type\": \"mapf\"}], \"type\": \"parallel\"}, \"reply\": \"Sending all robots to cafeteria.\"}",
+      "elapsed_sec": 14.444,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_03",
+      "prompt": "move all robots to cafeteria",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "plan.type='parallel', want 'mapf'"
+      ],
+      "reply": "Sending all robots to cafeteria.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"type\": \"mapf\"}, {\"goals\": [[2.7, 10.1]], \"reason\": \"magenta to cafeteria\", \"robot_ids\": [4, 5, 6, 7], \"type\": \"mapf\"}, {\"goals\": [[2.7, 10.1]], \"reason\": \"green to cafeteria\", \"robot_ids\": [8, 9, 10, 11], \"type\": \"mapf\"}, {\"goals\": [[2.7, 10.1]], \"reason\": \"orange to cafeteria\", \"robot_ids\": [12, 13, 14, 15], \"type\": \"mapf\"}, {\"goals\": [[2.7, 10.1]], \"reason\": \"yellow to cafeteria\", \"robot_ids\": [16, 17, 18, 19], \"type\": \"mapf\"}], \"type\": \"parallel\"}, \"reply\": \"Sending all robots to cafeteria.\"}",
+      "elapsed_sec": 15.938,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_03",
+      "prompt": "move all robots to cafeteria",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending all robots to cafeteria.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[2.7, 10.1]], \"reason\": \"all robots to cafeteria\", \"robot_ids\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], \"type\": \"mapf\", \"spread\": true}],\"type\": \"sequence\"}, \"reply\": \"Sending all robots to cafeteria.\"}",
+      "elapsed_sec": 7.195,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_03",
+      "prompt": "move all robots to cafeteria",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending all robots to cafeteria.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[2.7, 10.1]], \"reason\": \"all robots to cafeteria\", \"robot_ids\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], \"type\": \"mapf\", \"spread\": true}],\"type\": \"sequence\"},\"reply\": \"Sending all robots to cafeteria.\"}",
+      "elapsed_sec": 7.82,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_04",
+      "prompt": "drive yellow to navigation",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "plan.type='parallel', want 'mapf'"
+      ],
+      "reply": "Sending yellow robots to navigation.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[29.5, 1.9]], \"reason\": \"yellow to navigation\", \"robot_ids\": [16, 17, 18, 19], \"type\": \"mapf\"}], \"type\": \"parallel\"}, \"reply\": \"Sending yellow robots to navigation.\"}",
+      "elapsed_sec": 4.379,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_04",
+      "prompt": "drive yellow to navigation",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending yellow robots to navigation.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[29.5, 1.9]], \"reason\": \"yellow to navigation\", \"robot_ids\": [16, 17, 18, 19], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending yellow robots to navigation.\"}",
+      "elapsed_sec": 4.363,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_04",
+      "prompt": "drive yellow to navigation",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "plan.type='parallel', want 'mapf'"
+      ],
+      "reply": "Sending yellow robots to navigation.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[29.5, 1.9]], \"reason\": \"yellow to navigation\", \"robot_ids\": [16, 17, 18, 19], \"type\": \"mapf\"}], \"type\": \"parallel\"}, \"reply\": \"Sending yellow robots to navigation.\"}",
+      "elapsed_sec": 4.445,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_04",
+      "prompt": "drive yellow to navigation",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending yellow robots to navigation.",
+      "raw": "{\"plan\":{\"steps\":[{\"goals\":[[29.5,1.9]],\"reason\":\"yellow to navigation\",\"robot_ids\":[16,17,18,19],\"type\":\"mapf\"}],\"type\":\"sequence\"},\"reply\":\"Sending yellow robots to navigation.\"}",
+      "elapsed_sec": 5.819,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_04",
+      "prompt": "drive yellow to navigation",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "plan.type='parallel', want 'mapf'"
+      ],
+      "reply": "Sending yellow robots to navigation.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[29.5, 1.9]], \"reason\": \"yellow to navigation\", \"robot_ids\": [16, 17, 18, 19], \"type\": \"mapf\"}], \"type\": \"parallel\"}, \"reply\": \"Sending yellow robots to navigation.\"}",
+      "elapsed_sec": 8.329,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_05",
+      "prompt": "green to reactor",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending green robots to reactor.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[-28.4, 0.9]], \"reason\": \"green to reactor\", \"robot_ids\": [8, 9, 10, 11], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending green robots to reactor.\"}",
+      "elapsed_sec": 3.989,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_05",
+      "prompt": "green to reactor",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending green robots to reactor.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[-28.4, 0.9]], \"reason\": \"green to reactor\", \"robot_ids\": [8, 9, 10, 11], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending green robots to reactor.\"}",
+      "elapsed_sec": 3.987,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_05",
+      "prompt": "green to reactor",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending green robots to reactor.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[-28.4, 0.9]], \"reason\": \"green to reactor\", \"robot_ids\": [8, 9, 10, 11], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending green robots to reactor.\"}",
+      "elapsed_sec": 4.013,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_05",
+      "prompt": "green to reactor",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending green robots to reactor.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[-28.4, 0.9]], \"reason\": \"green to reactor\", \"robot_ids\": [8, 9, 10, 11], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending green robots to reactor.\"}",
+      "elapsed_sec": 4.071,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_basic_05",
+      "prompt": "green to reactor",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending green robots to reactor.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[-28.4, 0.9]], \"reason\": \"green to reactor\", \"robot_ids\": [8, 9, 10, 11], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending green robots to reactor.\"}",
+      "elapsed_sec": 4.133,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_spread_01",
+      "prompt": "place cyan at storage",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending cyan robots to storage.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[0.6, -10.9]], \"reason\": \"cyan to storage\", \"robot_ids\": [0, 1, 2, 3], \"type\": \"mapf\", \"spread\": true}],\"type\": \"sequence\"}, \"reply\": \"Sending cyan robots to storage.\"}",
+      "elapsed_sec": 5.964,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_spread_01",
+      "prompt": "place cyan at storage",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending cyan robots to storage.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[0.6, -10.9]], \"reason\": \"cyan at storage\", \"robot_ids\": [0, 1, 2, 3], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending cyan robots to storage.\"}",
+      "elapsed_sec": 4.619,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_spread_01",
+      "prompt": "place cyan at storage",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending cyan robots to storage.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[0.6, -10.9]], \"reason\": \"cyan at storage\", \"robot_ids\": [0, 1, 2, 3], \"type\": \"mapf\", \"spread\": true}],\"type\": \"sequence\"}, \"reply\": \"Sending cyan robots to storage.\"}",
+      "elapsed_sec": 4.281,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_spread_01",
+      "prompt": "place cyan at storage",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending cyan robots to storage.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[0.6, -10.9]], \"reason\": \"cyan to storage\", \"robot_ids\": [0, 1, 2, 3], \"type\": \"mapf\", \"spread\": true}],\"type\": \"sequence\"}, \"reply\": \"Sending cyan robots to storage.\"}",
+      "elapsed_sec": 4.006,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_spread_01",
+      "prompt": "place cyan at storage",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending cyan robots to storage.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[0.6, -10.9]], \"reason\": \"cyan to storage\", \"robot_ids\": [0, 1, 2, 3], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending cyan robots to storage.\"}",
+      "elapsed_sec": 5.393,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_spread_02",
+      "prompt": "drive magenta to cafeteria, locate these robots in cafeteria explicitly",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending magenta to cafeteria with explicit placement.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[-9.5, 4.0]], \"reason\": \"magenta to medbay\", \"robot_ids\": [12, 13, 14, 15], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending magenta to cafeteria with explicit placement.\"}",
+      "elapsed_sec": 4.713,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_spread_02",
+      "prompt": "drive magenta to cafeteria, locate these robots in cafeteria explicitly",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending orange robots to medbay.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[-9.5, 4.0]], \"reason\": \"magenta to medbay\", \"robot_ids\": [12, 13, 14, 15], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending orange robots to medbay.\"}",
+      "elapsed_sec": 4.287,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_spread_02",
+      "prompt": "drive magenta to cafeteria, locate these robots in cafeteria explicitly",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending magenta to cafeteria with explicit placement.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[-9.2, -6.4], [-8.2, -6.4], [-9.2, -5.4], [-8.2, -5.4]], \"reason\": \"magenta to cafeteria\", \"robot_ids\": [4, 5, 6, 7], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending magenta to cafeteria with explicit placement.\"}",
+      "elapsed_sec": 5.306,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_spread_02",
+      "prompt": "drive magenta to cafeteria, locate these robots in cafeteria explicitly",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending magenta to cafeteria with explicit placement.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[-9.2, -6.4], [-8.2, -6.4], [-9.2, -5.4], [-8.2, -5.4]], \"reason\": \"magenta to cafeteria\", \"robot_ids\": [4, 5, 6, 7], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending magenta to cafeteria with explicit placement.\"}",
+      "elapsed_sec": 5.635,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_spread_02",
+      "prompt": "drive magenta to cafeteria, locate these robots in cafeteria explicitly",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Sending magenta to cafeteria with explicit placement.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[-9.5, 4.0]], \"reason\": \"magenta to medbay\", \"robot_ids\": [12, 13, 14, 15], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Sending magenta to cafeteria with explicit placement.\"}",
+      "elapsed_sec": 4.74,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_explicit_01",
+      "prompt": "place robot_12 at (1.0, -10.9), robot_13 at (0.0, -10.9), robot_14 at (1.0, -11.9)",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Placing robot_12, robot_13, and robot_14 at their specified positions.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[1.0, -10.9], [0.0, -10.9], [1.0, -11.9]], \"reason\": \"place robots at specified coordinates\", \"robot_ids\": [12, 13, 14], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Placing robot_12, robot_13, and robot_14 at their specified positions.\"}",
+      "elapsed_sec": 7.171,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_explicit_01",
+      "prompt": "place robot_12 at (1.0, -10.9), robot_13 at (0.0, -10.9), robot_14 at (1.0, -11.9)",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Placing robot_12, robot_13, and robot_14 at their specified positions.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[1.0, -10.9], [0.0, -10.9], [1.0, -11.9]], \"reason\": \"place robots at specified coordinates\", \"robot_ids\": [12, 13, 14], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Placing robot_12, robot_13, and robot_14 at their specified positions.\"}",
+      "elapsed_sec": 7.146,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_explicit_01",
+      "prompt": "place robot_12 at (1.0, -10.9), robot_13 at (0.0, -10.9), robot_14 at (1.0, -11.9)",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Placing robot_12, robot_13, and robot_14 at their specified positions.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[1.0, -10.9], [0.0, -10.9], [1.0, -11.9]], \"reason\": \"precise placement at specified coordinates\", \"robot_ids\": [12, 13, 14], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Placing robot_12, robot_13, and robot_14 at their specified positions.\"}",
+      "elapsed_sec": 7.165,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_explicit_01",
+      "prompt": "place robot_12 at (1.0, -10.9), robot_13 at (0.0, -10.9), robot_14 at (1.0, -11.9)",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Placing robot_12, robot_13, and robot_14 at their specified positions.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[1.0, -10.9], [0.0, -10.9], [1.0, -11.9]], \"reason\": \"place robots at specified coordinates\", \"robot_ids\": [12, 13, 14], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Placing robot_12, robot_13, and robot_14 at their specified positions.\"}",
+      "elapsed_sec": 7.025,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_explicit_01",
+      "prompt": "place robot_12 at (1.0, -10.9), robot_13 at (0.0, -10.9), robot_14 at (1.0, -11.9)",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Placing robot_12, robot_13, and robot_14 at their specified positions.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[1.0, -10.9], [0.0, -10.9], [1.0, -11.9]], \"reason\": \"place robots at specified coordinates\", \"robot_ids\": [12, 13, 14], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Placing robot_12, robot_13, and robot_14 at their specified positions.\"}",
+      "elapsed_sec": 7.157,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_explicit_02",
+      "prompt": "place cyan in a 2x2 grid at cafeteria",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Placing cyan in a 2x2 grid at cafeteria.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[1.2, 8.6], [4.2, 8.6], [1.2, 11.6], [4.2, 11.6]], \"reason\": \"cyan 2x2 grid at cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Placing cyan in a 2x2 grid at cafeteria.\"}",
+      "elapsed_sec": 16.845,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_explicit_02",
+      "prompt": "place cyan in a 2x2 grid at cafeteria",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Placing cyan in a 2x2 grid at cafeteria.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[1.2, 8.6], [4.2, 8.6], [1.2, 11.6], [4.2, 11.6]], \"reason\": \"cyan 2x2 grid at cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Placing cyan in a 2x2 grid at cafeteria.\"}",
+      "elapsed_sec": 15.877,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_explicit_02",
+      "prompt": "place cyan in a 2x2 grid at cafeteria",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Placing cyan robots in a 2x2 grid at cafeteria.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[1.2, 8.6], [4.2, 8.6], [1.2, 11.6], [4.2, 11.6]], \"reason\": \"cyan 2x2 grid at cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Placing cyan robots in a 2x2 grid at cafeteria.\"}",
+      "elapsed_sec": 21.139,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_explicit_02",
+      "prompt": "place cyan in a 2x2 grid at cafeteria",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Placing cyan in a 2x2 grid at cafeteria.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[1.2, 8.6], [4.2, 8.6], [1.2, 11.6], [4.2, 11.6]], \"reason\": \"cyan 2x2 grid at cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Placing cyan in a 2x2 grid at cafeteria.\"}",
+      "elapsed_sec": 10.013,
+      "parse_error": ""
+    },
+    {
+      "id": "mapf_explicit_02",
+      "prompt": "place cyan in a 2x2 grid at cafeteria",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Placing cyan in a 2x2 grid at cafeteria.",
+      "raw": "{\"plan\": {\"steps\": [{\"goals\": [[1.2, 8.6], [4.2, 8.6], [1.2, 11.6], [4.2, 11.6]], \"reason\": \"cyan 2x2 grid at cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Placing cyan in a 2x2 grid at cafeteria.\"}",
+      "elapsed_sec": 10.036,
+      "parse_error": ""
+    },
+    {
+      "id": "formation_move_01",
+      "prompt": "send the magenta line to storage",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "plan.type='disband', want 'mapf'"
+      ],
+      "reply": "Disbanding magenta line first, then sending all four to storage.",
+      "raw": "{\"plan\": {\"formation_id\": \"magenta_line\", \"reason\": \"move magenta line formation to storage\", \"type\": \"disband\"}, \"reply\": \"Disbanding magenta line first, then sending all four to storage.\"}",
+      "elapsed_sec": 9.416,
+      "parse_error": ""
+    },
+    {
+      "id": "formation_move_01",
+      "prompt": "send the magenta line to storage",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "plan.type='disband', want 'mapf'"
+      ],
+      "reply": "Disbanding magenta line first so it can move as independent robots.",
+      "raw": "{\"plan\": {\"formation_id\": \"magenta_line\", \"reason\": \"move formation to storage\", \"type\": \"disband\"}, \"reply\": \"Disbanding magenta line first so it can move as independent robots.\"}",
+      "elapsed_sec": 7.077,
+      "parse_error": ""
+    },
+    {
+      "id": "formation_move_01",
+      "prompt": "send the magenta line to storage",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "plan.type='disband', want 'mapf'"
+      ],
+      "reply": "Disbanding magenta line first, then sending all robots to storage.",
+      "raw": "{\"plan\": {\"formation_id\": \"magenta_line\", \"reason\": \"move magenta line to storage\", \"type\": \"disband\"}, \"reply\": \"Disbanding magenta line first, then sending all robots to storage.\"}",
+      "elapsed_sec": 5.118,
+      "parse_error": ""
+    },
+    {
+      "id": "formation_move_01",
+      "prompt": "send the magenta line to storage",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "plan.type='disband', want 'mapf'"
+      ],
+      "reply": "Disbanding magenta line first, then sending all robots to storage.",
+      "raw": "{\"plan\": {\"formation_id\": \"magenta_line\", \"reason\": \"move magenta line to storage\", \"type\": \"disband\"}, \"reply\": \"Disbanding magenta line first, then sending all robots to storage.\"}",
+      "elapsed_sec": 5.134,
+      "parse_error": ""
+    },
+    {
+      "id": "formation_move_01",
+      "prompt": "send the magenta line to storage",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "plan.type='disband', want 'mapf'"
+      ],
+      "reply": "Disbanding magenta line first, then sending all robots to storage.",
+      "raw": "{\"plan\": {\"formation_id\": \"magenta_line\", \"reason\": \"move magenta line formation to storage\", \"type\": \"disband\"}, \"reply\": \"Disbanding magenta line first, then sending all robots to storage.\"}",
+      "elapsed_sec": 6.43,
+      "parse_error": ""
+    },
+    {
+      "id": "formation_move_02",
+      "prompt": "move cyan wedge to reactor",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "plan.type='disband', want 'mapf'"
+      ],
+      "reply": "Disbanding the cyan wedge first - then moving to reactor.",
+      "raw": "{\"plan\": {\"formation_id\": \"cyan_wedge\", \"reason\": \"move active formation to reactor\", \"type\": \"disband\"}, \"reply\": \"Disbanding the cyan wedge first - then moving to reactor.\"}",
+      "elapsed_sec": 8.836,
+      "parse_error": ""
+    },
+    {
+      "id": "formation_move_02",
+      "prompt": "move cyan wedge to reactor",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "plan.type='disband', want 'mapf'"
+      ],
+      "reply": "Disbanded the cyan wedge formation before moving.",
+      "raw": "{\"plan\": {\"formation_id\": \"cyan_wedge\", \"reason\": \"move cyan wedge formation to reactor\", \"type\": \"disband\"}, \"reply\": \"Disbanded the cyan wedge formation before moving.\"}",
+      "elapsed_sec": 5.472,
+      "parse_error": ""
+    },
+    {
+      "id": "formation_move_02",
+      "prompt": "move cyan wedge to reactor",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "plan.type='disband', want 'mapf'"
+      ],
+      "reply": "Disbanning the cyan wedge before moving.",
+      "raw": "{\"plan\": {\"formation_id\": \"cyan_wedge\", \"reason\": \"move formation to reactor\", \"type\": \"disband\"}, \"reply\": \"Disbanning the cyan wedge before moving.\"}",
+      "elapsed_sec": 4.863,
+      "parse_error": ""
+    },
+    {
+      "id": "formation_move_02",
+      "prompt": "move cyan wedge to reactor",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "plan.type='disband', want 'mapf'"
+      ],
+      "reply": "Disbanding cyan wedge first - then moving to reactor.",
+      "raw": "{\"plan\": {\"formation_id\": \"cyan_wedge\", \"reason\": \"move cyan wedge to reactor\", \"type\": \"disband\"}, \"reply\": \"Disbanding cyan wedge first - then moving to reactor.\"}",
+      "elapsed_sec": 4.287,
+      "parse_error": ""
+    },
+    {
+      "id": "formation_move_02",
+      "prompt": "move cyan wedge to reactor",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "plan.type='disband', want 'mapf'"
+      ],
+      "reply": "Disbanded the cyan wedge before moving.",
+      "raw": "{\"plan\": {\"formation_id\": \"cyan_wedge\", \"reason\": \"move formation to reactor\", \"type\": \"disband\"}, \"reply\": \"Disbanded the cyan wedge before moving.\"}",
+      "elapsed_sec": 5.021,
+      "parse_error": ""
+    },
+    {
+      "id": "edge_03",
+      "prompt": "put magenta right behind the cyan wedge leader",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Disbanding cyan wedge to allow magenta positioning behind it.",
+      "raw": "{\"plan\": {\"steps\": [{\"formation_id\": \"magenta_line\", \"reason\": \"place magenta line behind cyan wedge leader\", \"type\": \"disband\"}, {\"goals\": [[1.2, 10.1], [-0.3, 10.1], [-1.8, 10.1]], \"reason\": \"position magenta behind cyan leader\", \"robot_ids\": [4, 5, 6], \"type\": \"mapf\"}], \"type\": \"sequence\"}, \"reply\": \"Disbanding cyan wedge to allow magenta positioning behind it.\"}",
+      "elapsed_sec": 18.411,
+      "parse_error": ""
+    },
+    {
+      "id": "edge_03",
+      "prompt": "put magenta right behind the cyan wedge leader",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Disbanding cyan wedge, then placing magenta near the cyan leader.",
+      "raw": "{\"plan\": {\"steps\": [{\"formation_id\": \"cyan_wedge\", \"reason\": \"release cyan formation for independent placement\", \"type\": \"disband\"}, {\"goals\": [[2.7, 10.1]], \"reason\": \"magenta to position behind cyan leader\", \"robot_ids\": [4, 5, 6, 7], \"type\": \"mapf\", \"spread\": true}],\"type\": \"sequence\"},\"reply\": \"Disbanding cyan wedge, then placing magenta near the cyan leader.\"}",
+      "elapsed_sec": 17.481,
+      "parse_error": ""
+    },
+    {
+      "id": "edge_03",
+      "prompt": "put magenta right behind the cyan wedge leader",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Disbanding any existing formation, staging magenta behind cyan leader at upper_engine area, then forming a line.",
+      "raw": "{\"plan\": {\"steps\": [{\"formation_id\": \"magenta_line\", \"reason\": \"stage magenta behind cyan leader\", \"type\": \"disband\"}, {\"goals\": [[1.2, 10.1], [-0.3, 10.1], [-1.8, 10.1]], \"reason\": \"stage magenta followers at line offsets behind robot_0\", \"robot_ids\": [5, 6, 7], \"type\": \"mapf\"}, {\"formation_id\": \"magenta_line\", \"reason\": \"form magenta line behind cyan leader\", \"type\": \"disband\"}], \"type\": \"sequence\"}, \"reply\": \"Disbanding any existing formation, staging magenta behind cyan leader at upper_engine area, then forming a line.\"}",
+      "elapsed_sec": 23.913,
+      "parse_error": ""
+    },
+    {
+      "id": "edge_03",
+      "prompt": "put magenta right behind the cyan wedge leader",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.steps[1]: robot_ids(4) != goals(3)"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"steps\": [{\"formation_id\": \"magenta_line\", \"reason\": \"place magenta behind cyan wedge leader\", \"type\": \"disband\"}, {\"goals\": [[-1.5, 0.0], [-3.0, 0.0], [-4.5, 0.0]], \"reason\": \"stage magenta followers at line offsets relative to robot_0\", \"robot_ids\": [4, 5, 6, 7], \"type\": \"mapf\"}, {\"formation_id\": \"magenta_line\", \"reason\": \"activate magenta line formation behind cyan leader\", \"type\": \"disband\"}], \"type\": \"sequence\"}, \"reply\": \"Disbanding any existing formations, staging magenta behind robot_0, then activating the line.\"}",
+      "elapsed_sec": 16.985,
+      "parse_error": "plan.steps[1]: robot_ids(4) != goals(3)"
+    },
+    {
+      "id": "edge_03",
+      "prompt": "put magenta right behind the cyan wedge leader",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "plan.type='sequence', want 'mapf'"
+      ],
+      "reply": "Disbanning cyan wedge first, then positioning magenta behind robot_0.",
+      "raw": "{\"plan\": {\"steps\": [{\"formation_id\": \"magenta_line\", \"reason\": \"magenta formation behind cyan leader\", \"type\": \"disband\"}], \"type\": \"sequence\"}, \"reply\": \"Disbanning cyan wedge first, then positioning magenta behind robot_0.\"}",
+      "elapsed_sec": 15.258,
+      "parse_error": ""
+    },
+    {
+      "id": "edge_04",
+      "prompt": "move the formation to storage",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "plan.type='disband', want 'mapf'"
+      ],
+      "reply": "Disbanding magenta_line first (active formation), then moving all robots to storage.",
+      "raw": "{\"plan\": {\"formation_id\":\"magenta_line\",\"reason\":\"move formation to storage\",\"type\":\"disband\"},\"reply\":\"Disbanding magenta_line first (active formation), then moving all robots to storage.\"}",
+      "elapsed_sec": 9.237,
+      "parse_error": ""
+    },
+    {
+      "id": "edge_04",
+      "prompt": "move the formation to storage",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "plan.type='disband', want 'mapf'"
+      ],
+      "reply": "Disbanding magenta_line first, then moving to storage.",
+      "raw": "{\"plan\": {\"formation_id\":\"magenta_line\",\"reason\":\"move magenta_line to storage\",\"type\":\"disband\"},\"reply\":\"Disbanding magenta_line first, then moving to storage.\"}",
+      "elapsed_sec": 5.197,
+      "parse_error": ""
+    },
+    {
+      "id": "edge_04",
+      "prompt": "move the formation to storage",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "plan.type='disband', want 'mapf'"
+      ],
+      "reply": "Disbanded magenta_line formation before moving.",
+      "raw": "{\"plan\": {\"formation_id\":\"magenta_line\",\"reason\":\"move formation to storage\",\"type\":\"disband\"},\"reply\":\"Disbanded magenta_line formation before moving.\",\"reasoning\":\"Cannot move an active formation directly without disbanding first.\"}",
+      "elapsed_sec": 5.607,
+      "parse_error": ""
+    },
+    {
+      "id": "edge_04",
+      "prompt": "move the formation to storage",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "plan.type='disband', want 'mapf'"
+      ],
+      "reply": "Disbanded magenta_line formation first.",
+      "raw": "{\"plan\": {\"formation_id\":\"magenta_line\",\"reason\":\"move formation to storage\",\"type\":\"disband\"},\"reply\":\"Disbanded magenta_line formation first.\",\"reasoning\":\"Cannot move an active formation without disbanding it first.\"}",
+      "elapsed_sec": 5.706,
+      "parse_error": ""
+    },
+    {
+      "id": "edge_04",
+      "prompt": "move the formation to storage",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "plan.type='disband', want 'mapf'"
+      ],
+      "reply": "Disbanding magenta_line first - need to release followers before moving independently.",
+      "raw": "{\"plan\": {\"formation_id\": \"magenta_line\", \"reason\": \"move formation to storage\", \"type\": \"disband\"}, \"reply\": \"Disbanding magenta_line first - need to release followers before moving independently.\"}",
+      "elapsed_sec": 9.589,
+      "parse_error": ""
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "map": "amongus",
+  "llm_mode": "ollama",
+  "llm_model": "qwen3.5-9b:latest",
+  "llm_temperature": 0.1,
+  "llm_num_ctx": 32768,
+  "llm_max_tokens": 2048,
+  "repeat": 5,
+  "grounding": "full",
+  "schema_constrained": true,
+  "schema_variant": "s3_disband",
+  "schema_branches": [
+    "disband"
+  ],
+  "test_subset": [
+    "disband_01"
+  ],
+  "prompt_fingerprint": "42d660fe681eaa3857c239bbe8d8e97043ae15c07ef8fe088a202e49048c37ed",
+  "total": 5,
+  "passed": 5,
+  "results": [
+    {
+      "id": "disband_01",
+      "prompt": "disband the magenta line",
+      "repeat_idx": 0,
+      "passed": true,
+      "errors": [],
+      "reply": "Disbanding the magenta line — followers will hold position.",
+      "raw": "{\"plan\": {\"formation_id\": \"magenta_line\", \"reason\": \"operator disband\", \"type\": \"disband\"}, \"reply\": \"Disbanding the magenta line — followers will hold position.\"}",
+      "elapsed_sec": 7.873,
+      "parse_error": ""
+    },
+    {
+      "id": "disband_01",
+      "prompt": "disband the magenta line",
+      "repeat_idx": 1,
+      "passed": true,
+      "errors": [],
+      "reply": "Disbanding the magenta line — followers will hold position.",
+      "raw": "{\"plan\": {\"formation_id\": \"magenta_line\", \"reason\": \"operator disband\", \"type\": \"disband\"}, \"reply\": \"Disbanding the magenta line — followers will hold position.\"}",
+      "elapsed_sec": 4.448,
+      "parse_error": ""
+    },
+    {
+      "id": "disband_01",
+      "prompt": "disband the magenta line",
+      "repeat_idx": 2,
+      "passed": true,
+      "errors": [],
+      "reply": "Disbanding the magenta line — followers will hold position.",
+      "raw": "{\"plan\": {\"formation_id\": \"magenta_line\", \"reason\": \"operator disband\", \"type\": \"disband\"}, \"reply\": \"Disbanding the magenta line — followers will hold position.\"}",
+      "elapsed_sec": 4.165,
+      "parse_error": ""
+    },
+    {
+      "id": "disband_01",
+      "prompt": "disband the magenta line",
+      "repeat_idx": 3,
+      "passed": true,
+      "errors": [],
+      "reply": "Disbanding the magenta line — followers will hold position.",
+      "raw": "{\"plan\": {\"formation_id\": \"magenta_line\", \"reason\": \"operator disband\", \"type\": \"disband\"}, \"reply\": \"Disbanding the magenta line — followers will hold position.\"}",
+      "elapsed_sec": 4.15,
+      "parse_error": ""
+    },
+    {
+      "id": "disband_01",
+      "prompt": "disband the magenta line",
+      "repeat_idx": 4,
+      "passed": true,
+      "errors": [],
+      "reply": "Disbanding the magenta line — followers will hold position.",
+      "raw": "{\"plan\": {\"formation_id\": \"magenta_line\", \"reason\": \"operator disband\", \"type\": \"disband\"}, \"reply\": \"Disbanding the magenta line — followers will hold position.\"}",
+      "elapsed_sec": 4.14,
+      "parse_error": ""
+    }
+  ]
+}

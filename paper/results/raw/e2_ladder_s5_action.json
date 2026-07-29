@@ -1,0 +1,2886 @@
+{
+  "map": "amongus",
+  "llm_mode": "ollama",
+  "llm_model": "qwen3.5-9b:latest",
+  "llm_temperature": 0.1,
+  "llm_num_ctx": 32768,
+  "llm_max_tokens": 2048,
+  "repeat": 5,
+  "grounding": "full",
+  "schema_constrained": true,
+  "schema_variant": "s5_action",
+  "schema_branches": [
+    "mapf",
+    "formation",
+    "disband",
+    "idle",
+    "sequence",
+    "parallel"
+  ],
+  "test_subset": null,
+  "prompt_fingerprint": "42d660fe681eaa3857c239bbe8d8e97043ae15c07ef8fe088a202e49048c37ed",
+  "total": 220,
+  "passed": 0,
+  "results": [
+    {
+      "id": "mapf_basic_01",
+      "prompt": "send cyan to cafeteria",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, \"reply\": \"Sending cyan robots to cafeteria.\"}",
+      "elapsed_sec": 22.433,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_01",
+      "prompt": "send cyan to cafeteria",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, \"reply\": \"Sending cyan robots to cafeteria.\"}",
+      "elapsed_sec": 4.679,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_01",
+      "prompt": "send cyan to cafeteria",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, \"reply\": \"Sending cyan robots to cafeteria.\"}",
+      "elapsed_sec": 4.086,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_01",
+      "prompt": "send cyan to cafeteria",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, \"reply\": \"Sending cyan robots to cafeteria.\"}",
+      "elapsed_sec": 4.161,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_01",
+      "prompt": "send cyan to cafeteria",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, \"reply\": \"Sending cyan robots to cafeteria.\"}",
+      "elapsed_sec": 4.9,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_02",
+      "prompt": "orange robots go home",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"orange robots go home\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, \"reply\": \"Sending orange robots to their spawn location (storage).\"}",
+      "elapsed_sec": 4.569,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_02",
+      "prompt": "orange robots go home",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"orange home\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, \"reply\": \"Sending orange robots to their spawn location.\"}",
+      "elapsed_sec": 3.96,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_02",
+      "prompt": "orange robots go home",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"orange robots home\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, \"reply\": \"Sending orange robots to their spawn location.\"}",
+      "elapsed_sec": 4.284,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_02",
+      "prompt": "orange robots go home",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"orange robots go home\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, \"reply\": \"Sending orange robots to their spawn location.\"}",
+      "elapsed_sec": 4.482,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_02",
+      "prompt": "orange robots go home",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"orange robots return home\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, \"reply\": \"Sending orange robots to their home position.\"}",
+      "elapsed_sec": 4.322,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_03",
+      "prompt": "move all robots to cafeteria",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[-9.5, 4.0], [17.6, 10.7]], \"reason\": \"move all robots to cafeteria via find_free_group_goals_in_room tool call needed first\", \"robot_ids\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], \"spread\": true}, \"reply\": \"Moving all robots to cafeteria - calling placement tool for proper goals.\"}",
+      "elapsed_sec": 7.502,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_03",
+      "prompt": "move all robots to cafeteria",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[-9.5, 4.0]], \"reason\": \"orange to medbay\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, \"reply\": \"Sending orange robots to medbay.\"}",
+      "elapsed_sec": 5.293,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_03",
+      "prompt": "move all robots to cafeteria",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"all robots to cafeteria center with spread placement\", \"robot_ids\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], \"spread\": true}, \"reply\": \"Sending all robots to cafeteria with spread placement.\"}",
+      "elapsed_sec": 8.276,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_03",
+      "prompt": "move all robots to cafeteria",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[-21.9, 9.9], [2.7, 10.1]], \"reason\": \"move all robots to cafeteria - need spatial data first\", \"robot_ids\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], \"spread\": true}, \"reply\": \"Moving all robots to cafeteria - checking occupancy first.\"}",
+      "elapsed_sec": 7.332,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_03",
+      "prompt": "move all robots to cafeteria",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[-21.9, 9.9], [-8.7, -5.9], [28.5, 1.9], [0.6, -10.9], [17.6, 10.7]], \"reason\": \"move all robots to cafeteria\", \"robot_ids\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], \"spread\": true}, \"reply\": \"Moving all robots to cafeteria.\"}",
+      "elapsed_sec": 7.94,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_04",
+      "prompt": "drive yellow to navigation",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[29.5, 1.9]], \"reason\": \"yellow to navigation\", \"robot_ids\": [16, 17, 18, 19], \"spread\": true}, \"reply\": \"Sending yellow robots to navigation.\"}",
+      "elapsed_sec": 4.073,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_04",
+      "prompt": "drive yellow to navigation",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[29.5, 1.9]], \"reason\": \"yellow to navigation\", \"robot_ids\": [16, 17, 18, 19], \"spread\": true}, \"reply\": \"Sending yellow robots to navigation.\"}",
+      "elapsed_sec": 4.256,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_04",
+      "prompt": "drive yellow to navigation",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\":{\"action\":\"mapf\",\"goals\":[[29.5,1.9]],\"reason\":\"yellow to navigation\",\"robot_ids\":[16,17,18,19],\"spread\":true},\"reply\":\"Sending yellow robots to navigation.\"}",
+      "elapsed_sec": 8.229,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_04",
+      "prompt": "drive yellow to navigation",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[29.5, 1.9]], \"reason\": \"yellow to navigation\", \"robot_ids\": [16, 17, 18, 19], \"spread\": true}, \"reply\": \"Sending yellow robots to navigation.\"}",
+      "elapsed_sec": 5.839,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_04",
+      "prompt": "drive yellow to navigation",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[29.5, 1.9]], \"reason\": \"yellow to navigation\", \"robot_ids\": [16, 17, 18, 19], \"spread\": true}, \"reply\": \"Sending yellow robots to navigation.\"}",
+      "elapsed_sec": 4.246,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_05",
+      "prompt": "green to reactor",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[-28.4, 0.9]], \"reason\": \"green to reactor\", \"robot_ids\": [8, 9, 10, 11]}, \"reply\": \"Sending green robots to reactor.\"}",
+      "elapsed_sec": 3.746,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_05",
+      "prompt": "green to reactor",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[-28.4, 0.9]], \"reason\": \"green to reactor\", \"robot_ids\": [8, 9, 10, 11], \"spread\": true}, \"reply\": \"Sending green robots to reactor.\"}",
+      "elapsed_sec": 3.834,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_05",
+      "prompt": "green to reactor",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[-28.4, 0.9]], \"reason\": \"green to reactor\", \"robot_ids\": [8, 9, 10, 11], \"spread\": true}, \"reply\": \"Sending green robots to reactor.\"}",
+      "elapsed_sec": 4.093,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_05",
+      "prompt": "green to reactor",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[-28.4, 0.9]], \"reason\": \"green to reactor\", \"robot_ids\": [8, 9, 10, 11], \"spread\": true}, \"reply\": \"Sending green robots to reactor.\"}",
+      "elapsed_sec": 3.864,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_basic_05",
+      "prompt": "green to reactor",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[-28.4, 0.9]], \"reason\": \"green to reactor\", \"robot_ids\": [8, 9, 10, 11], \"spread\": true}, \"reply\": \"Sending green robots to reactor.\"}",
+      "elapsed_sec": 4.445,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_spread_01",
+      "prompt": "place cyan at storage",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"cyan to storage\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, \"reply\": \"Sending cyan robots to storage.\"}",
+      "elapsed_sec": 4.617,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_spread_01",
+      "prompt": "place cyan at storage",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"cyan to storage\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, \"reply\": \"Sending cyan robots to storage.\"}",
+      "elapsed_sec": 3.829,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_spread_01",
+      "prompt": "place cyan at storage",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"cyan at storage\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, \"reply\": \"Sending cyan robots to storage.\"}",
+      "elapsed_sec": 3.92,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_spread_01",
+      "prompt": "place cyan at storage",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"cyan to storage\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, \"reply\": \"Sending cyan robots to storage.\"}",
+      "elapsed_sec": 5.429,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_spread_01",
+      "prompt": "place cyan at storage",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"cyan to storage\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, \"reply\": \"Sending cyan robots to storage.\"}",
+      "elapsed_sec": 4.079,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_spread_02",
+      "prompt": "drive magenta to cafeteria, locate these robots in cafeteria explicitly",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[-9.5, 4.0]], \"reason\": \"magenta to medbay\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, \"reply\": \"Sending magenta robots to cafeteria.\"}",
+      "elapsed_sec": 4.453,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_spread_02",
+      "prompt": "drive magenta to cafeteria, locate these robots in cafeteria explicitly",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[-9.5, 4.0]], \"reason\": \"magenta to medbay\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, \"reply\": \"Sending magenta robots to cafeteria.\"}",
+      "elapsed_sec": 4.443,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_spread_02",
+      "prompt": "drive magenta to cafeteria, locate these robots in cafeteria explicitly",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[-9.5, 4.0]], \"reason\": \"magenta to medbay\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, \"reply\": \"Sending orange robots to medbay.\"}",
+      "elapsed_sec": 4.152,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_spread_02",
+      "prompt": "drive magenta to cafeteria, locate these robots in cafeteria explicitly",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[-9.5, 4.0]], \"reason\": \"magenta to medbay\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, \"reply\": \"Sending orange robots to medbay.\"}",
+      "elapsed_sec": 4.058,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_spread_02",
+      "prompt": "drive magenta to cafeteria, locate these robots in cafeteria explicitly",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[-9.5, 4.0]], \"reason\": \"magenta to medbay\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, \"reply\": \"Sending magenta robots to cafeteria.\"}",
+      "elapsed_sec": 4.065,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_explicit_01",
+      "prompt": "place robot_12 at (1.0, -10.9), robot_13 at (0.0, -10.9), robot_14 at (1.0, -11.9)",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[1.0, -10.9], [0.0, -10.9], [1.0, -11.9]], \"reason\": \"place specific robots at coordinates\", \"robot_ids\": [12, 13, 14]}, \"reply\": \"Placing robot_12, robot_13, and robot_14 at specified coordinates.\"}",
+      "elapsed_sec": 6.691,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_explicit_01",
+      "prompt": "place robot_12 at (1.0, -10.9), robot_13 at (0.0, -10.9), robot_14 at (1.0, -11.9)",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[1.0, -10.9], [0.0, -10.9], [1.0, -11.9]], \"reason\": \"place robots at specified coordinates\", \"robot_ids\": [12, 13, 14]}, \"reply\": \"Placing robot_12, robot_13, and robot_14 at their specified positions.\"}",
+      "elapsed_sec": 7.045,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_explicit_01",
+      "prompt": "place robot_12 at (1.0, -10.9), robot_13 at (0.0, -10.9), robot_14 at (1.0, -11.9)",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[1.0, -10.9], [0.0, -10.9], [1.0, -11.9]], \"reason\": \"place robot_12 at (1.0,-10.9), robot_13 at (0.0,-10.9), robot_14 at (1.0,-11.9)\", \"robot_ids\": [12, 13, 14]}, \"reply\": \"Placing robot_12, robot_13, and robot_14 at specified coordinates.\"}",
+      "elapsed_sec": 7.405,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_explicit_01",
+      "prompt": "place robot_12 at (1.0, -10.9), robot_13 at (0.0, -10.9), robot_14 at (1.0, -11.9)",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[1.0, -10.9], [0.0, -10.9], [1.0, -11.9]], \"reason\": \"place specific robots at specified coordinates\", \"robot_ids\": [12, 13, 14]}, \"reply\": \"Placing robot_12, robot_13, and robot_14 at their specified positions.\"}",
+      "elapsed_sec": 6.822,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_explicit_01",
+      "prompt": "place robot_12 at (1.0, -10.9), robot_13 at (0.0, -10.9), robot_14 at (1.0, -11.9)",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[1.0, -10.9], [0.0, -10.9], [1.0, -11.9]], \"reason\": \"place robot_12 at (1.0,-10.9), robot_13 at (0.0,-10.9), robot_14 at (1.0,-11.9)\", \"robot_ids\": [12, 13, 14]}, \"reply\": \"Placing robot_12, robot_13, and robot_14 at specified coordinates.\"}",
+      "elapsed_sec": 7.414,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_explicit_02",
+      "prompt": "place cyan in a 2x2 grid at cafeteria",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[1.2, 8.6], [4.2, 8.6], [1.2, 11.6], [4.2, 11.6]], \"reason\": \"cyan 2x2 grid at cafeteria center (2.7, 10.1)\", \"robot_ids\": [0, 1, 2, 3]}, \"reply\": \"Placing cyan robots in a 2x2 grid at the cafeteria.\"}",
+      "elapsed_sec": 16.186,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_explicit_02",
+      "prompt": "place cyan in a 2x2 grid at cafeteria",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[1.2, 8.6], [4.2, 8.6], [1.2, 11.6], [4.2, 11.6]], \"reason\": \"cyan 2x2 grid at cafeteria center (2.7, 10.1)\", \"robot_ids\": [0, 1, 2, 3]}, \"reply\": \"Placing cyan in a 2x2 grid at cafeteria.\"}",
+      "elapsed_sec": 10.192,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_explicit_02",
+      "prompt": "place cyan in a 2x2 grid at cafeteria",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[1.95, 10.85], [3.45, 10.85], [1.95, 9.35], [3.45, 9.35]], \"reason\": \"cyan 2x2 grid at cafeteria\", \"robot_ids\": [0, 1, 2, 3]}, \"reply\": \"Placing cyan in a 2x2 grid at cafeteria.\"}",
+      "elapsed_sec": 21.635,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_explicit_02",
+      "prompt": "place cyan in a 2x2 grid at cafeteria",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[1.2, 8.6], [4.2, 8.6], [1.2, 11.6], [4.2, 11.6]], \"reason\": \"cyan 2x2 grid at cafeteria\", \"robot_ids\": [0, 1, 2, 3]}, \"reply\": \"Placing cyan in a 2x2 grid at cafeteria.\"}",
+      "elapsed_sec": 14.403,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "mapf_explicit_02",
+      "prompt": "place cyan in a 2x2 grid at cafeteria",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[1.2, 8.6], [4.2, 8.6], [1.2, 11.6], [4.2, 11.6]], \"reason\": \"cyan 2x2 grid at cafeteria\", \"robot_ids\": [0, 1, 2, 3]}, \"reply\": \"Placing cyan in a 2x2 grid at cafeteria.\"}",
+      "elapsed_sec": 13.747,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_01",
+      "prompt": "yellow to navigation, green to reactor",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[29.5, 1.9], [-28.4, 0.9]], \"reason\": \"yellow to navigation, green to reactor\", \"robot_ids\": [16, 17, 18, 19, 8, 9, 10, 11]}, \"reply\": \"Sending yellow to navigation and green to reactor.\", \"reasoning\": \"parallel\"}",
+      "elapsed_sec": 6.861,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_01",
+      "prompt": "yellow to navigation, green to reactor",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[16, 17, 18, 19], [29.5, 1.9]], \"reason\": \"yellow to navigation\", \"robot_ids\": [16, 17, 18, 19]}, \"reply\": \"Sending yellow robots to navigation and green robots to reactor.\", \"reasoning\": \"parallel\"}",
+      "elapsed_sec": 6.542,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_01",
+      "prompt": "yellow to navigation, green to reactor",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[29.5, 1.9], [-28.4, 0.9]], \"reason\": \"yellow to navigation, green to reactor\", \"robot_ids\": [16, 17, 18, 19, 8, 9, 10, 11]}, \"reply\": \"Sending yellow to navigation and green to reactor.\"}",
+      "elapsed_sec": 5.996,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_01",
+      "prompt": "yellow to navigation, green to reactor",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[29.5, 1.9], [-28.4, 0.9]], \"reason\": \"yellow to navigation, green to reactor\", \"robot_ids\": [16, 17, 18, 19, 8, 9, 10, 11]}, \"reply\": \"Sending yellow to navigation and green to reactor simultaneously.\"}",
+      "elapsed_sec": 6.727,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_01",
+      "prompt": "yellow to navigation, green to reactor",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[29.5, 1.9], [-28.4, 0.9]], \"reason\": \"yellow to navigation, green to reactor\", \"robot_ids\": [16, 17, 18, 19, 8, 9, 10, 11]}, \"reply\": \"Sending yellow to navigation and green to reactor.\"}",
+      "elapsed_sec": 5.81,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_02",
+      "prompt": "cyan and magenta both go to cafeteria",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"cyan and magenta to cafeteria\", \"robot_ids\": [0, 1, 2, 3, 4, 5, 6, 7], \"spread\": true}, \"reply\": \"Sending cyan and magenta to cafeteria.\"}",
+      "elapsed_sec": 4.227,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_02",
+      "prompt": "cyan and magenta both go to cafeteria",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"cyan and magenta to cafeteria\", \"robot_ids\": [0, 1, 2, 3, 4, 5, 6, 7], \"spread\": true}, \"reply\": \"Sending cyan and magenta to cafeteria.\"}",
+      "elapsed_sec": 4.23,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_02",
+      "prompt": "cyan and magenta both go to cafeteria",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"parallel\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"magenta to cafeteria\", \"robot_ids\": [4, 5, 6, 7], \"spread\": true}]}, \"reply\": \"Sending cyan and magenta to cafeteria simultaneously.\"}",
+      "elapsed_sec": 6.572,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_02",
+      "prompt": "cyan and magenta both go to cafeteria",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"cyan and magenta to cafeteria\", \"robot_ids\": [0, 1, 2, 3, 4, 5, 6, 7], \"spread\": true}, \"reply\": \"Sending cyan and magenta to cafeteria.\"}",
+      "elapsed_sec": 4.24,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_02",
+      "prompt": "cyan and magenta both go to cafeteria",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"parallel\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"magenta to cafeteria\", \"robot_ids\": [4, 5, 6, 7], \"spread\": true}]}, \"reply\": \"Sending cyan and magenta to cafeteria simultaneously.\"}",
+      "elapsed_sec": 6.498,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_03",
+      "prompt": "magenta to green home, green to magenta home",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"parallel\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[28.5, 1.9]], \"reason\": \"magenta to green home\", \"robot_ids\": [4, 5, 6, 7], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[-8.7, -5.9]], \"reason\": \"green to magenta home\", \"robot_ids\": [8, 9, 10, 11], \"spread\": true}]}, \"reply\": \"Magenta and green swap homes simultaneously.\"}",
+      "elapsed_sec": 8.477,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_03",
+      "prompt": "magenta to green home, green to magenta home",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"parallel\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[28.5, 1.9]], \"reason\": \"magenta to green home\", \"robot_ids\": [4, 5, 6, 7], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[-8.7, -5.9]], \"reason\": \"green to magenta home\", \"robot_ids\": [8, 9, 10, 11], \"spread\": true}]}, \"reply\": \"Magenta and green swap homes simultaneously.\"}",
+      "elapsed_sec": 8.17,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_03",
+      "prompt": "magenta to green home, green to magenta home",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"parallel\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[28.5, 1.9]], \"reason\": \"magenta to green home\", \"robot_ids\": [4, 5, 6, 7], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[-8.7, -5.9]], \"reason\": \"green to magenta home\", \"robot_ids\": [8, 9, 10, 11], \"spread\": true}]}, \"reply\": \"Magenta and green swap homes simultaneously.\"}",
+      "elapsed_sec": 8.29,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_03",
+      "prompt": "magenta to green home, green to magenta home",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"parallel\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[28.5, 1.9]], \"reason\": \"magenta to green home\", \"robot_ids\": [4, 5, 6, 7], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[-8.7, -5.9]], \"reason\": \"green to magenta home\", \"robot_ids\": [8, 9, 10, 11], \"spread\": true}]}, \"reply\": \"Magenta and green swap homes simultaneously.\"}",
+      "elapsed_sec": 8.356,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_03",
+      "prompt": "magenta to green home, green to magenta home",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"parallel\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[28.5, 1.9]], \"reason\": \"magenta to green home\", \"robot_ids\": [4, 5, 6, 7], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[-8.7, -5.9]], \"reason\": \"green to magenta home\", \"robot_ids\": [8, 9, 10, 11], \"spread\": true}]}, \"reply\": \"Magenta and green swap homes simultaneously.\"}",
+      "elapsed_sec": 8.854,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_04",
+      "prompt": "send all five groups to their home positions",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"parallel\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[-21.9, 9.9]], \"reason\": \"cyan to upper_engine home\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[-8.7, -5.9]], \"reason\": \"magenta to electrical home\", \"robot_ids\": [4, 5, 6, 7], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[28.5, 1.9]], \"reason\": \"green to navigation home\", \"robot_ids\": [8, 9, 10, 11], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"orange to storage home\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[17.6, 10.7]], \"reason\": \"yellow to weapons home\", \"robot_ids\": [16, 17, 18, 19], \"spread\": true}]}, \"reply\": \"Sending all five groups to their home positions simultaneously.\"}",
+      "elapsed_sec": 13.428,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_04",
+      "prompt": "send all five groups to their home positions",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"parallel\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[-21.9, 9.9]], \"reason\": \"cyan to upper_engine home\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[-8.7, -5.9]], \"reason\": \"magenta to electrical home\", \"robot_ids\": [4, 5, 6, 7], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[28.5, 1.9]], \"reason\": \"green to navigation home\", \"robot_ids\": [8, 9, 10, 11], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"orange to storage home\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[17.6, 10.7]], \"reason\": \"yellow to weapons home\", \"robot_ids\": [16, 17, 18, 19], \"spread\": true}]}, \"reply\": \"Sending all five groups to their home positions simultaneously.\"}",
+      "elapsed_sec": 13.24,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_04",
+      "prompt": "send all five groups to their home positions",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"parallel\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[-21.9, 9.9]], \"reason\": \"cyan to upper_engine home\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[-8.7, -5.9]], \"reason\": \"magenta to electrical home\", \"robot_ids\": [4, 5, 6, 7], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[28.5, 1.9]], \"reason\": \"green to navigation home\", \"robot_ids\": [8, 9, 10, 11], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"orange to storage home\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[17.6, 10.7]], \"reason\": \"yellow to weapons home\", \"robot_ids\": [16, 17, 18, 19], \"spread\": true}]}, \"reply\": \"Sending all five groups to their home positions simultaneously.\"}",
+      "elapsed_sec": 12.878,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_04",
+      "prompt": "send all five groups to their home positions",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"parallel\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[-21.9, 9.9]], \"reason\": \"cyan to upper_engine home\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[-8.7, -5.9]], \"reason\": \"magenta to electrical home\", \"robot_ids\": [4, 5, 6, 7], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[28.5, 1.9]], \"reason\": \"green to navigation home\", \"robot_ids\": [8, 9, 10, 11], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"orange to storage home\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[17.6, 10.7]], \"reason\": \"yellow to weapons home\", \"robot_ids\": [16, 17, 18, 19], \"spread\": true}]}, \"reply\": \"Sending all five groups to their home positions simultaneously.\"}",
+      "elapsed_sec": 13.228,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "parallel_04",
+      "prompt": "send all five groups to their home positions",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"parallel\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[-21.9, 9.9]], \"reason\": \"cyan home\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[-8.7, -5.9]], \"reason\": \"magenta home\", \"robot_ids\": [4, 5, 6, 7], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[28.5, 1.9]], \"reason\": \"green home\", \"robot_ids\": [8, 9, 10, 11], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"orange home\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[17.6, 10.7]], \"reason\": \"yellow home\", \"robot_ids\": [16, 17, 18, 19], \"spread\": true}]}, \"reply\": \"Sending all five groups to their home positions simultaneously.\"}",
+      "elapsed_sec": 12.729,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "sequence_01",
+      "prompt": "cyan go to cafeteria, then form a wedge",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"sequence\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, {\"action\": \"formation\", \"follower_ns\": [\"robot_1\", \"robot_2\", \"robot_3\"], \"formation_id\": \"cyan_wedge\", \"leader_ns\": \"robot_0\", \"offsets_x\": [-1.0, -1.0, -2.0], \"offsets_y\": [0.6, -0.6, 0.0], \"reason\": \"wedge formation\"}]}, \"reply\": \"Cyan moves to cafeteria, then forms a wedge.\"}",
+      "elapsed_sec": 13.751,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "sequence_01",
+      "prompt": "cyan go to cafeteria, then form a wedge",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"sequence\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, {\"action\": \"formation\", \"follower_ns\": [\"robot_1\", \"robot_2\", \"robot_3\"], \"formation_id\": \"cyan_wedge\", \"leader_ns\": \"robot_0\", \"offsets_x\": [-1.0, -1.0, -2.0], \"offsets_y\": [0.6, -0.6, 0.0], \"reason\": \"wedge formation\"}]}, \"reply\": \"Cyan moves to cafeteria, then forms a wedge.\"}",
+      "elapsed_sec": 30.67,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "sequence_01",
+      "prompt": "cyan go to cafeteria, then form a wedge",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"sequence\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, {\"action\": \"formation\", \"follower_ns\": [\"robot_1\", \"robot_2\", \"robot_3\"], \"formation_id\": \"cyan_wedge\", \"leader_ns\": \"robot_0\", \"offsets_x\": [-1.0, -1.0, -2.0], \"offsets_y\": [0.6, -0.6, 0.0], \"reason\": \"wedge formation\"}]}, \"reply\": \"Cyan moves to cafeteria, then forms a wedge.\"}",
+      "elapsed_sec": 11.698,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "sequence_01",
+      "prompt": "cyan go to cafeteria, then form a wedge",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"sequence\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria (cluster)\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, {\"action\": \"formation\", \"follower_ns\": [\"robot_1\", \"robot_2\", \"robot_3\"], \"formation_id\": \"cyan_wedge\", \"leader_ns\": \"robot_0\", \"offsets_x\": [-1.0, -1.0, -2.0], \"offsets_y\": [0.6, -0.6, 0.0], \"reason\": \"wedge formation\"}]}, \"reply\": \"Cyan moves to cafeteria in cluster mode, then forms a wedge.\"}",
+      "elapsed_sec": 18.834,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "sequence_01",
+      "prompt": "cyan go to cafeteria, then form a wedge",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"sequence\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, {\"action\": \"formation\", \"follower_ns\": [\"robot_1\", \"robot_2\", \"robot_3\"], \"formation_id\": \"cyan_wedge\", \"leader_ns\": \"robot_0\", \"offsets_x\": [-1.0, -1.0, -2.0], \"offsets_y\": [0.6, -0.6, 0.0], \"reason\": \"wedge formation\"}]}, \"reply\": \"Cyan moves to cafeteria, then forms a wedge.\"}",
+      "elapsed_sec": 16.922,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "sequence_02",
+      "prompt": "move orange to cafeteria, then send them to storage",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"sequence\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"orange to cafeteria\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"orange to storage\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}]}, \"reply\": \"Moving orange to cafeteria first, then to storage.\"}",
+      "elapsed_sec": 10.978,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "sequence_02",
+      "prompt": "move orange to cafeteria, then send them to storage",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"sequence\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"orange to cafeteria\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"orange from cafeteria to storage\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}]}, \"reply\": \"Orange moves to cafeteria first, then proceeds to storage.\"}",
+      "elapsed_sec": 11.414,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "sequence_02",
+      "prompt": "move orange to cafeteria, then send them to storage",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"sequence\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"orange to cafeteria\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"orange to storage\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}]}, \"reply\": \"Orange moves to cafeteria first, then proceeds to storage.\"}",
+      "elapsed_sec": 7.619,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "sequence_02",
+      "prompt": "move orange to cafeteria, then send them to storage",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"sequence\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"orange to cafeteria\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"orange to storage\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}]}, \"reply\": \"Moving orange robots to cafeteria first, then to storage.\"}",
+      "elapsed_sec": 6.454,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "sequence_02",
+      "prompt": "move orange to cafeteria, then send them to storage",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"sequence\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"orange to cafeteria\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[0.6, -10.9]], \"reason\": \"orange to storage\", \"robot_ids\": [12, 13, 14, 15], \"spread\": true}]}, \"reply\": \"Orange moves to cafeteria first, then proceeds to storage.\"}",
+      "elapsed_sec": 7.365,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "sequence_03",
+      "prompt": "cyan and magenta to cafeteria, then cyan forms a line while magenta goes home",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"sequence\", \"steps\": [{\"action\": \"parallel\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"magenta to cafeteria\", \"robot_ids\": [4, 5, 6, 7], \"spread\": true}]}, {\"action\": \"parallel\", \"steps\": [{\"action\": \"formation\", \"follower_ns\": [\"robot_1\", \"robot_2\", \"robot_3\"], \"formation_id\": \"cyan_line\", \"leader_ns\": \"robot_0\", \"offsets_x\": [-1.5, -3.0, -4.5], \"offsets_y\": [0.0, 0.0, 0.0], \"reason\": \"cyan forms line at cafeteria\"}, {\"action\": \"mapf\", \"goals\": [[-8.7, -5.9]], \"reason\": \"magenta goes home\", \"robot_ids\": [4, 5, 6, 7], \"spread\": true}]}]}, \"reply\": \"Cyan and magenta move to cafeteria together; then cyan forms a line while magenta returns home.\"}",
+      "elapsed_sec": 19.35,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "sequence_03",
+      "prompt": "cyan and magenta to cafeteria, then cyan forms a line while magenta goes home",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"sequence\", \"steps\": [{\"action\": \"parallel\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"magenta to cafeteria\", \"robot_ids\": [4, 5, 6, 7], \"spread\": true}]}, {\"action\": \"parallel\", \"steps\": [{\"action\": \"formation\", \"follower_ns\": [\"robot_1\", \"robot_2\", \"robot_3\"], \"formation_id\": \"cyan_line\", \"leader_ns\": \"robot_0\", \"offsets_x\": [-1.5, -3.0, -4.5], \"offsets_y\": [0.0, 0.0, 0.0], \"reason\": \"cyan forms line at cafeteria\"}, {\"action\": \"mapf\", \"goals\": [[-8.7, -5.9]], \"reason\": \"magenta goes home\", \"robot_ids\": [4, 5, 6, 7], \"spread\": true}]}]}, \"reply\": \"Cyan and magenta move to cafeteria together, then cyan forms a line while magenta returns home.\"}",
+      "elapsed_sec": 15.791,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "sequence_03",
+      "prompt": "cyan and magenta to cafeteria, then cyan forms a line while magenta goes home",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+      ],
+      "reply": "",
+      "raw": "{\"plan\": {\"action\": \"sequence\", \"steps\": [{\"action\": \"parallel\", \"steps\": [{\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"cyan to cafeteria\", \"robot_ids\": [0, 1, 2, 3], \"spread\": true}, {\"action\": \"mapf\", \"goals\": [[2.7, 10.1]], \"reason\": \"magenta to cafeteria\", \"robot_ids\": [4, 5, 6, 7], \"spread\": true}]}, {\"action\": \"parallel\", \"steps\": [{\"action\": \"formation\", \"follower_ns\": [\"robot_1\", \"robot_2\", \"robot_3\"], \"formation_id\": \"cyan_line\", \"leader_ns\": \"robot_0\", \"offsets_x\": [-1.5, -3.0, -4.5], \"offsets_y\": [0.0, 0.0, 0.0], \"reason\": \"cyan forms line at cafeteria\"}, {\"action\": \"mapf\", \"goals\": [[-8.7, -5.9]], \"reason\": \"magenta home\", \"robot_ids\": [4, 5, 6, 7], \"spread\": true}]}]}, \"reply\": \"Cyan and magenta move to cafeteria together, then cyan forms a line while magenta returns home.\"}",
+      "elapsed_sec": 16.299,
+      "parse_error": "plan.type='' invalid. Expected: ['disband', 'formation', 'idle', 'mapf', 'parallel', 'sequence']"
+    },
+    {
+      "id": "sequence_03",
+      "prompt": "cyan and magenta to cafeteria, then cyan forms a line while magenta goes home",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Response payload is not completed: <TransferEncodingError: 400, message='Not enough data to satisfy transfer length header.'>"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 12.342,
+      "parse_error": "Response payload is not completed: <TransferEncodingError: 400, message='Not enough data to satisfy transfer length header.'>"
+    },
+    {
+      "id": "sequence_03",
+      "prompt": "cyan and magenta to cafeteria, then cyan forms a line while magenta goes home",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.002,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "sequence_04",
+      "prompt": "move green to cafeteria, after that to navigation, then stop",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "sequence_04",
+      "prompt": "move green to cafeteria, after that to navigation, then stop",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "sequence_04",
+      "prompt": "move green to cafeteria, after that to navigation, then stop",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "sequence_04",
+      "prompt": "move green to cafeteria, after that to navigation, then stop",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "sequence_04",
+      "prompt": "move green to cafeteria, after that to navigation, then stop",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_01",
+      "prompt": "magenta form a line",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_01",
+      "prompt": "magenta form a line",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_01",
+      "prompt": "magenta form a line",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_01",
+      "prompt": "magenta form a line",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_01",
+      "prompt": "magenta form a line",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_02",
+      "prompt": "orange make a triangle formation",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_02",
+      "prompt": "orange make a triangle formation",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_02",
+      "prompt": "orange make a triangle formation",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_02",
+      "prompt": "orange make a triangle formation",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_02",
+      "prompt": "orange make a triangle formation",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_03",
+      "prompt": "cyan form a wedge",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_03",
+      "prompt": "cyan form a wedge",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_03",
+      "prompt": "cyan form a wedge",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_03",
+      "prompt": "cyan form a wedge",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_03",
+      "prompt": "cyan form a wedge",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_04",
+      "prompt": "green form an abreast line",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_04",
+      "prompt": "green form an abreast line",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_04",
+      "prompt": "green form an abreast line",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_04",
+      "prompt": "green form an abreast line",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_04",
+      "prompt": "green form an abreast line",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_05",
+      "prompt": "form a line with orange, leader should be robot_15",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_05",
+      "prompt": "form a line with orange, leader should be robot_15",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_05",
+      "prompt": "form a line with orange, leader should be robot_15",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_05",
+      "prompt": "form a line with orange, leader should be robot_15",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_create_05",
+      "prompt": "form a line with orange, leader should be robot_15",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_move_01",
+      "prompt": "send the magenta line to storage",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_move_01",
+      "prompt": "send the magenta line to storage",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_move_01",
+      "prompt": "send the magenta line to storage",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_move_01",
+      "prompt": "send the magenta line to storage",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_move_01",
+      "prompt": "send the magenta line to storage",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_move_02",
+      "prompt": "move cyan wedge to reactor",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_move_02",
+      "prompt": "move cyan wedge to reactor",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_move_02",
+      "prompt": "move cyan wedge to reactor",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_move_02",
+      "prompt": "move cyan wedge to reactor",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_move_02",
+      "prompt": "move cyan wedge to reactor",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_move_03",
+      "prompt": "magenta line, head to cafeteria",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_move_03",
+      "prompt": "magenta line, head to cafeteria",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_move_03",
+      "prompt": "magenta line, head to cafeteria",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_move_03",
+      "prompt": "magenta line, head to cafeteria",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_move_03",
+      "prompt": "magenta line, head to cafeteria",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "disband_01",
+      "prompt": "disband the magenta line",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "disband_01",
+      "prompt": "disband the magenta line",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "disband_01",
+      "prompt": "disband the magenta line",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "disband_01",
+      "prompt": "disband the magenta line",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "disband_01",
+      "prompt": "disband the magenta line",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "disband_02",
+      "prompt": "break the magenta formation and send all four to storage",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "disband_02",
+      "prompt": "break the magenta formation and send all four to storage",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "disband_02",
+      "prompt": "break the magenta formation and send all four to storage",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "disband_02",
+      "prompt": "break the magenta formation and send all four to storage",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "disband_02",
+      "prompt": "break the magenta formation and send all four to storage",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "disband_03",
+      "prompt": "cancel the cyan wedge, then split: robot_0 to cafeteria, rest to storage",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "disband_03",
+      "prompt": "cancel the cyan wedge, then split: robot_0 to cafeteria, rest to storage",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "disband_03",
+      "prompt": "cancel the cyan wedge, then split: robot_0 to cafeteria, rest to storage",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "disband_03",
+      "prompt": "cancel the cyan wedge, then split: robot_0 to cafeteria, rest to storage",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "disband_03",
+      "prompt": "cancel the cyan wedge, then split: robot_0 to cafeteria, rest to storage",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_complex_01",
+      "prompt": "orange make a triangle and move to cafeteria",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_complex_01",
+      "prompt": "orange make a triangle and move to cafeteria",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_complex_01",
+      "prompt": "orange make a triangle and move to cafeteria",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_complex_01",
+      "prompt": "orange make a triangle and move to cafeteria",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_complex_01",
+      "prompt": "orange make a triangle and move to cafeteria",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_complex_02",
+      "prompt": "yellow form a wedge at cafeteria",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_complex_02",
+      "prompt": "yellow form a wedge at cafeteria",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_complex_02",
+      "prompt": "yellow form a wedge at cafeteria",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_complex_02",
+      "prompt": "yellow form a wedge at cafeteria",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_complex_02",
+      "prompt": "yellow form a wedge at cafeteria",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_complex_03",
+      "prompt": "cyan go to cafeteria, form a wedge, then go to reactor",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_complex_03",
+      "prompt": "cyan go to cafeteria, form a wedge, then go to reactor",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_complex_03",
+      "prompt": "cyan go to cafeteria, form a wedge, then go to reactor",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_complex_03",
+      "prompt": "cyan go to cafeteria, form a wedge, then go to reactor",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "formation_complex_03",
+      "prompt": "cyan go to cafeteria, form a wedge, then go to reactor",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "idle_01",
+      "prompt": "stop",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "idle_01",
+      "prompt": "stop",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "idle_01",
+      "prompt": "stop",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "idle_01",
+      "prompt": "stop",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "idle_01",
+      "prompt": "stop",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "idle_02",
+      "prompt": "halt everything",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "idle_02",
+      "prompt": "halt everything",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "idle_02",
+      "prompt": "halt everything",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "idle_02",
+      "prompt": "halt everything",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "idle_02",
+      "prompt": "halt everything",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "idle_03",
+      "prompt": "cancel all missions",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "idle_03",
+      "prompt": "cancel all missions",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "idle_03",
+      "prompt": "cancel all missions",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "idle_03",
+      "prompt": "cancel all missions",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "idle_03",
+      "prompt": "cancel all missions",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_01",
+      "prompt": "orange make a triangle formation",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_01",
+      "prompt": "orange make a triangle formation",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_01",
+      "prompt": "orange make a triangle formation",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_01",
+      "prompt": "orange make a triangle formation",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_01",
+      "prompt": "orange make a triangle formation",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_02",
+      "prompt": "what are the robots doing",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_02",
+      "prompt": "what are the robots doing",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_02",
+      "prompt": "what are the robots doing",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_02",
+      "prompt": "what are the robots doing",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_02",
+      "prompt": "what are the robots doing",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_03",
+      "prompt": "where is robot_4",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_03",
+      "prompt": "where is robot_4",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_03",
+      "prompt": "where is robot_4",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_03",
+      "prompt": "where is robot_4",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_03",
+      "prompt": "where is robot_4",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_04",
+      "prompt": "form a triangle",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_04",
+      "prompt": "form a triangle",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_04",
+      "prompt": "form a triangle",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_04",
+      "prompt": "form a triangle",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "escalate_04",
+      "prompt": "form a triangle",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_01",
+      "prompt": "send all robots home",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_01",
+      "prompt": "send all robots home",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_01",
+      "prompt": "send all robots home",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_01",
+      "prompt": "send all robots home",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_01",
+      "prompt": "send all robots home",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.002,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_02",
+      "prompt": "orange make a triangle formation",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_02",
+      "prompt": "orange make a triangle formation",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_02",
+      "prompt": "orange make a triangle formation",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_02",
+      "prompt": "orange make a triangle formation",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_02",
+      "prompt": "orange make a triangle formation",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_03",
+      "prompt": "put magenta right behind the cyan wedge leader",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_03",
+      "prompt": "put magenta right behind the cyan wedge leader",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_03",
+      "prompt": "put magenta right behind the cyan wedge leader",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_03",
+      "prompt": "put magenta right behind the cyan wedge leader",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_03",
+      "prompt": "put magenta right behind the cyan wedge leader",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_04",
+      "prompt": "move the formation to storage",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_04",
+      "prompt": "move the formation to storage",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_04",
+      "prompt": "move the formation to storage",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_04",
+      "prompt": "move the formation to storage",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.002,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_04",
+      "prompt": "move the formation to storage",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_05",
+      "prompt": "green and yellow go to cafeteria, then form separate wedges",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_05",
+      "prompt": "green and yellow go to cafeteria, then form separate wedges",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_05",
+      "prompt": "green and yellow go to cafeteria, then form separate wedges",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_05",
+      "prompt": "green and yellow go to cafeteria, then form separate wedges",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.002,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_05",
+      "prompt": "green and yellow go to cafeteria, then form separate wedges",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.002,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_06",
+      "prompt": "repeat the last command",
+      "repeat_idx": 0,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_06",
+      "prompt": "repeat the last command",
+      "repeat_idx": 1,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_06",
+      "prompt": "repeat the last command",
+      "repeat_idx": 2,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_06",
+      "prompt": "repeat the last command",
+      "repeat_idx": 3,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    },
+    {
+      "id": "edge_06",
+      "prompt": "repeat the last command",
+      "repeat_idx": 4,
+      "passed": false,
+      "errors": [
+        "parse/call error: Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+      ],
+      "reply": "",
+      "raw": "",
+      "elapsed_sec": 0.001,
+      "parse_error": "Cannot connect to host localhost:11434 ssl:default [Connect call failed ('127.0.0.1', 11434)]"
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "experiment": "E2 — grounding and constraint ablation (schema-constrained decoding on/off; symbolic-vs-raw grounding x3)",
+  "git_commit": "08a3d0d7847ca2e6851fed5a848bd97067753f86",
+  "git_commit_note": "HEAD at sweep time. The ablation code itself (grounding parameter in common/user_prompt.py; --grounding / --schema-constrained / --print-prompt-hash in benchmark_ch3.py) was uncommitted working-tree state during the run, exactly as E1/E1b's prompt fix was. See the git_commit discrepancy note below.",
+  "started_at": "2026-07-27T16:59:02Z",
+  "finished_at": "2026-07-27T19:50:48Z",
+  "wall_time_min": 172,
+  "benchmark": "iros_llm_orchestrator/benchmark_ch3.py",
+  "driver": "paper/results/raw/e2_driver.sh",
+  "summary_builder": "paper/results/build_e2_summary.py",
+  "test_case_count": 44,
+  "repeat": 5,
+  "timeout_sec": 180,
+  "llm_max_tokens": 2048,
+  "llm_num_ctx": 32768,
+  "llm_temperature": 0.1,
+  "map": "amongus",
+  "models": [
+    "qwen3.5:4b",
+    "qwen3.5-9b:latest"
+  ],
+  "backend": "ollama (local, host network via docker-compose network_mode: host)",
+  "gpu": "NVIDIA GeForce RTX 5060 Ti, 16GB VRAM",
+  "summary_file": "e2_summary.json",
+  "factors": {
+    "schema_constrained": {
+      "off": "E1b baseline — llm.stream() called without response_format",
+      "on": "PLAN_RESPONSE_SCHEMA passed as response_format, reaching Ollama's `format` field"
+    },
+    "grounding": {
+      "full": "map prose + bounds + named locations with aliases + robot groups with aliases + formation zones + heuristics (3336 chars for amongus)",
+      "locations_only": "full minus the heuristics block (1795 chars)",
+      "coords_only": "locations_only minus map prose, location aliases, group aliases, and formation zones (1024 chars)"
+    }
+  },
+  "conditions_run": [
+    "schema_on x {qwen3.5:4b, qwen3.5-9b:latest}",
+    "grounding_locations_only x {qwen3.5:4b, qwen3.5-9b:latest}",
+    "grounding_coords_only x {qwen3.5:4b, qwen3.5-9b:latest}"
+  ],
+  "conditions_reused": [
+    "baseline (schema off, grounding full) = e1b_qwen3.5-4b.json / e1b_qwen3.5-9b.json"
+  ],
+  "prompt_fingerprints": {
+    "full": "42d660fe681eaa3857c239bbe8d8e97043ae15c07ef8fe088a202e49048c37ed",
+    "locations_only": "be3947ad3368f2b446ef3d38ace34cc149df297bfe56b6d222de4a19420c6c1a",
+    "coords_only": "87d5e4c1486b94216a5c4ca3610b5fb92a95031d51205349303b1ded143e1c01"
+  },
+  "notes": [
+    "Baseline reuse was gated, not assumed. Before editing anything, a SHA-256 over all 44 fully-built prompts was captured from the pre-ablation code (42d660fe...8c37ed). The driver recomputes it as a preflight and aborts the sweep on any drift; it matched, so the E1b runs for both models are used directly as the schema-off / grounding-full arm rather than re-run. `benchmark_ch3.py --print-prompt-hash` reproduces the check.",
+
+    "grounding=locations_only drops ONLY the heuristics block. Formation zones are retained: they are named points with coordinates and a radius, i.e. facts of the same kind as named_locations, whereas heuristics are advisory prose. grounding=coords_only additionally drops the map prose description, location aliases, group aliases, and formation zones, leaving bounds + named locations + robot groups (ids/home/spawn). The three variants are strictly nested: 3336 -> 1795 -> 1024 chars of map context.",
+
+    "Deliberate protocol deviation from E1b: --timeout raised 90 -> 180 s. E1b recorded 0/220 timeouts per model at 90 s, so a higher ceiling could not have altered its numbers, and reusing it as the baseline stays valid. Constrained decoding is measurably slower (a cold constrained call was observed at 57 s), and leaving the ceiling at 90 risked manufacturing timeout-failures in the constrained arm only, which would have read as 'constrained decoding is worse' when it was really 'the clock ran out'. All six runs recorded 0 timeouts, so the raise was precautionary and did not bind.",
+
+    "MAIN RESULT — schema-constrained decoding reverses sign between the two models of the same family. qwen3.5:4b improves (pass@1 68.2 -> 72.7%, pass@5 88.6 -> 90.9%) and its unparseable-JSON failures drop 16 -> 1, which is the mechanism the feature was added for. qwen3.5-9b collapses (pass@1 77.3 -> 11.4%, pass@5 90.9 -> 18.2%). The collapse is deterministic, not sampling noise: pass@5 recovers only to 18.2%, and per-category the model scores 0.0/0.0 on eight of twelve categories (mapf_basic, mapf_explicit, mapf_spread, parallel, sequence, formation_create, formation_move, formation_complex) while scoring 100/100 on idle. Under the schema it emits an idle plan almost regardless of the request; the only categories that pass are those whose correct answer is already idle. Its wrong_structure count goes 11 -> 131 and wrong_robot_ids 0 -> 32.",
+
+    "The collapse was caught on a 3-case smoke test before the sweep and deliberately left unfixed, since tuning it away would have been tuning the experiment. Raw output at N=1 was {\"plan\":{\"reason\":\"cyan to cafeteria\",\"type\":\"idle\"},\"reply\":\"...Sending them to cafeteria.\"} — the reply field states the correct intent while the plan degenerates to the simplest oneOf branch. An initial hypothesis that Ollama's grammar forces alphabetical key order was tested and rejected: qwen3.5:4b under the identical schema emits natural key order (type first) and correct mapf nodes, so the grammar permits both orderings and the behaviour is specific to qwen3.5-9b.",
+
+    "Scope of the schema claim. This is one model family, one backend (Ollama / llama.cpp grammar compilation), and one schema whose plan node is a recursive six-branch oneOf. The data support 'this schema on this stack destroys qwen3.5-9b while helping qwen3.5:4b'; they do not support a general claim that constrained decoding harms planning. The paper text states it at that scope.",
+
+    "Symbolic grounding matters for the small model and not the large one. qwen3.5:4b loses 9.1 points of pass@5 going from full to coords_only (88.6 -> 79.5%), with wrong_structure rising 17 -> 24 and wrong_robot_ids 0 -> 3. qwen3.5-9b loses nothing (90.9% pass@5 in all three grounding conditions) and in fact gains 9.1 points of pass@1 in both reduced conditions (77.3 -> 86.4%), i.e. the heuristics block is a net negative for it.",
+
+    "qwen3.5-9b's locations_only and coords_only conditions produce identical aggregates (86.4% pass@1, 90.9% pass@5). These are genuinely different prompts (distinct fingerprints, 1795 vs 1024 chars) and the per-category breakdowns do differ — mapf_explicit 50.0/100.0 vs 100.0/100.0 and formation_complex 100.0/100.0 vs 66.7/100.0. The aggregate coincidence is therefore a coincidence at 44 cases, not evidence that the two conditions are equivalent, and is not read as an effect.",
+
+    "The E1b summary builder was never committed, so paper/results/build_e2_summary.py reconstructs its failure-mode taxonomy and asserts the reconstruction reproduces the committed e1b_summary.json exactly (all five models, all of pass_at_1/pass_at_5/by_category/failure_modes_all_reps/timeouts/total_passed_calls/cases_with_any_failure) before writing any E2 output. It refuses to write if the check fails, because non-matching taxonomies would make E2's failure-mode counts silently incomparable to E1's table. Two non-obvious rules of the original had to be recovered: 'no staging mapf found' is counted as wrong_formation_fields rather than wrong_structure, and classification scans every error a validator returned in priority order rather than only the first (a case can fail with both a generic structural complaint and a specific formation-field one, and E1b attributed those to the specific one).",
+
+    "DISCREPANCY (pre-existing, not introduced here): e1b_manifest.json and e1_manifest.json both record git_commit b31fdbd48d454b2ae185cd3bfac174b5f1128f93, but the single-leading-system-message fix those runs depended on was committed later, as 44047e4 dated 2026-07-20T12:21:52+03:00 — after E1b finished (2026-07-19T17:49:48Z). Both experiments therefore ran with that fix applied but uncommitted, and their recorded commit does not describe the code that actually ran. This does not invalidate them, and the prompt-fingerprint check above independently confirms the current tree reproduces E1b's prompts byte-for-byte. E2 has the same property and it is recorded in git_commit_note rather than left implicit.",
+
+    "DISCREPANCY: main.tex Sec. E2 states the harness 'exercises only the plain and schema-constrained paths'. It did not — _call_llm() never passed response_format, so E1 and E1b ran fully unconstrained. E2's schema_on arm is the first use of json_schema in this harness.",
+
+    "DISCREPANCY: main.tex Sec. E2 states 'We take the first option' regarding routing the harness through the chat server to compare tool calling against constrained decoding. The project takes the second option — tool calling is deferred to E3. Rationale is recorded in paper/E2_agent_task.md under 'Scope decisions': check_occupancy requires a live LaserScan, verify_plan_execution_state is vacuous offline, list_tasks/reset_task are irrelevant to all 44 cases, and get_robot_position/get_positions return data already injected into the prompt — leaving only two pure geometry helpers, which would have measured the cost of the tool path against a fraction of its benefit.",
+
+    "DISCREPANCY: config/orchestrator.yaml ships tool_calling_enabled: true together with structured_output_enabled: true, while the comment directly above them states they are mutually exclusive and that tool calling suppresses schema constraint. chat_server.py:391 only logs a warning. Given E2's finding that the schema is catastrophic for qwen3.5-9b and beneficial for qwen3.5:4b, which of the two flags actually wins at runtime is not a cosmetic question.",
+
+    "DISCREPANCY: e1_manifest.json notes that 'qwen3.5-9b variants do not advertise tools capability in /api/tags' and implies the family lacks tool support. A live check shows qwen3.5:4b does advertise it (vision, completion, tools, thinking); only qwen3.5-9b:latest does not (completion, vision). The blocker for a tool-calling arm was never model capability.",
+
+    "Not measured in E2, contrary to what the placeholder \\pending{} text promised: tool calling (deferred to E3, above), live pose context on/off, goal auto-spread, and context budget. Reasons for each are recorded in paper/E2_agent_task.md under 'Scope decisions'. The drafted results subsection states this explicitly rather than letting the omission pass silently."
+  ]
+}

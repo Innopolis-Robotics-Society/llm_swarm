@@ -1,0 +1,268 @@
+{
+  "analysis": "E2 schema ladder on qwen3.5-9b",
+  "model": "qwen3.5-9b:latest",
+  "scoring_rule": "Every variant is scored ONLY on cases whose reference answer it can express, and S1 / schema-off are recomputed on that same subset. These numbers are NOT comparable to the full-44 figures in Sec. 6.2 and must never be placed in the same column.",
+  "variants": {
+    "S1": "six-branch recursive oneOf (shipped PLAN_RESPONSE_SCHEMA)",
+    "S2": "four-branch oneOf, no $defs/$ref, no recursion",
+    "S3": "single branch inlined, no oneOf, type pinned by const",
+    "S1_noidle": "S1 minus the idle branch, still recursive"
+  },
+  "subsets": {
+    "mapf_expressible": [
+      "edge_03",
+      "edge_04",
+      "formation_move_01",
+      "formation_move_02",
+      "mapf_basic_01",
+      "mapf_basic_02",
+      "mapf_basic_03",
+      "mapf_basic_04",
+      "mapf_basic_05",
+      "mapf_explicit_01",
+      "mapf_explicit_02",
+      "mapf_spread_01",
+      "mapf_spread_02"
+    ],
+    "idle_expressible": [
+      "edge_02",
+      "edge_06",
+      "escalate_01",
+      "escalate_02",
+      "escalate_03",
+      "escalate_04",
+      "idle_01",
+      "idle_02",
+      "idle_03"
+    ],
+    "disband_expressible": [
+      "disband_01"
+    ],
+    "s2_s3_expressible": [
+      "disband_01",
+      "edge_02",
+      "edge_03",
+      "edge_04",
+      "edge_06",
+      "escalate_01",
+      "escalate_02",
+      "escalate_03",
+      "escalate_04",
+      "formation_move_01",
+      "formation_move_02",
+      "idle_01",
+      "idle_02",
+      "idle_03",
+      "mapf_basic_01",
+      "mapf_basic_02",
+      "mapf_basic_03",
+      "mapf_basic_04",
+      "mapf_basic_05",
+      "mapf_explicit_01",
+      "mapf_explicit_02",
+      "mapf_spread_01",
+      "mapf_spread_02"
+    ]
+  },
+  "subset_sizes": {
+    "mapf_expressible": 13,
+    "idle_expressible": 9,
+    "disband_expressible": 1,
+    "s2_s3_expressible": 23,
+    "excluded_sequence": 16,
+    "excluded_parallel": 5,
+    "full_suite": 44
+  },
+  "comparisons": {
+    "A_s2_s3_expressible": {
+      "subset": "s2_s3_expressible",
+      "n_cases": 23,
+      "note": "sequence- and parallel-answer cases are excluded because S2 and S3 cannot express them at all.",
+      "cells": {
+        "schema_off_baseline": {
+          "n_cases": 23,
+          "n_calls": 115,
+          "pass_at_1": {
+            "count": 17,
+            "of": 23,
+            "pct": 73.9
+          },
+          "pass_at_5": {
+            "count": 19,
+            "of": 23,
+            "pct": 82.6
+          },
+          "emitted_top_level_types": {
+            "mapf": 58,
+            "idle": 41,
+            "<unparseable>": 5,
+            "disband": 5,
+            "sequence": 3,
+            "formation": 2,
+            "parallel": 1
+          }
+        },
+        "S1": {
+          "n_cases": 23,
+          "n_calls": 115,
+          "pass_at_1": {
+            "count": 5,
+            "of": 23,
+            "pct": 21.7
+          },
+          "pass_at_5": {
+            "count": 7,
+            "of": 23,
+            "pct": 30.4
+          },
+          "emitted_top_level_types": {
+            "idle": 102,
+            "sequence": 9,
+            "disband": 2,
+            "parallel": 1,
+            "<unparseable>": 1
+          }
+        },
+        "S2": {
+          "n_cases": 23,
+          "n_calls": 115,
+          "pass_at_1": {
+            "count": 6,
+            "of": 23,
+            "pct": 26.1
+          },
+          "pass_at_5": {
+            "count": 8,
+            "of": 23,
+            "pct": 34.8
+          },
+          "emitted_top_level_types": {
+            "idle": 112,
+            "disband": 3
+          }
+        },
+        "S3": {
+          "n_cases": 23,
+          "n_calls": 115,
+          "pass_at_1": {
+            "count": 18,
+            "of": 23,
+            "pct": 78.3
+          },
+          "pass_at_5": {
+            "count": 20,
+            "of": 23,
+            "pct": 87.0
+          },
+          "emitted_top_level_types": {
+            "mapf": 65,
+            "idle": 45,
+            "disband": 5
+          }
+        }
+      }
+    },
+    "B_mapf_expressible": {
+      "subset": "mapf_expressible",
+      "n_cases": 13,
+      "note": "The mapf branch is the one qwen3.5-9b never emits at top level under S1. This subset asks under which schema it becomes reachable again.",
+      "cells": {
+        "schema_off_baseline": {
+          "n_cases": 13,
+          "n_calls": 65,
+          "pass_at_1": {
+            "count": 10,
+            "of": 13,
+            "pct": 76.9
+          },
+          "pass_at_5": {
+            "count": 11,
+            "of": 13,
+            "pct": 84.6
+          },
+          "emitted_top_level_types": {
+            "mapf": 58,
+            "<unparseable>": 5,
+            "parallel": 1,
+            "sequence": 1
+          }
+        },
+        "S1": {
+          "n_cases": 13,
+          "n_calls": 65,
+          "pass_at_1": {
+            "count": 0,
+            "of": 13,
+            "pct": 0.0
+          },
+          "pass_at_5": {
+            "count": 0,
+            "of": 13,
+            "pct": 0.0
+          },
+          "emitted_top_level_types": {
+            "idle": 55,
+            "sequence": 8,
+            "parallel": 1,
+            "<unparseable>": 1
+          }
+        },
+        "S2": {
+          "n_cases": 13,
+          "n_calls": 65,
+          "pass_at_1": {
+            "count": 0,
+            "of": 13,
+            "pct": 0.0
+          },
+          "pass_at_5": {
+            "count": 0,
+            "of": 13,
+            "pct": 0.0
+          },
+          "emitted_top_level_types": {
+            "idle": 64,
+            "disband": 1
+          }
+        },
+        "S3_mapf": {
+          "n_cases": 13,
+          "n_calls": 65,
+          "pass_at_1": {
+            "count": 11,
+            "of": 13,
+            "pct": 84.6
+          },
+          "pass_at_5": {
+            "count": 12,
+            "of": 13,
+            "pct": 92.3
+          },
+          "emitted_top_level_types": {
+            "mapf": 65
+          }
+        },
+        "S1_noidle": {
+          "n_cases": 13,
+          "n_calls": 65,
+          "pass_at_1": {
+            "count": 0,
+            "of": 13,
+            "pct": 0.0
+          },
+          "pass_at_5": {
+            "count": 0,
+            "of": 13,
+            "pct": 0.0
+          },
+          "emitted_top_level_types": {
+            "sequence": 43,
+            "disband": 15,
+            "parallel": 6,
+            "<unparseable>": 1
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,115 @@
+{
+  "probes": {
+    "B1": {
+      "declared_order": [
+        "type",
+        "alpha_first"
+      ],
+      "alphabetical_order": [
+        "alpha_first",
+        "type"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "const": "greeting"
+          },
+          "alpha_first": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "alpha_first"
+        ]
+      },
+      "models": {
+        "qwen3.5:4b": {
+          "key_orders": {
+            "type,alpha_first": 5
+          },
+          "n_declaration_order": 5,
+          "n_alphabetical_order": 0,
+          "verdict": "declaration",
+          "samples": [
+            "{\n  \"type\": \"greeting\",\n  \"alpha_first\": \"Hello there!\"\n}",
+            "{\n  \"type\": \"greeting\",\n  \"alpha_first\": \"Hello!\"\n}"
+          ]
+        },
+        "qwen3.5-9b:latest": {
+          "key_orders": {
+            "alpha_first,type": 5
+          },
+          "n_declaration_order": 0,
+          "n_alphabetical_order": 5,
+          "verdict": "alphabetical",
+          "samples": [
+            "{\"alpha_first\": \"Hello, operator!\", \"type\": \"greeting\"}",
+            "{\"alpha_first\": \"Hello, Operator!\", \"type\": \"greeting\"}"
+          ]
+        }
+      }
+    },
+    "B2": {
+      "declared_order": [
+        "type",
+        "alpha_first",
+        "zulu_last"
+      ],
+      "alphabetical_order": [
+        "alpha_first",
+        "type",
+        "zulu_last"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "const": "greeting"
+          },
+          "alpha_first": {
+            "type": "string"
+          },
+          "zulu_last": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "alpha_first",
+          "zulu_last"
+        ]
+      },
+      "models": {
+        "qwen3.5:4b": {
+          "key_orders": {
+            "<unparseable>": 4,
+            "type,alpha_first,zulu_last": 1
+          },
+          "n_declaration_order": 1,
+          "n_alphabetical_order": 0,
+          "verdict": "declaration",
+          "samples": [
+            "",
+            ""
+          ]
+        },
+        "qwen3.5-9b:latest": {
+          "key_orders": {
+            "<unparseable>": 4,
+            "alpha_first,type,zulu_last": 1
+          },
+          "n_declaration_order": 0,
+          "n_alphabetical_order": 1,
+          "verdict": "alphabetical",
+          "samples": [
+            "",
+            ""
+          ]
+        }
+      }
+    }
+  },
+  "repeat": 5
+}
