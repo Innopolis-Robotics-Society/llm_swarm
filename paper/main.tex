@@ -776,32 +776,6 @@ supervision cycle. We therefore report the confusion matrix rather than a
 scalar, and separately the false-\code{replan} rate on the planner-internal
 warnings the prompt enumerates as self-recovery cases.
 
-\subsection{E3c: Recovery under environmental change}
-\label{sec:e3c}
-
-The repair loops of Sec.~\ref{sec:closedloop} exist for the case where the
-world changes after a plan is made, yet every experiment above holds the
-environment fixed. The dynamic obstacle manager closes this gap directly:
-closing one of the six \textsf{amongus} corridor doors mid-mission invalidates
-a committed route and forces the stack to notice, replan, and---if the goal
-becomes unreachable---escalate.
-
-We script door closures at a fixed mission phase and measure: whether the
-MAPF layer replans without orchestrator involvement (the desired outcome, no
-LLM call); whether the closure instead surfaces as a channel-1 WARN and which
-verdict follows; time from closure to recovered motion; and mission completion
-compared to the undisturbed run. A door closure that makes a task
-\emph{unreachable} is the sharpest available test of escalation: the correct
-behaviour is \code{needs\_help:}, and a confident replan onto an impossible
-goal is a clear failure.
-
-\emph{Caveat.} This experiment requires integration work the others do not.
-The obstacle manager and the zone map server both publish the map with
-transient-local durability and cannot currently coexist; the obstacle manager
-is not wired into the bring-up launches. Composing it means repointing the
-static map server to the raw map topic first. We flag this as a prerequisite
-rather than assuming it away.
-
 \subsection{E4: MAPF backend comparison}
 \label{sec:e4}
 
@@ -1326,8 +1300,6 @@ silently disable the feature for any deployment using structured outputs.
 cost and guard/repair firing counts.}
 
 \pending{E3b --- channel-1 decision confusion matrix and false-replan rate.}
-
-\pending{E3c --- recovery and escalation under mid-mission door closure.}
 
 \pending{E4 --- PBS vs.\ LNS2 across fleet size and clutter.}
 
