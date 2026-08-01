@@ -7,7 +7,11 @@ from rclpy.qos import QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy
 import tf2_ros
 from visualization_msgs.msg import MarkerArray
 
-from iros_llm_swarm_interfaces.msg import Task as TaskMsg, TaskState as TaskStateMsg
+from iros_llm_swarm_interfaces.msg import (
+    Task as TaskMsg,
+    TaskState as TaskStateMsg,
+    TaskStates as TaskStatesMsg,
+)
 from iros_llm_swarm_interfaces.srv import (
     AddTask,
     ListTasks,
@@ -55,6 +59,10 @@ class TaskManagerNode(Node):
         self._tf_listener = tf2_ros.TransformListener(self._tf_buffer, self)
 
         self._marker_pub = self.create_publisher(MarkerArray, "/tasks/markers", _TRANSIENT_LOCAL)
+        # Mission ground truth. TRANSIENT_LOCAL so a late subscriber (RViz, a
+        # recorder started after bring-up) immediately gets the current
+        # snapshot instead of waiting for the next tick.
+        self._state_pub = self.create_publisher(TaskStatesMsg, "/tasks/state", _TRANSIENT_LOCAL)
 
         self.create_service(AddTask, "/tasks/add", self._on_add)
         self.create_service(RemoveTask, "/tasks/remove", self._on_remove)
@@ -129,7 +137,24 @@ class TaskManagerNode(Node):
     # TF poll
     # ------------------------------------------------------------------ #
 
+    def _publish_states(self) -> None:
+        """Publish the full task snapshot on /tasks/state.
+
+        Republished every tick rather than on change: a recording (or a panel)
+        started mid-run must still see the complete state, and mission scoring
+        reads this topic offline from a bag. Cheap at nine tasks and 5 Hz.
+        """
+        msg = TaskStatesMsg()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.header.frame_id = _MAP_FRAME
+        msg.states = [_to_state_msg(inst) for inst in self._instances.values()]
+        self._state_pub.publish(msg)
+
     def _poll(self) -> None:
+        # Publish before the early return: an empty task set is a legitimate
+        # state, and a recording that sees no messages at all is
+        # indistinguishable from a dead node.
+        self._publish_states()
         if not self._instances:
             return
 
