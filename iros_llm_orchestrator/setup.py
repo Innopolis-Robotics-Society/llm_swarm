@@ -28,6 +28,7 @@ setup(
             'user_chat        = iros_llm_orchestrator.user_chat_node:main',
             'chat_server      = iros_llm_orchestrator.chat_server:main',
             'execute_server   = iros_llm_orchestrator.execute_server:main',
+            'mapf_proxy       = iros_llm_orchestrator.mapf_proxy:main',
         ],
     },
 )

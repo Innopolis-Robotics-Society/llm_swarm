@@ -1,9 +1,9 @@
 name: amongus
 description: >
-  "The Skeld" — карта из игры Among Us, 66.6×37.75 м, 14 отсеков, соединённых
-  узкими коридорами. Origin в центре карты (0,0). +X восток, +Y север.
-  Совпадает с каноном Skeld: Реактор на крайнем западе, Навигация на крайнем
-  востоке, Кафетерий — большой северо-центральный хаб.
+  "The Skeld" — Among Us map, 66.6×37.75 m, 14 rooms connected by narrow
+  corridors. Origin at map centre (0,0). +X east, +Y north.
+  Reactor is the westernmost room; Navigation is the easternmost;
+  Cafeteria is the large north-central hub.
 
 bounds:
   x_min: -33.3
@@ -12,18 +12,18 @@ bounds:
   y_max:  18.875
 
 named_locations:
-  # Верхний ряд (y > 8)
+  # Top row (y > 8)
   upper_engine:    [-21.9,   9.9]
   cafeteria:       [  2.7,  10.1]
   weapons:         [ 17.6,  10.7]
-  # Средний ряд (-3 < y < 6)
+  # Middle row (-3 < y < 6)
   reactor:         [-28.4,   0.9]
   security:        [-21.9,   0.8]
   medbay:          [ -9.5,   4.0]
   admin:           [  4.0,   0.0]
   o2:              [ 13.4,   3.4]
   navigation:      [ 29.5,   1.9]
-  # Нижний ряд (y < -3)
+  # Bottom row (y < -3)
   electrical:      [ -8.7,  -5.9]
   shields:         [ 10.4,  -3.7]
   lower_engine:    [-21.9,  -8.4]
@@ -31,9 +31,12 @@ named_locations:
   communications:  [ 17.6,  -9.7]
 
 location_aliases:
-  # English aliases (variants of the canonical room names)
   cafe:                cafeteria
   caf:                 cafeteria
+  main hall:           cafeteria
+  main_hall:           cafeteria
+  central hub:         cafeteria
+  hub:                 cafeteria
   weapons room:        weapons
   med bay:             medbay
   med-bay:             medbay
@@ -46,59 +49,32 @@ location_aliases:
   lower:               lower_engine
   oxygen:              o2
 
-  # Russian aliases (стандартные названия из русской локализации Among Us)
-  кафетерий:           cafeteria
-  кафе:                cafeteria
-  столовая:            cafeteria
-  оружейная:           weapons
-  оружие:              weapons
-  кислород:            o2
-  навигация:           navigation
-  щиты:                shields
-  связь:               communications
-  коммуникации:        communications
-  хранилище:           storage
-  склад:               storage
-  админка:             admin
-  админ:               admin
-  электрика:           electrical
-  медотсек:            medbay
-  медчасть:            medbay
-  безопасность:        security
-  охрана:              security
-  сб:                  security
-  реактор:             reactor
-  верхний двигатель:   upper_engine
-  верхний движок:      upper_engine
-  нижний двигатель:    lower_engine
-  нижний движок:       lower_engine
-
 robot_groups:
   cyan:
     ids: [0, 1, 2, 3]
     home: [-21.9, 9.9]
     description: "cyan robots, based in Upper Engine (top-left)"
-    aliases: ["cyan", "голубые", "циан"]
+    aliases: ["cyan"]
   magenta:
     ids: [4, 5, 6, 7]
     home: [-8.7, -5.9]
     description: "magenta robots, based in Electrical (lower-center-left)"
-    aliases: ["magenta", "розовые", "магента"]
+    aliases: ["magenta"]
   green:
     ids: [8, 9, 10, 11]
     home: [28.5, 1.9]
     description: "green robots, based in Navigation (far east)"
-    aliases: ["green", "зелёные", "зеленые"]
+    aliases: ["green"]
   orange:
     ids: [12, 13, 14, 15]
     home: [0.6, -10.9]
     description: "orange robots, based in Storage (bottom-center)"
-    aliases: ["orange", "оранжевые"]
+    aliases: ["orange"]
   yellow:
     ids: [16, 17, 18, 19]
     home: [17.6, 10.7]
     description: "yellow robots, based in Weapons (top-right)"
-    aliases: ["yellow", "жёлтые", "желтые"]
+    aliases: ["yellow"]
 
 formation_zones:
   - name: cafeteria

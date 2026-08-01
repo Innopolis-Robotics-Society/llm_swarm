@@ -236,9 +236,18 @@ public:
     nav2_ac_ = rclcpp_action::create_client<FollowPath>(
       this, "/" + ns_ + "/follow_path");
 
-    // cmd_vel publisher (FORMATION mode)
+    // cmd_vel publisher
     cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>(
       "/" + ns_ + "/cmd_vel", 10);
+
+    nav2_cmd_sub_ =
+      create_subscription<geometry_msgs::msg::Twist>(
+        "/" + ns_ + "/cmd_vel_nav2",
+        10,
+        [this](const geometry_msgs::msg::Twist::SharedPtr msg)
+        {
+          on_nav2_cmd(msg);
+        });
 
     RCLCPP_INFO(get_logger(), "[%s] path_follower ready  mode=AUTONOMOUS", ns_.c_str());
     publish_status();  // first status announcement
@@ -246,6 +255,20 @@ public:
 
 private:
   enum class Mode { AUTONOMOUS, FORMATION_FOLLOWER };
+
+  void on_nav2_cmd(const geometry_msgs::msg::Twist::SharedPtr msg)
+  {
+    if (mode_ != Mode::AUTONOMOUS)
+      return;
+
+    geometry_msgs::msg::Twist out = *msg;
+
+    if (is_formation_leader_) {
+      out.linear.x *= velocity_scale_;
+    }
+
+    cmd_vel_pub_->publish(out);
+  }
 
   // ---------------------------------------------------------------
   // Mode transitions
@@ -333,9 +356,16 @@ private:
 
   void on_formations_state(const FormationsConfig::SharedPtr msg)
   {
+    is_formation_leader_ = false;
     bool found_my_formation = false;
 
     for (const auto & f : msg->formations) {
+
+      // Will not work if robot is leader anf follower of other formation on the same time
+      if (f.active && f.leader_ns == ns_) {
+        is_formation_leader_ = true;
+      }
+
       int my_slot = -1;
       for (size_t i = 0; i < f.follower_ns.size(); ++i) {
         if (f.follower_ns[i] == ns_) { my_slot = static_cast<int>(i); break; }
@@ -838,6 +868,9 @@ private:
   double prev_ex_ = 0.0, prev_ey_ = 0.0;
   std::chrono::duration<double> pd_period_;
 
+  double velocity_scale_ = 0.5;
+  bool is_formation_leader_ = false;
+
   // AUTONOMOUS plan execution
   MAPFPlanMsg::SharedPtr plan_;
   uint32_t plan_id_       = 0;
@@ -859,6 +892,7 @@ private:
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr leader_odom_sub_;
   rclcpp::Subscription<MAPFPlanMsg>::SharedPtr             plan_sub_;
   rclcpp::Subscription<FormationsConfig>::SharedPtr         formation_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr nav2_cmd_sub_;
 
   // Publishers
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr  cmd_vel_pub_;

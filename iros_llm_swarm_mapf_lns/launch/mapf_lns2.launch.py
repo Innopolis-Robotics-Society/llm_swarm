@@ -18,6 +18,7 @@ def generate_launch_description():
 
     params_file = LaunchConfiguration('params_file')
     log_level   = LaunchConfiguration('log_level')
+    footprint_topic_template = LaunchConfiguration('footprint_topic_template')
 
     params_arg = DeclareLaunchArgument(
         'params_file',
@@ -31,17 +32,29 @@ def generate_launch_description():
         description='Logger level (debug|info|warn|error).'
     )
 
+    footprint_topic_arg = DeclareLaunchArgument(
+        'footprint_topic_template',
+        default_value='/robot_{id}/local_costmap/published_footprint',
+        description="Per-robot footprint topic ('{id}' -> robot index) the "
+                    'planner reads each agent radius from. Override to route '
+                    'through the formation footprint proxy.'
+    )
+
     lns2_node = Node(
         package='iros_llm_swarm_mapf_lns',
         executable='mapf_lns2_node',
         name='mapf_lns2',
         output='screen',
-        parameters=[params_file],
+        parameters=[
+            params_file,
+            {'footprint_topic_template': footprint_topic_template},
+        ],
         arguments=['--ros-args', '--log-level', log_level],
     )
 
     return LaunchDescription([
         params_arg,
         log_arg,
+        footprint_topic_arg,
         lns2_node,
     ])

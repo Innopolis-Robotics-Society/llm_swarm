@@ -12,11 +12,57 @@ from __future__ import annotations
 class LLMClientBase:
     """Minimal interface all backends must implement."""
 
-    async def generate(self, prompt: str | list, prompt_kind: str = 'decision') -> str:
+    async def generate(
+        self,
+        prompt: str | list,
+        prompt_kind: str = 'decision',
+        response_format: dict | None = None,
+    ) -> str:
         raise NotImplementedError
 
-    async def stream(self, prompt: str | list):
+    async def stream(self, prompt: str | list, response_format: dict | None = None):
+        # Backends that support structured outputs override this and honour
+        # response_format; the base fallback ignores it.
         yield await self.generate(prompt, prompt_kind='chat')
+
+    async def generate_with_tools(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+    ) -> dict:
+        """Send messages with tool definitions; return structured result.
+
+        Return shape:
+          {"type": "tool_calls", "calls": [{"name": str, "arguments": dict, "call_id": str}]}
+          {"type": "text",       "content": str}
+
+        Default implementation falls back to generate() (no tool awareness).
+        Backends that support native tool calling override this.
+        """
+        content = await self.generate(messages)
+        return {"type": "text", "content": content}
+
+    async def stream_with_tools(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+    ):
+        """Async generator yielding event dicts during generation.
+
+        Yields:
+          {"type": "chunk",      "content": str}  — text token during generation
+          {"type": "tool_calls", "calls": [...]}   — tool call request (terminal)
+          {"type": "text",       "content": str}   — full text response (terminal)
+
+        Exactly one terminal event (tool_calls or text) is yielded last.
+        Zero or more chunk events may precede the terminal.
+
+        Default implementation falls back to generate_with_tools(); yields the
+        terminal event with no preceding chunks. Backends that support streaming
+        override this to emit real-time tokens.
+        """
+        result = await self.generate_with_tools(messages, tools)
+        yield result
 
 
 def get_llm_client(
@@ -30,6 +76,7 @@ def get_llm_client(
     timeout: float = 30.0,
     force_chat: bool | None = None,
     enable_stop: bool = False,
+    num_ctx: int = 32768,
 ) -> LLMClientBase:
     """Return an LLM client for the requested mode.
 
@@ -52,6 +99,7 @@ def get_llm_client(
             model=model or 'qwen2.5:14b',
             max_tokens=max_tokens,
             temperature=temperature,
+            num_ctx=num_ctx,
         )
 
     if mode == 'local':
@@ -74,6 +122,7 @@ def get_llm_client(
             timeout=timeout,
             force_chat=force_chat,
             enable_stop=enable_stop,
+            num_ctx=num_ctx,
         )
 
     raise ValueError(

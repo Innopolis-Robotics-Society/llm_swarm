@@ -190,7 +190,7 @@ Behavior tree smoke test
 
 To run the included behavior tree from a single command::
 
-    ros2 run iros_llm_swarm_bt test_bt_runner
+    ros2 run iros_llm_swarm_bt bt_runner
 
 This loads ``behavior_trees/swarm_navigate_to_pose.xml`` and exercises
 the ``MapfPlan`` / ``SetFormation`` / ``DisableFormation`` /

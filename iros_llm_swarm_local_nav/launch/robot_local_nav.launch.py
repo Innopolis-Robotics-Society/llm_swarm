@@ -162,7 +162,9 @@ def _setup_robots(context, *args, **kwargs):
                 name='controller_server',
                 output='log',
                 parameters=[configured],
-                remappings=tf_remaps,
+                remappings=tf_remaps + [
+                    ('cmd_vel', 'cmd_vel_nav2')
+                ],
                 arguments=['--ros-args', '--log-level', 'WARN'],
             ),
 

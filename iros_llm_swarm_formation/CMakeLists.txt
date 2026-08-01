@@ -31,6 +31,12 @@ install(PROGRAMS
   RENAME formation_monitor_node
 )
 
+install(PROGRAMS
+  iros_llm_swarm_formation/footprint_proxy_node.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME footprint_proxy_node
+)
+
 # ---- Config & launch --------------------------------------------------------
 install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 

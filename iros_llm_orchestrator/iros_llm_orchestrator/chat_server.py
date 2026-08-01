@@ -20,6 +20,7 @@ Two non-obvious bits the panel relies on:
 import asyncio
 import json
 import threading
+import time
 
 import rclpy
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
@@ -28,16 +29,39 @@ from rclpy.node import Node
 
 from iros_llm_swarm_interfaces.action import LlmChat
 from iros_llm_swarm_interfaces.msg import LlmEvent
-from iros_llm_swarm_interfaces.srv import ListObstacles
+from iros_llm_swarm_interfaces.srv import ListObstacles, ListTasks
 
 from iros_llm_orchestrator.common.leaf_sender import BTLeafSender
+from iros_llm_orchestrator.common.logger import DecisionLogger
 from iros_llm_orchestrator.common.llm_factory import get_llm_client
-from iros_llm_orchestrator.common.plan_executor import PlanExecutor
+from iros_llm_orchestrator.common.plan_executor import PlanExecutor, parse_plan
 from iros_llm_orchestrator.common.user_prompt import (
+    build_execution_repair_prompt,
+    build_mission_continuation_prompt,
     build_remediation_prompt,
     build_user_prompt,
     build_bt_event_prompt,
     load_map_config,
+)
+from iros_llm_orchestrator.common.execution_repair import (
+    append_verification_to_reply,
+    should_attempt_repair,
+    verification_failure_info,
+    verification_summary,
+)
+from iros_llm_orchestrator.common.context_budget import (
+    completion_budget_for_prompt,
+)
+from iros_llm_orchestrator.common.occupancy_rewrite import (
+    rewrite_occupied_room_mapf_goals,
+)
+from iros_llm_orchestrator.common.active_formation_guard import (
+    guard_plan_for_active_formations,
+)
+from iros_llm_orchestrator.common.mission_supervision import (
+    MissionConfig,
+    MissionContinuation,
+    supervise_mission,
 )
 from iros_llm_orchestrator.context import (
     DEFAULT_MCP_READ_TOOLS,
@@ -58,7 +82,13 @@ from iros_llm_orchestrator.context.provider import (
     known_robot_ids,
     utc_now,
 )
-from iros_llm_orchestrator.user_chat_node import _parse_response, _postprocess_plan
+from iros_llm_orchestrator.common.tool_definitions import TOOL_DEFINITIONS
+from iros_llm_orchestrator.common.plan_schema import PLAN_RESPONSE_SCHEMA
+from iros_llm_orchestrator.common.tool_executor import ToolExecutor
+from iros_llm_orchestrator.user_chat_node import (
+    _parse_response, _postprocess_plan,
+    _build_tool_use_assistant_message, _build_tool_result_message,
+)
 
 MAX_HISTORY = 8   # conversation turns kept per session
 
@@ -82,9 +112,15 @@ class ChatServer(Node):
         self.declare_parameter('llm_api_key_env',  'LLM_API_KEY')
         self.declare_parameter('llm_force_chat',   True)
         self.declare_parameter('llm_enable_stop',  False)
+        self.declare_parameter('llm_num_ctx',      32768)
+        self.declare_parameter('llm_context_window_tokens', 16384)
+        self.declare_parameter('llm_context_margin_tokens', 512)
+        self.declare_parameter('llm_default_max_completion_tokens', 2048)
+        self.declare_parameter('llm_min_completion_tokens', 512)
         self.declare_parameter('timeout_sec',      30.0)
         self.declare_parameter('step_timeout_sec', 120.0)
         self.declare_parameter('map_name',         'cave')
+        self.declare_parameter('dataset_path',     '~/.ros/llm_chat')
         self.declare_parameter('context_provider', 'none')
         self.declare_parameter('context_timeout_sec', 2.0)
         self.declare_parameter('context_max_chars', 6000)
@@ -105,28 +141,120 @@ class ChatServer(Node):
         self.declare_parameter('mcp_tool_allowlist', list(DEFAULT_MCP_READ_TOOLS))
         self.declare_parameter('max_remediation_attempts', 2)
         self.declare_parameter('remediation_enabled', True)
+        self.declare_parameter('llm_repair_enabled', True)
+        self.declare_parameter('llm_max_repair_attempts', 2)
+        self.declare_parameter('llm_repair_require_verification', True)
+        self.declare_parameter('llm_verification_delay_sec', 0.2)
+        self.declare_parameter('llm_mission_supervision_enabled', True)
+        self.declare_parameter('llm_mission_max_duration_sec', 180.0)
+        self.declare_parameter('llm_mission_max_steps', 6)
+        self.declare_parameter('llm_mission_verify_delay_sec', 0.8)
+        self.declare_parameter('llm_mission_min_progress_required', True)
+        self.declare_parameter('llm_mission_allow_repair', True)
+        self.declare_parameter('llm_mission_no_progress_limit', 2)
+        self.declare_parameter('robot_footprint_radius', 0.22)
+        self.declare_parameter('scan_timeout_sec',       3.0)
+        self.declare_parameter('tool_max_iterations',    6)
+        self.declare_parameter('stream_reasoning',       True)
+        # Tool-calling adds latency and a prose-fallback failure mode; when the
+        # prompt fits the context window the model plans directly without tools.
+        # Off by default — flip on for spatial-precision experiments.
+        self.declare_parameter('tool_calling_enabled',   False)
+        # Structured outputs: send the plan JSON schema to the backend
+        # (Ollama format / OpenAI response_format) so the model can only emit
+        # schema-valid JSON. Applies to the plain (non-tool) path. Conflicts
+        # with tool calling, so keep tool_calling_enabled off when using this.
+        self.declare_parameter('structured_output_enabled', True)
+        # Auto-spread near-coincident mapf goals into a cluster. Off: the LLM
+        # must emit one goal per robot; the motion planner resolves collisions.
+        self.declare_parameter('goal_spread_enabled',    False)
 
         self._max_remediation_attempts = max(0, int(
             self.get_parameter('max_remediation_attempts').value))
         self._remediation_enabled = bool(
             self.get_parameter('remediation_enabled').value)
+        self._repair_enabled = bool(
+            self.get_parameter('llm_repair_enabled').value)
+        self._max_repair_attempts = max(0, int(
+            self.get_parameter('llm_max_repair_attempts').value))
+        self._repair_require_verification = bool(
+            self.get_parameter('llm_repair_require_verification').value)
+        self._verification_delay_sec = max(0.0, float(
+            self.get_parameter('llm_verification_delay_sec').value))
+        self._mission_supervision_enabled = bool(
+            self.get_parameter('llm_mission_supervision_enabled').value)
+        self._mission_config = MissionConfig(
+            enabled=self._mission_supervision_enabled,
+            max_duration_sec=max(
+                0.1,
+                float(self.get_parameter('llm_mission_max_duration_sec').value),
+            ),
+            max_steps=max(
+                1,
+                int(self.get_parameter('llm_mission_max_steps').value),
+            ),
+            no_progress_limit=max(
+                1,
+                int(self.get_parameter('llm_mission_no_progress_limit').value),
+            ),
+            min_progress_required=bool(
+                self.get_parameter('llm_mission_min_progress_required').value),
+            allow_repair=bool(
+                self.get_parameter('llm_mission_allow_repair').value),
+        )
+        self._mission_verify_delay_sec = max(
+            0.0,
+            float(self.get_parameter('llm_mission_verify_delay_sec').value),
+        )
+        self._tool_max_iterations = max(1, int(
+            self.get_parameter('tool_max_iterations').value))
+        self._stream_reasoning = bool(self.get_parameter('stream_reasoning').value)
+        self._tool_calling_enabled = bool(
+            self.get_parameter('tool_calling_enabled').value)
+        self._structured_output_enabled = bool(
+            self.get_parameter('structured_output_enabled').value)
+        self._goal_spread_enabled = bool(
+            self.get_parameter('goal_spread_enabled').value)
 
         self._timeout  = float(self.get_parameter('timeout_sec').value)
         self._map_name = self.get_parameter('map_name').value
+        self._llm_max_tokens = max(
+            1, int(self.get_parameter('llm_max_tokens').value))
+        self._llm_num_ctx = max(
+            0, int(self.get_parameter('llm_num_ctx').value))
+        self._llm_context_window_tokens = max(
+            0, int(self.get_parameter('llm_context_window_tokens').value))
+        self._llm_context_margin_tokens = max(
+            0, int(self.get_parameter('llm_context_margin_tokens').value))
+        self._llm_default_completion_tokens = max(
+            1,
+            min(
+                self._llm_max_tokens,
+                int(self.get_parameter(
+                    'llm_default_max_completion_tokens').value),
+            ),
+        )
+        self._llm_min_completion_tokens = max(
+            1, int(self.get_parameter('llm_min_completion_tokens').value))
 
         mode = self.get_parameter('llm_mode').value
+        self._llm_mode_name  = mode
+        self._llm_model_name = self.get_parameter('llm_model').value
+        self._logger_ds = DecisionLogger(self.get_parameter('dataset_path').value)
         self._llm = get_llm_client(
             mode=mode,
             endpoint=self.get_parameter('llm_endpoint').value,
             model=self.get_parameter('llm_model').value,
-            max_tokens=int(self.get_parameter('llm_max_tokens').value),
+            max_tokens=self._llm_max_tokens,
             temperature=float(self.get_parameter('llm_temperature').value),
             api_key=self.get_parameter('llm_api_key').value,
             api_key_env=self.get_parameter('llm_api_key_env').value,
             timeout=self._timeout,
             force_chat=bool(self.get_parameter('llm_force_chat').value),
             enable_stop=bool(self.get_parameter('llm_enable_stop').value),
+            num_ctx=self._llm_num_ctx,
         )
+        self._log_llm_context_budget(mode)
         try:
             self._map_cfg = load_map_config(self._map_name)
         except Exception as exc:
@@ -141,11 +269,22 @@ class ChatServer(Node):
         self._context_provider = make_context_provider(
             self, self._context_config, pose_cache=self._pose_cache)
 
+        _footprint_r = float(self.get_parameter('robot_footprint_radius').value)
+        _scan_to     = float(self.get_parameter('scan_timeout_sec').value)
+        self._tool_executor = ToolExecutor(
+            node=self,
+            pose_cache=self._pose_cache,
+            map_cfg=self._map_cfg,
+            robot_footprint_radius=_footprint_r,
+            scan_timeout_sec=_scan_to,
+        )
+
         self._sender = BTLeafSender(
             self,
             step_timeout_sec=float(self.get_parameter('step_timeout_sec').value),
         )
         self._list_obstacles = self.create_client(ListObstacles, '/obstacles/list')
+        self._list_tasks = self.create_client(ListTasks, '/tasks/list')
 
         # /llm/events publisher — channel 3 emits one event per turn.
         self._event_pub = self.create_publisher(LlmEvent, '/llm/events', 10)
@@ -163,6 +302,10 @@ class ChatServer(Node):
         bt_qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
                             history=HistoryPolicy.KEEP_LAST, depth=10)
         self._last_bt_status     = 'OK'
+        # Cache the most recently fetched runtime context so the formation
+        # prestage hook can fall back to it when pose_cache subscriptions
+        # haven't received data (QoS mismatch, wrong topic, or first run).
+        self._last_runtime_context: dict = {}
         self._bt_event_analyzing = False
         self.create_subscription(BTState, '/bt/state', self._on_bt_state, bt_qos)
 
@@ -218,6 +361,39 @@ class ChatServer(Node):
             return [value]
         return [str(item) for item in list(value)]
 
+    def _log_llm_context_budget(self, mode: str) -> None:
+        mode_l = str(mode or '').strip().lower()
+        recommended_ctx = 32768
+        minimum_ctx = 16384
+        prompt_headroom_estimate = 10000
+        if self._llm_num_ctx and self._llm_num_ctx < minimum_ctx:
+            self.get_logger().warning(
+                'LLM context window is small for channel-3 planning: '
+                f'llm_num_ctx={self._llm_num_ctx}, recommended>={recommended_ctx}. '
+                'Large map prompts, tool schemas, and runtime context may be '
+                'truncated.')
+        if (
+            self._llm_num_ctx
+            and self._llm_num_ctx
+            <= self._llm_max_tokens + prompt_headroom_estimate
+        ):
+            self.get_logger().warning(
+                'LLM context/output budget is tight: '
+                f'llm_num_ctx={self._llm_num_ctx}, '
+                f'llm_max_tokens={self._llm_max_tokens}. '
+                'Reduce llm_max_tokens or increase the model context window.')
+        if mode_l == 'http':
+            self.get_logger().warning(
+                'OpenAI-compatible HTTP backend does not let this client set '
+                f'the server context window. llm_num_ctx={self._llm_num_ctx} '
+                'is only a local budget hint; configure the Qwen/vLLM server '
+                'with a matching max_model_len/context window.')
+        if self._tool_calling_enabled and self._structured_output_enabled:
+            self.get_logger().warning(
+                'tool_calling_enabled=true disables the plain structured-output '
+                'path for chat turns. This is expected for tool experiments, '
+                'but structured_output_enabled will not constrain those turns.')
+
     # ------------------------------------------------------------------
     # Action execute
     # ------------------------------------------------------------------
@@ -237,6 +413,29 @@ class ChatServer(Node):
         except Exception:
             return ''
 
+    def _get_task_context(self) -> dict:
+        """Return {task_id: {type, label, status, position, [dropoff], assigned}} or {}."""
+        if not self._list_tasks.wait_for_service(timeout_sec=0.3):
+            return {}
+        try:
+            resp = self._list_tasks.call(ListTasks.Request())
+            tasks: dict = {}
+            for state in resp.states:
+                t = state.task
+                entry: dict = {
+                    'type': t.type,
+                    'label': t.label,
+                    'status': state.status,
+                    'position': [round(t.position[0], 2), round(t.position[1], 2)],
+                    'assigned': list(state.assigned_robot_ids),
+                }
+                if t.type == 'carry':
+                    entry['dropoff'] = [round(t.dropoff[0], 2), round(t.dropoff[1], 2)]
+                tasks[t.id] = entry
+            return tasks
+        except Exception:
+            return {}
+
     async def _execute_async(self, goal_handle):
         async with self._chat_lock:
             return await self._execute_body(goal_handle)
@@ -244,10 +443,25 @@ class ChatServer(Node):
     async def _execute_body(self, goal_handle):
         req = goal_handle.request
         result = LlmChat.Result()
+        self._req_t0 = time.monotonic()
+
+        # Fresh {{ref.path}} registry for this operator command — shared by
+        # the initial plan and every mission-supervision continuation step
+        # below, since a repair/continuation still legitimately wants to
+        # reference a room placement computed earlier in the same mission.
+        self._tool_executor.reset_turn()
 
         # ---- 1. Stream initial reply ----
         self._publish_fb(goal_handle, stage='thinking')
         runtime_context = await self._get_runtime_context()
+        self._last_runtime_context = runtime_context
+        task_ctx = self._get_task_context()
+        if task_ctx:
+            runtime_context['tasks'] = task_ctx
+            # Ensure tasks are rendered in the prompt even when context_provider='none'
+            # (build_user_prompt skips context whose source == 'none').
+            if runtime_context.get('source') == 'none':
+                runtime_context['source'] = 'tasks_only'
         messages = build_user_prompt(
             req.user_message,
             history=list(self._history),
@@ -258,7 +472,7 @@ class ChatServer(Node):
 
         try:
             reply, plan, full_raw = await self._stream_and_parse(
-                messages, goal_handle)
+                messages, goal_handle, user_message=req.user_message)
         except _LlmStageError as exc:
             return self._fail(goal_handle, result, str(exc))
 
@@ -291,12 +505,29 @@ class ChatServer(Node):
         if not req.execute_after_planning:
             return self._succeed(goal_handle, result)
 
+        if self._mission_supervision_enabled:
+            return await self._run_supervised_mission(
+                goal_handle,
+                result,
+                original_user_request=req.user_message,
+                initial_reply=reply,
+                initial_plan=plan,
+                runtime_context=runtime_context,
+            )
+
         # ---- 3. Execute ----
         self._publish_fb(goal_handle, stage='executing')
         ok, failure_info = await self._execute_plan(plan)
         result.plan_executed = ok
         if ok:
-            return self._succeed(goal_handle, result)
+            return await self._handle_successful_execution(
+                goal_handle,
+                result,
+                original_user_request=req.user_message,
+                last_reply=reply,
+                last_plan=plan,
+                runtime_context=runtime_context,
+            )
 
         if not self._remediation_enabled or self._max_remediation_attempts == 0:
             return self._fail(goal_handle, result,
@@ -330,7 +561,7 @@ class ChatServer(Node):
 
             try:
                 r_reply, r_plan, r_raw = await self._stream_and_parse(
-                    rem_messages, goal_handle)
+                    rem_messages, goal_handle, user_message=req.user_message)
             except _LlmStageError as exc:
                 return self._finalize_help(
                     goal_handle, result, last_reply, last_plan,
@@ -368,7 +599,14 @@ class ChatServer(Node):
             ok, failure_info = await self._execute_plan(r_plan)
             result.plan_executed = ok
             if ok:
-                return self._succeed(goal_handle, result)
+                return await self._handle_successful_execution(
+                    goal_handle,
+                    result,
+                    original_user_request=req.user_message,
+                    last_reply=r_reply,
+                    last_plan=r_plan,
+                    runtime_context=fresh_ctx,
+                )
             attempts.append(failure_info or {})
 
         # Retries exhausted — escalate to operator
@@ -379,36 +617,701 @@ class ChatServer(Node):
                     f'{self._max_remediation_attempts} exhausted'),
             last_failure=attempts[-1])
 
-    async def _stream_and_parse(self, messages, goal_handle):
-        """Stream → parse → postprocess; raises _LlmStageError on any failure."""
+    async def _run_supervised_mission(
+        self,
+        goal_handle,
+        result,
+        *,
+        original_user_request: str,
+        initial_reply: str,
+        initial_plan: dict,
+        runtime_context: dict,
+    ):
+        request_id = int(self.get_clock().now().nanoseconds / 1e6)
+        self.get_logger().info(
+            'LLM mission: start '
+            f'request_id={request_id} '
+            f'max_duration={self._mission_config.max_duration_sec:.1f} '
+            f'max_steps={self._mission_config.max_steps}'
+        )
+
+        async def _execute(plan: dict, step: int) -> tuple[bool, dict | None]:
+            self._publish_fb(
+                goal_handle,
+                stage='executing',
+                detail=f'mission_step={step}',
+            )
+            return await self._execute_plan(plan)
+
+        async def _verify(
+            plan: dict,
+            execution_ok: bool,
+            failure_info: dict | None,
+            previous_verification: dict | None,
+            step: int,
+        ) -> dict:
+            return await self._verify_plan_execution_state(
+                original_user_request,
+                plan,
+                runtime_context=runtime_context,
+                last_failure=failure_info,
+                delay_sec=self._mission_verify_delay_sec,
+            )
+
+        async def _continue(ctx) -> MissionContinuation:
+            self._publish_fb(
+                goal_handle,
+                stage='repairing',
+                detail=f'mission_step={ctx.step} remaining={ctx.remaining_time_sec:.1f}s',
+            )
+            fresh_ctx = await self._get_runtime_context()
+            self._last_runtime_context = fresh_ctx
+            execution_result = {
+                'ok': ctx.execution_ok,
+                'failure_info': ctx.failure_info or {},
+            }
+            messages = build_mission_continuation_prompt(
+                original_user_request,
+                ctx.current_plan,
+                execution_result,
+                ctx.verification,
+                step=ctx.step,
+                max_steps=self._mission_config.max_steps,
+                remaining_time_sec=ctx.remaining_time_sec,
+                fresh_runtime_context=fresh_ctx,
+                previous_verification=ctx.previous_verification,
+                history=list(self._history),
+                map_name=self._map_name,
+                obstacle_context=self._get_obstacle_context(),
+            )
+            compact_chars = len(json.dumps(
+                messages,
+                ensure_ascii=False,
+                separators=(',', ':'),
+            ))
+            self.get_logger().info(
+                'LLM mission context: '
+                f'compacted chars={compact_chars} '
+                f'est_tokens={max(1, compact_chars // 4)}'
+            )
+            reply, plan, raw = await self._stream_and_parse(
+                messages,
+                goal_handle,
+                user_message=original_user_request,
+            )
+            self._history.append({
+                'role': 'user',
+                'content': (
+                    f'[mission continuation step {ctx.step}: '
+                    f'{verification_summary(ctx.verification)[:180]}]'
+                ),
+            })
+            self._history.append({'role': 'assistant', 'content': raw})
+            self._trim_history()
+            plan_json = json.dumps(plan, ensure_ascii=False)
+            self._publish_fb(goal_handle, stage='parsed', detail=plan_json)
+            self._publish_event(
+                channel=LlmEvent.CHANNEL_USER,
+                trigger=original_user_request,
+                output=plan_json,
+                reason=reply,
+            )
+            return MissionContinuation(reply=reply, plan=plan, raw=raw)
+
+        outcome = await supervise_mission(
+            original_request=original_user_request,
+            initial_plan=initial_plan,
+            initial_reply=initial_reply,
+            config=self._mission_config,
+            execute_plan=_execute,
+            verify_plan=_verify,
+            generate_continuation=_continue,
+            is_help_plan=is_help_request,
+            log_fn=lambda msg: self.get_logger().info(msg),
+        )
+
+        result.plan_executed = bool(outcome.plan_executed)
+        result.plan_json = json.dumps(outcome.final_plan, ensure_ascii=False)
+        result.final_reply = append_verification_to_reply(
+            outcome.final_reply,
+            outcome.final_verification,
+        )
+        result.info = (
+            f'mission {outcome.status}: '
+            f'{verification_summary(outcome.final_verification)}'
+        )
+
+        if outcome.ok:
+            return self._succeed(goal_handle, result)
+        if outcome.status == 'needs_help':
+            return self._finalize_help(
+                goal_handle,
+                result,
+                outcome.final_reply,
+                outcome.final_plan,
+                trigger=original_user_request,
+                reason=outcome.reason,
+                last_failure=outcome.last_failure,
+            )
+        return self._fail(
+            goal_handle,
+            result,
+            f'{outcome.reason}: {verification_summary(outcome.final_verification)}',
+            got_plan=True,
+        )
+
+    async def _handle_successful_execution(
+        self,
+        goal_handle,
+        result,
+        *,
+        original_user_request: str,
+        last_reply: str,
+        last_plan: dict,
+        runtime_context: dict,
+    ):
+        verification = await self._verify_plan_execution_state(
+            original_user_request,
+            last_plan,
+            runtime_context=runtime_context,
+        )
+        if verification.get('ok') or not self._repair_require_verification:
+            result.final_reply = append_verification_to_reply(
+                result.final_reply or last_reply,
+                verification,
+            )
+            result.info = f'verification: {verification_summary(verification)}'
+            return self._succeed(goal_handle, result)
+
+        current_plan = last_plan
+        current_reply = last_reply
+        current_verification = verification
+        attempt = 0
+
+        while should_attempt_repair(
+            current_verification,
+            attempt=attempt,
+            max_attempts=self._max_repair_attempts,
+            enabled=self._repair_enabled,
+        ):
+            attempt += 1
+            rec = current_verification.get('repair_recommendation') or {}
+            reason = rec.get('reason') or verification_summary(current_verification)
+            self.get_logger().info(
+                f'LLM repair: attempt={attempt} reason={str(reason)[:180]}')
+            self._publish_fb(
+                goal_handle,
+                stage='repairing',
+                detail=f'attempt={attempt} reason={str(reason)[:160]}',
+            )
+
+            fresh_ctx = await self._get_runtime_context()
+            self._last_runtime_context = fresh_ctx
+            repair_messages = build_execution_repair_prompt(
+                original_user_request,
+                current_plan,
+                current_verification,
+                attempt=attempt,
+                max_attempts=self._max_repair_attempts,
+                fresh_runtime_context=fresh_ctx,
+                history=list(self._history),
+                map_name=self._map_name,
+                obstacle_context=self._get_obstacle_context(),
+            )
+            try:
+                r_reply, r_plan, r_raw = await self._stream_and_parse(
+                    repair_messages,
+                    goal_handle,
+                    user_message=original_user_request,
+                )
+            except _LlmStageError as exc:
+                self.get_logger().warning(
+                    f'LLM repair: invalid repair response attempt={attempt}: {exc}')
+                result.final_reply = append_verification_to_reply(
+                    current_reply,
+                    current_verification,
+                )
+                return self._fail(
+                    goal_handle,
+                    result,
+                    f'repair LLM failed: {exc}',
+                    got_plan=True,
+                )
+
+            self.get_logger().info(
+                f'LLM repair: generated plan type={r_plan.get("type", "")}')
+            self._history.append({
+                'role': 'user',
+                'content': (
+                    f'[verification repair {attempt}: '
+                    f'{verification_summary(current_verification)[:180]}]'
+                ),
+            })
+            self._history.append({'role': 'assistant', 'content': r_raw})
+            self._trim_history()
+
+            current_plan = r_plan
+            current_reply = r_reply
+            result.final_reply = r_reply
+            result.plan_json = json.dumps(r_plan, ensure_ascii=False)
+            self._publish_fb(goal_handle, stage='parsed', detail=result.plan_json)
+            self._publish_event(
+                channel=LlmEvent.CHANNEL_USER,
+                trigger=original_user_request,
+                output=result.plan_json,
+                reason=r_reply,
+            )
+
+            if is_help_request(r_plan):
+                return self._finalize_help(
+                    goal_handle,
+                    result,
+                    r_reply,
+                    r_plan,
+                    trigger=original_user_request,
+                    reason=f'LLM emitted needs_help on repair {attempt}',
+                    last_failure=verification_failure_info(current_verification),
+                )
+
+            self.get_logger().info(
+                f'LLM repair: executing attempt={attempt}')
+            self._publish_fb(goal_handle, stage='executing')
+            ok, failure_info = await self._execute_plan(r_plan)
+            result.plan_executed = ok
+            current_verification = await self._verify_plan_execution_state(
+                original_user_request,
+                r_plan,
+                runtime_context=fresh_ctx,
+                last_failure=failure_info,
+            )
+            if ok and current_verification.get('ok'):
+                result.final_reply = append_verification_to_reply(
+                    r_reply,
+                    current_verification,
+                )
+                result.info = (
+                    f'verification: {verification_summary(current_verification)}'
+                )
+                return self._succeed(goal_handle, result)
+
+        if not self._repair_enabled:
+            reason = 'repair disabled'
+        elif not (current_verification.get('repair_recommendation') or {}).get('repairable'):
+            reason = 'verification marked failure as non-repairable'
+        else:
+            reason = f'repair attempts exhausted max={self._max_repair_attempts}'
+            self.get_logger().info(
+                f'LLM repair: exhausted attempts max={self._max_repair_attempts}')
+
+        result.final_reply = append_verification_to_reply(
+            current_reply,
+            current_verification,
+        )
+        result.info = f'verification failed: {verification_summary(current_verification)}'
+        return self._fail(
+            goal_handle,
+            result,
+            f'{reason}: {verification_summary(current_verification)}',
+            got_plan=True,
+        )
+
+    async def _verify_plan_execution_state(
+        self,
+        original_user_request: str,
+        last_plan: dict,
+        *,
+        runtime_context: dict | None,
+        last_failure: dict | None = None,
+        delay_sec: float | None = None,
+    ) -> dict:
+        request_id = int(self.get_clock().now().nanoseconds / 1e6)
+        self.get_logger().info(
+            f'LLM verification: start request_id={request_id}')
+        delay = self._verification_delay_sec if delay_sec is None else delay_sec
+        if delay > 0.0:
+            await asyncio.sleep(delay)
+        fresh_context = await self._get_runtime_context()
+        if not fresh_context:
+            fresh_context = runtime_context or {}
+        self._last_runtime_context = fresh_context
+        args = {
+            'original_user_request': original_user_request,
+            'last_plan': last_plan,
+            'last_failure': last_failure or {},
+            'tolerance_m': self._formation_tolerance_m,
+            '_formations_status': fresh_context.get('formations'),
+            '_bt_state': fresh_context.get('bt_state'),
+            '_recent_events': fresh_context.get('recent_events') or [],
+        }
         try:
-            full_raw = await asyncio.wait_for(
-                self._stream_reply(messages, goal_handle),
-                timeout=self._timeout)
+            verification = await self._tool_executor.call(
+                'verify_plan_execution_state',
+                args,
+            )
+        except Exception as exc:
+            verification = {
+                'ok': False,
+                'confidence': 'partial',
+                'missing_state': ['verify_plan_execution_state'],
+                'summary': f'verification tool failed: {exc}',
+                'checks': {},
+                'repair_recommendation': {
+                    'type': 'wait_for_state',
+                    'reason': 'verification tool failed',
+                    'repairable': False,
+                    'should_recompute_placement': False,
+                },
+            }
+        self.get_logger().info(
+            'LLM verification: result '
+            f"ok={bool(verification.get('ok'))} "
+            f"summary={str(verification.get('summary') or '')[:180]}"
+        )
+        return verification
+
+    async def _stream_and_parse(self, messages, goal_handle, *, user_message: str = ''):
+        """Stream → parse → postprocess; raises _LlmStageError.
+
+        Uses the tool-calling loop when ``tool_calling_enabled``; otherwise the
+        plain streaming path (no tools), which is the reliable default.
+        """
+        if self._tool_calling_enabled:
+            coro = self._stream_with_tool_loop(messages, goal_handle)
+        else:
+            coro = self._stream_plain(messages, goal_handle)
+        try:
+            full_raw = await asyncio.wait_for(coro, timeout=self._timeout)
         except asyncio.TimeoutError as exc:
             raise _LlmStageError('LLM timeout') from exc
         except Exception as exc:
             raise _LlmStageError(f'LLM error: {exc}') from exc
         try:
-            reply, plan = _parse_response(full_raw)
+            reply, plan = _parse_response(
+                full_raw,
+                template_registry=self._tool_executor.template_registry,
+                log_fn=self.get_logger().info,
+            )
         except ValueError as exc:
+            # Diagnostic: surface exactly what the LLM returned so a parse
+            # failure (e.g. tool-calling making the model answer in prose
+            # instead of JSON) is debuggable from the logs.
+            preview = (full_raw if len(full_raw) <= 4000
+                       else full_raw[:4000] + '…[truncated]')
+            self.get_logger().error(
+                f'parse error: {exc} | raw LLM output ({len(full_raw)} chars): '
+                f'{preview!r}')
             raise _LlmStageError(f'parse error: {exc}') from exc
-        plan = _postprocess_plan(plan, self._map_cfg)
+        plan = _postprocess_plan(plan, self._map_cfg, self._goal_spread_enabled)
+        plan = self._rewrite_occupied_room_mapf_goals(plan, user_message)
         return reply, plan, full_raw
+
+    def _rewrite_occupied_room_mapf_goals(
+        self,
+        plan: dict,
+        user_message: str,
+    ) -> dict:
+        snapshot = {}
+        if self._pose_cache is not None:
+            try:
+                snapshot = self._pose_cache.snapshot(
+                    stale_threshold_ms=int(self._context_config.pose_stale_ms))
+            except Exception as exc:
+                self.get_logger().warning(
+                    f'occupancy_rewrite: pose snapshot unavailable: {exc}')
+                snapshot = {}
+        rewritten, rewrites = rewrite_occupied_room_mapf_goals(
+            plan,
+            self._map_cfg,
+            pose_snapshot=snapshot,
+            user_message=user_message,
+            robot_footprint_radius=float(
+                self.get_parameter('robot_footprint_radius').value),
+        )
+        for rewrite in rewrites:
+            self.get_logger().info(
+                'occupancy_rewrite: mapf goals rewritten '
+                f"room={rewrite.get('room')} "
+                f"robots={rewrite.get('robot_ids')} "
+                f"mode={rewrite.get('mode')} "
+                f"boundary={rewrite.get('room_boundary_source')}"
+            )
+        return rewritten
+
+    def _prepare_llm_context_budget(
+        self,
+        messages,
+        *,
+        extra=None,
+        phase: str = 'chat',
+    ) -> None:
+        decision = completion_budget_for_prompt(
+            messages,
+            context_window_tokens=self._llm_context_window_tokens,
+            default_completion_tokens=self._llm_default_completion_tokens,
+            min_completion_tokens=self._llm_min_completion_tokens,
+            margin_tokens=self._llm_context_margin_tokens,
+            extra=extra,
+        )
+        self.get_logger().info(
+            'LLM context guard: '
+            f"phase={phase} "
+            f"input_est_tokens={decision['input_est_tokens']} "
+            f"max_completion={decision['max_completion_tokens']} "
+            f"available_completion={decision['available_completion_tokens']} "
+            f"action={decision['action']}"
+        )
+        if not decision.get('ok'):
+            self.get_logger().error(
+                'LLM context guard: abort context too large '
+                f"input_est_tokens={decision['input_est_tokens']} "
+                f"available_completion={decision['available_completion_tokens']}"
+            )
+            raise RuntimeError('mission continuation context too large after compaction')
+        max_completion = int(decision['max_completion_tokens'])
+        old_max = int(getattr(self._llm, 'max_tokens', self._llm_max_tokens))
+        if old_max != max_completion:
+            if max_completion < old_max:
+                self.get_logger().info(
+                    'LLM context guard: reducing completion tokens from '
+                    f'{old_max} to {max_completion}'
+                )
+            setattr(self._llm, 'max_tokens', max_completion)
+
+    async def _stream_with_tool_loop(
+        self,
+        messages: list[dict],
+        goal_handle,
+    ) -> str:
+        """Tool calling loop with streaming feedback for the RViz panel.
+
+        When stream_reasoning=True, emits stage='thinking' chunks for reasoning
+        tokens during each LLM call.  The reply field of the final response is
+        always emitted as stage='streaming' via _emit_reply_streaming.
+        """
+        msgs = list(messages)
+        for iteration in range(self._tool_max_iterations):
+            full_text = ''
+            terminal: dict | None = None
+            self._prepare_llm_context_budget(
+                msgs,
+                extra=TOOL_DEFINITIONS,
+                phase=f'tool_loop_{iteration + 1}',
+            )
+
+            if self._stream_reasoning:
+                async for event in self._llm.stream_with_tools(msgs, TOOL_DEFINITIONS):
+                    if event['type'] == 'chunk':
+                        token = event.get('content', '')
+                        if token:
+                            full_text += token
+                            self._publish_fb(goal_handle, stage='thinking', chunk=token)
+                    else:
+                        terminal = event
+            else:
+                terminal = await self._llm.generate_with_tools(msgs, TOOL_DEFINITIONS)
+
+            if terminal is None:
+                terminal = {'type': 'text', 'content': full_text}
+
+            if terminal['type'] == 'text':
+                content = terminal.get('content') or full_text
+                has_json = '{' in content
+                self.get_logger().info(
+                    f'tool_loop: final text after {iteration + 1} iteration(s), '
+                    f'{len(content)} chars, has_json={has_json}')
+                if not has_json and iteration < self._tool_max_iterations - 1:
+                    self.get_logger().warning(
+                        'tool_loop: prose response detected, injecting JSON reminder')
+                    # Only append the assistant turn when there is actual content;
+                    # an empty turn confuses the model on the next iteration.
+                    if content:
+                        msgs.append({'role': 'assistant', 'content': content})
+                    msgs.append({
+                        'role': 'user',
+                        'content': (
+                            'Your response above is not valid JSON. '
+                            'Output ONLY the JSON object now:\n'
+                            '{"reply":"...","plan":{...}}\n'
+                            'No prose, no explanation — just the JSON.'
+                        ),
+                    })
+                    continue
+                if has_json and iteration < self._tool_max_iterations - 1:
+                    try:
+                        parse_plan(content)
+                    except ValueError as schema_exc:
+                        self.get_logger().warning(
+                            f'tool_loop: plan schema error iter={iteration + 1}: '
+                            f'{schema_exc}')
+                        msgs.append({'role': 'assistant', 'content': content})
+                        msgs.append({
+                            'role': 'user',
+                            'content': (
+                                f'Your JSON plan is invalid: {schema_exc}\n'
+                                '\n'
+                                'RULES — "plan" must be a single node with "type" at the TOP level:\n'
+                                '  WRONG: {"plan":{"actions":[{"type":"..."}]}}\n'
+                                '  WRONG: tool names (check_occupancy, get_positions) are not plan types\n'
+                                '  Valid types: mapf | formation | disband | idle | sequence | parallel\n'
+                                '\n'
+                                'Correct examples:\n'
+                                '  Move robots:  {"type":"mapf","robot_ids":[12,13,14,15],"goals":[[-9.5,4.0],[-9.5,4.0],[-9.5,4.0],[-9.5,4.0]],"reason":"orange to medbay"}\n'
+                                '  Stop all:     {"type":"idle","reason":"operator stop"}\n'
+                                '  Two steps:    {"type":"sequence","steps":[{"type":"mapf",...},{"type":"formation",...}]}\n'
+                                '\n'
+                                'Output the corrected complete JSON object now.'
+                            ),
+                        })
+                        continue
+                self._emit_reply_streaming(content, goal_handle)
+                return content
+
+            # Tool calls — execute and loop
+            calls = terminal['calls']
+            self.get_logger().info(
+                f'tool_loop iter={iteration}: calling tools '
+                f'{[c["name"] for c in calls]}')
+            msgs.append(_build_tool_use_assistant_message(calls))
+
+            for call in calls:
+                name    = call['name']
+                args    = call['arguments']
+                call_id = call.get('call_id', '')
+                try:
+                    tool_result = await asyncio.wait_for(
+                        self._tool_executor.call(name, args),
+                        timeout=max(self._timeout, 10.0),
+                    )
+                except Exception as exc:
+                    tool_result = {'error': str(exc)}
+                result_str = json.dumps(tool_result, ensure_ascii=False)
+                msgs.append(_build_tool_result_message(call_id, result_str))
+
+        raise RuntimeError(
+            f'tool loop exceeded {self._tool_max_iterations} iterations '
+            'without producing a final text response'
+        )
+
+    async def _stream_plain(self, messages: list[dict], goal_handle) -> str:
+        """Non-tool streaming path: collect the full response, surfacing
+        reasoning tokens live and the parsed reply via _emit_reply_streaming.
+        """
+        full = ''
+        schema = PLAN_RESPONSE_SCHEMA if self._structured_output_enabled else None
+        self._prepare_llm_context_budget(
+            messages,
+            extra=schema,
+            phase='plain',
+        )
+        async for chunk in self._llm.stream(messages, response_format=schema):
+            if not chunk:
+                continue
+            full += chunk
+            if self._stream_reasoning:
+                self._publish_fb(goal_handle, stage='thinking', chunk=chunk)
+        self.get_logger().info(
+            f'plain stream: {len(full)} chars, has_json={"{" in full}')
+        self._emit_reply_streaming(full, goal_handle)
+        return full
+
+    def _emit_reply_streaming(self, full_raw: str, goal_handle) -> None:
+        """Extract the 'reply' field from full_raw and emit as stage='streaming'.
+
+        Runs the same BEFORE/IN_REPLY/AFTER state machine as _stream_reply, but
+        operates on a complete string rather than a live stream.
+        """
+        BEFORE, IN_REPLY, AFTER = 0, 1, 2
+        state = BEFORE
+        in_escape = False
+        scan = ''
+        MARKERS = ('"reply": "', '"reply":"')
+        ESCAPES = {
+            'n': '\n', 't': '\t', 'r': '\r',
+            'b': '\b', 'f': '\f',
+            '"': '"', '\\': '\\', '/': '/',
+        }
+        cap = max(len(m) for m in MARKERS)
+        emit_buf = ''
+
+        for c in full_raw:
+            if state == BEFORE:
+                scan += c
+                if len(scan) > cap:
+                    scan = scan[-cap:]
+                if any(scan.endswith(m) for m in MARKERS):
+                    state = IN_REPLY
+                    scan = ''
+                    in_escape = False
+            elif state == IN_REPLY:
+                if in_escape:
+                    emit_buf += ESCAPES.get(c, c)
+                    in_escape = False
+                elif c == '\\':
+                    in_escape = True
+                elif c == '"':
+                    state = AFTER
+                else:
+                    emit_buf += c
+
+        if emit_buf:
+            self._publish_fb(goal_handle, stage='streaming', chunk=emit_buf)
 
     def _formation_prestage_hook(self, formation_node: dict) -> dict | None:
         """Auto-stage out-of-tolerance followers when the LLM emits a bare
-        formation leaf. Reads live poses from the chat_server's RobotPoseCache.
+        formation leaf.
+
+        Primary source: RobotPoseCache (live odom subscriptions).
+        Fallback: _last_runtime_context (fetched at the start of this turn)
+        — used when pose_cache has no data yet (QoS mismatch, wrong topic,
+        or node just started).
+
+        Returns None only when the leader pose is genuinely unavailable or
+        all followers are already within tolerance.
         """
-        if self._pose_cache is None:
+        fid = formation_node.get('formation_id', '?')
+
+        # ── Primary: live odom via pose_cache ──────────────────────────
+        snapshot: dict = {}
+        if self._pose_cache is not None:
+            snapshot = self._pose_cache.snapshot(
+                stale_threshold_ms=int(self._context_config.pose_stale_ms))
+
+        leader_ns = formation_node.get('leader_ns', '')
+        leader_id = int(leader_ns.split('_')[1]) if (
+            leader_ns.startswith('robot_')
+            and leader_ns.split('_')[1].isdigit()) else None
+
+        if leader_id is not None and leader_id not in snapshot:
+            # pose_cache has no entry → try fallback
+            ctx_robots = self._last_runtime_context.get('robots') or {}
+            for k, v in ctx_robots.items():
+                try:
+                    rid = int(k)
+                except (TypeError, ValueError):
+                    continue
+                if rid not in snapshot:
+                    snapshot[rid] = v
+
+        if leader_id is not None and leader_id not in snapshot:
+            self.get_logger().warning(
+                f'formation_prestage: leader {leader_ns} not in pose snapshot '
+                f'and not in runtime_context — skipping auto-stage for {fid!r}')
             return None
-        snapshot = self._pose_cache.snapshot(
-            stale_threshold_ms=int(self._context_config.pose_stale_ms))
-        return compute_formation_staging(
+
+        result = compute_formation_staging(
             formation_node,
             snapshot,
             tolerance_m=self._formation_tolerance_m,
         )
+        if result is None and leader_id is not None and leader_id in snapshot:
+            # Hook ran but returned None — either stale leader or all in tolerance
+            leader = snapshot[leader_id]
+            if leader.get('stale'):
+                self.get_logger().warning(
+                    f'formation_prestage: leader {leader_ns} pose is stale '
+                    f'({leader.get("stale_ms", "?")}ms) — skipping auto-stage '
+                    f'for {fid!r}')
+        return result
 
     async def _execute_plan(self, plan: dict) -> tuple[bool, dict | None]:
         """Run a plan via the shared sender; return (ok, failure_info)."""
@@ -416,11 +1319,12 @@ class ChatServer(Node):
             send_fn=self._sender.send,
             log_fn=lambda m: self.get_logger().info(f'executor: {m}'),
             formation_prestage_hook=self._formation_prestage_hook,
+            plan_guard_hook=self._formation_guard_hook,
         )
         ok = await executor.run(plan)
         if ok:
             return True, None
-        failure = dict(self._sender.last_failure() or {})
+        failure = dict(executor.guard_failure or self._sender.last_failure() or {})
         # If sender did not record one (executor refused to send for some
         # other reason) fall back to the leaf type from the executor.
         if not failure and executor.failed_leaf:
@@ -431,6 +1335,20 @@ class ChatServer(Node):
                 'action_status': '',
             }
         return False, failure
+
+    def _formation_guard_hook(self, plan: dict) -> tuple[dict, dict | None]:
+        status = None
+        try:
+            status = self._tool_executor.formations_status_snapshot()
+        except Exception:
+            status = None
+        if status is None:
+            status = (self._last_runtime_context or {}).get('formations')
+        return guard_plan_for_active_formations(
+            plan,
+            status,
+            log_fn=lambda m: self.get_logger().info(m),
+        )
 
     async def _get_targeted_runtime_context(
         self,
@@ -481,69 +1399,6 @@ class ChatServer(Node):
             self.get_logger().info(
                 f'Chat runtime context source={source} warnings={warnings}')
         return context
-
-    def _get_obstacle_context(self) -> str:
-        heuristics = (self._map_cfg or {}).get('heuristics', '')
-        if not heuristics:
-            return ''
-        return (
-            'Obstacle and navigation constraints from the current map:\n'
-            f'{str(heuristics).strip()}'
-        )
-
-    # ------------------------------------------------------------------
-    # Reply streaming — emit only the JSON "reply" field via feedback
-    # ------------------------------------------------------------------
-
-    async def _stream_reply(self, messages, goal_handle) -> str:
-        """Stream and forward only "reply" body characters to the panel.
-
-        State machine identical to user_chat_node._stream_command:
-          BEFORE   — scanning for `"reply":"`
-          IN_REPLY — emit chars; honour JSON escapes; stop at unescaped `"`
-          AFTER    — accumulate raw silently for the parser.
-        """
-        BEFORE, IN_REPLY, AFTER = 0, 1, 2
-        state = BEFORE
-        in_escape = False
-        scan = ''
-        MARKERS = ('"reply": "', '"reply":"')
-        ESCAPES = {'n': '\n', 't': '\t', 'r': '\r',
-                   'b': '\b', 'f': '\f',
-                   '"': '"', '\\': '\\', '/': '/'}
-        cap = max(len(m) for m in MARKERS)
-
-        full = ''
-        async for chunk in self._llm.stream(messages):
-            full += chunk
-            if state == AFTER:
-                continue
-
-            emit_buf = ''
-            for c in chunk:
-                if state == BEFORE:
-                    scan += c
-                    if len(scan) > cap:
-                        scan = scan[-cap:]
-                    if any(scan.endswith(m) for m in MARKERS):
-                        state = IN_REPLY
-                        scan  = ''
-                        in_escape = False
-                elif state == IN_REPLY:
-                    if in_escape:
-                        emit_buf += ESCAPES.get(c, c)
-                        in_escape = False
-                    elif c == '\\':
-                        in_escape = True
-                    elif c == '"':
-                        state = AFTER
-                    else:
-                        emit_buf += c
-
-            if emit_buf:
-                self._publish_fb(goal_handle, stage='streaming', chunk=emit_buf)
-
-        return full
 
     # ------------------------------------------------------------------
     # BT event handling — mirrors user_chat_node._handle_bt_event
@@ -633,12 +1488,30 @@ class ChatServer(Node):
         ev.reason   = reason
         self._event_pub.publish(ev)
 
+    def _log_mission(self, gh, result, **extra):
+        req = gh.request
+        record = {
+            'user_message':   req.user_message,
+            'llm_mode':       self._llm_mode_name,
+            'llm_model':      self._llm_model_name,
+            'map_name':       self._map_name,
+            'success':        result.success,
+            'plan_executed':  result.plan_executed,
+            'info':           result.info,
+            'final_reply':    result.final_reply,
+            'plan_json':      result.plan_json,
+            'elapsed_sec':    round(time.monotonic() - self._req_t0, 3),
+        }
+        record.update(extra)
+        self._logger_ds.log(record)
+
     def _fail(self, gh, result, info, got_plan=False):
         self._publish_fb(gh, stage='error', detail=info)
         result.success = False
         result.info    = info
         if not got_plan:
             result.plan_json = ''
+        self._log_mission(gh, result)
         gh.succeed()
         return result
 
@@ -647,6 +1520,7 @@ class ChatServer(Node):
         result.success = True
         if not result.info:
             result.info = ''
+        self._log_mission(gh, result)
         gh.succeed()
         return result
 
@@ -687,6 +1561,8 @@ class ChatServer(Node):
         result.success       = True
         result.info          = info
 
+        self._log_mission(gh, result, trigger=trigger,
+                          last_failure=last_failure or {})
         self._publish_fb(gh, stage='needs_help', detail=info)
         self._publish_event(
             channel=LlmEvent.CHANNEL_USER,

@@ -32,20 +32,20 @@ ament_target_dependencies(iros_llm_swarm_bt_nodes
   iros_llm_swarm_interfaces
 )
 
-add_executable(test_bt_runner
-  src/test_bt_runner.cpp
+add_executable(bt_runner
+  src/bt_runner.cpp
 )
 
-target_include_directories(test_bt_runner PUBLIC
+target_include_directories(bt_runner PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(test_bt_runner
+target_link_libraries(bt_runner
   iros_llm_swarm_bt_nodes
 )
 
-ament_target_dependencies(test_bt_runner
+ament_target_dependencies(bt_runner
   ament_index_cpp
   behaviortree_cpp_v3
   rclcpp
@@ -57,7 +57,7 @@ ament_target_dependencies(test_bt_runner
 install(
   TARGETS
     iros_llm_swarm_bt_nodes
-    test_bt_runner
+    bt_runner
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
@@ -84,11 +84,23 @@ install(
   RENAME fleet_cmd
 )
 
+install(PROGRAMS
+  scripts/demo_20_robot.py
+  scripts/demo_triados.py
+  scripts/demo_triados_idle.py
+  scripts/demo_triados_disband.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
+
+  find_package(launch_testing_ament_cmake REQUIRED)
+  add_launch_test(test/test_bt_integration_mapf.py)
+  add_launch_test(test/test_bt_integration_mapf_form.py)
 endif()
 
 ament_export_include_directories(include)

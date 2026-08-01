@@ -11,6 +11,7 @@ import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Callable
 
 import rclpy
 from geometry_msgs.msg import Point
@@ -20,20 +21,70 @@ from rclpy.node import Node
 from rclpy.qos import HistoryPolicy, QoSProfile, ReliabilityPolicy
 
 from iros_llm_swarm_interfaces.action import LlmCommand
-from iros_llm_swarm_interfaces.msg import BTState
+from iros_llm_swarm_interfaces.msg import BTState, LlmEvent
 
 from iros_llm_orchestrator.common.llm_factory import get_llm_client
-from iros_llm_orchestrator.common.plan_executor import PlanExecutor, parse_plan
+from iros_llm_orchestrator.common.plan_executor import (
+    PlanExecutor, coerce_robot_id, parse_plan)
+from iros_llm_orchestrator.common.plan_templating import find_used_refs
+from iros_llm_orchestrator.common.tool_definitions import TOOL_DEFINITIONS
+from iros_llm_orchestrator.common.tool_executor import ToolExecutor
 from iros_llm_orchestrator.common.user_prompt import (
     build_remediation_prompt, build_user_prompt,
     build_bt_event_prompt, load_map_config)
 from iros_llm_orchestrator.context.no_execute import is_help_request
+from iros_llm_orchestrator.context.pose_cache import (
+    RobotPoseCache,
+    compute_formation_staging,
+)
 
 MAX_HISTORY   = 8
 CLUSTER_SPACE = 1.5
 MIN_GOAL_DIST = 1.0
 
 BOT='BOT'; THK='🧠'; WRN='⚠ '; OK='✓'; ERR='✗'; ARR='→'
+
+
+# ---------------------------------------------------------------------------
+# Tool loop message builders
+# ---------------------------------------------------------------------------
+
+def _build_tool_use_assistant_message(calls: list[dict]) -> dict:
+    """Build the assistant message that records tool call requests.
+
+    Uses Ollama native /api/chat format: arguments as a dict (not a JSON string),
+    content as empty string (not null), no id/type wrapper fields.
+    Ollama returns arguments as dicts; re-serialising as a string causes HTTP 400
+    on the follow-up request ("Value looks like object, but can't find closing '}'").
+    """
+    return {
+        "role": "assistant",
+        "content": "",
+        "tool_calls": [
+            {
+                "function": {
+                    "name": c["name"],
+                    "arguments": c.get("arguments", {}),
+                },
+            }
+            for c in calls
+        ],
+    }
+
+
+def _build_tool_result_message(call_id: str, result_str: str) -> dict:
+    """Build the tool result message to append to the conversation.
+
+    Ollama native format has no tool_call_id field; omitting it avoids
+    deserialization errors on the follow-up /api/chat request.
+    """
+    return {"role": "tool", "content": result_str}
+
+
+def _fmt_args(args: dict) -> str:
+    """Format tool arguments for display, truncated to 80 chars."""
+    s = ', '.join(f'{k}={v!r}' for k, v in args.items())
+    return s[:80] + ('…' if len(s) > 80 else '')
 
 
 # ---------------------------------------------------------------------------
@@ -85,22 +136,79 @@ def _clamp_goals(goals: list, cfg: dict) -> list:
             for g in goals]
 
 
-def _postprocess_plan(node: dict, map_cfg: dict) -> dict:
+def _postprocess_plan(node: dict, map_cfg: dict, spread: bool = False) -> dict:
     """Recursively post-process plan nodes.
 
-    - mapf: clamp + spread goals so robots don't pile on one point.
+    - mapf: clamp goals into bounds. Spread into a distinct grid when the node
+      has ``spread: true`` (operator/model doesn't care about exact placement)
+      OR the global ``spread`` arg forces it. A single goal is treated as the
+      cluster centre and replicated to one per robot before declumping.
+      Without spread, the model's one-goal-per-robot layout is used as-is.
     - formation: warn if requested outside known formation zones.
     - sequence/parallel: recurse into steps.
     """
     t = node['type']
-    if t in ('sequence', 'parallel'):
-        node['steps'] = [_postprocess_plan(s, map_cfg) for s in node['steps']]
+    if t == 'sequence':
+        node['steps'] = [_postprocess_plan(s, map_cfg, spread) for s in node['steps']]
+    elif t == 'parallel':
+        # For sibling mapf nodes with spread=True pointing to the same center,
+        # merge their robot_ids FIRST and apply spread to the combined group.
+        # Without this, each group independently generates the same grid and
+        # robots end up with duplicate goals, blocking each other.
+        steps = list(node['steps'])
+        # Collect spread-eligible mapf siblings (single center goal)
+        ms_idx = [
+            i for i, s in enumerate(steps)
+            if s.get('type') == 'mapf'
+            and (spread or s.get('spread'))
+            and len(s.get('goals', [])) == 1
+            and len(s.get('robot_ids', [])) >= 1
+        ]
+        if len(ms_idx) >= 2:
+            # Cluster by center proximity
+            used: set[int] = set()
+            for a in ms_idx:
+                if a in used:
+                    continue
+                cluster = [a]
+                ca = steps[a]['goals'][0]
+                for b in ms_idx:
+                    if b == a or b in used:
+                        continue
+                    cb = steps[b]['goals'][0]
+                    dx, dy = ca[0] - cb[0], ca[1] - cb[1]
+                    if math.sqrt(dx * dx + dy * dy) < MIN_GOAL_DIST:
+                        cluster.append(b)
+                if len(cluster) < 2:
+                    continue
+                # Merge cluster: pool all robot_ids, spread once, split back
+                merged_ids: list[int] = []
+                for idx in cluster:
+                    merged_ids.extend(steps[idx].get('robot_ids', []))
+                center = steps[cluster[0]]['goals'][0]
+                merged_goals = _clamp_goals(
+                    _spread_goals([list(center)] * len(merged_ids)), map_cfg)
+                ptr = 0
+                for idx in cluster:
+                    n = len(steps[idx].get('robot_ids', []))
+                    steps[idx] = {
+                        **steps[idx],
+                        'goals': merged_goals[ptr:ptr + n],
+                        'spread': False,  # already expanded
+                    }
+                    ptr += n
+                    used.add(idx)
+        # Recurse normally (spread already applied for merged siblings)
+        node['steps'] = [_postprocess_plan(s, map_cfg, spread) for s in steps]
     elif t == 'mapf' and 'goals' in node:
-        # Clamp first so spread happens around an in-bounds centre,
-        # then clamp again as safety net for large spread radii.
-        node['goals'] = _clamp_goals(
-            _spread_goals(_clamp_goals(node['goals'], map_cfg)),
-            map_cfg)
+        goals = _clamp_goals(node['goals'], map_cfg)
+        if spread or bool(node.get('spread', False)):
+            n = len(node.get('robot_ids', goals))
+            if len(goals) == 1 and n > 1:
+                goals = [list(goals[0]) for _ in range(n)]
+            # Declump into a distinct grid/ring; clamp again for large radii.
+            goals = _clamp_goals(_spread_goals(goals), map_cfg)
+        node['goals'] = goals
     elif t == 'formation':
         # Warn if the formation is requested somewhere with insufficient
         # clearance. The actual enforcement is in formation_manager_node.
@@ -124,7 +232,12 @@ def _postprocess_plan(node: dict, map_cfg: dict) -> dict:
 # Response parsing
 # ---------------------------------------------------------------------------
 
-def _parse_response(raw: str) -> tuple[str, dict]:
+def _parse_response(
+    raw: str,
+    *,
+    template_registry: dict[str, dict] | None = None,
+    log_fn: Callable[[str], None] | None = None,
+) -> tuple[str, dict]:
     text = raw.strip()
     start = text.find('{')
     if start == -1:
@@ -158,8 +271,44 @@ def _parse_response(raw: str) -> tuple[str, dict]:
     except json.JSONDecodeError as exc:
         raise ValueError(f'invalid JSON: {exc}') from exc
     reply = obj.get('reply', text[:start].strip()) or text[:start].strip()
-    plan  = parse_plan(obj)
+    if log_fn is not None:
+        _log_template_usage(obj, template_registry, log_fn)
+    plan = parse_plan(obj, template_registry=template_registry)
     return reply, plan
+
+
+def _log_template_usage(
+    obj: dict,
+    template_registry: dict[str, dict] | None,
+    log_fn: Callable[[str], None],
+) -> None:
+    """One INFO-level line answering "did the model reference or retype?".
+
+    Must run BEFORE parse_plan resolves/replaces the "{{ref.path}}" strings —
+    by the time PlanExecutor logs a leaf, templates (if any) are already gone,
+    so this is the only point in the pipeline where it's still visible.
+    """
+    plan_node = obj.get('plan', obj)
+    used = find_used_refs(plan_node)
+    available = sorted((template_registry or {}).keys())
+    if used:
+        log_fn(
+            f'plan templates: {len(used)} used ({", ".join(used)}) '
+            f'of {len(available)} available ({", ".join(available)})'
+        )
+    elif available:
+        # Purely factual — 0 used does NOT necessarily mean the model retyped
+        # numbers by hand. A failed tool call (ok=false) still mints a ref
+        # with nothing usable in it, and an idle/disband/needs_help plan
+        # legitimately has no geometry to reference at all. Whether 0-used
+        # is a problem depends on the plan/tool-result shown right above
+        # this line — this only tells you refs existed and went unused.
+        log_fn(
+            f'plan templates: 0 used, {len(available)} tool result(s) available '
+            f'({", ".join(available)}) — check plan/tool-result above if this '
+            f'plan type expected placement data'
+        )
+    # else: no tool calls this turn — nothing to report, stay silent.
 
 
 # ---------------------------------------------------------------------------
@@ -222,6 +371,7 @@ class UserChatNode(Node):
         self.declare_parameter('llm_api_key_env',  'LLM_API_KEY')
         self.declare_parameter('llm_force_chat',   True)
         self.declare_parameter('llm_enable_stop',  False)
+        self.declare_parameter('llm_num_ctx',      32768)
         self.declare_parameter('timeout_sec',      30.0)
         self.declare_parameter('map_name',         'cave')
         self.declare_parameter('log_enabled',      True)
@@ -229,11 +379,19 @@ class UserChatNode(Node):
         self.declare_parameter('step_timeout_sec', 120.0)
         self.declare_parameter('max_remediation_attempts', 2)
         self.declare_parameter('remediation_enabled', True)
+        self.declare_parameter('robot_footprint_radius', 0.22)
+        self.declare_parameter('scan_timeout_sec',       3.0)
+        self.declare_parameter('tool_max_iterations',    6)
+        self.declare_parameter('formation_tolerance_m',  0.5)
+        self.declare_parameter('stream_reasoning',       True)
 
         self._max_remediation_attempts = max(0, int(
             self.get_parameter('max_remediation_attempts').value))
         self._remediation_enabled = bool(
             self.get_parameter('remediation_enabled').value)
+        self._tool_max_iterations = max(1, int(
+            self.get_parameter('tool_max_iterations').value))
+        self._stream_reasoning = bool(self.get_parameter('stream_reasoning').value)
         # Most recent _send_leaf failure metadata — read by the chat-side
         # remediation loop to brief the LLM on what broke.
         self._last_send_failure: dict | None = None
@@ -261,6 +419,7 @@ class UserChatNode(Node):
             timeout=self._timeout,
             force_chat=bool(self.get_parameter('llm_force_chat').value),
             enable_stop=bool(self.get_parameter('llm_enable_stop').value),
+            num_ctx=int(self.get_parameter('llm_num_ctx').value),
         )
         try:
             self._map_cfg = load_map_config(self._map_name)
@@ -268,10 +427,36 @@ class UserChatNode(Node):
             self.get_logger().warn(f'Map config load failed: {e}')
             self._map_cfg = {}
 
+        # Build robot ID list from map config; fall back to 0-19
+        _all_ids: list[int] = []
+        for _g in self._map_cfg.get('robot_groups', {}).values():
+            _all_ids.extend(int(i) for i in _g.get('ids', []))
+        if not _all_ids:
+            _all_ids = list(range(20))
+
+        self._pose_cache = RobotPoseCache(self, _all_ids)
+        self._formation_tolerance_m = float(
+            self.get_parameter('formation_tolerance_m').value)
+
+        _footprint_r = float(self.get_parameter('robot_footprint_radius').value)
+        _scan_to     = float(self.get_parameter('scan_timeout_sec').value)
+        self._tool_executor = ToolExecutor(
+            node=self,
+            pose_cache=self._pose_cache,
+            map_cfg=self._map_cfg,
+            robot_footprint_radius=_footprint_r,
+            scan_timeout_sec=_scan_to,
+        )
+
         self._cmd_client = ActionClient(self, LlmCommand, '/llm/command')
         qos = QoSProfile(reliability=ReliabilityPolicy.BEST_EFFORT,
                          history=HistoryPolicy.KEEP_LAST, depth=10)
         self.create_subscription(BTState, '/bt/state', self._on_bt_state, qos)
+
+        reliable_qos = QoSProfile(reliability=ReliabilityPolicy.RELIABLE,
+                                  history=HistoryPolicy.KEEP_LAST, depth=20)
+        self.create_subscription(LlmEvent, '/llm/events', self._on_llm_event,
+                                 reliable_qos)
 
         self._last_status        = 'OK'
         # _last_mode and _mode_seq are written from the ROS callback thread
@@ -287,8 +472,13 @@ class UserChatNode(Node):
         self._mode_seq           = 0
         self._last_action_status = 'OK'
         self._last_bt_error      = ''
+        self._last_active_action = 'none'
         self._history: list[dict] = []
-        self._bt_event_analyzing = False
+        self._bt_event_analyzing  = False
+        self._llm_event_analyzing = False
+        # Monotonic timestamp set when a user command is dispatched.
+        # _on_llm_event ignores events that arrive before this time.
+        self._last_dispatch_mono: float = 0.0
         # /llm/command server readiness is checked once per session, off the
         # asyncio loop thread, so wait_for_server() never freezes the UI.
         self._cmd_server_ready   = False
@@ -306,21 +496,18 @@ class UserChatNode(Node):
         self._print_banner()
 
     # ------------------------------------------------------------------
-    # Thread-safe mode accessors
+    # Thread-safe BT-state accessors
     # ------------------------------------------------------------------
-
-    def _get_mode(self) -> str:
-        with self._mode_lock:
-            return self._last_mode
-
-    def _get_mode_state(self) -> tuple[str, int]:
-        """Atomically read (mode, seq) so callers see a consistent pair."""
-        with self._mode_lock:
-            return self._last_mode, self._mode_seq
 
     def _get_bt_status(self) -> tuple[str, str]:
         with self._mode_lock:
             return self._last_action_status, self._last_bt_error
+
+    def _get_bt_progress(self) -> tuple[str, str, str]:
+        """(action_status, last_error, active_action) read atomically."""
+        with self._mode_lock:
+            return (self._last_action_status, self._last_bt_error,
+                    self._last_active_action)
 
     def _record_send_failure(self, *, leaf_type: str, phase: str,
                               info: str = '') -> None:
@@ -348,9 +535,11 @@ class UserChatNode(Node):
                 self._last_mode = msg.mode
                 self._mode_seq += 1
                 seq = self._mode_seq
-            # Mirror status/error so _send_leaf can surface real failures.
+            # Mirror status/error/active_action so _send_leaf can surface
+            # mission start, completion and real failures.
             self._last_action_status = msg.action_status
             self._last_bt_error      = msg.last_error
+            self._last_active_action = msg.active_action or 'none'
         if transitioned:
             self._slog.debug(f'mode: {prev_mode!r} → {msg.mode!r} (seq={seq})')
             if prev_mode and prev_mode != 'idle' and msg.mode == 'idle':
@@ -414,6 +603,102 @@ class UserChatNode(Node):
             self._prompt()
 
     # ------------------------------------------------------------------
+    # /llm/events diagnostic handler
+    # ------------------------------------------------------------------
+
+    def _on_llm_event(self, msg: LlmEvent) -> None:
+        """React to LlmEvent from channel 1 or 2 that signals an error."""
+        severity = getattr(msg, 'severity', '').upper()
+        if severity not in ('WARN', 'ERROR'):
+            return
+        # Only diagnose events that arrived after the last user command.
+        if time.monotonic() < self._last_dispatch_mono:
+            return
+        with self._mode_lock:
+            if self._llm_event_analyzing:
+                return
+            self._llm_event_analyzing = True
+        channel = int(getattr(msg, 'channel', 0))
+        trigger = str(getattr(msg, 'trigger', ''))[:180]
+        output  = str(getattr(msg, 'output', ''))[:180]
+        reason  = str(getattr(msg, 'reason', ''))[:180]
+        self._out(
+            f'\n  {WRN} [llm_event ch={channel}] {severity}: {reason or trigger}')
+        self._slog.warning(
+            f'llm_event: ch={channel} severity={severity} trigger={trigger} '
+            f'output={output} reason={reason}')
+        self._out(f'  {THK} Diagnosing...')
+        asyncio.run_coroutine_threadsafe(
+            self._handle_llm_event_diagnostic(channel, severity, trigger, output, reason),
+            self._loop,
+        )
+
+    _DIAGNOSTIC_SYSTEM = (
+        'You are diagnosing a robot execution failure reported by the swarm '
+        'orchestrator. Explain what went wrong in plain language and suggest '
+        'how the operator should reformulate their command to fix it. '
+        'Reply ONLY with a JSON object (no markdown, no prose outside JSON):\n'
+        '{"diagnosis": "<plain-language explanation>", '
+        '"suggested_reformulation": "<reworded operator command>"}'
+    )
+
+    async def _handle_llm_event_diagnostic(
+        self,
+        channel: int,
+        severity: str,
+        trigger: str,
+        output: str,
+        reason: str,
+    ) -> None:
+        try:
+            user_content = (
+                f'Channel {channel} reported {severity}.\n'
+                f'Trigger: {trigger}\n'
+                f'Output: {output}\n'
+                f'Reason: {reason}\n'
+                'Recent operator command history is provided for context.'
+            )
+            messages = [
+                {'role': 'system', 'content': self._DIAGNOSTIC_SYSTEM},
+            ]
+            if self._history:
+                messages.extend(self._history[-4:])
+            messages.append({'role': 'user', 'content': user_content})
+
+            try:
+                raw = await asyncio.wait_for(
+                    self._llm.generate(messages), timeout=self._timeout)
+            except asyncio.TimeoutError:
+                self._out(f'\n  {ERR}  LLM diagnostic timeout')
+                self._slog.error('llm_event diagnostic timeout')
+                return
+            except Exception as exc:
+                self._out(f'\n  {ERR}  LLM diagnostic error: {exc}')
+                self._slog.error(f'llm_event diagnostic error: {exc}')
+                return
+
+            safe_raw = raw.encode('utf-8', errors='replace').decode('utf-8')
+            self._slog.info(f'llm_event diagnostic: {safe_raw[:300]}')
+
+            try:
+                start = safe_raw.find('{')
+                end   = safe_raw.rfind('}')
+                obj = json.loads(safe_raw[start:end + 1]) if start != -1 else {}
+                diag   = obj.get('diagnosis', safe_raw[:300])
+                reform = obj.get('suggested_reformulation', '')
+            except Exception:
+                diag   = safe_raw[:300]
+                reform = ''
+
+            self._out(f'\n  {WRN} Diagnosis: {diag}')
+            if reform:
+                self._out(f'  {ARR} Try: {reform}')
+        finally:
+            with self._mode_lock:
+                self._llm_event_analyzing = False
+            self._prompt()
+
+    # ------------------------------------------------------------------
     # Stdin
     # ------------------------------------------------------------------
 
@@ -444,6 +729,7 @@ class UserChatNode(Node):
         if prev is not None and not prev.done():
             self._slog.info('cancelling previous plan task — newer command arrived')
             prev.cancel()
+        self._last_dispatch_mono = time.monotonic()
         self._current_plan_task = asyncio.run_coroutine_threadsafe(
             self._handle(text), self._loop)
 
@@ -464,12 +750,16 @@ class UserChatNode(Node):
     async def _handle_body(self, text: str):
         safe_text = text.encode('utf-8', errors='replace').decode('utf-8')
         self._slog.info(f'USER: {safe_text}')
+        # Fresh {{ref.path}} registry per operator command — a ref from a
+        # previous command could point at a robot position that has since
+        # moved, and start=0/no-collision refs read more clearly in logs.
+        self._tool_executor.reset_turn()
 
         self._out(f'\n  {THK} ')
         messages = build_user_prompt(text, history=self._history,
                                      map_name=self._map_name)
 
-        parsed = await self._stream_parse_and_announce(messages)
+        parsed = await self._tool_parse_and_announce(messages)
         if parsed is None:
             self._prompt(); return
         reply, plan, full_raw = parsed
@@ -512,7 +802,7 @@ class UserChatNode(Node):
                 map_name=self._map_name,
             )
             self._out(f'\n  {THK} ')
-            parsed = await self._stream_parse_and_announce(rem_messages)
+            parsed = await self._tool_parse_and_announce(rem_messages)
             if parsed is None:
                 self._announce_help(last_reply, last_plan, source=f'remediation {n}: LLM failure',
                                     last_failure=attempts[-1])
@@ -549,6 +839,135 @@ class UserChatNode(Node):
                             last_failure=attempts[-1])
         self._prompt()
 
+    async def _tool_parse_and_announce(
+        self, messages: list[dict],
+    ) -> tuple[str, dict, str] | None:
+        """Run the tool calling loop, then parse + announce the resulting plan.
+
+        When stream_reasoning=True, reasoning tokens are printed inline to the
+        terminal via a chunk_cb passed to _run_tool_loop.
+
+        Returns (reply, plan, full_raw) or None on error.
+        """
+        msgs = list(messages)
+        full_raw: str = ''
+
+        chunk_cb = None
+        if self._stream_reasoning:
+            def _cb(token: str) -> None:
+                print(token, end='', flush=True)
+            chunk_cb = _cb
+
+        try:
+            full_raw = await asyncio.wait_for(
+                self._run_tool_loop(msgs, chunk_cb=chunk_cb),
+                timeout=self._timeout)
+        except asyncio.TimeoutError:
+            self._out(f'\n  {ERR}  LLM backend timeout')
+            self._slog.error('LLM timeout')
+            return None
+        except Exception as exc:
+            self._out(f'\n  {ERR}  LLM error: {exc}')
+            self._slog.error(f'LLM error: {exc}')
+            return None
+
+        if chunk_cb is not None:
+            print()  # newline after streamed reasoning tokens
+
+        self._slog.debug(f'LLM raw ({len(full_raw)} chars):\n{full_raw}')
+        try:
+            reply, plan = _parse_response(
+                full_raw,
+                template_registry=self._tool_executor.template_registry,
+                log_fn=self._slog.info,
+            )
+        except ValueError as exc:
+            self._out(f'  {ERR}  Parse error: {exc}')
+            self._out(f'       Raw: {full_raw[:400]}')
+            self._slog.error(f'Parse error: {exc}\nRaw: {full_raw}')
+            return None
+        self._out(f'  {BOT} {reply}')
+        self._slog.info(f'Plan: {json.dumps(plan, ensure_ascii=False)}')
+        plan = _postprocess_plan(plan, self._map_cfg)
+        self._describe_plan(plan)
+        return reply, plan, full_raw
+
+    async def _consume_stream(
+        self,
+        messages: list[dict],
+        tools: list[dict],
+        chunk_cb=None,
+    ) -> dict:
+        """Drain stream_with_tools; call chunk_cb for each non-empty text chunk.
+
+        Returns the terminal event dict (type=tool_calls or type=text).
+        """
+        terminal: dict | None = None
+        async for event in self._llm.stream_with_tools(messages, tools):
+            if event['type'] == 'chunk':
+                token = event.get('content', '')
+                if token and chunk_cb is not None:
+                    chunk_cb(token)
+            else:
+                terminal = event
+        return terminal or {'type': 'text', 'content': ''}
+
+    async def _run_tool_loop(self, messages: list[dict], chunk_cb=None) -> str:
+        """Tool calling loop: call LLM, execute any requested tools, repeat.
+
+        When chunk_cb is provided, uses stream_with_tools and forwards each
+        non-empty text chunk to the callback. Otherwise uses generate_with_tools.
+
+        Returns the final text response (the full JSON string with reply+plan).
+        Hard-capped at self._tool_max_iterations rounds to prevent infinite loops.
+        """
+        msgs = list(messages)
+        for iteration in range(self._tool_max_iterations):
+            if chunk_cb is not None:
+                result = await self._consume_stream(
+                    msgs, TOOL_DEFINITIONS, chunk_cb=chunk_cb)
+            else:
+                result = await self._llm.generate_with_tools(msgs, TOOL_DEFINITIONS)
+
+            if result['type'] == 'text':
+                return result['content']
+
+            # Execute requested tool calls
+            calls: list[dict] = result['calls']
+            self._slog.debug(
+                f'tool_loop iter={iteration}: '
+                f'{[c["name"] for c in calls]}'
+            )
+
+            # Build the assistant message that requested the tools
+            # (needed for OpenAI multi-turn tool format)
+            tool_use_msg = _build_tool_use_assistant_message(calls)
+            msgs.append(tool_use_msg)
+
+            for call in calls:
+                name = call['name']
+                args = call['arguments']
+                call_id = call.get('call_id', '')
+                self._out(f'  🔧 tool: {name}({_fmt_args(args)})')
+                self._slog.debug(f'tool call: {name} args={args}')
+
+                try:
+                    tool_result = await asyncio.wait_for(
+                        self._tool_executor.call(name, args),
+                        timeout=max(self._timeout, 10.0),
+                    )
+                except Exception as exc:
+                    tool_result = {'error': str(exc)}
+
+                result_str = json.dumps(tool_result, ensure_ascii=False)
+                self._slog.debug(f'tool result: {name} → {result_str[:300]}')
+                msgs.append(_build_tool_result_message(call_id, result_str))
+
+        raise RuntimeError(
+            f'tool loop exceeded {self._tool_max_iterations} iterations '
+            'without producing a final text response'
+        )
+
     async def _stream_parse_and_announce(
         self, messages: list[dict],
     ) -> tuple[str, dict, str] | None:
@@ -577,11 +996,26 @@ class UserChatNode(Node):
         self._describe_plan(plan)
         return reply, plan, full_raw
 
+    def _formation_prestage_hook(self, formation_node: dict) -> dict | None:
+        """Auto-stage out-of-tolerance followers before a formation leaf.
+
+        Mirrors chat_server._formation_prestage_hook — uses the same
+        RobotPoseCache and compute_formation_staging logic so the terminal
+        client has identical staging behaviour to the RViz action server.
+        """
+        snapshot = self._pose_cache.snapshot(stale_threshold_ms=2000)
+        return compute_formation_staging(
+            formation_node,
+            snapshot,
+            tolerance_m=self._formation_tolerance_m,
+        )
+
     async def _run_plan(self, plan: dict) -> bool:
         executor = PlanExecutor(
             send_fn=self._send_leaf,
             log_fn=lambda m: (print(f'  {m}', flush=True),
                               self._slog.debug(f'executor: {m}'))[0],
+            formation_prestage_hook=self._formation_prestage_hook,
         )
         return await executor.run(plan)
 
@@ -645,7 +1079,8 @@ class UserChatNode(Node):
         goal = LlmCommand.Goal()
         goal.mode         = t
         goal.reason       = command.get('reason', '')
-        goal.robot_ids    = [int(r) for r in command.get('robot_ids', [])]
+        goal.robot_ids    = [coerce_robot_id(r)
+                             for r in command.get('robot_ids', [])]
         goal.goals        = [Point(x=float(g[0]), y=float(g[1]), z=0.0)
                              for g in command.get('goals', [])]
         goal.formation_id = command.get('formation_id', '')
@@ -653,16 +1088,6 @@ class UserChatNode(Node):
         goal.follower_ns  = list(command.get('follower_ns', []))
         goal.offsets_x    = [float(o) for o in command.get('offsets_x', [])]
         goal.offsets_y    = [float(o) for o in command.get('offsets_y', [])]
-
-        # Snapshot the mode-transition counter BEFORE sending so we can tell
-        # the difference between a transition triggered by THIS leaf and a
-        # leftover transition from the previous step. Without this snapshot,
-        # the second leaf in a sequence races: the BT publishes idle→<mode>
-        # while we are still inside `await get_result_async`, and a stale
-        # "ever busy" flag would otherwise be reset right after, leaving the
-        # subsequent <mode>→idle transition undetectable (the BTState callback
-        # only fires on actual mode changes).
-        seq_at_send = self._get_mode_state()[1]
 
         # Step 1: send goal and wait for BT to accept it.
         handle = await self._cmd_client.send_goal_async(goal)
@@ -681,58 +1106,56 @@ class UserChatNode(Node):
             self._record_send_failure(leaf_type=t, phase='accept', info=info)
             return False
 
-        self._slog.debug(
-            f'send_leaf: goal accepted and applied (seq_at_send={seq_at_send})')
+        self._slog.debug('send_leaf: goal accepted and applied')
 
-        # Phase 1: wait up to 1.5s for the BT to actually pick up our goal.
-        # We treat seeing _any_ transition past seq_at_send as proof the BT
-        # processed our blackboard write. Three outcomes:
-        #   * mode now non-idle  → mission running, drop into Phase 2.
-        #   * mode flipped to idle inside the window → fast-complete leaf.
-        #   * no transition at all in 1.5s → ModeDispatch effectively no-op'd
-        #     this leaf (e.g. duplicate goal, validation failure inside the
-        #     BT). Return success rather than block the whole plan; the
-        #     BT-event analyzer surfaces real failures via WARN/ERROR.
-        phase1_deadline = time.monotonic() + 1.5
+        # The /llm/command result is only an ack. Mission completion is read
+        # from /bt/state via @active_action: the BT cycles it
+        # none → MapfPlan/SetFormation/DisableFormation → none and no longer
+        # returns @mode to idle on its own, so we must not wait on @mode.
+
+        # Phase 1: wait up to 3s for the BT to start the action node.
+        phase1_deadline = time.monotonic() + 3.0
+        started = False
         while time.monotonic() < phase1_deadline:
-            mode_now, seq_now = self._get_mode_state()
-            if seq_now > seq_at_send:
-                if mode_now == 'idle':
-                    status_now, err_now = self._get_bt_status()
-                    if status_now == 'ERROR':
-                        self._out(f'  {ERR}  Mission failed: {err_now}')
-                        self._slog.error(
-                            f'send_leaf: {t} idle with ERROR: {err_now}')
-                        self._record_send_failure(
-                            leaf_type=t, phase='phase1', info=err_now)
-                        return False
-                    self._slog.info(
-                        f'send_leaf: {t} fast-completed (returned to idle '
-                        f'in <1.5s, seq {seq_at_send}->{seq_now})')
-                    return True
-                self._slog.debug(
-                    f'send_leaf: BT entered {mode_now!r} (seq {seq_at_send}->{seq_now})')
+            status_now, err_now, action_now = self._get_bt_progress()
+            if action_now not in ('', 'none'):
+                self._slog.debug(f'send_leaf: BT started {action_now!r}')
+                started = True
                 break
             await asyncio.sleep(0.05)
-        else:
+        if not started:
+            status_now, err_now, _ = self._get_bt_progress()
+            if status_now in ('ERROR', 'HALTED'):
+                self._out(f'  {ERR}  Mission failed: {err_now}')
+                self._slog.error(
+                    f'send_leaf: {t} reported {status_now} without starting: '
+                    f'{err_now}')
+                self._record_send_failure(
+                    leaf_type=t, phase='phase1', info=err_now)
+                return False
             self._slog.info(
-                f'send_leaf: BT never transitioned after {t} command '
-                f'(seq stuck at {seq_at_send}) — treating as no-op success')
+                f'send_leaf: BT never started an action after {t} command '
+                f'— treating as no-op success')
             return True
 
-        # Phase 2: wait for the mission to finish (mode → idle).
+        # Phase 2: wait for the action node to finish. @active_action returns
+        # to "none" on success/partial; a hard failure raises @action_status
+        # to ERROR/HALTED.
         deadline = time.monotonic() + self._step_timeout
         while time.monotonic() < deadline:
-            if self._get_mode() == 'idle':
-                status_now, err_now = self._get_bt_status()
-                if status_now == 'ERROR':
+            status_now, err_now, action_now = self._get_bt_progress()
+            finished = action_now in ('', 'none')
+            failed   = status_now in ('ERROR', 'HALTED')
+            if finished or failed:
+                if failed:
                     self._out(f'  {ERR}  Mission failed: {err_now}')
                     self._slog.error(
-                        f'send_leaf: {t} idle with ERROR after run: {err_now}')
+                        f'send_leaf: {t} finished with {status_now}: {err_now}')
                     self._record_send_failure(
                         leaf_type=t, phase='phase2', info=err_now)
                     return False
-                self._slog.debug('send_leaf: mission complete (mode=idle)')
+                self._slog.debug(
+                    'send_leaf: mission complete (active_action=none)')
                 return True
             await asyncio.sleep(0.1)
 

@@ -5,7 +5,7 @@ import asyncio
 import pytest
 
 from iros_llm_orchestrator.common.plan_executor import (
-    PlanExecutor, flatten_parallel, parse_plan)
+    PlanExecutor, coerce_robot_id, flatten_parallel, parse_plan)
 from iros_llm_orchestrator.context.pose_cache import (
     compute_formation_staging)
 
@@ -25,6 +25,24 @@ def test_flatten_merges_two_disjoint_mapf():
     assert out[0]['robot_ids'] == [0, 1, 2, 3]
     assert out[0]['goals']     == [[1.0, 1.0], [2.0, 2.0],
                                     [3.0, 3.0], [4.0, 4.0]]
+
+
+def test_flatten_parallel_expands_single_center_spread_before_merge():
+    p = {'type': 'parallel', 'steps': [
+        _mapf([8, 9, 10, 11], [[2.7, 10.1]], 'green to cafeteria') | {
+            'spread': True,
+        },
+        _mapf([16, 17, 18, 19], [[2.7, 10.1]], 'yellow to cafeteria') | {
+            'spread': True,
+        },
+    ]}
+
+    out = flatten_parallel(p)
+
+    assert len(out) == 1
+    assert out[0]['robot_ids'] == [8, 9, 10, 11, 16, 17, 18, 19]
+    assert len(out[0]['goals']) == 8
+    assert len({tuple(goal) for goal in out[0]['goals']}) == 8
 
 
 def test_flatten_dedup_overlapping_robot_ids():
@@ -216,3 +234,66 @@ def test_executor_aborts_when_staging_step_fails():
     assert len(sent) == 1
     assert sent[0]['type'] == 'mapf'
     assert executor.failed_leaf['type'] == 'mapf'
+
+
+# ---------------------------------------------------------------------------
+# coerce_robot_id + robot_id / goal normalisation
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize('value,expected', [
+    (10, 10),
+    (0, 0),
+    ('10', 10),
+    ('robot_10', 10),
+    ('robot10', 10),
+    ('robot-7', 7),
+    ('  robot_3  ', 3),
+    ('ROBOT_5', 5),
+    (10.0, 10),
+])
+def test_coerce_robot_id_accepts(value, expected):
+    assert coerce_robot_id(value) == expected
+
+
+@pytest.mark.parametrize('value', [
+    'orange', 'robot_', '', 'robot_x', True, False, 1.5, None, [3],
+])
+def test_coerce_robot_id_rejects(value):
+    with pytest.raises(ValueError):
+        coerce_robot_id(value)
+
+
+def test_parse_plan_normalises_string_robot_ids():
+    """The exact qwen2.5:7b failure: robot_ids emitted as 'robot_N' strings."""
+    bad = {'type': 'mapf',
+           'robot_ids': ['robot_10', 'robot_1'],
+           'goals': [[1.0, 2.0], [3.0, 4.0]]}
+    out = parse_plan(bad)
+    assert out['robot_ids'] == [10, 1]
+    assert all(isinstance(r, int) for r in out['robot_ids'])
+
+
+def test_parse_plan_normalises_goal_coordinates_to_float():
+    out = parse_plan({'type': 'mapf', 'robot_ids': [0], 'goals': [['1.5', 2]]})
+    assert out['goals'] == [[1.5, 2.0]]
+    assert all(isinstance(c, float) for c in out['goals'][0])
+
+
+def test_parse_plan_rejects_unparseable_robot_id():
+    bad = {'type': 'mapf', 'robot_ids': ['orange'], 'goals': [[1.0, 1.0]]}
+    with pytest.raises(ValueError):
+        parse_plan(bad)
+
+
+def test_parse_plan_rejects_non_numeric_goal():
+    bad = {'type': 'mapf', 'robot_ids': [0], 'goals': [['x', 'y']]}
+    with pytest.raises(ValueError):
+        parse_plan(bad)
+
+
+def test_flatten_parallel_normalises_string_robot_ids():
+    p = {'type': 'parallel', 'steps': [
+        _mapf(['robot_0'], [[1.0, 1.0]]),
+        _mapf(['robot_2'], [[3.0, 3.0]])]}
+    out = flatten_parallel(p)
+    assert sorted(out[0]['robot_ids']) == [0, 2]

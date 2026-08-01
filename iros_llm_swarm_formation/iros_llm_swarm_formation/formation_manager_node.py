@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import math
 import yaml
+from scipy.spatial import ConvexHull
+import numpy as np
 
 import rclpy
 from rclpy.node import Node
@@ -29,20 +31,65 @@ FORMATIONS_TOPIC = "/formations/config"
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _bounding_circle(offsets, robot_radius):
-    if not offsets:
-        return (0.0, 0.0, robot_radius)
-    cx = sum(dx for dx, _ in offsets) / len(offsets)
-    cy = sum(dy for _, dy in offsets) / len(offsets)
-    radius = max(math.hypot(dx - cx, dy - cy) for dx, dy in offsets)
-    return cx, cy, radius + robot_radius
+def _convex_hull_polygon(
+    offsets: list[tuple[float, float]],
+    robot_radius: float,
+    padding: float,
+    n_circle_pts: int = 16,
+) -> Polygon:
+    pts = []
 
+    inflation = robot_radius + padding
 
-def _circle_polygon(radius: float, cx: float = 0.0, cy: float = 0.0,
-                    n_pts: int = 16) -> Polygon:
+    # лидер + последователи
+    robots = [(0.0, 0.0)] + offsets
+
+    for cx, cy in robots:
+        for i in range(n_circle_pts):
+            a = 2.0 * math.pi * i / n_circle_pts
+            pts.append([
+                cx + inflation * math.cos(a),
+                cy + inflation * math.sin(a),
+            ])
+
+    pts = np.asarray(pts)
+
+    if len(pts) < 3:
+        return _circle_polygon(inflation)
+
+    hull = ConvexHull(pts)
+
     poly = Polygon()
-    for i in range(n_pts):
-        a = 2.0 * math.pi * i / n_pts
+    for idx in hull.vertices:
+        poly.points.append(
+            Point32(
+                x=float(pts[idx, 0]),
+                y=float(pts[idx, 1]),
+                z=0.0,
+            )
+        )
+
+    return poly
+
+def _circle_polygon(
+    offsets: list[tuple[float, float]],
+    robot_radius: float,
+    padding: float,
+    n_circle_pts: int = 16,
+) -> Polygon:
+    
+    # лидер + последователи
+    robots = [(0.0, 0.0)] + offsets
+
+    if not robots:
+        return (0.0, 0.0, robot_radius)
+    cx = sum(dx for dx, _ in robots) / len(robots)
+    cy = sum(dy for _, dy in robots) / len(robots)
+    radius = max(math.hypot(dx - cx, dy - cy) for dx, dy in robots) + robot_radius + padding
+
+    poly = Polygon()
+    for i in range(n_circle_pts):
+        a = 2.0 * math.pi * i / n_circle_pts
         poly.points.append(Point32(
             x=float(cx + radius * math.cos(a)),
             y=float(cy + radius * math.sin(a)),
@@ -50,6 +97,25 @@ def _circle_polygon(radius: float, cx: float = 0.0, cy: float = 0.0,
         ))
     return poly
 
+def _build_footprint(
+    footprint_type: str,
+    offsets: list[tuple[float, float]],
+    robot_radius: float,
+    padding: float,
+) -> Polygon:
+
+    if footprint_type == "convex_hull":
+        return _convex_hull_polygon(
+            offsets,
+            robot_radius,
+            padding,
+        )
+
+    return _circle_polygon(
+        offsets,
+        robot_radius,
+        padding,
+    )
 
 def _quat_to_yaw(ox, oy, oz, ow) -> float:
     return math.atan2(2.0 * (ow * oz + ox * oy),
@@ -88,7 +154,7 @@ class _Formation:
         self.offsets      = offsets
         self.active       = active
 
-    def to_msg(self, stamp, padding: float, robot_radius: float) -> FormationConfig:
+    def to_msg(self, stamp, padding: float, robot_radius: float, footprint_type: str) -> FormationConfig:
         msg = FormationConfig()
         msg.header       = Header(stamp=stamp, frame_id="")
         msg.formation_id = self.formation_id
@@ -97,8 +163,12 @@ class _Formation:
         msg.active       = self.active
         for dx, dy in self.offsets:
             msg.offsets.append(Point(x=float(dx), y=float(dy), z=0.0))
-        cx, cy, radius = _bounding_circle(self.offsets, robot_radius)
-        msg.footprint = _circle_polygon(radius + padding, cx, cy)
+        msg.footprint = _build_footprint(
+            footprint_type,
+            self.offsets,
+            robot_radius,
+            padding,
+        )
         return msg
 
 
@@ -124,11 +194,20 @@ class FormationManagerNode(Node):
         # Set num_robots=0 to keep the legacy lazy-subscribe behaviour.
         self.declare_parameter("num_robots",         20)
         self.declare_parameter("robot_ns_prefix",    "robot_")
+        self.declare_parameter("footprint_type",     "circle")
 
         self._padding  = self.get_parameter("footprint_padding").value
         self._robot_r  = self.get_parameter("robot_radius").value
         self._auto_act = self.get_parameter("auto_activate").value
         self._pos_tol  = self.get_parameter("position_tolerance").value
+        self._footprint_type = self.get_parameter("footprint_type").value
+
+
+        if self._footprint_type not in ("circle", "convex_hull"):
+            self.get_logger().warn(
+                f"Unknown footprint_type='{self._footprint_type}', using circle"
+            )
+            self._footprint_type = "circle"
 
         latched = QoSProfile(
             depth=1,
@@ -453,7 +532,7 @@ class FormationManagerNode(Node):
 
         now = self.get_clock().now().to_msg()
         res.formation = self._registry[fid].to_msg(
-            stamp=now, padding=self._padding, robot_radius=self._robot_r)
+            stamp=now, padding=self._padding, robot_radius=self._robot_r, footprint_type=self._footprint_type)
         res.success = True
         res.message = f"Formation '{fid}' returned"
         return res
@@ -462,7 +541,7 @@ class FormationManagerNode(Node):
                  res: ListFormations.Response):
         now = self.get_clock().now().to_msg()
         res.formations = [
-            f.to_msg(stamp=now, padding=self._padding, robot_radius=self._robot_r)
+            f.to_msg(stamp=now, padding=self._padding, robot_radius=self._robot_r, footprint_type=self._footprint_type)
             for f in self._registry.values()
         ]
         return res
@@ -582,7 +661,8 @@ class FormationManagerNode(Node):
         for f in self._registry.values():
             msg.formations.append(
                 f.to_msg(stamp=now, padding=self._padding,
-                         robot_radius=self._robot_r))
+                         robot_radius=self._robot_r,
+                         footprint_type=self._footprint_type))
         self._pub.publish(msg)
         self.get_logger().debug(
             f"Published: {[f.formation_id for f in self._registry.values()]}")

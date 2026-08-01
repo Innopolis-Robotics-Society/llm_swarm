@@ -10,6 +10,11 @@ mapf_lns2:
     map_topic:               "/map"
     grid_resolution:          0.2      # meters / cell for the planner grid
     default_robot_radius:     0.22     # used when /published_footprint hasn't arrived yet
+    # Per-robot footprint topic; '{id}' -> robot index. Default reads the Nav2
+    # costmap footprint directly. The full demo overrides this to the formation
+    # footprint proxy (/robot_{id}/lns/footprint) so formation leaders advertise
+    # the whole-group footprint to the planner.
+    footprint_topic_template: "/robot_{id}/local_costmap/published_footprint"
     inflation_radius:         0.3    # additional radius added to footprint
     max_speed:                0.5      # informational; not used by the solver directly
     goal_reached_m:           0.35     # arrival tolerance for "all done" check

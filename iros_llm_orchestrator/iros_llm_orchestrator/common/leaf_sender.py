@@ -2,16 +2,21 @@
 behaviour tree to finish the resulting mission.
 
 Used by both chat_server (channel 3) and execute_server (operator-confirmed
-plan replay). Encapsulates the same /bt/state mode-seq protocol that
-user_chat_node._send_leaf uses, so all callers behave identically:
+plan replay). Encapsulates the /bt/state @active_action protocol that
+user_chat_node._send_leaf also uses, so all callers behave identically.
 
-  Phase 1 (≤1.5s): wait for any mode transition past the snapshot taken
-                   before sending. If mode flips to idle inside the window
-                   we treat the leaf as fast-completed; if no transition
-                   happens at all, ModeDispatch effectively no-op'd this
-                   leaf (e.g. duplicate goal) — return success rather than
-                   block the whole plan.
-  Phase 2:         wait for mode → idle within step_timeout_sec.
+The /llm/command action result is only an ack — LlmCommandReceiver succeeds
+the goal as soon as it copies the command onto the blackboard. Real mission
+completion is observed on /bt/state: the refactored BT cycles @active_action
+none → MapfPlan/SetFormation/DisableFormation → none. @mode no longer
+returns to idle on its own (RunOnce keeps the tree alive), so completion is
+keyed on @active_action, never on @mode.
+
+  Phase 1 (≤3s): wait for @active_action to leave "none" — the BT started
+                 the action node.
+  Phase 2:       wait for @active_action to return to "none" within
+                 step_timeout_sec; a hard failure instead raises
+                 @action_status to ERROR/HALTED.
 """
 
 from __future__ import annotations
@@ -29,6 +34,8 @@ from iros_llm_swarm_interfaces.action import LlmCommand
 from iros_llm_swarm_interfaces.msg import BTState
 from iros_llm_swarm_interfaces.srv import (
     AddCircle, AddRectangle, AddDoor, RemoveObstacle, OpenDoor, CloseDoor)
+
+from iros_llm_orchestrator.common.plan_executor import coerce_robot_id
 
 
 class BTLeafSender:
@@ -57,6 +64,7 @@ class BTLeafSender:
         self._mode_seq           = 0
         self._last_action_status = 'OK'
         self._last_bt_error      = ''
+        self._last_active_action = 'none'
 
         # Failure metadata for the most recent send(). Populated whenever
         # send() returns False; cleared on each new send() call. Chat-side
@@ -77,14 +85,17 @@ class BTLeafSender:
             if msg.mode != self._last_mode:
                 self._last_mode = msg.mode
                 self._mode_seq += 1
-            # Mirror action_status so phase 1 can detect failed missions
+            # Mirror action_status / active_action so the send() phases can
+            # detect mission start, completion and failure.
             self._last_action_status = msg.action_status
             self._last_bt_error      = msg.last_error
+            self._last_active_action = msg.active_action or 'none'
 
-    def _get_mode_state(self) -> tuple[str, int, str, str]:
+    def _get_mode_state(self) -> tuple[str, int, str, str, str]:
         with self._mode_lock:
             return (self._last_mode, self._mode_seq,
-                    self._last_action_status, self._last_bt_error)
+                    self._last_action_status, self._last_bt_error,
+                    self._last_active_action)
 
     # ------------------------------------------------------------------
     # Send one leaf
@@ -140,7 +151,8 @@ class BTLeafSender:
         goal = LlmCommand.Goal()
         goal.mode         = t
         goal.reason       = command.get('reason', '')
-        goal.robot_ids    = [int(r) for r in command.get('robot_ids', [])]
+        goal.robot_ids    = [coerce_robot_id(r)
+                             for r in command.get('robot_ids', [])]
         goal.goals        = [Point(x=float(g[0]), y=float(g[1]), z=0.0)
                              for g in command.get('goals', [])]
         goal.formation_id = command.get('formation_id', '')
@@ -148,8 +160,6 @@ class BTLeafSender:
         goal.follower_ns  = list(command.get('follower_ns', []))
         goal.offsets_x    = [float(o) for o in command.get('offsets_x', [])]
         goal.offsets_y    = [float(o) for o in command.get('offsets_y', [])]
-
-        seq_at_send = self._get_mode_state()[1]
 
         handle = await self._cmd_client.send_goal_async(goal)
         if not handle.accepted:
@@ -169,45 +179,51 @@ class BTLeafSender:
         if t == 'idle':
             return True
 
-        # Phase 1 — wait for BT to acknowledge the command (mode transition).
-        # We do NOT fast-complete if mode went to idle too quickly while
-        # action_status is ERROR/WARN — that indicates a failed mission
-        # (e.g. PBS partial plan), not a genuine instant completion.
-        phase1_deadline = time.monotonic() + 1.5
-        transitioned    = False
+        # The /llm/command result above is only an ack ("command applied to
+        # the blackboard"). Mission completion is observed on /bt/state via
+        # @active_action — @mode no longer returns to idle on its own.
+        #
+        # Phase 1 — wait for the BT to start the action node. LlmCommandReceiver
+        # bumps @command_seq, RunOnce re-ticks the wrapped node and onStart()
+        # sets @active_action to MapfPlan / SetFormation / DisableFormation.
+        phase1_deadline = time.monotonic() + 3.0
+        started = False
         while time.monotonic() < phase1_deadline:
-            mode_now, seq_now, status_now, err_now = self._get_mode_state()
-            if seq_now > seq_at_send:
-                if mode_now == 'idle':
-                    if status_now in ('ERROR',):
-                        # Mission failed (partial plan, no path, etc.)
-                        self._node.get_logger().error(
-                            f'leaf {t!r}: BT returned idle with ERROR: {err_now}')
-                        self._record_failure(leaf_type=t, phase='phase1',
-                                             info=err_now)
-                        return False
-                    # Genuine fast completion (e.g. instant formation setup)
-                    return True
-                transitioned = True
+            _, _, status_now, err_now, action_now = self._get_mode_state()
+            if action_now not in ('', 'none'):
+                started = True
                 break
             await asyncio.sleep(0.05)
-        if not transitioned:
-            # No mode transition at all — BT ignored the command (duplicate
-            # goal or ModeDispatch no-op). Treat as success rather than block.
+        if not started:
+            # @active_action never left "none". Surface a real failure;
+            # otherwise treat as a no-op success rather than block the plan.
+            _, _, status_now, err_now, _ = self._get_mode_state()
+            if status_now in ('ERROR', 'HALTED'):
+                self._node.get_logger().error(
+                    f'leaf {t!r}: BT reported {status_now} without starting an '
+                    f'action: {err_now}')
+                self._record_failure(leaf_type=t, phase='phase1', info=err_now)
+                return False
+            self._node.get_logger().warn(
+                f'leaf {t!r}: BT never started an action — treating as no-op')
             return True
 
-        # Phase 2 — wait for mission to finish (mode returns to idle).
-        # Once mode flips back to idle, check action_status: if ERROR the
-        # mission aborted (e.g. SetFormation exhausted its retry budget) and
-        # we must surface that failure rather than silently succeed.
+        # Phase 2 — wait for the action node to finish. The BT clears
+        # @active_action back to "none" on success/partial; a hard failure
+        # instead raises @action_status to ERROR/HALTED.
+        #
+        # IMPORTANT: check action_status ONLY when active_action has returned
+        # to "none". Checking it independently causes false failures — the
+        # previous leaf's ERROR status lingers in /bt/state until the new
+        # action actually completes, and we'd bail out on stale data.
         deadline = time.monotonic() + self._step_timeout
         while time.monotonic() < deadline:
-            mode_now, _, status_now, err_now = self._get_mode_state()
-            if mode_now == 'idle':
-                if status_now == 'ERROR':
+            _, _, status_now, err_now, action_now = self._get_mode_state()
+            if action_now in ('', 'none'):
+                # Action has finished — now the status is authoritative.
+                if status_now in ('ERROR', 'HALTED'):
                     self._node.get_logger().error(
-                        f'leaf {t!r}: BT returned to idle with ERROR: '
-                        f'{err_now}')
+                        f'leaf {t!r}: BT finished with {status_now}: {err_now}')
                     self._record_failure(leaf_type=t, phase='phase2',
                                          info=err_now)
                     return False

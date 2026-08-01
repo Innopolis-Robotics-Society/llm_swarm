@@ -1,22 +1,33 @@
 "/**":
   ros__parameters:
-    # Shared LLM settings for LLM-capable nodes. Launch files infer llm_mode
-    # from llm_endpoint and require llm_model explicitly.
+    # Shared LLM backend/model settings for LLM-capable nodes.
+    # Launch files override these via a single public llm_endpoint argument.
     # Never store a real API key here; set the environment variable named by
     # llm_api_key_env instead.
+
     llm_mode: "ollama"
-    llm_endpoint: "http://localhost:11434/api/chat"
-    llm_model: ""
+    llm_endpoint: "http://localhost:11434/api/chat" # Ollama default
+    llm_model: "mistral-small3.1"
+
+    # llm_mode: "http"
+    # llm_endpoint: "https://api.groq.com/openai/v1/chat/completions"
+    # llm_model: "llama-3.3-70b-versatile"
     llm_api_key: ""
     llm_api_key_env: "LLM_API_KEY"
     llm_force_chat: true
     llm_enable_stop: false
     llm_temperature: 0.1
+    # Local Ollama input context window. Channel-3 sends a large system prompt,
+    # map context, few-shot JSON examples, tool schemas, and sometimes runtime
+    # state; ~8k is too tight for Qwen32B-style planning turns. For HTTP/vLLM
+    # endpoints this ROS parameter is only a hint/log value: configure the
+    # server-side model context/max_model_len separately.
+    llm_num_ctx: 32768
 
 llm_decision_server:
   ros__parameters:
     # Channel 1 — BT/MAPF WARN/INFO -> wait / abort / replan.
-    llm_max_tokens: 512
+    llm_max_tokens: 2048
     dataset_path: "~/.ros/llm_decisions"
     max_concurrent: 1
     timeout_sec: 45.0
@@ -26,7 +37,7 @@ llm_decision_server:
 llm_passive_observer:
   ros__parameters:
     # Channel 2 — passive observer. Disabled by default.
-    llm_max_tokens: 1024
+    llm_max_tokens: 2048
     history_size: 20
     cooldown_sec: 10.0
     timeout_sec: 45.0
@@ -36,7 +47,13 @@ llm_passive_observer:
 llm_chat_server:
   ros__parameters:
     # Channel 3 — RViz operator chat -> reply + JSON plan.
-    llm_max_tokens: 2000
+    # Keep output budget bounded so it does not consume the whole context
+    # window. Plans should fit comfortably under 3k generated tokens.
+    llm_max_tokens: 3072
+    llm_context_window_tokens: 16384
+    llm_context_margin_tokens: 512
+    llm_default_max_completion_tokens: 2048
+    llm_min_completion_tokens: 512
     timeout_sec: 60.0
     step_timeout_sec: 120.0
 
@@ -46,11 +63,28 @@ llm_chat_server:
     # legacy "fail fast" behaviour.
     remediation_enabled: true
     max_remediation_attempts: 2
+    # Post-execution verification repair: after a plan reports execution
+    # success, read formation/pose state and ask the LLM for bounded repair if
+    # the requested outcome does not actually hold.
+    llm_repair_enabled: true
+    llm_max_repair_attempts: 2
+    llm_repair_require_verification: true
+    llm_verification_delay_sec: 0.2
+    # Mission supervision: bounded execute -> verify -> continuation loop.
+    # This wraps the existing PlanExecutor, ToolExecutor, and verification
+    # repair prompt; it does not add new control tools.
+    llm_mission_supervision_enabled: true
+    llm_mission_max_duration_sec: 180.0
+    llm_mission_max_steps: 6
+    llm_mission_verify_delay_sec: 0.8
+    llm_mission_min_progress_required: true
+    llm_mission_allow_repair: true
+    llm_mission_no_progress_limit: 2
 
     # Read-only runtime context for /llm/chat.
-    # Default demo path uses MCP read-only context. Use "ros_readonly" for a
-    # local ROS-topic fallback or "none" for Phase 1 behavior.
-    context_provider: "mcp_readonly"
+    # MCP read-only context disabled — uvx ros-mcp fails with BrokenResourceError.
+    # Re-enable with context_provider: "mcp_readonly" once fixed.
+    context_provider: "none"
     context_timeout_sec: 2.0
     context_max_chars: 6000
     context_include_bt_state: true
@@ -69,6 +103,25 @@ llm_chat_server:
     # any follower further than this from its target. Must match
     # formation_manager_node's position_tolerance (default 0.5 m).
     formation_tolerance_m: 0.5
+
+    # Tool calling loop for get_robot_position / get_positions / check_occupancy.
+    # Off: with a context window that fits the prompt the model plans directly.
+    # NOTE: mutually exclusive with structured_output_enabled — schema-constrained
+    # decoding suppresses tool_calls — so keep this off when structured outputs
+    # are on. Flip on (and structured_output_enabled off) for tool experiments.
+    tool_calling_enabled: true
+    tool_max_iterations: 6
+    robot_footprint_radius: 0.22
+    scan_timeout_sec: 3.0
+    # Structured outputs: send the plan JSON schema to the backend so the model
+    # can only emit schema-valid JSON (kills the malformed-JSON failure mode).
+    # Applies to the plain (non-tool) path.
+    structured_output_enabled: true
+    # Auto-spread near-coincident mapf goals into a cluster. Off: the LLM emits
+    # one goal per robot and the motion planner resolves collisions.
+    goal_spread_enabled: false
+    # Stream reasoning tokens to the panel as stage='thinking' feedback.
+    stream_reasoning: true
 
     # MCP read-only provider. The full demo starts rosbridge by default.
     # The provider logs actionable diagnostics if uvx, ros-mcp, the MCP SDK,
@@ -93,7 +146,17 @@ llm_chat_server:
       - "get_action_details"
       # - "get_action_status"
 
+user_chat:
+  ros__parameters:
+    # Terminal channel-3 client (user_chat_node.py).
+    stream_reasoning: true
+    tool_max_iterations: 6
+    robot_footprint_radius: 0.22
+    scan_timeout_sec: 3.0
+
 llm_execute_server:
   ros__parameters:
     # Operator-confirmed plan replay. No LLM call here.
     step_timeout_sec: 120.0
+    # Must match llm_chat_server so a previewed plan executes identically.
+    goal_spread_enabled: false

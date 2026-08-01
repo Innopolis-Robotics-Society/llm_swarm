@@ -20,9 +20,11 @@ Launch order (sim seconds):
   t=20  BT runner
 
 Examples:
-  ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py llm_model:=mistral-small3.1
-  ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py scenario:=warehouse_2 planner:=pbs llm_model:=mistral-small3.1
-  ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py enable_formation:=false llm_model:=mistral-small3.1
+  ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py
+  ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py scenario:=warehouse_2 planner:=pbs
+  ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py enable_formation:=false
+  ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py llm_endpoint:=http://10.100.11.182:8000/v1/chat/completions
+  ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py footprint_type:=convex_hull
 """
 
 from launch import LaunchDescription
@@ -32,7 +34,7 @@ from launch.actions import (
     LogInfo,
     TimerAction,
 )
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import (
     LaunchConfiguration,
@@ -82,33 +84,38 @@ def generate_launch_description():
         description='Start rosbridge_server on port 9090 for default MCP '
                     'read-only context.',
     )
-    llm_backend_arg = DeclareLaunchArgument(
-        'llm_backend',
-        default_value='',
-        description='Deprecated and ignored. LLM mode is inferred from '
-                    'llm_endpoint; use llm_endpoint + llm_model instead.',
+    enable_llm_mapf_proxy_arg = DeclareLaunchArgument(
+        'enable_llm_mapf_proxy',
+        default_value='true',
+        choices=['true', 'false'],
+        description='Route BT MapfPlan through the LLM MAPF proxy so WARN/ERROR '
+                    'feedback can ask /llm/decision.',
     )
     llm_endpoint_arg = DeclareLaunchArgument(
         'llm_endpoint',
         default_value='',
-        description='LLM endpoint passed to orchestrator. Empty selects '
-                    'local Ollama at http://localhost:11434/api/chat.',
+        description='Only public LLM selection parameter. Empty uses local '
+                    'Ollama; known OpenAI-compatible endpoints resolve their '
+                    'model names in the orchestrator launch file.',
     )
-    llm_model_arg = DeclareLaunchArgument(
-        'llm_model',
-        default_value='',
-        description='LLM model name passed to orchestrator. Required.',
-    )
-    llm_api_key_env_arg = DeclareLaunchArgument(
-        'llm_api_key_env',
-        default_value='LLM_API_KEY',
-        description='Environment variable name used by HTTP API clients.',
+    llm_num_ctx_arg = DeclareLaunchArgument(
+        'llm_num_ctx',
+        default_value='32768',
+        description='Requested local context window for Ollama backends. For '
+                    'OpenAI-compatible HTTP endpoints configure the model '
+                    'server context separately.',
     )
     enable_formation_arg = DeclareLaunchArgument(
         'enable_formation',
         default_value='true',
         choices=['true', 'false'],
         description='Start formation_manager + formation_monitor nodes.',
+    )
+    footprint_type_arg = DeclareLaunchArgument(
+        'footprint_type',
+        default_value='convex_hull',
+        choices=['circle', 'convex_hull'],
+        description='Formation footprint type',
     )
     rviz_cfg_arg = DeclareLaunchArgument(
         'rviz_cfg',
@@ -125,16 +132,22 @@ def generate_launch_description():
     use_sim_time     = LaunchConfiguration('use_sim_time')
     enable_passive   = LaunchConfiguration('enable_passive_observer')
     enable_rosbridge = LaunchConfiguration('enable_rosbridge')
-    llm_backend      = LaunchConfiguration('llm_backend')
+    enable_llm_mapf_proxy = LaunchConfiguration('enable_llm_mapf_proxy')
     llm_endpoint     = LaunchConfiguration('llm_endpoint')
-    llm_model        = LaunchConfiguration('llm_model')
-    llm_api_key_env  = LaunchConfiguration('llm_api_key_env')
     enable_formation = LaunchConfiguration('enable_formation')
+    llm_num_ctx = LaunchConfiguration('llm_num_ctx')
+    footprint_type = LaunchConfiguration('footprint_type')
     rviz_cfg         = LaunchConfiguration('rviz_cfg')
 
-    is_lns        = IfCondition(PythonExpression(["'", planner, "' == 'lns'"]))
-    is_pbs        = IfCondition(PythonExpression(["'", planner, "' == 'pbs'"]))
-    use_formation = IfCondition(enable_formation)
+    is_lns           = IfCondition(PythonExpression(["'", planner, "' == 'lns'"]))
+    is_pbs           = IfCondition(PythonExpression(["'", planner, "' == 'pbs'"]))
+    use_formation    = IfCondition(enable_formation)
+
+    set_goals_target = PythonExpression([
+        "'/llm/swarm/set_goals_proxy' if '",
+        enable_llm_mapf_proxy,
+        "' == 'true' else '/swarm/set_goals'",
+    ])
 
     # ----------------------------------------------------- foundational layers
     stage = IncludeLaunchDescription(
@@ -168,6 +181,9 @@ def generate_launch_description():
         launch_arguments=[
             ('num_robots', num_robots),
             ('use_sim_time', use_sim_time),
+            # Read footprints from the formation footprint proxy so formation
+            # leaders advertise the whole-group footprint to the planner.
+            ('footprint_topic_template', '/robot_{id}/lns/footprint'),
         ],
         condition=is_lns,
     )
@@ -204,10 +220,9 @@ def generate_launch_description():
         launch_arguments=[
             ('enable_passive_observer', enable_passive),
             ('enable_rosbridge', enable_rosbridge),
-            ('llm_backend', llm_backend),
+            ('enable_llm_mapf_proxy', enable_llm_mapf_proxy),
             ('llm_endpoint', llm_endpoint),
-            ('llm_model', llm_model),
-            ('llm_api_key_env', llm_api_key_env),
+            ('llm_num_ctx', llm_num_ctx),
             ('scenario', scenario),
             ('scenarios_file', scenarios_file),
         ],
@@ -229,6 +244,7 @@ def generate_launch_description():
             # first /formation/set doesn't race the first odom message.
             'num_robots':         num_robots,
             'robot_ns_prefix':    'robot_',
+            'footprint_type':     footprint_type,
         }],
         condition=use_formation,
     )
@@ -250,10 +266,41 @@ def generate_launch_description():
         condition=use_formation,
     )
 
+    # Relays each robot's Nav2 footprint to /<ns>/lns/footprint, swapping in the
+    # formation footprint for active-formation leaders. LNS-only for now (PBS
+    # wiring is future work), so gated on the planner switch rather than
+    # formation: it is a pure pass-through when no formation is active.
+    footprint_proxy = Node(
+        package='iros_llm_swarm_formation',
+        executable='footprint_proxy_node',
+        name='footprint_proxy',
+        output='screen',
+        parameters=[{
+            'num_robots':            num_robots,
+            'robot_ns_prefix':       'robot_',
+            'output_topic_template': '/{ns}/lns/footprint',
+            'use_sim_time':          use_sim_time,
+        }],
+        condition=is_lns,
+    )
+
+    task_manager = Node(
+        package='iros_llm_swarm_tasks',
+        executable='task_manager_node',
+        name='task_manager',
+        output='screen',
+        parameters=[{
+            'scenario_yaml': scenarios_file,
+            'scenario':      scenario,
+            'num_robots':    num_robots,
+        }],
+    )
+
     bt_runner = Node(
         package='iros_llm_swarm_bt',
-        executable='test_bt_runner',
+        executable='bt_runner',
         output='screen',
+        remappings=[('/swarm/set_goals', set_goals_target)],
     )
 
     rviz = Node(
@@ -273,11 +320,11 @@ def generate_launch_description():
         use_sim_time_arg,
         enable_passive_arg,
         enable_rosbridge_arg,
-        llm_backend_arg,
+        enable_llm_mapf_proxy_arg,
         llm_endpoint_arg,
-        llm_model_arg,
-        llm_api_key_env_arg,
+        llm_num_ctx_arg,
         enable_formation_arg,
+        footprint_type_arg,
         rviz_cfg_arg,
 
         # t=0
@@ -297,9 +344,11 @@ def generate_launch_description():
         ]),
 
         TimerAction(period=12.0, actions=[
-            LogInfo(msg='Starting formation manager + monitor...'),
+            LogInfo(msg='Starting formation manager + monitor + task manager...'),
             formation_manager,
             formation_monitor,
+            footprint_proxy,
+            task_manager,
         ]),
 
         TimerAction(period=18.0, actions=[
@@ -308,7 +357,7 @@ def generate_launch_description():
         ]),
 
         TimerAction(period=20.0, actions=[
-            LogInfo(msg='Starting test_bt_runner...'),
+            LogInfo(msg='Starting bt_runner...'),
             bt_runner,
         ]),
 

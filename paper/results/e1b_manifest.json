@@ -1,0 +1,31 @@
+{
+  "experiment": "E1b — hermetic channel-3 planning accuracy (v2: 5 models, no-Russian test set, 2048-token budget)",
+  "supersedes": "e1_manifest.json / e1_summary.json (v1, 2 models, 49 cases incl. 5 Russian, 768-token budget)",
+  "git_commit": "b31fdbd48d454b2ae185cd3bfac174b5f1128f93",
+  "started_at": "2026-07-19T14:09:57Z",
+  "finished_at": "2026-07-19T17:49:48Z",
+  "benchmark": "iros_llm_orchestrator/benchmark_ch3.py",
+  "test_case_count": 44,
+  "repeat": 5,
+  "timeout_sec": 90,
+  "llm_max_tokens": 2048,
+  "llm_num_ctx": 32768,
+  "models": [
+    "qwen3.5:4b",
+    "gemma3:12b",
+    "qwen2.5:14b",
+    "qwen3.5-9b:latest",
+    "mistral-small3.2:24b"
+  ],
+  "backend": "ollama (local, host network via docker-compose network_mode: host)",
+  "gpu": "NVIDIA GeForce RTX 5060 Ti, 16GB VRAM",
+  "summary_file": "e1b_summary.json",
+  "notes": [
+    "Benchmark changed from v1: removed the 5 russian_* test cases (and translated escalate_02's prompt from Russian to English) since reply-language fidelity is a UI-level concern orthogonal to planning accuracy; removed the now-dead chk_reply_russian() validator helper. Case count: 49 -> 44.",
+    "Raised --llm-max-tokens default from 768 to 2048 in benchmark_ch3.py; this eliminated timeouts across all 5 models (0/220 each) and reduced but did not eliminate JSON-truncation-style failures for verbose models.",
+    "Model selection: one small (qwen3.5:4b, 3.4GB), one different-family mid-size (gemma3:12b, 8.1GB), the intended 4-bit-14B operating point (qwen2.5:14b, 9.0GB), the v1 8-bit ~9B model re-run under the new conditions (qwen3.5-9b:latest, 10GB), and the largest model that fits under the 16GB VRAM ceiling (mistral-small3.2:24b, 15GB, 4-bit, partial CPU offload).",
+    "Operational bug caught mid-sweep: the automated sweep script initially invoked the 5th slot as 'qwen3.5:9b', which does not exist locally (the pulled tag is 'qwen3.5-9b:latest') -- all 220 calls for that slot failed instantly with Ollama HTTP 404 (elapsed ~0.0-0.1s each, which is how it was caught -- real calls take seconds). Re-ran that one model alone with the correct tag once the rest of the sweep finished; e1b_qwen3.5-9b.json/log reflect the corrected run only, the broken run was overwritten and not retained.",
+    "mistral-small3.2:24b's weights (15GB) leave <1GB headroom on the 16GB card, forcing partial CPU offload: median latency 29.9s vs 3.7-9.3s for the other four models, without a corresponding accuracy improvement.",
+    "Largest systematic (non-noise) failure mode found: for 3 of 5 models the dominant or co-dominant failure is a malformed offsets array in formation nodes (follower_ns length != offsets_x/offsets_y length). For mistral-small3.2:24b, 25 of its 57 failures are the byte-identical validator message -- a deterministic generation bug in that model's formation-schema filling, not sampling noise (near-zero pass@1->pass@5 recovery confirms this)."
+  ]
+}

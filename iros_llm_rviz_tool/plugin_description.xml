@@ -26,4 +26,13 @@
       Right-click to close it.
     </description>
   </class>
+  <class
+    name="iros_llm_rviz_tool/PlaceTask"
+    type="iros_llm_rviz_tool::PlaceTaskTool"
+    base_class_type="rviz_common::Tool">
+    <description>
+      Place a task on the map. Point: one left-click. Carry: first click sets
+      pickup, second click sets dropoff. Right-click resets the nearest placed task.
+    </description>
+  </class>
 </library>

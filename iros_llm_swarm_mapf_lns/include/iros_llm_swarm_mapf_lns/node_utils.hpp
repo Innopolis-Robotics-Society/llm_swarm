@@ -56,14 +56,18 @@ void block_arrived_robots(
     int num_robots);
 
 // Block grid cells occupied by robots that have odom but are NOT in the
-// plan (e.g. skipped due to blocked goal). `logger` (optional) is used for
-// the same diagnostics the original method emitted.
+// plan (e.g. skipped due to blocked goal). Robots whose `excluded[rid]` is
+// non-zero (active-formation followers advertising an empty footprint) are
+// left untouched — they have no independent body in the planner's world.
+// `excluded` may be empty to disable the check. `logger` (optional) is used
+// for the same diagnostics the original method emitted.
 void block_skipped_robots(
     lns2::GridMap& grid,
     const std::vector<uint32_t>& planned_ext_ids,
     const std::vector<std::pair<double, double>>& positions,
     const std::vector<bool>& have_odom,
     const std::vector<double>& fp_radii,
+    const std::vector<uint8_t>& excluded,
     double default_robot_radius,
     double origin_x, double origin_y, double resolution,
     int num_robots,

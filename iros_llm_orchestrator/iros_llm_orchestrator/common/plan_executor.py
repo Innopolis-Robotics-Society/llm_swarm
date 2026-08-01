@@ -24,21 +24,64 @@ from __future__ import annotations
 
 import asyncio
 import json
+import math
 import re
 from typing import Awaitable, Callable
+
+from iros_llm_orchestrator.common.plan_templating import resolve_plan_templates
 
 
 # ---------------------------------------------------------------------------
 # Validation
 # ---------------------------------------------------------------------------
 
-_LEAF_TYPES      = {'mapf', 'formation', 'idle'}
+_LEAF_TYPES      = {'mapf', 'formation', 'idle', 'disband'}
 _CONTAINER_TYPES = {'sequence', 'parallel'}
 _ALL_TYPES       = _LEAF_TYPES | _CONTAINER_TYPES
 
+_ROBOT_ID_RE = re.compile(r'(?:robot[_-]?)?(\d+)', re.IGNORECASE)
 
-def parse_plan(raw: str | dict) -> dict:
-    """Parse and validate a plan tree. Raises ValueError on any error."""
+
+def coerce_robot_id(value) -> int:
+    """Coerce an LLM-supplied robot id to a plain int.
+
+    Accepts ``10``, ``"10"``, ``"robot_10"``, ``"robot10"`` and integral
+    floats. Small local models routinely emit the namespace string
+    ``"robot_N"`` instead of the bare integer the plan schema expects.
+    Raises ValueError on anything genuinely unparseable.
+    """
+    # bool is a subclass of int — reject it explicitly.
+    if isinstance(value, bool):
+        raise ValueError(f'invalid robot id: {value!r}')
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        if value.is_integer():
+            return int(value)
+        raise ValueError(f'non-integer robot id: {value!r}')
+    if isinstance(value, str):
+        m = _ROBOT_ID_RE.fullmatch(value.strip())
+        if m:
+            return int(m.group(1))
+    raise ValueError(f'cannot parse robot id: {value!r}')
+
+
+def parse_plan(
+    raw: str | dict,
+    *,
+    template_registry: dict[str, dict] | None = None,
+) -> dict:
+    """Parse and validate a plan tree. Raises ValueError on any error.
+
+    ``template_registry``, when not None, resolves any ``{{ref.path}}``
+    template string (see ``plan_templating.py``) against tool-call results
+    from this chat turn *before* validation/coercion runs, so a resolved
+    template is validated exactly like a literal the model typed by hand.
+    Passing None (the default) skips resolution entirely and preserves the
+    exact prior behaviour, which is what ``execute_server.py`` wants: an
+    operator-approved plan already had every template resolved when it was
+    first generated, and must replay byte-for-byte identically.
+    """
     if isinstance(raw, str):
         raw = raw.strip()
         fenced = re.search(r'```(?:json)?\s*(\{.*\})\s*```', raw, re.DOTALL)
@@ -57,6 +100,13 @@ def parse_plan(raw: str | dict) -> dict:
     # Unwrap {"reply":"...", "plan":{...}}
     if 'plan' in obj:
         obj = obj['plan']
+
+    if template_registry is not None:
+        # PlanTemplateError is a ValueError subclass, so it lands in the same
+        # exception surface parse_plan already raises for malformed JSON or a
+        # bad schema — every existing caller's `except ValueError` retry/repair
+        # path picks it up for free, no separate handling needed there.
+        obj = resolve_plan_templates(obj, template_registry)
 
     return _validate_node(obj)
 
@@ -77,19 +127,59 @@ def _validate_node(node: dict, path: str = 'plan') -> dict:
     elif node_type == 'mapf':
         ids   = node.get('robot_ids', [])
         goals = node.get('goals', [])
+        spread = bool(node.get('spread', False))
         if not ids:
             raise ValueError(f'{path}: mapf requires non-empty robot_ids')
-        if len(ids) != len(goals):
+        # A single centre for several robots can only mean "grid them around
+        # this point" — infer spread even if the model omitted the flag.
+        if len(goals) == 1 and len(ids) > 1:
+            spread = True
+        if spread:
+            # spread=true: one center (the server grids the robots around it) or
+            # already one per robot. _postprocess_plan expands/declumps it.
+            if len(goals) not in (1, len(ids)):
+                raise ValueError(
+                    f'{path}: spread mapf needs 1 center goal or one per robot '
+                    f'(got robot_ids={len(ids)}, goals={len(goals)})')
+        elif len(ids) != len(goals):
             raise ValueError(
                 f'{path}: robot_ids({len(ids)}) != goals({len(goals)})')
+        node['spread'] = spread
+        # Normalise robot ids in place — LLMs (especially small local models)
+        # routinely emit "robot_10" instead of the bare int the schema wants.
+        try:
+            node['robot_ids'] = [coerce_robot_id(r) for r in ids]
+        except ValueError as exc:
+            raise ValueError(f'{path}: {exc}') from exc
+        # Normalise goals to [float, float]; reject non-numeric coordinates.
+        norm_goals = []
         for g in goals:
             if not (isinstance(g, (list, tuple)) and len(g) >= 2):
                 raise ValueError(f'{path}: each goal must be [x, y]')
+            try:
+                norm_goals.append([float(g[0]), float(g[1])])
+            except (TypeError, ValueError) as exc:
+                raise ValueError(f'{path}: goal {g!r} is not numeric') from exc
+        node['goals'] = norm_goals
     elif node_type == 'formation':
         if not node.get('formation_id'):
             raise ValueError(f'{path}: formation requires formation_id')
         if not node.get('leader_ns'):
             raise ValueError(f'{path}: formation requires leader_ns')
+        if not node.get('follower_ns'):
+            raise ValueError(f'{path}: formation requires follower_ns (at least one follower)')
+        if node.get('offsets_x') is None or node.get('offsets_y') is None:
+            raise ValueError(f'{path}: formation requires offsets_x and offsets_y')
+        fn = node['follower_ns']
+        ox = node['offsets_x']
+        oy = node['offsets_y']
+        if len(fn) != len(ox) or len(fn) != len(oy):
+            raise ValueError(
+                f'{path}: follower_ns({len(fn)}) != offsets_x({len(ox)}) '
+                f'or offsets_y({len(oy)})')
+    elif node_type == 'disband':
+        if not node.get('formation_id'):
+            raise ValueError(f'{path}: disband requires formation_id')
     return node
 
 
@@ -131,23 +221,94 @@ def flatten_parallel(node: dict) -> list[dict]:
     # agents and we'd rather submit a coherent goal than fail the leaf.
     if mapf_leaves:
         merged: dict[int, list] = {}
+        merged_spread: dict[int, bool] = {}
         reasons: list[str]      = []
         for leaf in mapf_leaves:
-            ids   = [int(r) for r in leaf.get('robot_ids', [])]
-            goals = [[float(g[0]), float(g[1])] for g in leaf.get('goals', [])]
+            ids, goals, should_spread = _mapf_ids_goals_for_merge(leaf)
             for rid, g in zip(ids, goals):
                 merged[rid] = g
+                merged_spread[rid] = should_spread
             if leaf.get('reason'):
                 reasons.append(leaf['reason'])
+        robot_ids = list(merged.keys())
+        goals = list(merged.values())
+        if any(merged_spread.get(rid, False) for rid in robot_ids):
+            goals = _spread_near_duplicate_goals(
+                goals,
+                spread_mask=[merged_spread.get(rid, False) for rid in robot_ids],
+            )
         result.append({
             'type':      'mapf',
-            'robot_ids': list(merged.keys()),
-            'goals':     list(merged.values()),
+            'robot_ids': robot_ids,
+            'goals':     goals,
             'reason':    ' + '.join(reasons),
         })
 
     # Non-mapf (formation etc.) run after the merged mapf
     result.extend(non_mapf_leaves)
+    return result
+
+
+def _mapf_ids_goals_for_merge(
+    leaf: dict,
+) -> tuple[list[int], list[list[float]], bool]:
+    """Return a merge-safe one-goal-per-robot view of a mapf leaf.
+
+    The chat server normally expands ``spread:true`` during post-processing.
+    Keep this fallback here because PlanExecutor is also used directly in
+    tests and replay paths; a single center for N ids must never be truncated
+    to just the first robot by ``zip(ids, goals)``.
+    """
+    ids = [coerce_robot_id(r) for r in leaf.get('robot_ids', [])]
+    goals = [[float(g[0]), float(g[1])] for g in leaf.get('goals', [])]
+    if len(goals) == 1 and len(ids) > 1:
+        goals = [list(goals[0]) for _ in ids]
+    return ids, goals, bool(leaf.get('spread', False))
+
+
+def _spread_near_duplicate_goals(
+    goals: list[list[float]],
+    *,
+    spread_mask: list[bool] | None = None,
+    min_dist_m: float = 0.75,
+    spacing_m: float = 1.0,
+) -> list[list[float]]:
+    if len(goals) <= 1:
+        return goals
+    result = [list(g) for g in goals]
+    visited = [False] * len(goals)
+    for i in range(len(goals)):
+        if visited[i]:
+            continue
+        group = [i]
+        visited[i] = True
+        for j in range(i + 1, len(goals)):
+            if visited[j]:
+                continue
+            dx = goals[j][0] - goals[i][0]
+            dy = goals[j][1] - goals[i][1]
+            if math.hypot(dx, dy) < min_dist_m:
+                group.append(j)
+                visited[j] = True
+        if len(group) <= 1:
+            continue
+        if spread_mask is not None and not any(spread_mask[idx] for idx in group):
+            continue
+        cx = sum(goals[idx][0] for idx in group) / len(group)
+        cy = sum(goals[idx][1] for idx in group) / len(group)
+        if len(group) == 2:
+            offsets = [(-spacing_m / 2.0, 0.0), (spacing_m / 2.0, 0.0)]
+        else:
+            radius = spacing_m / (2.0 * math.sin(math.pi / len(group)))
+            offsets = [
+                (
+                    radius * math.cos(2.0 * math.pi * k / len(group)),
+                    radius * math.sin(2.0 * math.pi * k / len(group)),
+                )
+                for k in range(len(group))
+            ]
+        for idx, (ox, oy) in zip(group, offsets):
+            result[idx] = [round(cx + ox, 2), round(cy + oy, 2)]
     return result
 
 
@@ -171,6 +332,7 @@ LogFn  = Callable[[str], None]
 # skip staging. Used to inject server-side staging when the LLM emits a bare
 # ``formation`` leaf with followers out of position.
 PrestageHook = Callable[[dict], dict | None]
+PlanGuardHook = Callable[[dict], tuple[dict, dict | None]]
 
 
 class PlanExecutor:
@@ -180,17 +342,35 @@ class PlanExecutor:
         log_fn: LogFn | None = None,
         *,
         formation_prestage_hook: PrestageHook | None = None,
+        plan_guard_hook: PlanGuardHook | None = None,
     ):
         self._send  = send_fn
         self._log   = log_fn or (lambda _: None)
         self._depth = 0
         self._prestage_hook = formation_prestage_hook
+        self._plan_guard_hook = plan_guard_hook
         # Set to the leaf node that produced a False return; remediation
         # callers use this to brief the LLM about which step broke.
         self.failed_leaf: dict | None = None
+        self.guard_failure: dict | None = None
 
     async def run(self, plan: dict) -> bool:
         self.failed_leaf = None
+        self.guard_failure = None
+        if self._plan_guard_hook is not None:
+            plan, failure = self._plan_guard_hook(plan)
+            if failure:
+                self.guard_failure = failure
+                failed_leaf = failure.get('failed_leaf')
+                if isinstance(failed_leaf, dict):
+                    self.failed_leaf = failed_leaf
+                else:
+                    self.failed_leaf = {'type': failure.get('leaf_type', 'mapf')}
+                self._log(
+                    '✗ plan guard rejected execution: '
+                    f"{failure.get('reason') or failure.get('last_error', '')}"
+                )
+                return False
         return await self._execute(plan)
 
     async def _execute(self, node: dict) -> bool:
@@ -245,8 +425,9 @@ class PlanExecutor:
         elif t == 'mapf':
             n = len(node.get('robot_ids', []))
             self._log(f"{ind}🚀 mapf {n} robot{'s' if n!=1 else ''}: {node.get('reason','')}")
+        elif t == 'disband':
+            self._log(f"{ind}🔴 disband formation {node.get('formation_id','')}: {node.get('reason','')}")
         elif t == 'formation':
-            # Server-side staging safety net: even when the LLM ignores the
             # MANDATORY prompt rule and emits a bare formation leaf with
             # followers out of position, run the implied mapf staging step
             # first. Skips silently when no hook is configured or when the

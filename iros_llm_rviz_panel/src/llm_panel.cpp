@@ -176,6 +176,10 @@ void LlmPanel::buildUi()
   buildInfoTab(info_tab);
   tabs_->addTab(info_tab, "Info");
 
+  auto * tasks_tab = new QWidget();
+  buildTasksTab(tasks_tab);
+  tabs_->addTab(tasks_tab, "Tasks");
+
   root->addWidget(tabs_, /*stretch=*/1);
 
   // ---- Wiring -------------------------------------------------------------
@@ -209,6 +213,8 @@ void LlmPanel::buildUi()
           this, &LlmPanel::onEventReceived, Qt::QueuedConnection);
   connect(this, &LlmPanel::systemInfoChanged,
           this, &LlmPanel::onSystemInfoChanged, Qt::QueuedConnection);
+  connect(this, &LlmPanel::tasksUpdateReady,
+          this, &LlmPanel::onTasksUpdateReady, Qt::QueuedConnection);
 
   // 30 Hz refresh — sparkline updates if dirty, plus TF arrow republish.
   marker_timer_ = new QTimer(this);
@@ -505,6 +511,57 @@ void LlmPanel::buildInfoTab(QWidget * tab)
 }
 
 
+void LlmPanel::buildTasksTab(QWidget * tab)
+{
+  auto * layout = new QVBoxLayout(tab);
+  layout->setContentsMargins(2, 2, 2, 2);
+  layout->setSpacing(4);
+
+  layout->addWidget(new QLabel(
+    "Active tasks — refreshed every 2 s. Markers visible in the 3D view."));
+
+  tasks_table_ = new QTableWidget(0, 5);
+  tasks_table_->setHorizontalHeaderLabels(
+    QStringList() << "id" << "type" << "status" << "assigned" << "position");
+  tasks_table_->verticalHeader()->setVisible(false);
+  tasks_table_->horizontalHeader()->setSectionResizeMode(
+    0, QHeaderView::ResizeToContents);
+  tasks_table_->horizontalHeader()->setSectionResizeMode(
+    1, QHeaderView::ResizeToContents);
+  tasks_table_->horizontalHeader()->setSectionResizeMode(
+    2, QHeaderView::ResizeToContents);
+  tasks_table_->horizontalHeader()->setSectionResizeMode(
+    3, QHeaderView::Stretch);
+  tasks_table_->horizontalHeader()->setSectionResizeMode(
+    4, QHeaderView::ResizeToContents);
+  tasks_table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+  tasks_table_->setSelectionBehavior(QAbstractItemView::SelectRows);
+  tasks_table_->setSelectionMode(QAbstractItemView::SingleSelection);
+  layout->addWidget(tasks_table_, /*stretch=*/1);
+
+  auto * btn_row = new QHBoxLayout();
+  tasks_reset_selected_ = new QPushButton("Reset Selected");
+  tasks_reset_all_      = new QPushButton("Reset All");
+  tasks_reset_selected_->setEnabled(false);
+  tasks_reset_selected_->setToolTip("Reset the selected task back to 'pending'");
+  tasks_reset_all_->setToolTip("Reset all tasks to 'pending'");
+  btn_row->addStretch(1);
+  btn_row->addWidget(tasks_reset_selected_);
+  btn_row->addWidget(tasks_reset_all_);
+  layout->addLayout(btn_row);
+
+  connect(tasks_table_, &QTableWidget::itemSelectionChanged, this,
+    [this]() {
+      tasks_reset_selected_->setEnabled(
+        !tasks_table_->selectedItems().isEmpty());
+    });
+  connect(tasks_reset_selected_, &QPushButton::clicked,
+          this, &LlmPanel::onTasksResetSelected);
+  connect(tasks_reset_all_, &QPushButton::clicked,
+          this, &LlmPanel::onTasksResetAll);
+}
+
+
 // ===========================================================================
 // ROS setup
 // ===========================================================================
@@ -589,9 +646,13 @@ void LlmPanel::setupRos()
   tf_buffer_   = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
+  list_tasks_client_ = node_->create_client<ListTasks>("/tasks/list");
+  reset_task_client_ = node_->create_client<ResetTask>("/tasks/reset");
+  reset_all_client_  = node_->create_client<ResetAll>("/tasks/reset_all");
+
   RCLCPP_INFO(node_->get_logger(),
     "LlmPanel ready. /bt/state, /llm/events, /llm_panel/markers, "
-    "/llm/chat, /llm/command, /llm/execute_plan.");
+    "/llm/chat, /llm/command, /llm/execute_plan, /tasks/list.");
 }
 
 
@@ -1550,6 +1611,7 @@ void LlmPanel::onInfoRefresh()
   // graph-introspection only; remote params are dispatched async.
   if (!node_) return;
   refreshSystemInfo();
+  onTasksRefresh();
 }
 
 void LlmPanel::refreshSystemInfo()
@@ -1580,9 +1642,10 @@ void LlmPanel::refreshSystemInfo()
   const bool dec_up      = has("llm_decision_server");
   const bool chat_up     = has("llm_chat_server");
   const bool exec_up     = has("llm_execute_server");
-  const bool bt_up       = has("test_bt_runner");
+  const bool bt_up       = has("bt_runner");
   const bool stage_up    = has("stage_ros2");
   const bool map_srv_up  = has("map_server") || has("zone_map_server");
+  const bool task_mgr_up = has("task_manager");
 
   std::string planner_label;
   if (pbs_up && lns_up)  planner_label = "PBS + LNS2 (BOTH UP — misconfig)";
@@ -1641,6 +1704,7 @@ void LlmPanel::refreshSystemInfo()
     upsert("LLM decision server", dec_up     ? "UP"  : "DOWN");
     upsert("LLM execute server",  exec_up    ? "UP"  : "DOWN");
     upsert("Passive observer",    obs_up     ? "ON (channel 2)" : "OFF");
+    upsert("Task manager",        task_mgr_up ? "UP" : "DOWN");
     upsert("RMW",                 rmw_id ? rmw_id : "(unknown)");
     upsert("ROS_DOMAIN_ID",       domain ? domain : "0 (default)");
     upsert("CYCLONEDDS_URI",      cyc    ? cyc    : "(unset)");
@@ -1804,6 +1868,119 @@ void LlmPanel::save(rviz_common::Config config) const
   config.mapSetValue("map_name",     QString::fromStdString(map_name_));
   config.mapSetValue("preview_mode", preview_mode_);
   config.mapSetValue("tab_index",    tabs_ ? tabs_->currentIndex() : 0);
+}
+
+// ===========================================================================
+// Tasks tab
+// ===========================================================================
+
+void LlmPanel::onTasksRefresh()
+{
+  if (!list_tasks_client_ || !list_tasks_client_->service_is_ready()) {
+    return;
+  }
+  auto req = std::make_shared<ListTasks::Request>();
+  list_tasks_client_->async_send_request(
+    req,
+    [this](rclcpp::Client<ListTasks>::SharedFuture fut) {
+      auto resp = fut.get();
+      std::vector<TaskRowData> rows;
+      for (const auto & state : resp->states) {
+        TaskRowData r;
+        r.id     = state.task.id;
+        r.type   = state.task.type;
+        r.label  = state.task.label;
+        r.status = state.status;
+        for (size_t i = 0; i < state.assigned_robot_ids.size(); ++i) {
+          if (i > 0) r.assigned += ", ";
+          r.assigned += state.assigned_robot_ids[i];
+        }
+        rows.push_back(std::move(r));
+      }
+      {
+        std::lock_guard<std::mutex> lk(tasks_mutex_);
+        pending_task_rows_ = std::move(rows);
+      }
+      Q_EMIT tasksUpdateReady();
+    });
+}
+
+void LlmPanel::onTasksUpdateReady()
+{
+  if (!tasks_table_) return;
+
+  std::vector<TaskRowData> rows;
+  {
+    std::lock_guard<std::mutex> lk(tasks_mutex_);
+    rows = pending_task_rows_;
+  }
+
+  tasks_table_->setRowCount(static_cast<int>(rows.size()));
+  for (int i = 0; i < static_cast<int>(rows.size()); ++i) {
+    const auto & r = rows[static_cast<size_t>(i)];
+
+    auto * id_item = new QTableWidgetItem(QString::fromStdString(r.id));
+    id_item->setData(Qt::UserRole, QString::fromStdString(r.id));
+    tasks_table_->setItem(i, 0, id_item);
+    tasks_table_->setItem(i, 1, new QTableWidgetItem(QString::fromStdString(r.type)));
+
+    auto * status_item = new QTableWidgetItem(QString::fromStdString(r.status));
+    if (r.status == "done") {
+      status_item->setForeground(QColor("#388E3C"));
+    } else if (r.status == "carrying") {
+      status_item->setForeground(QColor("#F57C00"));
+    }
+    tasks_table_->setItem(i, 2, status_item);
+
+    const QString assigned = r.assigned.empty()
+      ? QString::fromUtf8("—")
+      : QString::fromStdString(r.assigned);
+    tasks_table_->setItem(i, 3, new QTableWidgetItem(assigned));
+
+    tasks_table_->setItem(i, 4,
+      new QTableWidgetItem(QString::fromStdString(r.label)));
+  }
+
+  tasks_reset_selected_->setEnabled(false);
+}
+
+void LlmPanel::onTasksResetSelected()
+{
+  if (!tasks_table_ || !reset_task_client_) return;
+  const auto items = tasks_table_->selectedItems();
+  if (items.isEmpty()) return;
+
+  const int row = items.first()->row();
+  auto * id_item = tasks_table_->item(row, 0);
+  if (!id_item) return;
+
+  const std::string task_id = id_item->data(Qt::UserRole).toString().toStdString();
+  if (task_id.empty()) return;
+
+  if (!reset_task_client_->service_is_ready()) {
+    RCLCPP_WARN(node_->get_logger(), "Tasks: /tasks/reset not available");
+    return;
+  }
+  auto req = std::make_shared<ResetTask::Request>();
+  req->id = task_id;
+  reset_task_client_->async_send_request(req,
+    [this](rclcpp::Client<ResetTask>::SharedFuture) {
+      onTasksRefresh();
+    });
+}
+
+void LlmPanel::onTasksResetAll()
+{
+  if (!reset_all_client_) return;
+  if (!reset_all_client_->service_is_ready()) {
+    RCLCPP_WARN(node_->get_logger(), "Tasks: /tasks/reset_all not available");
+    return;
+  }
+  auto req = std::make_shared<ResetAll::Request>();
+  reset_all_client_->async_send_request(req,
+    [this](rclcpp::Client<ResetAll>::SharedFuture) {
+      onTasksRefresh();
+    });
 }
 
 }  // namespace iros_llm_rviz_panel
