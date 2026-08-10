@@ -84,7 +84,7 @@ attributed to individual architectural components by ablation.
 
 \pending{This draft fixes the system description and the experimental design.
 E1 (hermetic planning accuracy) is populated across five local models and E2
-(grounding and constraint ablation) across three; E3--E5 remain unpopulated
+(grounding and constraint ablation) across three; E3 remains unpopulated
 pending further runs.}
 \end{abstract}
 
@@ -239,7 +239,14 @@ lifecycle behind one goal token. Schedule monitoring and replanning are
 internal; clients see one atomic operation. Cancellation stops every robot. The
 action result carries a full metrics payload---planning time, node expansions,
 per-agent path lengths, replan count, total execution time---which we exploit
-directly for benchmarking (Sec.~\ref{sec:e4}).
+directly for benchmarking (Sec.~\ref{sec:e3}).
+
+Because the contract is shared, the backend is a launch-time switch and nothing
+above it changes: the orchestrator, the guards, the behavior tree, and the
+per-robot followers are all written against the action, not against a solver.
+E3 runs the same mission workload on both backends, which is the evidence we
+offer for that interchangeability. It is deliberately \emph{not} a comparison of
+the two solvers---see Sec.~\ref{sec:folded} for why we do not make one.
 
 \paragraph{PBS backend.}
 An 8-connected A* on a grid downsampled to 0.2\,m, with a backward-Dijkstra
@@ -266,7 +273,7 @@ computes per-follower error
 $\varepsilon_i = \lVert p_i - (p_{\mathrm{leader}} + R(\theta_{\mathrm{leader}}) o_i) \rVert$
 and classifies each formation as INACTIVE / FORMING / STABLE / DEGRADED /
 BROKEN at 10\,Hz. These $\varepsilon_i$ are published, which makes formation
-tracking accuracy directly measurable (Sec.~\ref{sec:e5}).
+tracking accuracy directly measurable (Sec.~\ref{sec:folded}).
 
 \paragraph{Behavior-tree front-end.}
 BehaviorTree.CPP v3 nodes wrap every primitive: \code{MapfPlan},
@@ -578,9 +585,17 @@ deferred to E3 for the reason given there, so RQ2 is not closed by this draft.
 between them---the part closed by guards and repair loops---dominate?
 \item[RQ4] What does each closed-loop layer contribute to end-to-end mission
 completion, and at what cost in time and model calls?
-\item[RQ5] How do the two MAPF backends compare under identical fleet-level
-requests, and does backend choice interact with orchestration quality?
 \end{description}
+
+An earlier version of this design carried a fifth question---which of the two
+MAPF backends is better under identical fleet requests. We have withdrawn it as
+a research question rather than answered it narrowly.
+Sec.~\ref{sec:folded} gives the reason: the comparison is confounded on this
+system in ways parameter alignment cannot fix, and the residue that
+\emph{is} measurable---that the orchestration layer completes the same missions
+on either backend---is a property of the action contract described in
+Sec.~\ref{sec:substrate}, not a question this paper investigates. We report it
+there and in E3, and claim nothing about which backend is superior.
 
 RQ3 is the question we consider most important and the one the literature most
 often skips: a benchmark measured on plan text alone can look excellent while
@@ -722,12 +737,30 @@ issued through channel~3; the system plans, executes, verifies, and repairs;
 the task manager scores completion independently.
 
 \emph{Factors.} Remediation on/off; verification repair on/off; mission
-supervision on/off; planning mode (constrained vs.\ tool-calling); model size.
-The planning-mode factor must be read together with Sec.~\ref{sec:res-e2}: on
+supervision on/off; planning mode (constrained vs.\ tool-calling); model size;
+MAPF backend. The planning-mode factor must be read together with
+Sec.~\ref{sec:res-e2}: on
 a model that alphabetises keys in schema mode, the constrained arm reproduces
 the E2 collapse and E3 would measure that rather than planning mode. The
 factor is therefore only interpretable with the model held fixed to one E2
 shows is unaffected.
+
+\emph{Mid-mission environment change.} Two cells repeat the reference mission
+and close one door of the environment sixty seconds in, chosen so that each
+breaks exactly one leg of the plan while the other four keep running as an
+in-run control. The first closure lengthens a carry leg from 38\,m to 75\,m: the
+route is invalidated but an alternative exists. The second disconnects the
+target of another leg outright: no path to it remains at all. This is the case
+the repair loops of Sec.~\ref{sec:closedloop} are justified by---the world
+changing after a plan is committed---and every other cell exercises them on
+execution failures instead. The sharpest quantity is not completion but
+escalation: in the disconnected cell, confidently re-planning the same
+unreachable goal is an unambiguous failure, while reporting that it cannot be
+done, or completing the remaining legs and saying so, is correct. That directly
+extends the E1 finding that escalation judgment is weak and flat across model
+sizes (Sec.~\ref{sec:e1-results}), by testing it on a live fleet rather than on
+plan text. The door state is visible to the model in its per-turn context, so a
+failure here is not a failure of information.
 
 \emph{Metrics.} Task completion rate; time to completion; number of LLM calls
 per mission (the cost of each safety net); how often each guard fired; how
@@ -763,7 +796,7 @@ wise.
 Channels~1 and~2 are the least evaluated part of the system in either report,
 and unlike channel~3 they already write structured per-call JSONL logs
 (prompt, raw output, parsed verdict). This makes a replay evaluation nearly
-free: accumulate incident records across the E3 and E4 campaigns, have two
+free: accumulate incident records across the E3 campaign, have two
 annotators independently label the correct verdict
 (\code{wait}/\code{abort}/\code{replan}) from the event and log tail, and score
 the model against that label set with inter-annotator agreement reported.
@@ -776,25 +809,53 @@ supervision cycle. We therefore report the confusion matrix rather than a
 scalar, and separately the false-\code{replan} rate on the planner-internal
 warnings the prompt enumerates as self-recovery cases.
 
-\subsection{E4: MAPF backend comparison}
-\label{sec:e4}
+\subsection{Two experiments folded into E3, and why}
+\label{sec:folded}
 
-PBS vs.\ LNS2 under identical fleet requests, using the existing goal-dispatch
-test client: convergence to a single point, random goals within a radius, and
-group-home dispersal, across 5/10/15/20 robots and three environments of
-increasing clutter. All metrics come from the action result payload. This
-closes the ``no statistics over repeated runs'' gap left by the earlier drafts and
-tests the interaction half of RQ5.
+Earlier versions of this design carried two further standalone experiments: a
+controlled PBS-vs-LNS2 comparison across fleet size and clutter, and a
+formation-tracking study across shape, formation size, and leader speed. Both
+are withdrawn as standalone experiments; each survives as one cell of the E3
+grid. Because a withdrawal is itself a claim about what can be measured, we
+state the reasoning rather than quietly dropping the sections.
 
-\subsection{E5: Formation tracking accuracy}
-\label{sec:e5}
+\emph{The backend comparison is confounded in ways parameter alignment cannot
+fix.} Most differences between the two backends can be equalized by
+configuration---grid resolution, planning timestep, arrival tolerance, replan
+cooldown, low-level expansion budgets---and we would have. Three cannot. First,
+the two solvers terminate on different criteria: LNS2 is bounded by a wall-clock
+repair budget and must return the best incumbent it has, whereas PBS is bounded
+by high-level node expansions and is not time-bounded at all, so LNS2's planning
+time is capped by construction and a head-to-head reading of it is not
+meaningful. Second, the collision models differ in kind, not degree: PBS keeps a
+hard footprint with a soft gradient penalty zone around it, while LNS2 adds its
+inflation directly to the footprint as a hard radius---identically named
+parameters with different semantics, which equalizing numerically would hide
+rather than remove. Third, the two backends ship with different path-following
+stacks, so every execution-side metric measures a planner--follower pair. A
+comparison published under those three caveats would say less than the space it
+occupies, in a paper whose central question (RQ3) does not depend on it.
 
-Recording the formation status topic while a leader traverses a fixed route
-yields $\varepsilon_i(t)$ directly. We characterize steady-state and peak error
-by shape (line, wedge, triangle, abreast) and leader speed, plus time-to-STABLE
-after activation and DEGRADED dwell fraction. This is a bag recording and an
-offline parse; the earlier drafts listed it as an open gap purely
-because nobody had recorded it.
+What remains is the claim we actually make: the two backends are
+\emph{interchangeable} behind one action contract (Sec.~\ref{sec:substrate}).
+E3 runs the full mission workload on both, which is evidence for that and for
+nothing more. We deliberately do not restate it as a research question: an
+outcome of ``the same'' would confirm what the architecture already asserts,
+and an outcome of ``different'' would not be attributable, given the three
+confounds above. A question whose answers are respectively redundant and
+uninterpretable is a system property, and we report it as one.
+
+\emph{Formation tracking becomes a characterization rather than a study.} One
+E3 mission forms a column, traverses a 21\,m corridor that narrows to 1.30\,m,
+and disbands. The formation monitor already publishes $\varepsilon_i$ at
+10\,Hz and E3 already records that topic, so steady-state error, peak error,
+time-to-STABLE, and DEGRADED dwell fraction come out of a recording we take
+anyway. That mission is also the only one that exercises two of the six
+guards---automatic formation staging and the active-formation guard---which
+would otherwise report zero firings for the whole campaign for want of a
+trigger. What is lost is the dependence of tracking error on shape, size, and
+speed: we report one column of four at one speed, and we report it as a
+property of this system rather than as a study of formation control.
 
 \subsection{Instrumentation to be added}
 
@@ -810,11 +871,12 @@ originally reported only to the terminal and an exit code. \emph{Added}: the
 \code{--repeat} and \code{--json} flags used by E1 and E2, together with the
 \code{--grounding}, \code{--schema-constrained} and \code{--schema-variant}
 factors and a prompt-fingerprint check for baseline reuse.
-\item A bag-based offline scorer for E3--E5, in preference to a live scoring
+\item A bag-based offline scorer for E3, in preference to a live scoring
 node, so that runs can be re-analysed without re-execution.
 \end{enumerate}
 
 \subsection{Threats to validity}
+\label{sec:threats}
 
 \emph{Simulation only.} All results are in Stage 2D with simulator odometry as
 ground truth and AMCL disabled. Localization error, wheel slip, and real sensor
@@ -841,6 +903,12 @@ own system. An independent case set would be a genuine improvement.
 
 \emph{Model non-stationarity.} Hosted models change under fixed names. We pin
 local weights and report quantization for every reported run.
+
+\emph{Environment change is tested by route invalidation, not agent loss.} The
+two door cells break the map while every robot keeps working. The complementary
+failure---a robot dies while the route stays valid---is not covered, and repair
+behaviour may differ between the two: a closed door is visible in the model's
+context, whereas a dead robot must be inferred from the absence of motion.
 
 % ===========================================================================
 \section{Results}
@@ -951,7 +1019,7 @@ cases in some categories, is enough to separate the reliable categories from
 the weak ones but not enough to bound per-category confidence intervals
 tightly; the category-level percentages above should be read as pointing at
 where the failures cluster, not as precise estimates. We report them because
-E2--E5 (Secs.~\ref{sec:e2}--\ref{sec:e5}) are designed to explain \emph{why}
+E2 and E3 (Secs.~\ref{sec:e2}, \ref{sec:e3}) are designed to explain \emph{why}
 those specific categories fail, not merely to confirm that they do.
 
 \subsection{E2: Grounding and constraint ablation}
@@ -1301,14 +1369,10 @@ cost and guard/repair firing counts.}
 
 \pending{E3b --- channel-1 decision confusion matrix and false-replan rate.}
 
-\pending{E4 --- PBS vs.\ LNS2 across fleet size and clutter.}
-
-\pending{E5 --- formation tracking error by shape and leader speed.}
-
 % ===========================================================================
 \section{Conclusion}
 
-\pending{Full claim pending E3--E5. The intended claim remains: a small typed
+\pending{Full claim pending E3. The intended claim remains: a small typed
 plan grammar plus deterministic guards lets a modestly-sized locally-hosted
 model supervise a 20-robot fleet, and the gap between plan-level accuracy and
 mission-level success is where the engineering value sits---E3 is the
