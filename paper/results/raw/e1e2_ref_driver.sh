@@ -169,6 +169,22 @@ print(f"    n={len(el)} passed={d['passed']}/{d['total']} "
 if med < 0.5:
     print("    WARNING: median latency < 0.5 s -- the endpoint probably "
           "rejected every call (check the model id and the key)")
+
+# The harness has no retry anywhere: an HTTP error is caught as a generic
+# exception and scored as a failed case. A rate-limited call therefore looks
+# exactly like a model that planned badly. Surface transport errors separately
+# so that never passes for a result.
+errs = [r for r in d['results'] if (r.get('parse_error') or '').strip()]
+if errs:
+    kinds = {}
+    for r in errs:
+        kinds[(r['parse_error'] or '')[:60]] = kinds.get((r['parse_error'] or '')[:60], 0) + 1
+    print(f"    *** {len(errs)}/{len(d['results'])} calls did not return a "
+          f"parseable answer -- these are counted as FAILURES ***")
+    for k, n in sorted(kinds.items(), key=lambda kv: -kv[1])[:4]:
+        print(f"      {n:4d}x {k}")
+    print("      If these are HTTP 429/5xx rather than model output, the "
+          "pass rate for this cell is invalid: delete the json and re-run.")
 PY
   else
     log "  no output written; tail of $log_f:"
