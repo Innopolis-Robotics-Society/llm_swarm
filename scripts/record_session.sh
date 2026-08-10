@@ -69,6 +69,7 @@ mkdir -p "$SESSION"
 #
 #   full  E3 and general sessions. Mission state, decisions, all poses.
 #   e5    formation tracking only. ~35 MB/hour instead of ~800 MB/hour.
+BAG_FLAGS=()
 case "$PROFILE" in
   e5)
     TOPICS=(
@@ -91,12 +92,17 @@ case "$PROFILE" in
       /tf_static
       /clock
       # Action feedback carries per-robot arrival / deviation / stall counts.
-      # Hidden topic, so it must be named explicitly. The action RESULT
-      # (planning time, expansions, replans) travels over a service and can
-      # never be bagged — use `test_send_goals --json-out` for those.
+      # Naming a hidden topic explicitly is NOT enough: rosbag2 filters the
+      # whole /_action/ family out unless --include-hidden-topics is passed,
+      # and it says so only as a WARN in the recorder log, so the bag looks
+      # fine until the analysis finds the topic missing. The flag is added
+      # below for this profile. The action RESULT (planning time, expansions,
+      # replans) travels over a service and can never be bagged — use
+      # `test_send_goals --json-out` for those.
       /swarm/set_goals/_action/feedback
       /swarm/set_goals/_action/status
     )
+    BAG_FLAGS+=(--include-hidden-topics)
     ;;
   *)
     echo "FATAL: unknown --profile '$PROFILE' (expected 'full' or 'e5')"; exit 1 ;;
@@ -214,7 +220,8 @@ echo "=============================================================="
 # ── recorder ──────────────────────────────────────────────────────────────
 # Started first so bring-up itself is captured. Missing topics are fine:
 # rosbag2 subscribes as they appear.
-ros2 bag record -o "$SESSION/bag" "${TOPICS[@]}" \
+ros2 bag record -o "$SESSION/bag" \
+  "${BAG_FLAGS[@]+"${BAG_FLAGS[@]}"}" "${TOPICS[@]}" \
   > "$SESSION/bag_record.log" 2>&1 &
 BAG_PID=$!
 
@@ -227,9 +234,10 @@ cleanup() {
   for _ in $(seq 1 20); do kill -0 "$BAG_PID" 2>/dev/null || break; sleep 0.5; done
   kill -0 "$BAG_PID" 2>/dev/null && kill -9 "$BAG_PID" 2>/dev/null
 
-  python3 - "$SESSION" <<'PY'
+  python3 - "$SESSION" "${TOPICS[@]}" <<'PY'
 import json, os, sys, datetime
 d = sys.argv[1]
+requested = sys.argv[2:]
 p = f'{d}/session.json'
 meta = json.load(open(p)) if os.path.exists(p) else {}
 meta['finished_at'] = datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -248,15 +256,30 @@ meta['operator_commands_logged'] = missions
 # the signal that distinguishes "recorded nothing" from "recorded a quiet run".
 db = f'{d}/bag/bag_0.db3'
 msgs = 0
+# A requested topic that recorded nothing is the other silent failure: rosbag2
+# drops whole families (anything under /_action/) without --include-hidden-topics
+# and says so only as a WARN in bag_record.log, so the run looks healthy right
+# up to the analysis. Name the empties here instead.
+empty = []
+# Channel 2 is opt-in (enable_passive_observer), so its topic is legitimately
+# silent in every default run. Warning about it each time would train the
+# operator to ignore this whole block, which is the one thing it must not do.
+expected_empty = {'/llm/command'}
 if os.path.exists(db):
     try:
         import sqlite3
         con = sqlite3.connect(db)
         msgs = con.execute('SELECT COUNT(*) FROM messages').fetchone()[0]
+        counts = dict(con.execute(
+            'SELECT t.name, COUNT(m.id) FROM topics t '
+            'LEFT JOIN messages m ON m.topic_id = t.id GROUP BY t.id'))
         con.close()
+        empty = [t for t in requested
+                 if counts.get(t, 0) == 0 and t not in expected_empty]
     except Exception:
         msgs = -1
 meta['bag_messages'] = msgs
+meta['topics_recorded_empty'] = empty
 json.dump(meta, open(p, 'w'), indent=2)
 
 launch_log = f'{d}/launch.log'
@@ -270,6 +293,10 @@ print(f'Session: {d}')
 print(f"  bag finalised          : {'yes' if bag_ok else 'NO — bag may be unreadable'}")
 print(f'  messages recorded       : {msgs}')
 print(f'  operator commands logged: {missions}')
+if empty:
+    print(f'  topics that recorded NOTHING ({len(empty)}):')
+    for t in empty:
+        print(f'      {t}')
 if msgs <= 0 or launch_lines < 5:
     print()
     print('  *** RUN FAILED — the stack did not start. ***')
