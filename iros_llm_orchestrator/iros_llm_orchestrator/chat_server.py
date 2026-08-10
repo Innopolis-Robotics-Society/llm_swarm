@@ -1316,6 +1316,8 @@ class ChatServer(Node):
             snapshot,
             tolerance_m=self._formation_tolerance_m,
         )
+        if result is not None:
+            self._bump('guard_formation_staging_fired')
         if result is None and leader_id is not None and leader_id in snapshot:
             # Hook ran but returned None — either stale leader or all in tolerance
             leader = snapshot[leader_id]
@@ -1522,6 +1524,10 @@ class ChatServer(Node):
             'llm_seconds': 0.0,
             'guard_active_formation_fired': 0,
             'guard_occupancy_rewrites': 0,
+            # Auto-staging previously left a trace only in the executor log
+            # line, so the one guard a formation mission actually exercises
+            # was the one guard not countable from the session folder.
+            'guard_formation_staging_fired': 0,
             'remediation_attempts': 0,
             'verification_repair_attempts': 0,
             'supervision_steps': 0,
