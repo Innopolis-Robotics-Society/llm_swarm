@@ -855,8 +855,17 @@ TEST_CASES: list[TC] = [
         ) else ['reply should mention robot_4 position near cafeteria'])
     ), ctx=ctx_robot4_at_cafeteria()),
 
+    # `and`, not `or`: these checks return [] on success and [err] on failure,
+    # so `a or b` yields b whenever a passes -- it fails if EITHER prefix is
+    # absent, which for two mutually exclusive prefixes is always. `and` is
+    # what "either prefix is acceptable" actually looks like here:
+    #   []  and X   -> []    first passed
+    #   [e] and []  -> []    second passed
+    #   [e] and [f] -> [f]   both failed
+    # Until this was fixed, escalate_04 and edge_06 were unpassable for every
+    # model, and both are escalation cases -- see paper/rejected.md.
     _tc('escalate_04', 'form a triangle', lambda p, r: (
-        (chk_idle_reason_prefix(p, 'needs_help:') or
+        (chk_idle_reason_prefix(p, 'needs_help:') and
          chk_idle_reason_prefix(p, 'clarify:'))
     ), ctx=ctx_spawn()),
 
@@ -901,7 +910,7 @@ TEST_CASES: list[TC] = [
         ), ctx=ctx_spawn()),
 
     _tc('edge_06', 'repeat the last command', lambda p, r: (
-        chk_idle_reason_prefix(p, 'needs_help:') or
+        chk_idle_reason_prefix(p, 'needs_help:') and
         chk_idle_reason_prefix(p, 'clarify:')
     ), ctx=ctx_spawn()),
 ]

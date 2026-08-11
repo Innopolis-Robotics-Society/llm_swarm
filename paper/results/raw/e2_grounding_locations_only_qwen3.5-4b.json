@@ -10,7 +10,7 @@
   "schema_constrained": false,
   "prompt_fingerprint": "be3947ad3368f2b446ef3d38ace34cc149df297bfe56b6d222de4a19420c6c1a",
   "total": 220,
-  "passed": 159,
+  "passed": 169,
   "results": [
     {
       "id": "mapf_basic_01",
@@ -2145,10 +2145,8 @@
       "id": "escalate_04",
       "prompt": "form a triangle",
       "repeat_idx": 0,
-      "passed": false,
-      "errors": [
-        "reason='clarify: no group specified for triangle formation' does not start with 'needs_help:'"
-      ],
+      "passed": true,
+      "errors": [],
       "reply": "Which group/color should form a triangle?",
       "raw": "{\"reply\": \"Which group/color should form a triangle?\", \"plan\": {\"type\": \"idle\", \"reason\": \"clarify: no group specified for triangle formation\"}}",
       "elapsed_sec": 4.055,
@@ -2158,10 +2156,8 @@
       "id": "escalate_04",
       "prompt": "form a triangle",
       "repeat_idx": 1,
-      "passed": false,
-      "errors": [
-        "reason='clarify: no group specified for triangle formation' does not start with 'needs_help:'"
-      ],
+      "passed": true,
+      "errors": [],
       "reply": "Which group should form a triangle?",
       "raw": "{\"reply\": \"Which group should form a triangle?\", \"plan\": {\"type\": \"idle\", \"reason\": \"clarify: no group specified for triangle formation\"}}",
       "elapsed_sec": 2.24,
@@ -2171,10 +2167,8 @@
       "id": "escalate_04",
       "prompt": "form a triangle",
       "repeat_idx": 2,
-      "passed": false,
-      "errors": [
-        "reason='clarify: no group specified for triangle formation' does not start with 'needs_help:'"
-      ],
+      "passed": true,
+      "errors": [],
       "reply": "Which color/robot group should form a triangle?",
       "raw": "{\"reply\": \"Which color/robot group should form a triangle?\", \"plan\": {\"type\": \"idle\", \"reason\": \"clarify: no group specified for triangle formation\"}}",
       "elapsed_sec": 2.671,
@@ -2184,10 +2178,8 @@
       "id": "escalate_04",
       "prompt": "form a triangle",
       "repeat_idx": 3,
-      "passed": false,
-      "errors": [
-        "reason='clarify: no group specified for triangle formation' does not start with 'needs_help:'"
-      ],
+      "passed": true,
+      "errors": [],
       "reply": "Which color/robot group should form a triangle?",
       "raw": "{\"reply\": \"Which color/robot group should form a triangle?\", \"plan\": {\"type\": \"idle\", \"reason\": \"clarify: no group specified for triangle formation\"}}",
       "elapsed_sec": 1.808,
@@ -2197,10 +2189,8 @@
       "id": "escalate_04",
       "prompt": "form a triangle",
       "repeat_idx": 4,
-      "passed": false,
-      "errors": [
-        "reason='clarify: no group specified for triangle formation' does not start with 'needs_help:'"
-      ],
+      "passed": true,
+      "errors": [],
       "reply": "Which group should form a triangle?",
       "raw": "{\"reply\": \"Which group should form a triangle?\", \"plan\": {\"type\": \"idle\", \"reason\": \"clarify: no group specified for triangle formation\"}}",
       "elapsed_sec": 1.648,
@@ -2501,10 +2491,8 @@
       "id": "edge_06",
       "prompt": "repeat the last command",
       "repeat_idx": 0,
-      "passed": false,
-      "errors": [
-        "reason='clarify: no conversation history to determine previous command' does not start with 'needs_help:'"
-      ],
+      "passed": true,
+      "errors": [],
       "reply": "I don't have the previous command in my context. What should I repeat?",
       "raw": "{\"reply\": \"I don't have the previous command in my context. What should I repeat?\", \"plan\": {\"type\": \"idle\", \"reason\": \"clarify: no conversation history to determine previous command\"}}",
       "elapsed_sec": 2.188,
@@ -2514,10 +2502,8 @@
       "id": "edge_06",
       "prompt": "repeat the last command",
       "repeat_idx": 1,
-      "passed": false,
-      "errors": [
-        "reason='clarify: no conversation history available' does not start with 'needs_help:'"
-      ],
+      "passed": true,
+      "errors": [],
       "reply": "I don't have access to previous commands in this turn - each response is independent. What would you like me to repeat?",
       "raw": "{\"reply\": \"I don't have access to previous commands in this turn - each response is independent. What would you like me to repeat?\", \"plan\": {\"type\": \"idle\", \"reason\": \"clarify: no conversation history available\"}}",
       "elapsed_sec": 1.957,
@@ -2527,10 +2513,8 @@
       "id": "edge_06",
       "prompt": "repeat the last command",
       "repeat_idx": 2,
-      "passed": false,
-      "errors": [
-        "reason='clarify: no conversation history to determine previous command' does not start with 'needs_help:'"
-      ],
+      "passed": true,
+      "errors": [],
       "reply": "I don't have the previous command in my context. What should I repeat?",
       "raw": "{\"reply\": \"I don't have the previous command in my context. What should I repeat?\", \"plan\": {\"type\": \"idle\", \"reason\": \"clarify: no conversation history to determine previous command\"}}",
       "elapsed_sec": 2.376,
@@ -2540,10 +2524,8 @@
       "id": "edge_06",
       "prompt": "repeat the last command",
       "repeat_idx": 3,
-      "passed": false,
-      "errors": [
-        "reason='clarify: no conversation history to determine previous command' does not start with 'needs_help:'"
-      ],
+      "passed": true,
+      "errors": [],
       "reply": "I don't have the previous command in my context. What should I repeat?",
       "raw": "{\"reply\": \"I don't have the previous command in my context. What should I repeat?\", \"plan\": {\"type\": \"idle\", \"reason\": \"clarify: no conversation history to determine previous command\"}}",
       "elapsed_sec": 2.714,
@@ -2553,14 +2535,32 @@
       "id": "edge_06",
       "prompt": "repeat the last command",
       "repeat_idx": 4,
-      "passed": false,
-      "errors": [
-        "reason='clarify: no conversation history to determine previous command' does not start with 'needs_help:'"
-      ],
+      "passed": true,
+      "errors": [],
       "reply": "I don't have the previous command in my context. What should I repeat?",
       "raw": "{\"reply\": \"I don't have the previous command in my context. What should I repeat?\", \"plan\": {\"type\": \"idle\", \"reason\": \"clarify: no conversation history to determine previous command\"}}",
       "elapsed_sec": 2.38,
       "parse_error": ""
+    }
+  ],
+  "rescored": [
+    {
+      "at": "2026-08-11T11:09:19.809184+00:00",
+      "what": "either-prefix validator fixed (or -> and) for escalate_04, edge_06",
+      "calls_flipped": 10,
+      "per_case": {
+        "escalate_04": {
+          "to_pass": 5,
+          "to_fail": 0
+        },
+        "edge_06": {
+          "to_pass": 5,
+          "to_fail": 0
+        }
+      },
+      "passed_before": 159,
+      "passed_after": 169,
+      "note": "scored from the stored raw output; no model was called again"
     }
   ]
 }
