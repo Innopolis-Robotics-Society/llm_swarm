@@ -121,7 +121,7 @@ End-user usage is in README. Files:
 | `iros_llm_swarm_robot` | C++17 | Per-robot dual-mode followers — `pbs_motion_controller` (PBS) and `lns_motion_controller` (LNS2). Both share the FORMATION_FOLLOWER PD code path. |
 | `iros_llm_swarm_local_nav` | Python | Spawns one Nav2 stack per robot under `robot_N/` namespace; uses `zone_map_server` from `iros_llm_swarm_costmap_plugins` |
 | `iros_llm_swarm_costmap_plugins` | C++17 | `ResettingObstacleLayer` (fixes ghost-trail bug in stock `nav2_costmap_2d::ObstacleLayer`) and `zone_map_server` (the project's actual map server) |
-| `iros_llm_swarm_obstacles` | C++17 | `dynamic_obstacle_manager` — overlays runtime circles / rectangles / stateful doors onto `/raw_map` and republishes the merged grid on `/map` (TRANSIENT_LOCAL). Not yet wired into bringup launches. |
+| `iros_llm_swarm_obstacles` | C++17 | `dynamic_obstacle_manager` — overlays runtime circles / rectangles / stateful doors onto `/raw_map` and republishes the merged grid on `/map` (TRANSIENT_LOCAL). Wired into `robot_local_nav.launch.py`, so it runs in every bringup that includes per-robot Nav2. Services: `/doors/{open,close}`, `/obstacles/{add_circle,add_rectangle,add_door,remove,list}`. |
 | `iros_llm_swarm_tasks` | Python | `task_manager_node` — proximity-driven task system. Polls TF at 5 Hz; transitions point tasks (reach zone → done) and carry tasks (pickup → carrying → dropoff → done). Services: `/tasks/{add,remove,list,reset,reset_all}`. Tasks defined inline in `common_scenarios.yaml` under `tasks:` per scenario. |
 | `iros_llm_swarm_formation` | Python | Leader-follower formations + manager + monitor |
 | `iros_llm_swarm_bt` | C++17 | BehaviorTree.CPP v3 nodes (`MapfPlan`, `SetFormation`, `DisableFormation`, `CheckMode`) + `bt_runner`, `fleet_cmd`, `LlmCommandReceiver` |
@@ -209,7 +209,7 @@ Three-channel design:
 - 3D Gazebo (`iros_llm_swarm_simulation`) is not stable yet — use `_simulation_lite` (Stage).
 - `iros_llm_rviz_panel` does Qt from ROS callbacks via `Qt::QueuedConnection` signals only — never touch widgets from an executor thread (segfaults under load, passes silently on a quiet workstation).
 - `iros_llm_rviz_tool` provides four click-to-command tools (`g` / `b` / `d` / `k`) that bypass the LLM and call ROS actions / services directly — handy for ground-truth comparisons and demos. `PlaceObstacleTool` and `DoorTool` need `iros_llm_swarm_obstacles` running. `PlaceTaskTool` needs `iros_llm_swarm_tasks` running.
-- `iros_llm_swarm_obstacles` and `iros_llm_swarm_costmap_plugins/zone_map_server` both publish `/map` with `TRANSIENT_LOCAL` QoS — only one can own the topic at a time. Today the bringup launches use `zone_map_server` and the obstacle manager is **not** wired in; if you compose it manually, repoint the static map server to `/raw_map` first.
+- `iros_llm_swarm_obstacles` and `iros_llm_swarm_costmap_plugins/zone_map_server` both want to publish `/map` with `TRANSIENT_LOCAL` QoS, and only one can own the topic. This is already resolved in `robot_local_nav.launch.py`: `zone_map_server` runs with `topic_name: raw_map` and the obstacle manager owns `/map`. Keep that split — pointing the map server back at `/map` silently gives the fleet a map with no doors in it.
 - Always rebuild `iros_llm_swarm_interfaces` (and `_mapf_lns` if its types changed) before dependents when adding messages — symlink-install will not save you here.
 
 ## Sub-agent routing

@@ -48,7 +48,175 @@ for _p in [_HERE, _WORKSPACE]:
 
 from iros_llm_orchestrator.common.llm_factory import get_llm_client   # noqa: E402
 from iros_llm_orchestrator.common.plan_executor import parse_plan      # noqa: E402
-from iros_llm_orchestrator.common.user_prompt import build_user_prompt # noqa: E402
+from iros_llm_orchestrator.common.plan_schema import PLAN_RESPONSE_SCHEMA  # noqa: E402
+from iros_llm_orchestrator.common.user_prompt import (                 # noqa: E402
+    GROUNDING_VARIANTS, build_user_prompt,
+)
+
+# ── E2 schema ladder ───────────────────────────────────────────────────────
+# Variants of PLAN_RESPONSE_SCHEMA used to localise *which* feature of the
+# schema breaks a model under constrained decoding. Every variant is DERIVED
+# from the production schema by dropping oneOf branches, never copied, so a
+# change to plan_schema.py cannot silently desynchronise the ladder. The
+# derivation is proved faithful by an assertion at import time: rebuilding with
+# all six branches must reproduce PLAN_RESPONSE_SCHEMA exactly.
+#
+#   s1         all six branches, recursive $ref     — the shipped schema
+#   s2         minus sequence/parallel              — no recursion, no $defs
+#   s3_*       one branch only, inlined             — no oneOf at all
+#   s1_noidle  all but idle, still recursive        — removes the cheapest exit
+#
+# s1 vs s2 isolates recursion; s2 vs s3 isolates the oneOf construct itself.
+
+_NODE_BRANCHES = PLAN_RESPONSE_SCHEMA['$defs']['node']['oneOf']
+_RECURSIVE_BRANCHES = ('sequence', 'parallel')
+
+
+def _branch_name(branch: dict) -> str:
+    return branch['properties']['type']['const']
+
+
+def build_plan_schema(keep: tuple[str, ...]) -> dict:
+    """Rebuild the response schema keeping only the named plan-node branches.
+
+    ``$defs``/``$ref`` are emitted only when a retained branch actually
+    recurses; a single retained branch is inlined without a ``oneOf`` wrapper.
+    That is what makes s2 genuinely non-recursive and s3 genuinely oneOf-free
+    rather than a one-element oneOf.
+    """
+    branches = [b for b in _NODE_BRANCHES if _branch_name(b) in keep]
+    missing = set(keep) - {_branch_name(b) for b in branches}
+    if missing:
+        raise ValueError(f'unknown plan-node branch(es): {sorted(missing)}')
+    if not branches:
+        raise ValueError('at least one branch must be kept')
+
+    node = branches[0] if len(branches) == 1 else {'oneOf': branches}
+    recursive = any(k in keep for k in _RECURSIVE_BRANCHES)
+
+    schema: dict = {
+        'type': 'object',
+        'properties': {
+            'reasoning': {'type': 'string'},
+            'reply': {'type': 'string'},
+            'plan': {'$ref': '#/$defs/node'} if recursive else node,
+        },
+        'required': ['reply', 'plan'],
+    }
+    if recursive:
+        schema['$defs'] = {'node': node}
+    return schema
+
+
+_ALL_BRANCHES = tuple(_branch_name(b) for b in _NODE_BRANCHES)
+assert build_plan_schema(_ALL_BRANCHES) == PLAN_RESPONSE_SCHEMA, (
+    'schema-ladder derivation no longer reproduces PLAN_RESPONSE_SCHEMA; '
+    'the s2/s3 variants would not be comparable to the shipped s1 run')
+
+SCHEMA_VARIANTS: dict[str, tuple[str, ...]] = {
+    's1':         _ALL_BRANCHES,
+    's2':         ('mapf', 'formation', 'disband', 'idle'),
+    's3_mapf':    ('mapf',),
+    's3_idle':    ('idle',),
+    's3_disband': ('disband',),
+    's1_noidle':  tuple(b for b in _ALL_BRANCHES if b != 'idle'),
+}
+
+# ── deployable candidate schemas ───────────────────────────────────────────
+# S3 pins the node type, which on a type-checking benchmark hands the model
+# half the answer; it is a diagnostic, not a deployment proposal. These two are
+# proposals: they keep the full expressive grammar and are usable when the
+# system does not know in advance what the operator will ask for.
+#
+#   s4_envelope  top level pinned to `sequence`; the union moves inside
+#                `steps`, where S1 shows the model still emits mapf freely
+#                (53 nested occurrences against 0 at top level).
+#   s5_action    unchanged six-branch union, discriminator renamed `type` ->
+#                `action` so that it sorts BEFORE every content key
+#                (goals, follower_ns, reason, steps, formation_id).
+
+def build_envelope_schema() -> dict:
+    """Top-level plan forced to a `sequence`; the oneOf lives in its steps."""
+    return {
+        'type': 'object',
+        'properties': {
+            'reasoning': {'type': 'string'},
+            'reply': {'type': 'string'},
+            'plan': {
+                'type': 'object',
+                'properties': {
+                    'type': {'const': 'sequence'},
+                    'steps': {'type': 'array', 'items': {'$ref': '#/$defs/node'}},
+                },
+                'required': ['type', 'steps'],
+            },
+        },
+        'required': ['reply', 'plan'],
+        '$defs': {'node': {'oneOf': _NODE_BRANCHES}},
+    }
+
+
+def _rename_discriminator(obj, old: str, new: str):
+    """Recursively rename the discriminator key in a schema or a plan."""
+    if isinstance(obj, list):
+        return [_rename_discriminator(x, old, new) for x in obj]
+    if not isinstance(obj, dict):
+        return obj
+    return {(new if k == old else k): _rename_discriminator(v, old, new)
+            for k, v in obj.items()}
+
+
+def build_action_schema() -> dict:
+    """PLAN_RESPONSE_SCHEMA with the discriminator renamed `type` -> `action`.
+
+    Only the plan-node discriminator moves: the JSON-Schema keyword ``type``
+    (``{"type": "object"}``, ``{"type": "string"}``) must stay untouched, so
+    the rename is applied to the const-carrying property name alone.
+    """
+    schema = json.loads(json.dumps(PLAN_RESPONSE_SCHEMA))
+    for branch in schema['$defs']['node']['oneOf']:
+        branch['properties']['action'] = branch['properties'].pop('type')
+        branch['required'] = ['action' if r == 'type' else r
+                              for r in branch['required']]
+    return schema
+
+
+_EXTRA_VARIANTS = frozenset({'s4_envelope', 's5_action'})
+
+
+def _resolve_schema(variant: str) -> dict:
+    """The JSON schema sent to the backend for a given ladder variant."""
+    if variant == 's4_envelope':
+        return build_envelope_schema()
+    if variant == 's5_action':
+        return build_action_schema()
+    return build_plan_schema(SCHEMA_VARIANTS[variant])
+
+
+def normalise_plan(plan: dict | None, variant: str) -> dict | None:
+    """Map a variant's output back onto the grammar the validators expect.
+
+    Declared explicitly because it is a change to how output is scored:
+
+    * ``s4_envelope`` — unwrap a single-step ``sequence``. A one-step sequence
+      executes exactly its step, so ``sequence[X]`` and ``X`` are the same
+      plan; without this the envelope would fail every ``chk_type`` on a leaf
+      answer for a purely syntactic reason. Multi-step sequences are untouched.
+    * ``s5_action`` — rename ``action`` back to ``type``. The rename is the
+      experimental manipulation; scoring it would otherwise measure the
+      renaming rather than the model.
+    """
+    if plan is None:
+        return None
+    if variant == 's5_action':
+        return _rename_discriminator(plan, 'action', 'type')
+    if variant == 's4_envelope':
+        while (isinstance(plan, dict) and plan.get('type') == 'sequence'
+               and isinstance(plan.get('steps'), list) and len(plan['steps']) == 1
+               and isinstance(plan['steps'][0], dict)):
+            plan = plan['steps'][0]
+        return plan
+    return plan
 
 # ── ANSI colours ───────────────────────────────────────────────────────────
 _USE_COLOR = sys.stdout.isatty()
@@ -687,8 +855,17 @@ TEST_CASES: list[TC] = [
         ) else ['reply should mention robot_4 position near cafeteria'])
     ), ctx=ctx_robot4_at_cafeteria()),
 
+    # `and`, not `or`: these checks return [] on success and [err] on failure,
+    # so `a or b` yields b whenever a passes -- it fails if EITHER prefix is
+    # absent, which for two mutually exclusive prefixes is always. `and` is
+    # what "either prefix is acceptable" actually looks like here:
+    #   []  and X   -> []    first passed
+    #   [e] and []  -> []    second passed
+    #   [e] and [f] -> [f]   both failed
+    # Until this was fixed, escalate_04 and edge_06 were unpassable for every
+    # model, and both are escalation cases -- see paper/rejected.md.
     _tc('escalate_04', 'form a triangle', lambda p, r: (
-        (chk_idle_reason_prefix(p, 'needs_help:') or
+        (chk_idle_reason_prefix(p, 'needs_help:') and
          chk_idle_reason_prefix(p, 'clarify:'))
     ), ctx=ctx_spawn()),
 
@@ -733,7 +910,7 @@ TEST_CASES: list[TC] = [
         ), ctx=ctx_spawn()),
 
     _tc('edge_06', 'repeat the last command', lambda p, r: (
-        chk_idle_reason_prefix(p, 'needs_help:') or
+        chk_idle_reason_prefix(p, 'needs_help:') and
         chk_idle_reason_prefix(p, 'clarify:')
     ), ctx=ctx_spawn()),
 ]
@@ -742,11 +919,21 @@ TEST_CASES: list[TC] = [
 # LLM call
 # ═══════════════════════════════════════════════════════════════════════════
 
-async def _call_llm(llm, messages: list[dict], timeout: float) -> str:
+async def _call_llm(
+    llm,
+    messages: list[dict],
+    timeout: float,
+    response_format: dict | None = None,
+) -> str:
+    """Stream one completion. ``response_format``, when given, is the plan JSON
+    schema passed through to the backend for constrained decoding (Ollama's
+    ``format`` field). None — the default — reproduces the E1/E1b behaviour,
+    which ran fully unconstrained.
+    """
     full = ''
     async def _stream():
         nonlocal full
-        async for chunk in llm.stream(messages):
+        async for chunk in llm.stream(messages, response_format=response_format):
             full += chunk or ''
     await asyncio.wait_for(_stream(), timeout=timeout)
     return full
@@ -791,9 +978,13 @@ async def run_tests(
     verbose: bool,
     dry_run: bool = False,
     repeat: int = 1,
+    grounding: str = 'full',
+    schema_constrained: bool = False,
+    schema_variant: str = 's1',
 ) -> list[Result]:
     results: list[Result] = []
     width = max(len(tc.id) for tc in test_cases)
+    response_format = _resolve_schema(schema_variant) if schema_constrained else None
 
     for tc in test_cases:
         for rep in range(repeat):
@@ -808,12 +999,16 @@ async def run_tests(
                     tc.prompt,
                     map_name=map_name,
                     runtime_context=tc.context,
+                    grounding=grounding,
                 )
                 if dry_run:
                     raw = _DRY_RUN_RESPONSE
                 else:
-                    raw = await _call_llm(llm, messages, timeout)
+                    raw = await _call_llm(
+                        llm, messages, timeout, response_format=response_format)
                 reply, plan = _parse_response(raw)
+                if schema_constrained:
+                    plan = normalise_plan(plan, schema_variant)
             except asyncio.TimeoutError:
                 parse_err = f'TIMEOUT after {timeout}s'
             except Exception as exc:
@@ -907,6 +1102,26 @@ def _print_summary(results: list[Result], dry_run: bool = False, repeat: int = 1
     print(BOLD('─' * 60))
 
 
+def _prompt_fingerprint(map_name: str, grounding: str = 'full') -> str:
+    """SHA-256 over every test case's fully-built prompt.
+
+    The E1b baseline is only reusable as E2's "off" arm if the default prompt
+    is byte-identical to what E1b ran. This turns that from an assumption into
+    a check: run --print-prompt-hash before a sweep and compare.
+    """
+    import hashlib
+    per_case = {}
+    for tc in TEST_CASES:
+        msgs = build_user_prompt(
+            tc.prompt, map_name=map_name,
+            runtime_context=tc.context, grounding=grounding,
+        )
+        blob = json.dumps(msgs, ensure_ascii=False, sort_keys=True)
+        per_case[tc.id] = hashlib.sha256(blob.encode()).hexdigest()[:16]
+    return hashlib.sha256(
+        json.dumps(per_case, sort_keys=True).encode()).hexdigest()
+
+
 def _write_json(path: str, results: list[Result], args) -> None:
     payload = {
         'map': args.map,
@@ -914,7 +1129,19 @@ def _write_json(path: str, results: list[Result], args) -> None:
         'llm_model': args.llm_model,
         'llm_temperature': args.llm_temperature,
         'llm_num_ctx': args.llm_num_ctx,
+        'llm_max_tokens': args.llm_max_tokens,
         'repeat': args.repeat,
+        # E2 ablation factors — 'full' + False is the E1/E1b configuration.
+        'grounding': args.grounding,
+        'schema_constrained': args.schema_constrained,
+        # 's1' is the shipped PLAN_RESPONSE_SCHEMA; other values are E2 ladder
+        # variants and are only comparable on the subset of cases they can
+        # express (see paper/results/build_e2_ladder.py).
+        'schema_variant': args.schema_variant if args.schema_constrained else None,
+        'schema_branches': (list(SCHEMA_VARIANTS.get(args.schema_variant, _ALL_BRANCHES))
+                            if args.schema_constrained else None),
+        'test_subset': sorted(args.tests) if args.tests else None,
+        'prompt_fingerprint': _prompt_fingerprint(args.map, args.grounding),
         'total': len(results),
         'passed': sum(1 for r in results if r.passed),
         'results': [r.to_json() for r in results],
@@ -956,7 +1183,38 @@ def main() -> None:
                         help='Run each test case N times independently (for pass@1/pass@N)')
     parser.add_argument('--json', metavar='PATH', default='',
                         help='Write full structured results (incl. raw LLM output) to PATH')
+    # ── E2 ablation factors ────────────────────────────────────────────────
+    # Defaults reproduce E1/E1b exactly: unconstrained decoding, full map block.
+    parser.add_argument('--grounding', default='full', choices=list(GROUNDING_VARIANTS),
+                        help='Map-block grounding variant (default: full = E1b baseline)')
+    parser.add_argument('--schema-constrained', action='store_true',
+                        help='Constrain decoding with PLAN_RESPONSE_SCHEMA '
+                             '(default off = E1b baseline)')
+    parser.add_argument('--schema-variant', default='s1',
+                        choices=sorted(set(SCHEMA_VARIANTS) | _EXTRA_VARIANTS),
+                        help='Which plan-node branches the schema may express '
+                             '(default: s1 = the shipped PLAN_RESPONSE_SCHEMA). '
+                             'Requires --schema-constrained. Restricted variants '
+                             'are only scorable on cases they can express — pair '
+                             'with --tests.')
+    parser.add_argument('--print-prompt-hash', action='store_true',
+                        help='Print the prompt fingerprint for the selected '
+                             '--map/--grounding and exit (baseline-reuse check)')
+    parser.add_argument('--print-schema', action='store_true',
+                        help='Print the resolved --schema-variant JSON and exit')
     args = parser.parse_args()
+
+    if args.print_schema:
+        print(json.dumps(_resolve_schema(args.schema_variant), indent=2))
+        sys.exit(0)
+
+    if args.schema_variant != 's1' and not args.schema_constrained:
+        print('--schema-variant has no effect without --schema-constrained')
+        sys.exit(1)
+
+    if args.print_prompt_hash:
+        print(_prompt_fingerprint(args.map, args.grounding))
+        sys.exit(0)
 
     global _USE_COLOR
     if args.no_color:
@@ -992,11 +1250,19 @@ def main() -> None:
     print(BOLD(f'\nChannel-3 benchmark  map={args.map}  '
                f'mode={mode_str}  '
                f'tests={len(selected)}/{len(TEST_CASES)}{repeat_str}'))
+    variant_str = (f'  schema_variant={args.schema_variant}'
+                   if args.schema_constrained else '')
+    print(BOLD(f'grounding={args.grounding}  '
+               f'schema_constrained={args.schema_constrained}{variant_str}  '
+               f'prompt_fp={_prompt_fingerprint(args.map, args.grounding)[:16]}'))
     print(BOLD('─' * 60))
 
     results = asyncio.run(run_tests(
         selected, llm, args.map, args.timeout, args.verbose,
-        dry_run=args.dry_run, repeat=args.repeat))
+        dry_run=args.dry_run, repeat=args.repeat,
+        grounding=args.grounding,
+        schema_constrained=args.schema_constrained,
+        schema_variant=args.schema_variant))
 
     _print_summary(results, dry_run=args.dry_run, repeat=args.repeat)
     if args.json:

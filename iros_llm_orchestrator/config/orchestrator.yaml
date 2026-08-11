@@ -55,7 +55,10 @@ llm_chat_server:
     llm_default_max_completion_tokens: 2048
     llm_min_completion_tokens: 512
     timeout_sec: 60.0
-    step_timeout_sec: 120.0
+    # Per-step cap. A single E3 leg can be a 45 m corridor drive, which is
+    # ~90 s at desired_linear_vel 0.5 m/s before planning and dispatch, so 120 s
+    # cut legs off mid-drive rather than on failure. See paper/E3_spec.md §4.3.
+    step_timeout_sec: 300.0
 
     # Remediation: on plan-execution failure, re-prompt the LLM with the
     # failure info and a fresh (targeted) MCP snapshot up to N times. Set
@@ -74,7 +77,12 @@ llm_chat_server:
     # This wraps the existing PlanExecutor, ToolExecutor, and verification
     # repair prompt; it does not add new control tools.
     llm_mission_supervision_enabled: true
-    llm_mission_max_duration_sec: 180.0
+    # Wall clock for the whole mission loop. At 180 s an E3 mission finished at
+    # 174.5 s, i.e. it was bounded by the timer rather than by the system, which
+    # would have made the supervision ablation a measurement of this number.
+    # 600 s leaves the mission budget as the outermost bound, above every
+    # per-step and per-loop cap below it.
+    llm_mission_max_duration_sec: 600.0
     llm_mission_max_steps: 6
     llm_mission_verify_delay_sec: 0.8
     llm_mission_min_progress_required: true
@@ -110,7 +118,11 @@ llm_chat_server:
     # decoding suppresses tool_calls — so keep this off when structured outputs
     # are on. Flip on (and structured_output_enabled off) for tool experiments.
     tool_calling_enabled: true
-    tool_max_iterations: 6
+    # Exhausting this raises "tool loop exceeded N iterations without producing
+    # a final text response" — the whole turn fails, so a mission dies on the
+    # loop cap rather than on anything about the mission. Observed at 6 on a
+    # supervision continuation step. The mission budget above is the real bound.
+    tool_max_iterations: 20
     robot_footprint_radius: 0.22
     scan_timeout_sec: 3.0
     # Structured outputs: send the plan JSON schema to the backend so the model
@@ -150,13 +162,15 @@ user_chat:
   ros__parameters:
     # Terminal channel-3 client (user_chat_node.py).
     stream_reasoning: true
-    tool_max_iterations: 6
+    # Kept equal to llm_chat_server: the CLI mirror must not fail a mission the
+    # panel would have completed.
+    tool_max_iterations: 20
     robot_footprint_radius: 0.22
     scan_timeout_sec: 3.0
 
 llm_execute_server:
   ros__parameters:
     # Operator-confirmed plan replay. No LLM call here.
-    step_timeout_sec: 120.0
+    step_timeout_sec: 300.0
     # Must match llm_chat_server so a previewed plan executes identically.
     goal_spread_enabled: false

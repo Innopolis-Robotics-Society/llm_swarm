@@ -7,10 +7,12 @@
  *   /<ns>/odom             (nav_msgs/Odometry)      — own odometry (both modes)
  *   /<leader_ns>/odom      (nav_msgs/Odometry)      — leader odometry (FORMATION only, dynamic)
  *   /formations/config     (FormationConfig)        — mode switch + offset updates
+ *   /<ns>/cmd_vel_nav2     (geometry_msgs/Twist)    — Nav2 controller_server output (AUTONOMOUS only)
  *
  * Publications
  * ------------
- *   /<ns>/cmd_vel          (geometry_msgs/Twist)    — FORMATION mode direct control
+ *   /<ns>/cmd_vel          (geometry_msgs/Twist)    — FORMATION mode direct control,
+ *                                                      AUTONOMOUS mode Nav2 relay
  *
  * Actions (client)
  * ----------------
@@ -134,9 +136,14 @@ public:
     nav2_ac_ = rclcpp_action::create_client<FollowPath>(
       this, "/" + ns_ + "/follow_path");
 
-    //  cmd_vel publisher (used in FORMATION_FOLLOWER mode)
+    //  cmd_vel publisher (used in both modes)
     cmd_vel_pub_ = create_publisher<geometry_msgs::msg::Twist>(
       "/" + ns_ + "/cmd_vel", 10);
+
+    // Nav2 controller_server output — relayed to cmd_vel in AUTONOMOUS mode
+    nav2_cmd_sub_ = create_subscription<geometry_msgs::msg::Twist>(
+      "/" + ns_ + "/cmd_vel_nav2", 10,
+      [this](const geometry_msgs::msg::Twist::SharedPtr msg) { on_nav2_cmd(msg); });
 
     RCLCPP_INFO(get_logger(), "[%s] path_follower ready  mode=AUTONOMOUS", ns_.c_str());
   }
@@ -144,6 +151,12 @@ public:
 private:
 
   enum class Mode { AUTONOMOUS, FORMATION_FOLLOWER };
+
+  void on_nav2_cmd(const geometry_msgs::msg::Twist::SharedPtr msg)
+  {
+    if (mode_ != Mode::AUTONOMOUS) return;
+    cmd_vel_pub_->publish(*msg);
+  }
 
   void enter_autonomous()
   {
@@ -540,6 +553,7 @@ private:
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr  leader_odom_sub_;
   rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr      path_sub_;
   rclcpp::Subscription<FormationsConfig>::SharedPtr          formation_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr nav2_cmd_sub_;
 
   // --- publisher ---
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr   cmd_vel_pub_;

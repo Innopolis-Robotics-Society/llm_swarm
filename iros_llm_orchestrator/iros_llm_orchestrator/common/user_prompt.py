@@ -78,18 +78,44 @@ def load_map_config(map_name: str) -> dict:
         f'Map config not found for {map_name!r} in {dir_!r}')
 
 
-def build_map_context(map_name: str) -> str:
+#: Grounding variants for ``build_map_context``. Ablation factor for E2
+#: (see paper/E2_agent_task.md): how much symbolic scaffolding around the raw
+#: coordinates the map block carries. Strictly nested — each variant drops a
+#: superset of what the previous one drops.
+#:
+#:   full            everything (production default; do not change without
+#:                   invalidating the E1/E1b baselines, which ran on it)
+#:   locations_only  drop the heuristics block; keep factual geometry
+#:                   (formation zones stay — they are named points with radii,
+#:                   i.e. facts, not advice)
+#:   coords_only     bare coordinates: also drop the map prose description,
+#:                   location aliases, group aliases, and formation zones
+GROUNDING_VARIANTS = ('full', 'locations_only', 'coords_only')
+
+
+def build_map_context(map_name: str, grounding: str = 'full') -> str:
+    if grounding not in GROUNDING_VARIANTS:
+        raise ValueError(
+            f'unknown grounding {grounding!r}; expected one of {GROUNDING_VARIANTS}')
+    keep_prose   = grounding != 'coords_only'
+    keep_aliases = grounding != 'coords_only'
+    keep_zones   = grounding != 'coords_only'
+    keep_heur    = grounding == 'full'
+
     cfg = load_map_config(map_name)
     b = cfg.get('bounds', {})
-    lines = [
-        f"Map: {cfg.get('name', map_name)} — {cfg.get('description','').strip()}",
+    lines = []
+    if keep_prose:
+        lines.append(
+            f"Map: {cfg.get('name', map_name)} — {cfg.get('description','').strip()}")
+    lines += [
         f"Bounds: X ∈ [{b.get('x_min')}, {b.get('x_max')}] m, "
         f"Y ∈ [{b.get('y_min')}, {b.get('y_max')}] m",
         '', 'Named locations:',
     ]
     # Build reverse alias map: canonical_name → [alias, ...]
     # Only include non-Russian aliases to keep context concise
-    raw_aliases = cfg.get('location_aliases', {})
+    raw_aliases = cfg.get('location_aliases', {}) if keep_aliases else {}
     alias_map: dict[str, list[str]] = {}
     for alias, target in raw_aliases.items():
         # Skip Cyrillic aliases to keep context short
@@ -109,7 +135,7 @@ def build_map_context(map_name: str) -> str:
             ids     = g.get('ids', [])
             color   = g.get('color', gname)
             home    = g.get('home', [])
-            raw_grp_aliases = g.get('aliases', [gname])
+            raw_grp_aliases = g.get('aliases', [gname]) if keep_aliases else []
             aliases = [a for a in raw_grp_aliases
                        if not any('Ѐ' <= ch <= 'ӿ' for ch in str(a))]
             home_str = f'({home[0]:.1f}, {home[1]:.1f})' if home else '?'
@@ -122,7 +148,7 @@ def build_map_context(map_name: str) -> str:
                 for rname, pos in spawn.items():
                     lines.append(f'             {rname}: ({pos[0]:.1f}, {pos[1]:.1f})')
 
-    fzones = cfg.get('formation_zones', [])
+    fzones = cfg.get('formation_zones', []) if keep_zones else []
     if fzones:
         lines += ['', 'Good spots for formations:']
         for z in fzones:
@@ -131,7 +157,7 @@ def build_map_context(map_name: str) -> str:
                 f'  {z["name"]:<20} ({z["coords"][0]:.1f}, {z["coords"][1]:.1f}) '
                 f'r={z["radius"]:.1f} m{note}')
 
-    heuristics = cfg.get('heuristics', '').strip()
+    heuristics = cfg.get('heuristics', '').strip() if keep_heur else ''
     if heuristics:
         lines += ['', 'Heuristics:']
         for line in heuristics.splitlines():
@@ -300,10 +326,10 @@ def _get_examples(map_name: str) -> list[dict]:
 # Cached system prompts
 # ---------------------------------------------------------------------------
 
-@lru_cache(maxsize=4)
-def _user_system(map_name: str) -> str:
+@lru_cache(maxsize=8)
+def _user_system(map_name: str, grounding: str = 'full') -> str:
     template = _load_text('user_chat_system.txt')
-    return template.replace('{MAP_CONTEXT}', build_map_context(map_name))
+    return template.replace('{MAP_CONTEXT}', build_map_context(map_name, grounding))
 
 
 @lru_cache(maxsize=1)
@@ -354,8 +380,16 @@ def build_user_prompt(
     map_name: str = 'warehouse',
     obstacle_context: str = '',
     runtime_context: dict | None = None,
+    grounding: str = 'full',
 ) -> list:
-    system_content = _user_system(map_name)
+    """Compose the channel-3 planning prompt.
+
+    ``grounding`` selects how much symbolic scaffolding the map block carries;
+    see ``GROUNDING_VARIANTS``. The default 'full' is the production path and
+    is byte-identical to the pre-ablation behaviour — the E1/E1b baselines
+    depend on that, so do not change it casually.
+    """
+    system_content = _user_system(map_name, grounding)
 
     if obstacle_context:
         system_content += '\n\n' + obstacle_context

@@ -153,6 +153,49 @@ def setup(context, *args, **kwargs):
     llm_num_ctx = LaunchConfiguration('llm_num_ctx').perform(context).strip()
     if llm_num_ctx:
         llm_overrides['llm_num_ctx'] = int(llm_num_ctx)
+    # Session recording: when session_dir is given, every channel's JSONL
+    # lands under it instead of the per-channel default in ~/.ros, so one
+    # operator run produces exactly one self-contained folder alongside the
+    # rosbag. Empty (the default) keeps the historical paths untouched.
+    session_dir = LaunchConfiguration('session_dir').perform(context).strip()
+    def _ds(channel: str) -> list:
+        if not session_dir:
+            return []
+        return [{'dataset_path': os.path.join(
+            os.path.expanduser(session_dir), f'llm_{channel}')}]
+
+    # ── E3 ablation factors ────────────────────────────────────────────
+    # These are chat_server parameters and previously could only be changed by
+    # editing orchestrator.yaml between runs — which left no trace in the
+    # recording, so a folder of bags was indistinguishable by configuration.
+    # Exposed as launch arguments and echoed into session.json by
+    # scripts/record_session.sh. Empty string means "leave the YAML value".
+    _ABLATION_BOOL_ARGS = (
+        'remediation_enabled',
+        'llm_repair_enabled',
+        'llm_mission_supervision_enabled',
+        'tool_calling_enabled',
+        'structured_output_enabled',
+    )
+    ablation_overrides = {}
+    for _name in _ABLATION_BOOL_ARGS:
+        _raw = LaunchConfiguration(_name).perform(context).strip().lower()
+        if _raw:
+            if _raw not in ('true', 'false'):
+                raise RuntimeError(
+                    f"{_name} must be 'true', 'false' or empty, got {_raw!r}")
+            ablation_overrides[_name] = (_raw == 'true')
+    _model = LaunchConfiguration('llm_model').perform(context).strip()
+    if _model:
+        ablation_overrides['llm_model'] = _model
+    if ablation_overrides:
+        llm_overrides.update(ablation_overrides)
+
+    ablation_notice = LogInfo(
+        msg=('E3 ablation overrides: '
+             + (', '.join(f'{k}={v}' for k, v in sorted(ablation_overrides.items()))
+                if ablation_overrides else '(none — orchestrator.yaml as shipped)')))
+
     llm_env = {'LLM_API_KEY': os.environ.get('LLM_API_KEY', '')}
     llm_notice = LogInfo(
         msg=(
@@ -177,6 +220,7 @@ def setup(context, *args, **kwargs):
     )
 
     return [
+        ablation_notice,
         rosbridge_notice,
         rosbridge,
         llm_notice,
@@ -184,7 +228,7 @@ def setup(context, *args, **kwargs):
             package='iros_llm_orchestrator',
             executable='decision_server',
             name='llm_decision_server',
-            parameters=[config, llm_overrides, map_param],
+            parameters=[config, llm_overrides, map_param, *_ds('decisions')],
             output='screen',
             additional_env=llm_env,
         ),
@@ -197,6 +241,7 @@ def setup(context, *args, **kwargs):
                 llm_overrides,
                 {'enabled': enable_passive},
                 map_param,
+                *_ds('commands'),
             ],
             output='screen',
             additional_env=llm_env,
@@ -205,7 +250,7 @@ def setup(context, *args, **kwargs):
             package='iros_llm_orchestrator',
             executable='chat_server',
             name='llm_chat_server',
-            parameters=[config, llm_overrides, map_param],
+            parameters=[config, llm_overrides, map_param, *_ds('chat')],
             output='screen',
             additional_env=llm_env,
         ),
@@ -291,7 +336,28 @@ def generate_launch_description():
         description='YAML with scenarios (must match the one used by swarm_lns).',
     )
 
+    ablation_args = [
+        DeclareLaunchArgument(
+            name, default_value='',
+            description=f"E3 ablation override for {name} ('true'/'false'; "
+                        "empty keeps the orchestrator.yaml value).")
+        for name in ('remediation_enabled', 'llm_repair_enabled',
+                     'llm_mission_supervision_enabled', 'tool_calling_enabled',
+                     'structured_output_enabled')
+    ] + [DeclareLaunchArgument(
+        'llm_model', default_value='',
+        description='Override the model name (empty keeps orchestrator.yaml).')]
+
+    session_dir_arg = DeclareLaunchArgument(
+        'session_dir', default_value='',
+        description='If set, all three channels write their JSONL under this '
+                    'directory instead of ~/.ros/llm_*. Set by '
+                    'scripts/record_session.sh.',
+    )
+
     return LaunchDescription([
+        *ablation_args,
+        session_dir_arg,
         llm_endpoint_arg,
         enable_passive_arg,
         enable_rosbridge_arg,

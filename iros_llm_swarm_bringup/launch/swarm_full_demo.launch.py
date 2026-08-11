@@ -69,6 +69,21 @@ def generate_launch_description():
         description='MAPF planner: "lns" (LNS2, scalable) or "pbs" '
                     '(Priority-Based Search, more deterministic).',
     )
+    # E3 ablation factors, passed straight through to the orchestrator.
+    # Empty means "leave whatever orchestrator.yaml ships".
+    ablation_args = [
+        DeclareLaunchArgument(
+            n, default_value='',
+            description=f"E3 ablation override for {n} (empty = YAML value).")
+        for n in ('remediation_enabled', 'llm_repair_enabled', 'llm_mission_supervision_enabled', 'tool_calling_enabled', 'structured_output_enabled', 'llm_model')
+    ]
+
+    session_dir_arg = DeclareLaunchArgument(
+        'session_dir', default_value='',
+        description='Recording session folder; when set the LLM channels write '
+                    'their JSONL here so one run is one folder. Normally set '
+                    'by scripts/record_session.sh, not by hand.',
+    )
     num_robots_arg = DeclareLaunchArgument('num_robots', default_value='20')
     use_sim_time_arg = DeclareLaunchArgument('use_sim_time', default_value='true')
     enable_passive_arg = DeclareLaunchArgument(
@@ -218,6 +233,13 @@ def generate_launch_description():
             'launch', 'orchestrator.launch.py',
         ])]),
         launch_arguments=[
+            ('session_dir', LaunchConfiguration('session_dir')),
+            ('remediation_enabled', LaunchConfiguration('remediation_enabled')),
+            ('llm_repair_enabled', LaunchConfiguration('llm_repair_enabled')),
+            ('llm_mission_supervision_enabled', LaunchConfiguration('llm_mission_supervision_enabled')),
+            ('tool_calling_enabled', LaunchConfiguration('tool_calling_enabled')),
+            ('structured_output_enabled', LaunchConfiguration('structured_output_enabled')),
+            ('llm_model', LaunchConfiguration('llm_model')),
             ('enable_passive_observer', enable_passive),
             ('enable_rosbridge', enable_rosbridge),
             ('enable_llm_mapf_proxy', enable_llm_mapf_proxy),
@@ -316,6 +338,8 @@ def generate_launch_description():
         scenario_arg,
         scenarios_file_arg,
         planner_arg,
+        *ablation_args,
+        session_dir_arg,
         num_robots_arg,
         use_sim_time_arg,
         enable_passive_arg,

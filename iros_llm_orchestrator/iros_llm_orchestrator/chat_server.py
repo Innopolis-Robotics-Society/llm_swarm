@@ -21,6 +21,7 @@ import asyncio
 import json
 import threading
 import time
+import uuid
 
 import rclpy
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
@@ -444,6 +445,7 @@ class ChatServer(Node):
         req = goal_handle.request
         result = LlmChat.Result()
         self._req_t0 = time.monotonic()
+        self._begin_mission_record()
 
         # Fresh {{ref.path}} registry for this operator command — shared by
         # the initial plan and every mission-supervision continuation step
@@ -539,6 +541,7 @@ class ChatServer(Node):
         last_reply = reply
 
         for n in range(1, self._max_remediation_attempts + 1):
+            self._bump('remediation_attempts')
             failed_leaf = attempts[-1].get('leaf_type', '?')
             self._publish_fb(
                 goal_handle, stage='remediating',
@@ -636,6 +639,7 @@ class ChatServer(Node):
         )
 
         async def _execute(plan: dict, step: int) -> tuple[bool, dict | None]:
+            self._bump('supervision_steps')
             self._publish_fb(
                 goal_handle,
                 stage='executing',
@@ -795,6 +799,7 @@ class ChatServer(Node):
             enabled=self._repair_enabled,
         ):
             attempt += 1
+            self._bump('verification_repair_attempts')
             rec = current_verification.get('repair_recommendation') or {}
             reason = rec.get('reason') or verification_summary(current_verification)
             self.get_logger().info(
@@ -967,6 +972,9 @@ class ChatServer(Node):
             f"ok={bool(verification.get('ok'))} "
             f"summary={str(verification.get('summary') or '')[:180]}"
         )
+        self._note('verification_ok', bool(verification.get('ok')))
+        self._note('verification_summary',
+                   str(verification.get('summary') or '')[:300])
         return verification
 
     async def _stream_and_parse(self, messages, goal_handle, *, user_message: str = ''):
@@ -979,12 +987,16 @@ class ChatServer(Node):
             coro = self._stream_with_tool_loop(messages, goal_handle)
         else:
             coro = self._stream_plain(messages, goal_handle)
+        self._bump('llm_calls')
+        _t0 = time.monotonic()
         try:
             full_raw = await asyncio.wait_for(coro, timeout=self._timeout)
         except asyncio.TimeoutError as exc:
             raise _LlmStageError('LLM timeout') from exc
         except Exception as exc:
             raise _LlmStageError(f'LLM error: {exc}') from exc
+        finally:
+            self._bump('llm_seconds', round(time.monotonic() - _t0, 3))
         try:
             reply, plan = _parse_response(
                 full_raw,
@@ -1027,6 +1039,7 @@ class ChatServer(Node):
             robot_footprint_radius=float(
                 self.get_parameter('robot_footprint_radius').value),
         )
+        self._bump('guard_occupancy_rewrites', len(rewrites))
         for rewrite in rewrites:
             self.get_logger().info(
                 'occupancy_rewrite: mapf goals rewritten '
@@ -1303,6 +1316,8 @@ class ChatServer(Node):
             snapshot,
             tolerance_m=self._formation_tolerance_m,
         )
+        if result is not None:
+            self._bump('guard_formation_staging_fired')
         if result is None and leader_id is not None and leader_id in snapshot:
             # Hook ran but returned None — either stale leader or all in tolerance
             leader = snapshot[leader_id]
@@ -1344,11 +1359,16 @@ class ChatServer(Node):
             status = None
         if status is None:
             status = (self._last_runtime_context or {}).get('formations')
-        return guard_plan_for_active_formations(
+        guarded, failure = guard_plan_for_active_formations(
             plan,
             status,
             log_fn=lambda m: self.get_logger().info(m),
         )
+        # A non-None failure record IS the firing: the guard stripped
+        # follower ids out of a mapf leaf aimed at a live formation.
+        if failure is not None:
+            self._bump('guard_active_formation_fired')
+        return guarded, failure
 
     async def _get_targeted_runtime_context(
         self,
@@ -1488,9 +1508,62 @@ class ChatServer(Node):
         ev.reason   = reason
         self._event_pub.publish(ev)
 
+    # ------------------------------------------------------------------
+    # Per-mission accounting
+    # ------------------------------------------------------------------
+    # E3 asks what each safety net costs and how often it fired. The data
+    # already existed in-process — the guards return structured records and
+    # the repair loops count their own attempts — but none of it reached the
+    # JSONL, so a run could not be scored after the fact. These counters are
+    # accumulated during one operator command and flushed by _log_mission.
+
+    def _begin_mission_record(self) -> None:
+        self._mission_id = uuid.uuid4().hex[:12]
+        self._mission_counts = {
+            'llm_calls': 0,
+            'llm_seconds': 0.0,
+            'guard_active_formation_fired': 0,
+            'guard_occupancy_rewrites': 0,
+            # Auto-staging previously left a trace only in the executor log
+            # line, so the one guard a formation mission actually exercises
+            # was the one guard not countable from the session folder.
+            'guard_formation_staging_fired': 0,
+            'remediation_attempts': 0,
+            'verification_repair_attempts': 0,
+            'supervision_steps': 0,
+            'verification_ok': None,
+            'verification_summary': '',
+        }
+
+    def _bump(self, key: str, amount=1) -> None:
+        """Increment one mission counter, tolerating a missing mission record.
+
+        Never raises: instrumentation must not be able to fail a mission.
+        """
+        try:
+            counts = getattr(self, '_mission_counts', None)
+            if counts is None:
+                return
+            if isinstance(counts.get(key), (int, float)):
+                counts[key] += amount
+            else:
+                counts[key] = amount
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _note(self, key: str, value) -> None:
+        try:
+            counts = getattr(self, '_mission_counts', None)
+            if counts is not None:
+                counts[key] = value
+        except Exception:  # noqa: BLE001
+            pass
+
     def _log_mission(self, gh, result, **extra):
         req = gh.request
         record = {
+            # Joins this record to a rosbag recorded over the same run.
+            'mission_id':     getattr(self, '_mission_id', ''),
             'user_message':   req.user_message,
             'llm_mode':       self._llm_mode_name,
             'llm_model':      self._llm_model_name,
@@ -1502,6 +1575,7 @@ class ChatServer(Node):
             'plan_json':      result.plan_json,
             'elapsed_sec':    round(time.monotonic() - self._req_t0, 3),
         }
+        record.update(getattr(self, '_mission_counts', {}) or {})
         record.update(extra)
         self._logger_ds.log(record)
 

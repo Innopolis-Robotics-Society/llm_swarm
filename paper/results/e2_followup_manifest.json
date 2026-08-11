@@ -1,0 +1,87 @@
+{
+  "experiment": "E2 follow-up — mechanism of the qwen3.5-9b schema collapse, third model, schema ladder",
+  "parent": "e2_manifest.json",
+  "git_commit": "08a3d0d7847ca2e6851fed5a848bd97067753f86",
+  "git_commit_note": "HEAD at run time. The schema-ladder code (build_plan_schema / SCHEMA_VARIANTS / --schema-variant / --print-schema in benchmark_ch3.py) was uncommitted working-tree state during the runs, as the E2 ablation code was before it.",
+  "date": "2026-07-28",
+  "backend": "ollama 0.30.11 (local, host network via docker-compose network_mode: host)",
+  "gpu": "NVIDIA GeForce RTX 5060 Ti, 16GB VRAM",
+  "protocol": "E1b: 44 cases (or a declared subset), N=5, temperature 0.1, llm_max_tokens 2048, llm_num_ctx 32768, timeout 180s, map amongus",
+  "prompt_fingerprint_gate": "42d660fe681eaa3857c239bbe8d8e97043ae15c07ef8fe088a202e49048c37ed",
+
+  "parts": {
+    "part0_node_distribution": {
+      "new_model_calls": 0,
+      "script": "paper/results/analyze_e2_nodes.py",
+      "output": "paper/results/e2_node_distribution.json",
+      "method": "Emitted top-level plan node type parsed from the recorded `raw` field with the harness's own _parse_response, so it matches what the validators saw. Each case's EXPECTED node type is recovered by monkeypatching chk_type/chk_idle_reason_prefix, which are the first term of nearly every validator and are joined with `or`, so a stub returning a non-empty list records the expectation and short-circuits the rest."
+    },
+    "part1_third_model": {
+      "model": "qwen2.5:14b",
+      "cell": "schema on, grounding full",
+      "raw": "paper/results/raw/e2_schema_on_qwen2.5-14b.json",
+      "baseline_reused": "paper/results/raw/e1b_qwen2.5-14b.json (72.7 / 79.5)",
+      "result": "70.5 / 79.5 (pass@1 -2.2, pass@5 +-0.0), 0 timeouts"
+    },
+    "part2_schema_ladder": {
+      "model": "qwen3.5-9b:latest",
+      "driver": "paper/results/raw/e2_ladder_driver.sh",
+      "summary_builder": "paper/results/build_e2_ladder.py",
+      "output": "paper/results/e2_ladder_summary.json",
+      "new_model_calls": 295,
+      "variants": {
+        "S1": "shipped PLAN_RESPONSE_SCHEMA, six-branch recursive oneOf (reused from e2_schema_on_qwen3.5-9b.json)",
+        "S2": "minus sequence/parallel — four-branch oneOf, no $defs/$ref",
+        "S3": "one schema per node type, type pinned by const, no oneOf (run as s3_mapf / s3_idle / s3_disband)",
+        "S1_noidle": "S1 minus the idle branch, still recursive"
+      }
+    },
+    "side_task_key_order": {
+      "part_a": "no new model calls — templates, payloads, client audit, version",
+      "part_b": "20 calls — toy two/three-key schemas, paper/results/raw/e2_keyorder_probe.py, output e2_keyorder_probe.json",
+      "part_b_followon": "paper/results/raw/e2_discriminator_probe.py — ABORTED after 2 of 4 cells, see the note below. No e2_discriminator_probe.json was written; partial output is in paper/results/raw/e2_discriminator_probe.log"
+    }
+  },
+
+  "notes": [
+    "MAIN MECHANISM RESULT. Under the schema qwen3.5-9b emits every object with its keys in strict alphabetical order, in 220/220 nodes; unconstrained it emits `type` first in every object. Because `type` sorts last in all six oneOf branches, the model must commit to a branch by emitting a content key before naming the node type, and selection falls to whichever required key sorts first. The observed first-key histogram matches the surviving branches exactly: reason 104 = idle 104, steps 109 = sequence 85 + parallel 24, formation_id 4 = disband 4. The two branches whose alphabetically-first key is `goals` (mapf) or `follower_ns` (formation) are never selected and become unemittable.",
+
+    "CORRECTION to the previously drafted Sec. 6.2 text: it stated that under the schema qwen3.5-9b 'emits an idle plan nearly regardless of the request'. It does not. Top-level idle is 104 of 220 while sequence + parallel together are 109. What actually happens is that mapf goes 58 -> 0 and formation 7 -> 0 at top level; counting all nesting depths formation is never emitted once in 220 constrained calls and mapf falls 268 -> 53, surviving only nested inside a sequence. The paper text has been corrected.",
+
+    "CORRECTION to the previously drafted Sec. 6.2 text: it stated that 'the free-text reply field still states the correct intent'. It is the `reason` field inside the degenerate plan that preserves the request (echoing >=60% of the prompt's content words in 57% of idle responses, against 41% for reply); `reply` confabulates a justification for idling ('send cyan to cafeteria' -> reason 'cyan to cafeteria', reply 'Stopping all robots.'). This follows from the same reordering: unconstrained the model emits reply then plan, under the schema plan then reply, so it commits to a node type and then rationalises it. The paper text has been corrected.",
+
+    "LADDER VERDICT. Recursion is refuted: S1 and S2 are both exactly 0.0/0.0 on the 13-case mapf subset, so deleting the recursive branches and every $ref/$defs changes nothing. (Their difference on the 23-case subset, 21.7/30.4 vs 26.1/34.8, is one to two cases at N=5 and is read as noise, not as a reverse recursion effect.) The oneOf is confirmed as the cause: S3 restores mapf in 65/65 calls against 0/65 under both S1 and S2. Cheapest-valid-exit is refuted in its strong form: removing the idle branch does not restore mapf, it relocates the degeneracy to sequence (43 of 65) and disband (15) with mapf still at exactly zero.",
+
+    "CORRECTION — S3's PASS RATE IS NOT EVIDENCE THAT CONSTRAINED DECODING HELPS. An earlier draft of this manifest and of Sec. 6.2 compared S3's 84.6/92.3 against the unconstrained 76.9/84.6 on the mapf subset and concluded that constrained decoding is 'a net gain once the model no longer has to choose a branch'. That comparison is invalid and has been removed. S3 pins the node type with a const, and node type is exactly what the validators check first — wrong_structure is qwen3.5-9b's dominant failure mode under the schema (11 -> 131). On the mapf subset S3 therefore hands the model the answer to the question it is being scored on, so the two conditions are not like-for-like. What S3 licenses is the structural claim only: the mapf branch is reachable and its body is filled correctly when reached, so the failure lies in branch SELECTION. Whether constrained decoding helps a model that must still choose is not measured by this ladder. S3 is a diagnostic and NOT a deployment proposal — a schema expressing one node type is unusable when the system cannot know in advance whether the operator wants a movement, a formation or a refusal.",
+
+    "REMEDIES ARE UNTESTED, and the paper says so. Two candidates follow from the mechanism. (a) Fixed envelope: pin the top-level node to `sequence` and move the union inside its `steps`. The existing data point toward it — under S1 the model emits mapf 53 times nested inside a sequence while never emitting it at top level, and under S1_noidle the degeneracy moves INTO sequence (43 of 65) — so branch selection appears tractable once a container is already open. Unlike S3 this keeps the full grammar and is deployable. (b) Rename the discriminator so it sorts before every content key (`action` rather than `type`, which precedes follower_ns, formation_id, goals, reason, steps). One-line change, and the obvious test to have run. NEITHER WAS RUN. Both are implemented in benchmark_ch3.py as --schema-variant s4_envelope and s5_action (with the scoring normalisations documented in normalise_plan: single-step-sequence unwrapping for the envelope, action->type rename for the discriminator) so that each is one command away, but no results exist and the paper claims none.",
+
+    "LADDER SCORING CONSTRAINT. S2 cannot express a plan whose correct answer is a sequence or parallel node, and each S3 run can express only its own node type. Every ladder figure is computed on a declared expressible subset (23 cases for S2/S3, 13 for the mapf-specific comparisons) with the baseline and S1 RECOMPUTED on the same subset. These numbers are not comparable to the full-44 figures in the E2 summary table and are labelled as such in the paper.",
+
+    "s3_idle scored 31/45 and s3_disband 5/5. The s3_idle shortfall is content rather than structure — the escalate_* cases require a specific reason prefix — so it is not read as a schema effect.",
+
+    "SIDE TASK, PART A. The alphabetical ordering does not originate in this stack. No chat template injects the response schema into the prompt (the qwen3.5-9b template references JSON only in its tool-calling block). Nothing on the outbound path sorts keys: the only sort_keys=True in the package are the prompt fingerprint in benchmark_ch3.py and three mission_supervision.py helpers, neither on this path. Built through the real client, the request bodies for qwen3.5:4b and qwen3.5-9b differ in exactly one key — `model` — and the schema reaches the wire in declaration order (type, robot_ids, goals, spread, reason).",
+
+    "SIDE TASK, PART A. The grammar is any-order, confirmed rather than inferred: qwen3.5:4b reproduces the `required` arrays exactly for all five node shapes it emits, qwen2.5:14b emits `type` first in 220/220 nodes, and qwen3.5-9b emits the same property sets alphabetically. Same grammar, three models, two orderings, all accepted. Optional properties are heavily suppressed but NOT forbidden — qwen2.5:14b still emits nine `spread` keys under the schema, so an earlier inference that the grammar is built from `required` alone is wrong and was corrected.",
+
+    "SIDE TASK, PART A. Load-bearing check that the schema really applied to the qwen3.5:4b cell — had it silently run unconstrained, the 'reverses sign between two models' headline would instead be a mis-instrumented run. It applied: with byte-identical prompts, the only difference from its baseline is the `format` field, and across that change `spread` usage goes 103 -> 0 while unparseable_json goes 16 -> 1. An optional field falling to exactly zero over 220 calls is not sampling drift.",
+
+    "SIDE TASK, PART B. On a toy schema with no oneOf, no recursion and no plan vocabulary — and a system prompt whose worked example puts `type` first — qwen3.5-9b still alphabetises 5/5 while qwen3.5:4b keeps declaration order 5/5. In the three-key variant alphabetical order places `type` in the MIDDLE (alpha_first, type, zulu_last), which excludes an explanation by mere reversal. The behaviour is therefore a schema-mode output convention learned by qwen3.5-9b, independent of what the schema contains.",
+
+    "SIDE TASK, INTERPRETATION DECLINED. The tempting inversion — that qwen3.5:4b is not surviving the schema but ignoring it, and that the model which breaks is the one following the schema most faithfully — is NOT supported and is not written. 4b is demonstrably constrained (spread 103 -> 0, unparseable_json 16 -> 1) and its output conforms to the grammar; it simply orders keys by declaration, which the any-order grammar permits. Both models emit schema-valid JSON. Model size is likewise not the axis: qwen2.5:14b is larger than qwen3.5-9b and is unaffected.",
+
+    "INCIDENTAL. Constrained decoding suppresses the optional `spread` property: 103 -> 0 for qwen3.5:4b, 99 -> 0 for qwen3.5-9b, 191 -> 9 for qwen2.5:14b. The capability survives only because plan_executor._validate_node infers spreading from goal arity when one centre is given for several robots (plan_executor.py:135-136); 4b's mapf_spread score in fact rises under the schema (50.0/100.0 -> 100.0/100.0). That inference is load-bearing in a way its own comment does not suggest.",
+
+    "BOOKKEEPING. The `<unparseable>` bucket in e2_node_distribution.json is NOT the unparseable_json failure mode. _parse_response both parses and validates, so that bucket also catches cross-field failures such as 'robot_ids(4) != goals(22)'. Counts quoted against Table 5 come from the E1b failure-mode taxonomy via build_e2_summary.py.",
+
+    "ABORTED PROBE, reported rather than dropped. e2_discriminator_probe.py was to test the remedy implied by the mechanism — two identical two-branch unions differing only in the discriminator's name (C1 `type`, which sorts last; C2 `action`, which sorts first) — predicting that C1 picks the wrong branch and C2 the right one. It was stopped after 2 of 4 cells because it ran at ~2.7 min/call (the toy prompt gives the thinking model little to anchor on, so it spends the full 2048-token budget) and the mechanism was already established by the ladder. The two completed cells: C1/qwen3.5-9b 3/5 correct with key order 'goals,reason,type'; C1/qwen3.5:4b 4/5 correct with key order 'type,goals,reason'. Two conclusions. (a) The key-order split reproduces on yet another schema — 9b alphabetical, 4b declaration order — which strengthens the Part B finding. (b) The branch LOSS does not reproduce at two branches: 9b opened objects with `goals` and selected the correct branch most of the time. So the failure needs enough competing branches, not merely a discriminated union, and the paper states the rule at the branch counts actually tested (six and four) with the two-branch observation flagged as preliminary. C2 was never run, so the discriminator-rename remedy is NOT tested and the paper explicitly declines to claim it.",
+
+    "DISCREPANCY RESOLVED (was recorded in e2_manifest.json): main.tex Sec. E2 design stated the harness 'exercises only the plain and schema-constrained paths', which was untrue when written because _call_llm never passed response_format. It is now true — E2 added the schema-constrained path — so the sentence stands as written.",
+
+    "DISCREPANCY FIXED: main.tex Sec. E2 design stated 'We take the first option' regarding routing the harness through the chat server for a tool-calling comparison. The project took the second option. The design section now records the reversal and cross-references the results subsection rather than asserting the plan that was not followed.",
+
+    "DISCREPANCY FIXED: main.tex Sec. E2 design stated that pose context, auto-spread and context budget are 'existing runtime parameters, so the ablation requires no code change'. They are chat-server parameters not reachable from the offline harness, and the grounding factor did require a code change. The sentence has been corrected to say so and to defer to the results subsection.",
+
+    "DEPLOYMENT FINDING (Part 3, verified against HEAD). chat_server._stream_and_parse tests tool_calling_enabled FIRST (chat_server.py:978) and routes to the tool loop when set; the schema is applied only on the other branch, inside _stream_plain (chat_server.py:1200). Declared defaults are tool_calling_enabled=False (chat_server.py:162) and structured_output_enabled=True (chat_server.py:167), while config/orchestrator.yaml ships BOTH true (lines 112, 119). The deployed configuration therefore avoids constrained decoding only because tool calling happens to be on; the code defaults are the combination E2 measures at 11.4%, and an operator following the code's own warning (disable tool calling, since it suppresses structured output anyway) lands exactly on it. The hazard is conditional on model choice — orchestrator.yaml names mistral-small3.1, not a model measured here — and the paper states it at that scope."
+  ]
+}

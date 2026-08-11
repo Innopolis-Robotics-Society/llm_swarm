@@ -141,6 +141,7 @@ def generate_launch_description():
         launch_arguments=[
             ('num_robots',   num_robots),
             ('use_sim_time', use_sim_time),
+            ('controller_type', 'pbs'),
         ],
     )
 

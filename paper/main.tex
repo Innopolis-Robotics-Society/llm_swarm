@@ -28,6 +28,7 @@
 \usepackage{enumitem}
 \usepackage{caption}
 \usepackage{makecell}
+\usepackage{multirow}
 
 \captionsetup{font=small,labelfont=bf}
 \setlist{nosep,leftmargin=1.2em}
@@ -35,6 +36,8 @@
 % Draft-note macro — remove before submission.
 \newcommand{\todo}[1]{\textcolor{red}{\small[\textbf{TODO:} #1]}}
 \newcommand{\pending}[1]{\textcolor{blue}{\small[\textbf{PENDING RESULTS:} #1]}}
+% Conclusion rewritten against corrected data, awaiting author sign-off.
+\newcommand{\revised}[1]{\textcolor{blue}{\small[\textbf{REVISED (data):} #1]}}
 
 \newcommand{\code}[1]{\texttt{\small #1}}
 
@@ -46,7 +49,7 @@ Evgenii Shlomov \quad Artyom Tuzov \quad Senya Belyh \quad Dmitry Ryabov\\
 Dmitriy Vizitei \quad Anastasia Malakhova\\[0.3em]
 \small Innopolis University, Innopolis, Russia\\
 \small \texttt{\{e.shlomov, a.tuzov, s.belykh, d.ryabov,}\\
-\small \texttt{d.vizitei, a.malakhova}@innopolis.university}
+\small \texttt{d.vizitei, a.malakhova\}@innopolis.university}
 }
 \date{}
 
@@ -59,7 +62,8 @@ We present \code{iros\_llm\_swarm}, a complete ROS~2 system in which a large
 language model supervises a 20-robot differential-drive swarm from free-form
 natural language. Unlike prior LLM-robotics work that emits low-level code or
 single-robot skill sequences, our orchestration layer emits a \emph{typed,
-recursive plan tree} over five fleet-level primitives, and every leaf is
+recursive plan tree} over four fleet-level primitives and two control
+containers, and every leaf is
 discharged by a classical algorithm --- Multi-Agent Path Finding (MAPF) with
 two interchangeable backends (PBS and LNS2), a centralized leader--follower
 formation manager, and a BehaviorTree.CPP mission front-end. The LLM therefore
@@ -69,10 +73,10 @@ reject, and repair.
 
 The contribution of this paper is the orchestration layer and its evaluation
 methodology. We describe three control channels (reactive, proactive, and
-operator chat), a grounding stack that gives the model bounded read-only access
-to live fleet state through eleven semantic tools, schema-constrained decoding
+operator chat), a grounding stack that gives the model bounded access
+to live fleet state through eight semantic tools, schema-constrained decoding
 against the plan grammar, and---centrally---a \emph{defence-in-depth} design in
-which four deterministic guards and three LLM-in-the-loop repair loops sit
+which six deterministic guards and three LLM-in-the-loop repair loops sit
 between a generated plan and the robots. We further contribute a reproducible
 evaluation design: a 44-case hermetic planning benchmark spanning twelve
 structural categories, and a proximity-driven task system that
@@ -81,8 +85,9 @@ planning accuracy and mission completion can be measured separately and
 attributed to individual architectural components by ablation.
 
 \pending{This draft fixes the system description and the experimental design.
-E1 (hermetic planning accuracy) is populated across five local models;
-E2--E6 remain unpopulated pending further runs.}
+E1 (hermetic planning accuracy) is populated across five local models and E2
+(grounding and constraint ablation) across three; E3 remains unpopulated
+pending further runs.}
 \end{abstract}
 
 % ===========================================================================
@@ -115,7 +120,7 @@ coordination substrate (MAPF, formations, behavior trees), and per-robot
 navigation. Our contributions:
 
 \begin{enumerate}[label=(\arabic*)]
-\item \textbf{A typed plan language for fleet control.} Five leaf primitives
+\item \textbf{A typed plan language for fleet control.} Four leaf primitives
 (\code{mapf}, \code{formation}, \code{disband}, \code{idle}) and two containers
 (\code{sequence}, \code{parallel}) form a recursive tree that is expressive
 enough for multi-group, multi-phase missions yet small enough to be validated
@@ -129,14 +134,16 @@ channel that streams a reply and an executable plan (Sec.~\ref{sec:channels}).
 
 \item \textbf{A grounding stack} that replaces coordinate hallucination with
 lookup: a live pose cache, a room-occupancy-aware group placement solver, and
-eleven read-only semantic tools brokered behind an allowlist, with an optional
-MCP provider for raw ROS introspection (Sec.~\ref{sec:grounding}).
+eight semantic tools brokered behind an allowlist (seven read-only), with an
+optional MCP provider for raw ROS introspection (Sec.~\ref{sec:grounding}).
 
-\item \textbf{Defence in depth between plan and robots}: schema-constrained
-decoding, permissive type coercion, an active-formation guard, an
-occupancy-aware goal rewriter, and automatic formation staging---four of which
-are deterministic and none of which require another model call
+\item \textbf{Defence in depth between plan and robots}: six layers---schema-constrained decoding, a schema validator, permissive type coercion,
+an active-formation guard, an occupancy-aware goal rewriter, and automatic
+formation staging---all deterministic, none requiring another model call
 (Sec.~\ref{sec:guards}).
+Sec.~\ref{sec:res-e2} shows the first of these is also the one that can do the
+most damage, which is an argument for the other four rather than against the
+principle.
 
 \item \textbf{A bounded closed loop}: deterministic post-execution
 verification feeding three nested LLM repair loops (remediation, verification
@@ -156,17 +163,15 @@ missions automatically via a proximity-driven task system, and attributes
 outcomes to individual components through configuration-level ablation.
 \end{enumerate}
 
-The system was previously documented as two partial technical reports written
-against a three-level split of the work: one covering the classical
-coordination substrate~\cite{ourlevel2}, the other the simulation environment,
-per-robot navigation, and an early design of the orchestration
-layer~\cite{secondteam}. Each necessarily described its layer against
-\emph{assumed} interfaces at the boundary. This paper is the unified account of
-the system as built: it supersedes the evaluation sections of both reports,
-corrects the orchestration-layer description to match the shipped
-implementation, and---because planning quality and mission success can only be
-compared on the whole stack---evaluates the three layers together rather than
-separately.
+The system was drafted internally as two partial write-ups organised around a
+three-level split of the work: one covering the classical coordination
+substrate, the other the simulation environment, per-robot navigation, and an
+early design of the orchestration layer. Each necessarily described its layer
+against \emph{assumed} interfaces at the boundary. This paper is the unified
+account of the system as built: it supersedes both drafts, corrects the
+orchestration-layer description to match the shipped implementation,
+and---because planning quality and mission success can only be compared on the
+whole stack---evaluates the three layers together rather than separately.
 
 % ===========================================================================
 \section{Related Work}
@@ -184,21 +189,27 @@ treat the backend as an experimental factor rather than a design commitment.
 
 \paragraph{Formation control.}
 Formation control is typically posed as leader--follower, virtual structure, or
-behavior-based~\cite{formsurvey1,formsurvey2}. We use leader--follower because
-it composes cleanly with a per-robot motion controller and matches the kind of
-semantic offset (``a wedge'', ``abreast'') a language model naturally produces.
+behavior-based~\cite{formsurvey1,formsurvey2}, with potential-field and
+sliding-mode variants for continuous inter-robot spacing~\cite{apf}. We use
+leader--follower because it composes cleanly with a per-robot motion controller
+and matches the kind of semantic offset (``a wedge'', ``abreast'') a language
+model naturally produces.
 
 \paragraph{Navigation and behavior trees.}
 Nav2~\cite{nav2} is the de facto ROS~2 navigation stack, with layered
 costmaps~\cite{layered} the standard obstacle representation. Behavior
-trees~\cite{btbook} via BehaviorTree.CPP~\cite{btcpp} provide a modular control
-architecture that is particularly suitable when an external reasoning component
-supplies tree parameters.
+trees~\cite{btbook,btsurvey} via BehaviorTree.CPP~\cite{btcpp} provide a modular
+control architecture that is particularly suitable when an external reasoning
+component supplies tree parameters.
 
 \paragraph{LLMs for robotics.}
-SayCan~\cite{saycan} grounds language in affordances; Code as
+The area is broad enough to have its own surveys~\cite{llmrobsurvey}. SayCan~\cite{saycan}
+grounds language in affordances; Code as
 Policies~\cite{codeaspolicies} and ProgPrompt~\cite{progprompt} emit executable
-program text; Inner Monologue~\cite{innermonologue} closes the loop with
+program text; end-to-end vision-language-action models such as
+RT-2~\cite{rt2} go further and regress actions directly, which trades away
+exactly the inspectable intermediate representation we rely on; Inner
+Monologue~\cite{innermonologue} closes the loop with
 textual feedback. Our design differs in two respects that matter at fleet
 scale. First, the model emits a \emph{typed tree over fleet primitives}, not
 code: the output space is small enough to constrain by schema and validate
@@ -209,7 +220,8 @@ pose state (Sec.~\ref{sec:closedloop}), so the repair loop is driven by
 measured ground truth rather than by the model's own narration.
 
 \paragraph{ROS~2 and DDS at scale.}
-DDS discovery cost dominates at scale~\cite{dds1,dds2}. We use CycloneDDS with
+ROS~2~\cite{ros2} places DDS on the critical path, and discovery cost dominates
+at scale~\cite{dds1,dds2}. We use CycloneDDS with
 a project-specific profile; without it the 20-robot system does not reliably
 complete discovery within the launch budget.
 
@@ -217,8 +229,7 @@ complete discovery within the launch budget.
 \section{The Classical Substrate}
 \label{sec:substrate}
 
-This section summarizes the layer the orchestrator commands; see~\cite{ourlevel2}
-for full detail.
+This section summarizes the layer the orchestrator commands.
 
 \paragraph{Shared fleet action.}
 Both MAPF backends own the same long-lived \code{/swarm/set\_goals} action,
@@ -230,7 +241,14 @@ lifecycle behind one goal token. Schedule monitoring and replanning are
 internal; clients see one atomic operation. Cancellation stops every robot. The
 action result carries a full metrics payload---planning time, node expansions,
 per-agent path lengths, replan count, total execution time---which we exploit
-directly for benchmarking (Sec.~\ref{sec:e4}).
+directly for benchmarking (Sec.~\ref{sec:e3}).
+
+Because the contract is shared, the backend is a launch-time switch and nothing
+above it changes: the orchestrator, the guards, the behavior tree, and the
+per-robot followers are all written against the action, not against a solver.
+E3 runs the same mission workload on both backends, which is the evidence we
+offer for that interchangeability. It is deliberately \emph{not} a comparison of
+the two solvers---see Sec.~\ref{sec:folded} for why we do not make one.
 
 \paragraph{PBS backend.}
 An 8-connected A* on a grid downsampled to 0.2\,m, with a backward-Dijkstra
@@ -257,7 +275,7 @@ computes per-follower error
 $\varepsilon_i = \lVert p_i - (p_{\mathrm{leader}} + R(\theta_{\mathrm{leader}}) o_i) \rVert$
 and classifies each formation as INACTIVE / FORMING / STABLE / DEGRADED /
 BROKEN at 10\,Hz. These $\varepsilon_i$ are published, which makes formation
-tracking accuracy directly measurable (Sec.~\ref{sec:e5}).
+tracking accuracy directly measurable (Sec.~\ref{sec:folded}).
 
 \paragraph{Behavior-tree front-end.}
 BehaviorTree.CPP v3 nodes wrap every primitive: \code{MapfPlan},
@@ -273,7 +291,7 @@ TF tree and enforced namespace prefixes. An earlier Gazebo
 Harmonic~\cite{gazebo} configuration was implemented end-to-end and then
 retired: per-robot physics, collision broadphase, and sensor rendering pushed
 the real-time factor below usable thresholds at 20 robots before any navigation
-stack was attached~\cite{secondteam}. The Gazebo configuration is retained in
+stack was attached. The Gazebo configuration is retained in
 tree for smaller fleets and future hardware-realistic preview.
 
 Five scenarios share one robot model and spawn protocol: \textsf{cave}
@@ -314,7 +332,7 @@ The orchestrator exposes three independent paths from language to fleet action,
 which share prompt infrastructure and the plan validator but differ in trigger,
 latency budget, and authority.
 
-\textbf{Channel 1 (reactive).} A \code{/llm/decision} action server. Behavior-tree
+\textbf{Channel~1 (reactive).} A \code{/llm/decision} action server. Behavior-tree
 nodes call it when a primitive reports WARN or ERROR, supplying the event plus a
 tail of the accumulated log. The model returns exactly one of
 \code{wait} / \code{abort} / \code{replan}. The prompt biases hard toward
@@ -324,16 +342,16 @@ old paths'', ``warm seed rejected'') as explicit \code{wait} cases---because
 the expensive error here is a spurious \code{replan} that cancels a plan the
 substrate was about to fix on its own. Always active.
 
-\textbf{Channel 2 (proactive).} A passive observer subscribing to
+\textbf{Channel~2 (proactive).} A passive observer subscribing to
 \code{/bt/state}. It decides on its own initiative whether to intervene and
 publishes an \code{LlmCommand} that a behavior-tree receiver applies to the
 blackboard. It is cooldown-gated and checks an \code{llm\_thinking} flag to
 avoid colliding with channel~1. Off by default.
 
-\textbf{Channel 3 (operator chat).} The main path, and the focus of this paper.
+\textbf{Channel~3 (operator chat).} The main path, and the focus of this paper.
 An operator types free-form text; the server streams a natural-language reply
 token-by-token, parses an executable plan from the same response, and dispatches
-it. Everything in Sections~\ref{sec:planlang}--\ref{sec:closedloop} describes
+it. Everything in Secs.~\ref{sec:planlang}--\ref{sec:closedloop} describes
 channel~3.
 
 \subsection{Plan language}
@@ -412,16 +430,35 @@ rather than inventing absolute coordinates---and, equally important, lets it
 Formation status, behavior-tree state, recent events, and open task state are
 folded into the same snapshot under a character budget.
 
-\emph{Semantic tools.} Eleven read-only tools sit above raw introspection:
-system state, group state, location resolution, route context with bottleneck
-and door penalties, goal and formation feasibility checks, occupancy-aware free
-group-goal search inside a room, post-execution verification, the allowed
-action schema, and recovery options. They are dispatched by a broker that
-enforces an allowlist, a per-round tool cap, a timeout, and a result-size cap.
-An optional MCP provider (\code{ros-mcp} over stdio) adds raw ROS introspection
-under a separate allowlist restricted to read verbs. The model never sees MCP
-tools directly---only a bounded snapshot or a brokered semantic call---so the
-write surface is structurally absent rather than merely discouraged.
+\emph{Semantic tools.} Eight tools sit above raw introspection.
+\code{get\_robot\_position} returns one robot's live map-frame pose;
+\code{get\_positions} resolves named geometric points such as room corners,
+doorways and choke-points; \code{check\_occupancy} returns the local occupancy
+grid around a robot, built from its lidar.
+\code{find\_free\_group\_goals\_in\_room} computes deterministic
+occupancy-aware per-robot goals for ordinary group movement, and
+\code{find\_group\_placement\_in\_room} the non-overlapping leader/follower
+placements a formation needs. \code{verify\_plan\_execution\_state} checks
+post-execution formation state and follower offset errors. \code{list\_tasks}
+and \code{reset\_task} read and write the task ledger. They are dispatched
+by a broker that enforces an allowlist, a per-round tool cap, a timeout, and a
+result-size cap. An optional MCP provider (\code{ros-mcp} over stdio) adds raw
+ROS introspection under a separate eleven-verb allowlist restricted to reads.
+The model never sees MCP tools directly---only a bounded snapshot or a brokered
+semantic call.
+
+Seven of the eight are read-only; \code{reset\_task} is the exception, and it is
+worth naming rather than glossing. It returns a task to \code{pending} so a
+stuck or mis-scored task can be retried, which mutates the same task state that
+Sec.~\ref{sec:tasks} uses to score missions. The write surface is therefore
+narrow and confined to the task ledger---no tool commands a robot---but it is
+not empty, and an evaluation that scores itself from task state should not
+expose a tool that can rewrite it. We flag this as a defect of the current
+allowlist rather than a property of the design.
+
+This is the learned-tool-use pattern of Toolformer~\cite{toolformer} applied
+under a broker rather than in the open: the model chooses among a fixed,
+audited set instead of inventing calls.
 
 Notably, tool calling and schema-constrained decoding are \emph{mutually
 exclusive} in current backends: constrained decoding suppresses tool-call
@@ -543,14 +580,24 @@ free-form fleet commands into valid plans, and how does accuracy vary across
 linguistic and structural categories?
 \item[RQ2] What does each grounding and constraint mechanism contribute?
 Specifically: schema-constrained decoding vs.\ tool calling, live pose context,
-and context budget.
+and context budget. \emph{Partially answered:} Sec.~\ref{sec:res-e2} reports
+the constraint and grounding halves; the comparison against tool calling is
+deferred to E3 for the reason given there, so RQ2 is not closed by this draft.
 \item[RQ3] Does planning accuracy predict mission success, or does the gap
 between them---the part closed by guards and repair loops---dominate?
 \item[RQ4] What does each closed-loop layer contribute to end-to-end mission
 completion, and at what cost in time and model calls?
-\item[RQ5] How do the two MAPF backends compare under identical fleet-level
-requests, and does backend choice interact with orchestration quality?
 \end{description}
+
+An earlier version of this design carried a fifth question---which of the two
+MAPF backends is better under identical fleet requests. We have withdrawn it as
+a research question rather than answered it narrowly.
+Sec.~\ref{sec:folded} gives the reason: the comparison is confounded on this
+system in ways parameter alignment cannot fix, and the residue that
+\emph{is} measurable---that the orchestration layer completes the same missions
+on either backend---is a property of the action contract described in
+Sec.~\ref{sec:substrate}, not a question this paper investigates. We report it
+there and in E3, and claim nothing about which backend is superior.
 
 RQ3 is the question we consider most important and the one the literature most
 often skips: a benchmark measured on plan text alone can look excellent while
@@ -631,6 +678,19 @@ VRAM ceiling (\textbf{mistral-small3.2:24b}, 15\,GB, 4-bit, partial CPU
 offload expected). Whether the last of these remains practical under offload
 is itself part of what the latency column reports.
 
+``Intended operating point'' above means the size class we targeted when the
+sweep was designed, and it is worth separating from two other senses of
+``the deployed model'', because the three do not currently agree.
+\code{orchestrator.yaml} ships \code{mistral-small3.1}---a different model from
+any swept here, chosen before these measurements existed and never revisited.
+E1 then selects \textbf{qwen3.5-9b} on both pass metrics, which is neither the
+configured default nor the 14B size class we set out to use. We report the
+sweep rather than a single deployment because of exactly this: the
+configuration file is not evidence about which model is best, and until E3 runs
+end-to-end we treat none of the three as settled. Sec.~\ref{sec:res-e2} shows
+why the gap matters beyond bookkeeping---the schema finding is model-specific,
+so a stale default is not a harmless one.
+
 \emph{Threat.} E1 measures planning in isolation against synthetic context. It
 deliberately cannot detect a plan that is structurally perfect and physically
 unexecutable. That is E3's job, and the comparison between them answers RQ3.
@@ -640,15 +700,17 @@ unexecutable. That is E3's job, and the comparison between them answers RQ3.
 
 Same harness, same cases, toggling one mechanism at a time:
 schema-constrained decoding on/off; live pose context on/off; goal auto-spread
-on/off; and context budget swept across its range. All of these are existing
-runtime parameters, so the ablation requires no code change.
+on/off; and context budget swept across its range. These are runtime
+parameters of the chat server rather than of the offline harness, and
+Sec.~\ref{sec:res-e2} records which of them turned out to be reachable from
+the harness at all.
 
 We add one factor that is not currently a parameter: \emph{symbolic versus raw
 grounding}. During development we observed that prompting with raw coordinates
 produced a higher rate of out-of-bounds and wall-interior goals than symbolic
 room references, and that supplying named locations, formation zones, and
 map-specific heuristics substantially reduced goal-validation failures
-downstream~\cite{secondteam}. That observation was uncontrolled and
+downstream. That observation was uncontrolled and
 retrospective. Because the map description is a separable prompt block, it can
 be ablated cleanly---full description, locations without heuristics, and
 coordinates only---turning an anecdote into a measured effect size. Given that
@@ -661,8 +723,12 @@ the \emph{tool-calling} path lives in the chat server. Comparing constrained
 decoding against tool calling---the mutual exclusivity noted in
 Sec.~\ref{sec:grounding}, and arguably the single most interesting ablation
 here---therefore requires either extending the harness to route through the
-chat server, or measuring that factor only in E3. We take the first option, as
-the second confounds planning mode with execution noise.
+chat server, or measuring that factor only in E3. We initially chose the
+first, on the grounds that the second confounds planning mode with execution
+noise. In the event we took the second: as reported in
+Sec.~\ref{sec:res-e2}, too little of the tool surface is meaningful offline
+for the comparison to be worth its apparatus, and the confound we accept in
+exchange is stated there.
 
 \subsection{E3: End-to-end missions}
 \label{sec:e3}
@@ -673,7 +739,30 @@ issued through channel~3; the system plans, executes, verifies, and repairs;
 the task manager scores completion independently.
 
 \emph{Factors.} Remediation on/off; verification repair on/off; mission
-supervision on/off; planning mode (constrained vs.\ tool-calling); model size.
+supervision on/off; planning mode (constrained vs.\ tool-calling); model size;
+MAPF backend. The planning-mode factor must be read together with
+Sec.~\ref{sec:res-e2}: on
+a model that alphabetises keys in schema mode, the constrained arm reproduces
+the E2 collapse and E3 would measure that rather than planning mode. The
+factor is therefore only interpretable with the model held fixed to one E2
+shows is unaffected.
+
+\emph{Mid-mission environment change.} Two cells repeat the reference mission
+and close one door of the environment sixty seconds in, chosen so that each
+breaks exactly one leg of the plan while the other four keep running as an
+in-run control. The first closure lengthens a carry leg from 38\,m to 75\,m: the
+route is invalidated but an alternative exists. The second disconnects the
+target of another leg outright: no path to it remains at all. This is the case
+the repair loops of Sec.~\ref{sec:closedloop} are justified by---the world
+changing after a plan is committed---and every other cell exercises them on
+execution failures instead. The sharpest quantity is not completion but
+escalation: in the disconnected cell, confidently re-planning the same
+unreachable goal is an unambiguous failure, while reporting that it cannot be
+done, or completing the remaining legs and saying so, is correct. That directly
+extends the E1 finding that escalation judgment is weak and flat across model
+sizes (Sec.~\ref{sec:e1-results}), by testing it on a live fleet rather than on
+plan text. The door state is visible to the model in its per-turn context, so a
+failure here is not a failure of information.
 
 \emph{Metrics.} Task completion rate; time to completion; number of LLM calls
 per mission (the cost of each safety net); how often each guard fired; how
@@ -684,13 +773,13 @@ total fleet distance travelled.
 state, resetting task state between runs via the existing reset service.
 Because a 20-robot stack is stochastic---DDS timing, Nav2 controller
 noise---single runs are not informative, and we report distributions, not
-point estimates. This directly addresses our earlier Level-2 report's
-acknowledged limitation that its integration scenario was run once.
+point estimates. This directly addresses a limitation the earlier internal drafts
+acknowledged: their integration scenario was run once.
 
 \emph{No-LLM baseline.} The workspace includes a scripted behavior-tree runner
 that drives the identical six-step mission---fleet convergence, two formation
 activations, a full diagonal cross-swap, return home, idle---against the same
-live 20-robot stack with no LLM in the loop~\cite{secondteam}. This is
+live 20-robot stack with no LLM in the loop. This is
 the natural ceiling for E3: it isolates what the substrate achieves when plans
 are known-correct by construction. The difference between scripted completion
 and LLM-driven completion is precisely the orchestration cost, and reporting
@@ -709,7 +798,7 @@ wise.
 Channels~1 and~2 are the least evaluated part of the system in either report,
 and unlike channel~3 they already write structured per-call JSONL logs
 (prompt, raw output, parsed verdict). This makes a replay evaluation nearly
-free: accumulate incident records across the E3 and E4 campaigns, have two
+free: accumulate incident records across the E3 campaign, have two
 annotators independently label the correct verdict
 (\code{wait}/\code{abort}/\code{replan}) from the event and log tail, and score
 the model against that label set with inter-annotator agreement reported.
@@ -722,58 +811,53 @@ supervision cycle. We therefore report the confusion matrix rather than a
 scalar, and separately the false-\code{replan} rate on the planner-internal
 warnings the prompt enumerates as self-recovery cases.
 
-\subsection{E3c: Recovery under environmental change}
-\label{sec:e3c}
+\subsection{Two experiments folded into E3, and why}
+\label{sec:folded}
 
-The repair loops of Sec.~\ref{sec:closedloop} exist for the case where the
-world changes after a plan is made, yet every experiment above holds the
-environment fixed. The dynamic obstacle manager closes this gap directly:
-closing one of the six \textsf{amongus} corridor doors mid-mission invalidates
-a committed route and forces the stack to notice, replan, and---if the goal
-becomes unreachable---escalate.
+Earlier versions of this design carried two further standalone experiments: a
+controlled PBS-vs-LNS2 comparison across fleet size and clutter, and a
+formation-tracking study across shape, formation size, and leader speed. Both
+are withdrawn as standalone experiments; each survives as one cell of the E3
+grid. Because a withdrawal is itself a claim about what can be measured, we
+state the reasoning rather than quietly dropping the sections.
 
-We script door closures at a fixed mission phase and measure: whether the
-MAPF layer replans without orchestrator involvement (the desired outcome, no
-LLM call); whether the closure instead surfaces as a channel-1 WARN and which
-verdict follows; time from closure to recovered motion; and mission completion
-compared to the undisturbed run. A door closure that makes a task
-\emph{unreachable} is the sharpest available test of escalation: the correct
-behaviour is \code{needs\_help:}, and a confident replan onto an impossible
-goal is a clear failure.
+\emph{The backend comparison is confounded in ways parameter alignment cannot
+fix.} Most differences between the two backends can be equalized by
+configuration---grid resolution, planning timestep, arrival tolerance, replan
+cooldown, low-level expansion budgets---and we would have. Three cannot. First,
+the two solvers terminate on different criteria: LNS2 is bounded by a wall-clock
+repair budget and must return the best incumbent it has, whereas PBS is bounded
+by high-level node expansions and is not time-bounded at all, so LNS2's planning
+time is capped by construction and a head-to-head reading of it is not
+meaningful. Second, the collision models differ in kind, not degree: PBS keeps a
+hard footprint with a soft gradient penalty zone around it, while LNS2 adds its
+inflation directly to the footprint as a hard radius---identically named
+parameters with different semantics, which equalizing numerically would hide
+rather than remove. Third, the two backends ship with different path-following
+stacks, so every execution-side metric measures a planner--follower pair. A
+comparison published under those three caveats would say less than the space it
+occupies, in a paper whose central question (RQ3) does not depend on it.
 
-\emph{Caveat.} This experiment requires integration work the others do not.
-The obstacle manager and the zone map server both publish the map with
-transient-local durability and cannot currently coexist; the obstacle manager
-is not wired into the bring-up launches. Composing it means repointing the
-static map server to the raw map topic first. We flag this as a prerequisite
-rather than assuming it away.
+What remains is the claim we actually make: the two backends are
+\emph{interchangeable} behind one action contract (Sec.~\ref{sec:substrate}).
+E3 runs the full mission workload on both, which is evidence for that and for
+nothing more. We deliberately do not restate it as a research question: an
+outcome of ``the same'' would confirm what the architecture already asserts,
+and an outcome of ``different'' would not be attributable, given the three
+confounds above. A question whose answers are respectively redundant and
+uninterpretable is a system property, and we report it as one.
 
-\subsection{E4: MAPF backend comparison}
-\label{sec:e4}
-
-PBS vs.\ LNS2 under identical fleet requests, using the existing goal-dispatch
-test client: convergence to a single point, random goals within a radius, and
-group-home dispersal, across 5/10/15/20 robots and three environments of
-increasing clutter. All metrics come from the action result payload. This
-closes our earlier Level-2 report's ``no statistics over repeated runs'' gap and
-tests the interaction half of RQ5.
-
-\subsection{E5: Formation tracking accuracy}
-\label{sec:e5}
-
-Recording the formation status topic while a leader traverses a fixed route
-yields $\varepsilon_i(t)$ directly. We characterize steady-state and peak error
-by shape (line, wedge, triangle, abreast) and leader speed, plus time-to-STABLE
-after activation and DEGRADED dwell fraction. This is a bag recording and an
-offline parse; our earlier Level-2 report listed it as an open gap purely
-because nobody had recorded it.
-
-\subsection{E6: Costmap layer ablation (secondary)}
-\label{sec:e6}
-
-Comparing the custom self-clearing costmap layer against the stock obstacle
-layer under 20-robot scan density, measuring recovery-behaviour invocations and
-mission success. Included for completeness; lowest priority.
+\emph{Formation tracking becomes a characterization rather than a study.} One
+E3 mission forms a column, traverses a 21\,m corridor that narrows to 1.30\,m,
+and disbands. The formation monitor already publishes $\varepsilon_i$ at
+10\,Hz and E3 already records that topic, so steady-state error, peak error,
+time-to-STABLE, and DEGRADED dwell fraction come out of a recording we take
+anyway. That mission is also the only one that exercises two of the six
+guards---automatic formation staging and the active-formation guard---which
+would otherwise report zero firings for the whole campaign for want of a
+trigger. What is lost is the dependence of tracking error on shape, size, and
+speed: we report one column of four at one speed, and we report it as a
+property of this system rather than as a study of formation control.
 
 \subsection{Instrumentation to be added}
 
@@ -785,12 +869,16 @@ are the only new code the evaluation needs:
 structured logs through a shared writer; channel~3 does not, and E3 cannot be
 scored without it.
 \item Repeat and machine-readable-output flags on the benchmark harness, which
-currently reports only to the terminal and an exit code.
-\item A bag-based offline scorer for E3--E5, in preference to a live scoring
+originally reported only to the terminal and an exit code. \emph{Added}: the
+\code{--repeat} and \code{--json} flags used by E1 and E2, together with the
+\code{--grounding}, \code{--schema-constrained} and \code{--schema-variant}
+factors and a prompt-fingerprint check for baseline reuse.
+\item A bag-based offline scorer for E3, in preference to a live scoring
 node, so that runs can be re-analysed without re-execution.
 \end{enumerate}
 
 \subsection{Threats to validity}
+\label{sec:threats}
 
 \emph{Simulation only.} All results are in Stage 2D with simulator odometry as
 ground truth and AMCL disabled. Localization error, wheel slip, and real sensor
@@ -818,6 +906,12 @@ own system. An independent case set would be a genuine improvement.
 \emph{Model non-stationarity.} Hosted models change under fixed names. We pin
 local weights and report quantization for every reported run.
 
+\emph{Environment change is tested by route invalidation, not agent loss.} The
+two door cells break the map while every robot keeps working. The complementary
+failure---a robot dies while the route stays valid---is not covered, and repair
+behaviour may differ between the two: a closed door is visible in the model's
+context, whereas a dead robot must be inferred from the absence of motion.
+
 % ===========================================================================
 \section{Results}
 
@@ -840,11 +934,11 @@ calls per model), temperature 0.1, \code{--llm-max-tokens 2048},
 \toprule
 Model & pass@1 & pass@5 & med.\ (s) & p90 (s) & t/o \\
 \midrule
-qwen3.5:4b          & 68.2\% & 88.6\% &  4.8 &  8.6 & 0 \\
-gemma3:12b           & 68.2\% & 70.5\% &  3.7 &  7.4 & 0 \\
-qwen2.5:14b          & 72.7\% & 79.5\% &  9.3 & 20.1 & 0 \\
-\textbf{qwen3.5-9b}  & \textbf{77.3\%} & \textbf{90.9\%} &  8.2 & 21.0 & 0 \\
-mistral-sm3.2:24b     & 75.0\% & 77.3\% & 29.9 & 52.1 & 0 \\
+qwen3.5:4b          & 72.7\% & 93.2\% &  4.8 &  8.6 & 0 \\
+gemma3:12b           & 70.5\% & 72.7\% &  3.7 &  7.4 & 0 \\
+qwen2.5:14b          & 75.0\% & 81.8\% &  9.3 & 20.1 & 0 \\
+\textbf{qwen3.5-9b}  & \textbf{81.8\%} & \textbf{95.5\%} &  8.2 & 21.0 & 0 \\
+mistral-small3.2:24b     & 79.5\% & 81.8\% & 29.9 & 52.1 & 0 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -854,11 +948,11 @@ entirely across all five models. The best model on both metrics,
 qwen3.5-9b, is not the largest: parameter count does not predict accuracy
 here. Two further patterns stand out. First, the \emph{smallest} model,
 qwen3.5:4b, is close behind on pass@1 and second-best on pass@5
-(88.6\%)---the gap between its pass@1 and pass@5 is the largest in the table,
+(93.2\%)---the gap between its pass@1 and pass@5 is the largest in the table,
 meaning most of its failures do not repeat under resampling and are closer to
 sampling noise than to a structural gap. Second, gemma3:12b and
-mistral-small3.2:24b show almost no such recovery (68.2\%$\to$70.5\% and
-75.0\%$\to$77.3\%): their failures are largely the \emph{same} failure on
+mistral-small3.2:24b show almost no such recovery (70.5\%$\to$72.7\% and
+79.5\%$\to$81.8\%): their failures are largely the \emph{same} failure on
 every retry, i.e.\ systematic rather than stochastic. Latency also does not
 track accuracy: mistral-small3.2:24b's weights (15\,GB, 4-bit) leave under
 1\,GB of headroom on the 16\,GB card, forcing partial CPU offload and a
@@ -871,19 +965,30 @@ entirely a single validator complaint, \code{follower\_ns(N) !=
 offsets\_x(M) or offsets\_y(M)}, i.e.\ the model emits an offsets array
 shorter than its own follower list---is the single largest failure mode for
 three of five models, and for mistral-small3.2:24b it is byte-identical
-across 25 of its 57 failures. That repetition, combined with the model's
+across 25 of its 47 failures. That repetition, combined with the model's
 near-zero pass@1$\to$pass@5 recovery, is the signature of a deterministic
 generation bug in how this model fills the formation-node schema, not of
 noisy sampling. \emph{Wrong structure} (choosing the wrong top-level node
 type, e.g.\ \code{mapf} instead of \code{sequence}) dominates for
-qwen2.5:14b (28/60 failures) and gemma3:12b (25/68); qwen3.5:4b has no
+qwen2.5:14b (28/55 failures) and gemma3:12b (25/63); qwen3.5:4b has no
 single dominant mode, consistent with its noise-like failure profile above.
-\emph{Wrong escalation reason} is essentially constant across four of the
-five models ($\approx$10 failures each, qwen2.5:14b is the outlier at 5),
-suggesting that judging when to ask for help rather than act is uniformly
-hard and does not improve much with scale or family within this range---an
-argument for a deterministic escalation check outside the model rather than
-prompting harder.
+\emph{Wrong escalation reason} is near-zero for four of the five models,
+gemma3:12b being the only one left at 5.
+\revised{This row read $\approx$10 for every model in an earlier version of
+this table, and carried our argument that escalation judgment is uniformly
+hard. Both were an artefact: two of the four escalation cases were unpassable
+by construction, because the check accepting ``either \code{needs\_help:} or
+\code{clarify:}'' combined two list-returning validators with \code{or},
+which reports an error whenever \emph{either} prefix is absent. Rescoring the
+stored outputs against the corrected check---no model was called again---moves
+159 calls across E1 and E2. What the corrected row shows is close to the
+opposite of the original claim: on the underspecified command \emph{form a
+triangle}, all five local models and the hosted reference emit the byte-
+identical plan \code{\{"type":"idle","reason":"clarify: no group specified
+for triangle formation"\}}, i.e.\ they recognise the ambiguity, decline to
+act, and say why. What differed was the prefix, and the prompt's own worked
+example is the one that teaches \code{clarify:}. Recognition is uniform and
+good; only compliance with an undocumented convention was failing.}
 
 \begin{table}[t]
 \centering\footnotesize
@@ -899,10 +1004,10 @@ Wrong structure      & 17 & 25 & 28 & 11 &  0 \\
 Wrong robot-id set    &  0 &  0 &  0 &  0 &  1 \\
 Wrong goals            & 11 &  0 & 10 &  8 &  5 \\
 Wrong formation fields  & 22 & 24 &  9 &  2 & 25 \\
-Wrong escalation reason  & 10 & 10 &  5 & 10 & 10 \\
+Wrong escalation reason  &  0 &  5 &  0 &  0 &  0 \\
 Other validator          &  0 &  8 &  8 &  1 &  5 \\
 \midrule
-Total failed / 220        & 76 & 68 & 60 & 38 & 57 \\
+Total failed / 220        & 66 & 63 & 55 & 28 & 47 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -917,47 +1022,386 @@ category is weak for \emph{every} model regardless of size or family:
 as a possible benchmark-design artifact rather than a genuine model weakness,
 since the category has only two cases and a single flipped call moves the
 rate by 50 points; we do not read anything into it beyond that caveat.
-\code{escalate} ranges 25--75\% pass@1 with no relationship to model size
+\code{escalate} ranges 50--100\% pass@1 with no relationship to model size
 (qwen2.5:14b, the largest of the mid-size models, is the \emph{worst} on this
-category), reinforcing the failure-mode-table observation that escalation
-judgment does not scale predictably.
+category).
+\revised{Two models now score 100\% here. The residual failures are of two
+different kinds and should not be pooled: gemma3:12b answers \emph{repeat the
+last command} with \code{reason:"operator stop"}, which is neither an action
+nor a question, while qwen2.5:14b answers it with a \code{mapf}---it acts on a
+command it cannot possibly have resolved. The second is the dangerous one and
+is the case that still argues for a check outside the model; the first is
+merely malformed. Four cases in this category is too few to say more.}
 
 \emph{Reading with appropriate caution.} $N{=}5$ per case, and as few as 2
 cases in some categories, is enough to separate the reliable categories from
 the weak ones but not enough to bound per-category confidence intervals
 tightly; the category-level percentages above should be read as pointing at
 where the failures cluster, not as precise estimates. We report them because
-E2--E6 (Secs.~\ref{sec:e2}--\ref{sec:e6}) are designed to explain \emph{why}
+E2 and E3 (Secs.~\ref{sec:e2}, \ref{sec:e3}) are designed to explain \emph{why}
 those specific categories fail, not merely to confirm that they do.
 
-\pending{E2 --- ablation: effect of constrained decoding, tool calling, pose
-context, context budget.}
+\subsection{E2: Grounding and constraint ablation}
+\label{sec:res-e2}
+
+E2 toggles one mechanism at a time against the E1 configuration, on the two
+qwen3.5 models: the smallest (\textbf{qwen3.5:4b}) and the most accurate
+(\textbf{qwen3.5-9b}). Two factors are measured: schema-constrained decoding
+on/off, and the amount of symbolic scaffolding in the map block
+(\emph{full} $\to$ \emph{locations-only}, dropping the heuristics paragraph
+$\to$ \emph{coords-only}, additionally dropping the map prose, location and
+group aliases, and formation zones; 3{,}336 $\to$ 1{,}795 $\to$ 1{,}024
+characters). \textbf{qwen2.5:14b} is added for the schema factor only, as a
+third data point from a different family and the intended 4-bit operating
+point of Sec.~\ref{sec:e1}. The schema-off, grounding-full cell \emph{is}
+the E1 configuration and is reused rather than re-run; that reuse was gated on
+a SHA-256 over all 44 assembled prompts matching between the pre-ablation and
+shipped code, checked automatically before each sweep rather than assumed.
+Protocol is otherwise E1's: $N{=}5$, temperature 0.1, 2048-token budget,
+32{,}768-token context, 220 calls per cell, 0 timeouts in all seven new
+ablation runs. The schema-ladder runs of Table~\ref{tab:e2-ladder} are
+additional to these seven and are counted separately.
+
+\begin{table}[t]
+\centering\footnotesize
+\caption{E2 ablation: pass rates by condition (44 cases, $N{=}5$).
+$\Delta$ is against that model's baseline. Only the schema factor was run for
+qwen2.5:14b. \emph{unp.} is the \emph{unparseable JSON} failure count over all
+220 calls---the failure mode the schema exists to remove.}
+\label{tab:e2-summary}
+\setlength{\tabcolsep}{3.2pt}
+\begin{tabular}{llccccc}
+\toprule
+Model & Condition & pass@1 & $\Delta$ & pass@5 & $\Delta$ & unp. \\
+\midrule
+\multirow{4}{*}{\makecell[l]{qwen3.5\\4b}}
+ & baseline (E1)   & 72.7\% &        & 93.2\% &        & 16 \\
+ & schema on         & 77.3\% & $+4.6$ & 95.5\% & $+2.3$ & 1 \\
+ & locations-only     & 75.0\% & $+2.3$ & 90.9\% & $-2.3$ & 11 \\
+ & coords-only         & 68.2\% & $-4.5$ & 84.1\% & $-9.1$ & 11 \\
+\midrule
+\multirow{2}{*}{\makecell[l]{qwen2.5\\14b}}
+ & baseline (E1)   & 75.0\% &         & 81.8\% &         & 0 \\
+ & schema on         & 72.7\% & $-2.3$  & 81.8\% & $\pm0.0$ & 0 \\
+\midrule
+\multirow{4}{*}{\makecell[l]{qwen3.5\\9b}}
+ & baseline (E1)   & 81.8\% &         & 95.5\% &         & 6 \\
+ & schema on         & \textbf{15.9\%} & $\mathbf{-65.9}$ & \textbf{22.7\%} & $\mathbf{-72.8}$ & 3 \\
+ & locations-only     & 90.9\% & $+9.1$  & 95.5\% & $\pm0.0$ & 1 \\
+ & coords-only         & 90.9\% & $+9.1$  & 95.5\% & $\pm0.0$ & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\emph{Schema-constrained decoding buys nothing it was not already needed for,
+and reverses sign on one model.} Its purpose is to remove malformed JSON, and
+the \emph{unp.} column shows it doing exactly that where the problem exists:
+qwen3.5:4b falls from 16 unparseable calls to 1, and both its pass rates
+improve modestly. qwen2.5:14b never emitted malformed JSON to begin with
+($0\to0$), so the schema has nothing to fix and changes nothing---pass@5 is
+identical, pass@1 moves $-2.2$, and its failure-mode counts barely shift
+(\emph{wrong structure} $28\to26$, the rest within one). For qwen3.5-9b the
+same mechanism is catastrophic: pass@1 drops 65.9 points and pass@5 72.8,
+while repairing only three malformed calls.
+
+The collapse is deterministic rather than stochastic. pass@5 recovers only to
+18.2\%, so resampling five times almost never rescues a failed case, and the
+per-category breakdown is degenerate: $0.0/0.0$ on eight of twelve
+categories---\code{mapf\_basic}, \code{mapf\_explicit}, \code{mapf\_spread},
+\code{parallel}, \code{sequence}, \code{formation\_create},
+\code{formation\_move}, \code{formation\_complex}---while scoring $100/100$ on
+\code{idle}. \emph{Wrong structure} rises from 11 to 131 and \emph{wrong
+robot-id set} from 0 to 32 (cf.\ Table~\ref{tab:e1-failuremodes}).
+
+\emph{The mechanism is a key-order inversion, and it is measurable.} The
+common reading of such a collapse---that the plan degenerates to the simplest
+branch of the \code{oneOf}---is not what the responses show. Counting the
+top-level node type actually emitted, \code{idle} accounts for 104 of 220
+calls but \code{sequence} and \code{parallel} together account for 109, so
+\code{idle} does not dominate. What happens is narrower: two of the six
+branches become unemittable. \code{mapf} goes $58\to0$ at the top level and
+\code{formation} $7\to0$; counting every nesting depth, \code{formation} is
+never emitted once in 220 constrained calls and \code{mapf} falls $268\to53$,
+surviving only nested inside a \code{sequence}. This also rules out recursion
+as the cause, since \code{sequence} and \code{parallel} are the only branches
+that use the recursive \code{\$ref} and they are untouched.
+
+The cause is visible in key order. Unconstrained, qwen3.5-9b emits
+\code{type} first in every object; under the schema it emits every object with
+its keys in strict alphabetical order, in 220 of 220 nodes. Because
+\code{type} sorts last in all six branches, the model must commit to a branch
+by emitting a \emph{content} key before it has named the node type, and branch
+selection falls to whichever required key sorts first. That key is
+\code{reason} for \code{idle}, \code{steps} for \code{sequence}/\code{parallel}
+and \code{formation\_id} for \code{disband}---and the observed first-key
+histogram matches the surviving branches exactly (\code{reason} 104,
+\code{steps} 109, \code{formation\_id} 4). For the two branches that vanish it
+is \code{goals} and \code{follower\_ns}, which the model never selects to open
+a plan object.
+
+One step of this is correlational rather than causal, and we mark it as open.
+Alphabetical ordering explains why the discriminator arrives last, and hence
+why the branch must be committed on a content key; it does not by itself
+explain why \code{goals} is chosen \emph{exactly zero} times in 220 calls.
+A mere reordering should depress that probability, not annihilate it. The
+natural conjecture is that an opening \code{"goals"} token has essentially no
+mass in the model's distribution over plan-object prefixes---in ordinary JSON
+an array-valued content field does not begin an object---so the constrained
+sampler renormalises over the alternatives that do, and the absorbing state is
+reached on the first token rather than accumulated over the object. We have
+not tested that, and a token-level probe of the constrained sampler would
+settle it.
+
+The inversion also corrects what the free text shows. It is the \code{reason}
+field inside the degenerate plan that preserves the request---echoing at least
+60\% of the prompt's content words in 57\% of idle responses, against 41\% for
+\code{reply}---while \code{reply} confabulates a justification for idling
+(``send cyan to cafeteria'' $\to$ \code{reason} ``cyan to cafeteria'', reply
+``Stopping all robots.''). This follows from the same reordering: unconstrained
+the model emits \code{reply} then \code{plan}, and under the schema
+\code{plan} then \code{reply}, so it commits to a node type and then
+rationalises it. The model is not prevented from expressing an answer it
+knows; it records the intent, commits to the wrong branch, and justifies the
+result.
+
+\emph{A schema ladder isolates the responsible construct.} To separate the
+\code{oneOf} from the recursion it contains, we re-ran qwen3.5-9b under three
+derived schemas: \textbf{S2}, the shipped schema minus the \code{sequence} and
+\code{parallel} branches (four-branch \code{oneOf}, no \code{\$ref}, no
+\code{\$defs}); \textbf{S3}, one schema per node type with \code{type} pinned
+by a single \code{const} and no \code{oneOf} at all; and \textbf{S1-no-idle},
+the shipped schema minus its cheapest branch. Each variant is derived
+programmatically from \code{PLAN\_RESPONSE\_SCHEMA} and asserted at import to
+reproduce it exactly when all six branches are kept, so the ladder cannot
+drift from the schema it is meant to explain.
+
+Restricted schemas cannot express every reference answer, and scoring them
+over all 44 cases would measure \emph{``the grammar forbids the right answer''}
+rather than \emph{``the grammar breaks the model''}. Each variant is therefore
+scored only on the cases it can express, with the baseline and S1 recomputed
+on the same subset; Table~\ref{tab:e2-ladder} reports subset sizes, and none
+of its figures are comparable to the full-44 numbers in
+Table~\ref{tab:e2-summary}.
+
+\begin{table}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{4pt}
+\caption{Schema ladder on qwen3.5-9b, scored on expressible subsets only
+(pass@1/pass@5, $N{=}5$). \emph{Not} comparable to
+Table~\ref{tab:e2-summary}. S1-no-idle applies only to the mapf subset.
+$^\dagger$S3 pins the node type, which the validators also check---its rate is
+\emph{not} like-for-like with the others and is reported only to show that the
+branch body is reachable.}
+\label{tab:e2-ladder}
+\begin{tabular}{llcc}
+\toprule
+ & & 23-case & 13-case mapf \\
+Variant & Plan node & subset & subset \\
+\midrule
+schema off   & ---                      & 73.9/82.6 & 76.9/84.6 \\
+S1           & 6-branch, recursive      & 21.7/30.4 & \textbf{0.0/0.0} \\
+S2           & 4-branch, no recursion   & 26.1/34.8 & \textbf{0.0/0.0} \\
+S3$^\dagger$ & 1 branch, no \code{oneOf}& 78.3/87.0 & 84.6/92.3 \\
+S1-no-idle   & 5-branch, recursive      & ---       & \textbf{0.0/0.0} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three readings follow, and they agree with the emitted-node evidence above.
+\emph{Recursion is not the cause}: S1 and S2 are both exactly $0.0/0.0$ on the
+mapf subset, so deleting the recursive branches and every \code{\$ref} changes
+nothing. Their difference on the 23-case subset ($21.7/30.4$ vs.\ $26.1/34.8$)
+is one to two cases at $N{=}5$ and we read it as noise, not as a recursion
+effect in the opposite direction. \emph{The \code{oneOf} is}: pinning
+\code{type} to a single \code{const} restores \code{mapf} in 65 of 65 calls,
+against 0 of 65 under both S1 and S2. \emph{And the collapse is not simply a
+flight to the cheapest branch}: removing \code{idle} does not bring \code{mapf}
+back, it relocates the degeneracy to \code{sequence} (43 of 65) and
+\code{disband} (15), with \code{mapf} still at exactly zero. What the model
+cannot do is \emph{select} the branch; filling it was never the problem.
+
+S3's \emph{pass rate} must not be read as a benefit of constrained decoding,
+and we flag this because the comparison is inviting and wrong. S3 pins the node
+type by \code{const}, and node type is exactly what the validators check first;
+\emph{wrong structure} is qwen3.5-9b's dominant failure mode under the schema
+($11\to131$). On the mapf subset S3 therefore tells the model the answer to the
+question it is being scored on, and its $84.6/92.3$ is not comparable to the
+unconstrained $76.9/84.6$---one condition has half the task solved for it in
+advance. What S3 licenses is the structural claim only: the \code{mapf} branch
+is reachable, its body is filled correctly when reached, and the failure is
+located in branch \emph{selection}. Whether constraining decoding helps a model
+that must still choose is not something this ladder measures.
+
+\emph{Scope.} Diagnostics place the trigger in the model, not in this stack or
+this schema. No chat template injects the schema into the prompt, nothing on
+the outbound path sorts keys, and the request bodies for the two qwen3.5
+models differ only in the model name, with the schema reaching the wire in
+declaration order. The grammar itself is any-order: qwen3.5:4b reproduces the
+\code{required} arrays exactly and qwen2.5:14b emits \code{type} first in
+220/220 nodes, so the same grammar accepts both orderings. On a toy schema
+with no \code{oneOf}, no recursion and no plan vocabulary---and a worked
+example putting \code{type} first---qwen3.5-9b still alphabetises (5/5), and
+with three keys it places \code{type} in the middle, which excludes mere
+reversal. The behaviour is therefore a schema-mode output convention learned
+by qwen3.5-9b, harmless in itself, that is fatal only in contact with a
+\code{oneOf} discriminated by a \code{type} field.
+
+We resist two tempting generalisations. Model size is not the axis:
+qwen2.5:14b is larger than qwen3.5-9b and is unaffected. Nor is qwen3.5:4b
+``ignoring'' the schema while the larger model obeys it---4b is demonstrably
+constrained, its optional-property use collapsing from 103 emissions to 0 on
+otherwise byte-identical prompts, and both models emit schema-valid JSON.
+What differs is an orthogonal ordering convention. The generalisable claim is
+therefore about schema design rather than about model scale: \emph{a
+\code{oneOf} discriminated by a \code{type} field is unsafe under constrained
+decoding on any model that alphabetises keys in schema mode}, because the
+discriminator is then emitted after the fields that distinguish the branches.
+We state that at the branch counts actually tested---six and four, both of
+which fail. A two-branch union did not reproduce the effect in an aborted side
+probe (a toy \code{move}/\code{wait} union, $N{=}5$: qwen3.5-9b chose correctly
+3/5 and opened objects with \code{goals}, qwen3.5:4b 4/5), which is ten calls
+and is offered only as a reason to scope the claim rather than as a result.
+
+\emph{Remedies, none of which we have tested.} The ladder localises the fault
+but does not supply a fix, and we are explicit that the two candidates below
+are untested. S3 is a diagnostic, not a proposal: a schema that can express one
+node type is unusable in deployment, because the system does not know before
+the operator speaks whether the answer is a movement, a formation, or a
+refusal. The first candidate is instead a \emph{fixed envelope}: pin the
+top-level node to \code{sequence} and move the union inside its \code{steps}.
+The data point toward this rather than away from it---under S1 the model emits
+\code{mapf} 53 times nested inside a \code{sequence} while never emitting it at
+top level, and under S1-no-idle the degeneracy moves \emph{into}
+\code{sequence} (43 of 65)---so the branch decision appears to be tractable
+once a container is already open. Unlike S3 this keeps the full grammar and is
+deployable, but we have not run it. The second candidate is renaming the
+discriminator so that it sorts before every content key (\code{action} rather
+than \code{type}, which precedes \code{follower\_ns}, \code{formation\_id},
+\code{goals}, \code{reason} and \code{steps}). It follows directly from the
+mechanism and is a one-line change; it is also the obvious test to have run,
+and we did not run it. Both are stated as predictions the mechanism makes, and
+either could fail.
+
+\emph{The deployment hazard is in the defaults, and the obvious fix makes it
+worse.} Two parameters interact here. \code{\_stream\_and\_parse()} tests
+\code{tool\_calling\_enabled} first and routes to the tool loop when it is
+set; the schema is applied only on the other branch, inside
+\code{\_stream\_plain()}. The two are therefore mutually exclusive in
+practice, and the code says so---it logs a warning when both are enabled,
+noting that \code{structured\_output\_enabled} will not constrain those turns.
+The declared defaults in \code{chat\_server.py} are
+\code{tool\_calling\_enabled} \emph{false} and
+\code{structured\_output\_enabled} \emph{true}, while
+\code{orchestrator.yaml} ships both \emph{true}. The deployed configuration
+thus avoids constrained decoding entirely, and only because tool calling
+happens to be switched on: the schema is enabled in the file but never
+reaches the model. The code defaults are the combination E2 measures at
+11.4\%, and an operator following the warning's own advice---disable tool
+calling, since it suppresses structured output anyway---moves the system from
+the unconstrained path onto exactly that combination. The hazard is
+conditional on model choice rather than universal, since
+\code{orchestrator.yaml} names \code{mistral-small3.1} rather than one of the
+models measured here; but a defaults pair that is safe only by accident, and
+that a documented remedy turns unsafe, is a configuration defect independent
+of which model is loaded.
+
+\emph{Symbolic grounding is load-bearing for the small model and inert---or
+negative---for the large one.} qwen3.5:4b degrades monotonically as
+scaffolding is removed, losing 9.1 points of pass@5 by \emph{coords-only},
+with \emph{wrong structure} rising 17\,$\to$\,24 and \emph{wrong robot-id
+set} 0\,$\to$\,3: stripped of aliases and zones it starts mis-resolving which
+robots and which structure the request implies. qwen3.5-9b loses nothing
+(95.5\% pass@5 in all three grounding conditions) and \emph{gains} 9.1 points
+of pass@1 in both reduced conditions. Since \emph{locations-only} differs
+from \emph{full} only by the heuristics paragraph, that paragraph is a net
+negative for the larger model---it is prose advice about corridor deadlocks
+and room capacities, and the model plans better without it. This is a
+concrete answer to RQ2's question of what the $\approx$9{,}700-token prompt
+buys: for the deployed model, the most expensive symbolic block is
+counterproductive, and for the small model it is nearly free while the
+\emph{aliases and zones} carry the value.
+
+The \emph{unp.} column carries a second, independent effect that the pass rates
+hide. Trimming the map block monotonically reduces malformed JSON in both
+models: $16\to11\to11$ for qwen3.5:4b and $6\to1\to0$ for qwen3.5-9b, which for
+the larger model is the malformed-output failure mode disappearing entirely
+without any schema. This runs in the same direction as the heuristics result
+and is worth separating from it: a shorter prompt appears to buy \emph{cleaner
+output} independently of whether it buys better plans. For qwen3.5:4b the two
+effects point opposite ways---it emits better-formed JSON on the reduced
+prompts and nonetheless plans worse---so output well-formedness and planning
+accuracy are not the same axis and a prompt-budget decision cannot be made on
+either alone. At five and six failures respectively these counts are small,
+and we report the direction rather than an effect size.
+
+\emph{Reading with appropriate caution.} Two cautions bound the above. The
+grounding effect on qwen3.5:4b rests on differences of 2--9 points at $N{=}5$
+over 44 cases, which is enough to show the direction and not enough to bound
+the effect size; only the \emph{coords-only} pass@5 drop ($-9.1$) is
+comfortably larger than the per-cell noise visible elsewhere in the table.
+More importantly, qwen3.5-9b's \emph{locations-only} and \emph{coords-only}
+cells produce identical aggregates (90.9\%/95.5\%). These are genuinely
+different prompts and their per-category results do differ
+(\code{mapf\_explicit} $50.0/100.0$ vs.\ $100.0/100.0$;
+\code{formation\_complex} $100.0/100.0$ vs.\ $66.7/100.0$), so the aggregate
+match is a coincidence at 44 cases rather than evidence that the two
+conditions are equivalent, and we read no effect into it. The schema result
+on qwen3.5-9b needs no such hedging: a 65.9-point drop with eight categories
+at exactly zero is not a sampling artifact.
+
+\emph{What E2 does not measure.} Sec.~\ref{sec:e2} proposed five factors; two
+are reported here. Tool calling is deferred to E3.
+The offline harness cannot exercise it faithfully: \code{check\_occupancy}
+subscribes to a live \code{LaserScan} and so requires the simulator;
+\code{verify\_plan\_execution\_state} verifies a post-execution state that
+does not exist offline; the task tools are irrelevant to all 44 cases; and
+\code{get\_robot\_position}/\code{get\_positions} return data the harness
+already injects into the prompt. Only two pure geometry helpers would carry
+signal, so an offline tool arm would weigh the full cost of the tool path
+against a fraction of its benefit. Standing up a fake-odometry publisher to
+feed the tools was considered and rejected: that plumbing would only
+transport poses the harness already holds, leaving the measurement
+unchanged. This reverses the intention stated in Sec.~\ref{sec:e2}; the
+objection recorded there---that measuring the factor in E3 confounds planning
+mode with execution noise---remains valid and is the price of the change.
+Live pose context, goal auto-spread, and context budget are likewise not
+measured: the first is uninterpretable as a single rate because several cases
+exist \emph{because of} their context, and the latter two are not on the
+harness code path at all (\code{goal\_spread\_enabled} is applied by
+\code{\_postprocess\_plan()} after the model returns, so E1 neither used nor
+could have used it).
+
+One side effect of the schema factor is worth recording, since it bears on
+auto-spread from the other direction. \code{spread} is the only optional
+property in the plan schema, and constrained decoding suppresses it sharply:
+$103\to0$ emissions for qwen3.5:4b, $99\to0$ for qwen3.5-9b, $191\to9$ for
+qwen2.5:14b. Optional properties are not forbidden by the grammar---14b still
+emits nine---but they become rare enough to treat as unavailable. The
+capability survives only because \code{\_validate\_node()} infers spreading
+from goal arity when one centre is given for several robots; 4b's
+\code{mapf\_spread} score in fact rises under the schema. That inference is
+load-bearing in a way its own comment does not suggest, and removing it would
+silently disable the feature for any deployment using structured outputs.
 
 \pending{E3 --- end-to-end mission completion by configuration, with LLM-call
 cost and guard/repair firing counts.}
 
 \pending{E3b --- channel-1 decision confusion matrix and false-replan rate.}
 
-\pending{E3c --- recovery and escalation under mid-mission door closure.}
-
-\pending{E4 --- PBS vs.\ LNS2 across fleet size and clutter.}
-
-\pending{E5 --- formation tracking error by shape and leader speed.}
-
 % ===========================================================================
 \section{Conclusion}
 
-\pending{Full claim pending E2--E6. The intended claim remains: a small typed
+\pending{Full claim pending E3. The intended claim remains: a small typed
 plan grammar plus deterministic guards lets a modestly-sized locally-hosted
 model supervise a 20-robot fleet, and the gap between plan-level accuracy and
 mission-level success is where the engineering value sits---E3 is the
 experiment that can actually support that sentence.}
 
-What E1 alone supports is narrower but not nothing. First, bare planning
+What E1 and E2 support is narrower but not nothing. First, bare planning
 accuracy without any of the system's guards or repair loops sits at
-68--77\% pass@1 across five locally-hosted 3.4--24B models under a realistic
+70--82\% pass@1 across five locally-hosted 3.4--24B models under a realistic
 $\approx$9{,}700-token prompt---a fleet-supervision system built on a single
-unguarded plan call would fail roughly one command in three to one in four
+unguarded plan call would fail roughly one command in three to one in five
 \emph{regardless of which model is deployed}, which is the quantitative case
 for the defence-in-depth design of Sec.~\ref{sec:guards} rather than an
 assumption behind it. Second, the five models' failures are not
@@ -971,14 +1415,43 @@ uniformly. Third, escalation judgment (recognizing missing or ambiguous
 state and asking for help instead of acting) is weak and essentially flat
 across all five models independent of size or family, which is the
 strongest single piece of evidence in this data for keeping that decision
-outside the model rather than trying to prompt it better. Fourth, the
+outside the model rather than trying to prompt it better.
+\revised{This no longer follows from the corrected data and should be replaced.
+Recognition of ambiguity is in fact uniform and good: every model tested,
+including a hosted reference far outside the local size range, declines to act
+on an underspecified command and asks the right question. What the data
+supports instead is narrower and, we think, more useful: models agree on
+\emph{when} to escalate and disagree on \emph{how} to signal it, so the
+component worth putting outside the model is the protocol---a deterministic
+check that an idle plan carrying a question is routed to the operator
+regardless of which prefix the model chose---rather than the judgment itself.
+The one genuine judgment failure in the corrected data, a model issuing a
+\code{mapf} in response to \emph{repeat the last command}, is a single case
+on a single model and cannot carry the original claim.} Fourth, the
 categories that are hardest across the board---formation staging order,
 escalation judgment---are exactly the categories the plan grammar
 (Sec.~\ref{sec:planlang}) and the guard layer were built to catch
 downstream, which is a consistency check on the architecture rather than a
-result about it. Whether the guards actually close that gap in a running
-fleet, and whether it holds under tool calling instead of constrained
-decoding, is what E2 and E3 are for.
+result about it.
+
+E2 adds a fifth point that we did not anticipate and that cuts against one of
+our own design choices. Schema-constrained decoding---listed above as the
+first line of defence---is not a free safety net. It repairs the failure mode
+it was built for only where that failure mode exists, does nothing where it
+does not, and on one of the three models tested under it destroys planning
+outright, by a
+mechanism (alphabetised keys meeting a \code{type}-discriminated
+\code{oneOf}) that has nothing to do with planning ability. We can locate the
+fault precisely---the schema ladder puts it in branch \emph{selection}, not in
+recursion and not in filling a branch once chosen---but we stop short of
+claiming a fix: the two remedies the mechanism suggests, a fixed
+\code{sequence} envelope and renaming the discriminator so it sorts first, are
+both untested. The wider
+lesson for defence-in-depth is that a guard is only deterministic from the
+system's side; from the model's side it is another distribution shift, and it
+has to be measured per model rather than assumed. Whether the remaining guards
+actually close the plan-to-mission gap in a running fleet, and whether it
+holds under tool calling instead of constrained decoding, is what E3 is for.
 
 \section*{Code availability}
 
@@ -986,9 +1459,6 @@ decoding, is what E2 and E3 are for.
 
 % ===========================================================================
 \begin{thebibliography}{99}\small
-\bibitem{ourlevel2} E. Shlomov, A. Malakhova, S. Belyh, M. Shariev,
-``Hierarchical Multi-Agent Control by LLM: Level-2 Swarm Coordination via MAPF,
-Formation Control, and Behavior Trees,'' technical report, 2026.
 \bibitem{stern} R. Stern et al., ``Multi-agent pathfinding: Definitions,
 variants, and benchmarks,'' SoCS, 2019.
 \bibitem{cbs} G. Sharon et al., ``Conflict-based search for optimal multi-agent
@@ -1041,9 +1511,6 @@ themselves to use tools,'' NeurIPS, 2023.
 survey,'' 2023.
 \bibitem{rt2} A. Brohan et al., ``RT-2: Vision-language-action models transfer
 web knowledge to robotic control,'' arXiv:2307.15818, 2023.
-\bibitem{secondteam} D. Vizitei, A. Tuzov, D. Ryabov, ``Hierarchical
-Multi-Agent Control by LLM: Simulation Environment, Per-Robot Navigation, and
-LLM Orchestration,'' technical report, 2026.
 \end{thebibliography}
 
 \end{document}
