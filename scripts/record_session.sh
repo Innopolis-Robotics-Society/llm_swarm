@@ -40,6 +40,11 @@ SUPERVISION=""
 TOOL_CALLING=""
 STRUCTURED_OUTPUT=""
 MODEL_OVERRIDE=""
+# Empty means "whatever orchestrator.yaml ships", which is local Ollama. A
+# hosted campaign passes the OpenRouter URL here; the endpoint must be known to
+# resolve_llm_endpoint() in orchestrator.launch.py or the stack refuses to
+# start.
+LLM_ENDPOINT=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -54,6 +59,7 @@ while [ $# -gt 0 ]; do
     --tool-calling)       TOOL_CALLING="$2";      shift 2 ;;
     --structured-output)  STRUCTURED_OUTPUT="$2"; shift 2 ;;
     --model)              MODEL_OVERRIDE="$2";    shift 2 ;;
+    --llm-endpoint)       LLM_ENDPOINT="$2";      shift 2 ;;
     -h|--help)     sed -n '2,25p' "$0"; exit 0 ;;
     *)             EXTRA+=("$1");    shift ;;
   esac
@@ -148,11 +154,11 @@ YAML="$SRC/iros_llm_orchestrator/config/orchestrator.yaml"
 python3 - "$SESSION" "$GIT_COMMIT" "$GIT_DIRTY" "$MODEL" "$PLANNER" "$SCENARIO" \
          "$NUM_ROBOTS" "$NOTE" "$YAML" \
          "$REMEDIATION" "$REPAIR" "$SUPERVISION" "$TOOL_CALLING" \
-         "$STRUCTURED_OUTPUT" "$MODEL_OVERRIDE" <<'PROV'
-import json, re, sys, datetime
+         "$STRUCTURED_OUTPUT" "$MODEL_OVERRIDE" "$LLM_ENDPOINT" <<'PROV'
+import json, os, re, sys, datetime
 (d, commit, dirty, model, planner, scenario, n, note, yaml_path,
- remediation, repair, supervision, tool_calling, structured, model_override
- ) = sys.argv[1:16]
+ remediation, repair, supervision, tool_calling, structured, model_override,
+ llm_endpoint) = sys.argv[1:17]
 
 # Resolve every ablation factor to the value that will ACTUALLY be in force:
 # the CLI override when given, otherwise whatever orchestrator.yaml ships.
@@ -190,6 +196,22 @@ factors = {
 }
 effective_model = ({'value': model_override, 'source': 'cli'} if model_override
                    else {'value': model, 'source': 'yaml'})
+effective_endpoint = ({'value': llm_endpoint, 'source': 'cli'} if llm_endpoint
+                      else {'value': from_yaml('llm_endpoint'),
+                            'source': 'yaml'})
+
+# Routing lives in environment variables read by web/http_client.py, so it
+# leaves no trace anywhere else. Without this block a hosted run cannot say
+# which provider served it, and provider decides quantisation, latency and
+# whether tool calling works at all. Recorded even when empty: "the router
+# chose per request" is itself the fact worth knowing.
+routing = {
+    'openrouter_provider': os.environ.get('OPENROUTER_PROVIDER', ''),
+    'openrouter_allow_fallbacks': os.environ.get(
+        'OPENROUTER_ALLOW_FALLBACKS', ''),
+    'llm_call_delay_sec': os.environ.get('LLM_CALL_DELAY_SEC', ''),
+    'api_key_present': bool(os.environ.get('LLM_API_KEY', '')),
+}
 
 json.dump({
     'started_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -200,6 +222,8 @@ json.dump({
     'num_robots': int(n),
     'note': note,
     'llm_model': effective_model,
+    'llm_endpoint': effective_endpoint,
+    'llm_routing': routing,
     'ablation_factors': factors,
 }, open(d + '/session.json', 'w'), indent=2)
 
@@ -208,6 +232,23 @@ print(' factors: ' + ', '.join(
     for k, v in sorted(factors.items())))
 print(' model  : {} ({})'.format(
     effective_model['value'], effective_model['source']))
+print(' endpoint: {} ({})'.format(
+    effective_endpoint['value'], effective_endpoint['source']))
+_hosted = '/chat/completions' in str(effective_endpoint['value'] or '')
+if _hosted:
+    print(' routing : provider={} fallbacks={} delay={} key={}'.format(
+        routing['openrouter_provider'] or '(не прибит — роутер сам)',
+        routing['openrouter_allow_fallbacks'] or '(по умолчанию)',
+        routing['llm_call_delay_sec'] or '(без паузы)',
+        'есть' if routing['api_key_present'] else 'НЕТ'))
+    if not routing['api_key_present']:
+        print(' WARNING: LLM_API_KEY пуст, а точка входа сетевая — '
+              'вызовы модели упадут на авторизации')
+    if not routing['openrouter_provider'] and 'openrouter' in str(
+            effective_endpoint['value'] or ''):
+        print(' WARNING: провайдер не прибит — между прогонами кампании '
+              'молча меняются квантизация, задержка и поддержка инструментов '
+              '(paper/E3_spec.md §4.6)')
 PROV
 
 echo "=============================================================="
@@ -326,6 +367,7 @@ LAUNCH_ARGS=(
 [ -n "$TOOL_CALLING" ]      && LAUNCH_ARGS+=("tool_calling_enabled:=$TOOL_CALLING")
 [ -n "$STRUCTURED_OUTPUT" ] && LAUNCH_ARGS+=("structured_output_enabled:=$STRUCTURED_OUTPUT")
 [ -n "$MODEL_OVERRIDE" ]    && LAUNCH_ARGS+=("llm_model:=$MODEL_OVERRIDE")
+[ -n "$LLM_ENDPOINT" ]      && LAUNCH_ARGS+=("llm_endpoint:=$LLM_ENDPOINT")
 
 ros2 launch iros_llm_swarm_bringup swarm_full_demo.launch.py \
   "${LAUNCH_ARGS[@]}" \

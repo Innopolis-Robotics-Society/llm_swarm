@@ -133,6 +133,7 @@ class HttpClient(LLMClientBase):
         tool_calls_acc: dict[int, dict] = {}
         finish_reason: str | None = None
 
+        await self._pace()
         timeout = aiohttp.ClientTimeout(total=self.timeout)
         async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.post(
@@ -241,7 +242,50 @@ class HttpClient(LLMClientBase):
         if self.enable_stop:
             payload = dict(payload)
             payload['stop'] = ['\n## ', '\n# ', '</s>']
+        return self._with_router_hints(payload)
+
+    @staticmethod
+    def _with_router_hints(payload: dict) -> dict:
+        """Optional OpenRouter provider pin, from OPENROUTER_PROVIDER.
+
+        Purely an operational escape hatch: OpenRouter answers sustained load
+        with HTTP 403 "Access denied by security policy" (before generation,
+        in under a second), and the only way to finish a sweep is to move the
+        remaining calls to a different upstream. Unset -- the normal case, and
+        every production path -- leaves the payload untouched, so this cannot
+        change how the orchestrator behaves in the field.
+
+        Whichever upstream actually served a call is echoed back in the
+        response `provider` field and must be recorded next to the numbers:
+        upstreams differ in quantisation, and a run split across two of them is
+        not one measurement.
+        """
+        prov = os.environ.get('OPENROUTER_PROVIDER', '').strip()
+        if not prov:
+            return payload
+        payload = dict(payload)
+        payload['provider'] = {
+            'order': [p.strip() for p in prov.split(',') if p.strip()],
+            'allow_fallbacks': os.environ.get(
+                'OPENROUTER_ALLOW_FALLBACKS', '').strip().lower() == 'true',
+        }
         return payload
+
+    @staticmethod
+    async def _pace() -> None:
+        """Sleep between calls when LLM_CALL_DELAY_SEC is set.
+
+        The harness fires the next request the instant the previous one
+        returns; that burst rate is what trips the router's throttle. A second
+        or two of spacing costs minutes over a sweep and saves re-running it.
+        """
+        try:
+            delay = float(os.environ.get('LLM_CALL_DELAY_SEC', '') or 0)
+        except ValueError:
+            return
+        if delay > 0:
+            import asyncio
+            await asyncio.sleep(delay)
 
     @staticmethod
     def _with_response_format(payload: dict, response_format: dict | None) -> dict:
@@ -313,6 +357,7 @@ class HttpClient(LLMClientBase):
                             yield chunk
 
     async def _post_json(self, endpoint: str, payload: dict) -> dict:
+        await self._pace()
         import aiohttp
 
         timeout = aiohttp.ClientTimeout(total=self.timeout)

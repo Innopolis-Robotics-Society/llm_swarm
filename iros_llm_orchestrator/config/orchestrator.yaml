@@ -50,11 +50,27 @@ llm_chat_server:
     # Keep output budget bounded so it does not consume the whole context
     # window. Plans should fit comfortably under 3k generated tokens.
     llm_max_tokens: 3072
-    llm_context_window_tokens: 16384
+    # Ceiling for the whole conversation, enforced per tool-loop iteration by
+    # _prepare_llm_context_budget. It is NOT the model's context window: the
+    # guard aborts the turn with RuntimeError once
+    #   input_est > window - margin - min_completion
+    # and every tool iteration adds the tool result plus the assistant reply.
+    #
+    # At the old 16384 the E3 prompt (~9.6k tokens) plus TOOL_DEFINITIONS
+    # (~1.5k) started at ~11k, leaving room for three iterations before the
+    # abort — so tool_max_iterations: 20 was unreachable and missions died
+    # mid-turn on a message about context, not about the mission. 65536 fits
+    # twenty iterations at ~2k each with room to spare, while still bounding a
+    # runaway loop; the hosted 397b itself offers 262144. See E3_spec.md §4.3.
+    llm_context_window_tokens: 65536
     llm_context_margin_tokens: 512
     llm_default_max_completion_tokens: 2048
     llm_min_completion_tokens: 512
-    timeout_sec: 60.0
+    # One hosted call with a ~10k prompt measured 13 s for a short answer; a
+    # full 2048-token plan over the network lands closer to 40-50 s, so 60 s
+    # was inside the noise band. Local Ollama is unaffected — this is an upper
+    # bound, not a delay.
+    timeout_sec: 120.0
     # Per-step cap. A single E3 leg can be a 45 m corridor drive, which is
     # ~90 s at desired_linear_vel 0.5 m/s before planning and dispatch, so 120 s
     # cut legs off mid-drive rather than on failure. See paper/E3_spec.md §4.3.

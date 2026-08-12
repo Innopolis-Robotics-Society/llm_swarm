@@ -27,6 +27,17 @@ x-common: &common-setup
     - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
     - ROS_DOMAIN_ID=42
     - CYCLONEDDS_URI=file:///home/fabian/ros2_ws/src/scripts/cyclonedds_swarm.xml
+    # Hosted-model campaigns (E3). Compose interpolates ${API_KEY} from the
+    # repo-root .env, which is gitignored, so the key reaches the orchestrator
+    # without a -e flag on every exec and without ever entering a YAML file.
+    # Empty when .env is absent: local Ollama runs do not need it.
+    - LLM_API_KEY=${API_KEY:-}
+    # Pin one OpenRouter provider for the whole campaign. Unset means the
+    # router picks per request, which silently changes quantisation, latency
+    # and tool-calling support between runs. See paper/E3_spec.md §4.6.
+    - OPENROUTER_PROVIDER=${OPENROUTER_PROVIDER:-}
+    - OPENROUTER_ALLOW_FALLBACKS=${OPENROUTER_ALLOW_FALLBACKS:-false}
+    - LLM_CALL_DELAY_SEC=${LLM_CALL_DELAY_SEC:-}
   command: ["/bin/bash", "-lc", "exec bash"]
 
 services:
@@ -42,6 +53,12 @@ services:
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
       - ROS_DOMAIN_ID=42
       - CYCLONEDDS_URI=file:///home/fabian/ros2_ws/src/scripts/cyclonedds_swarm.xml
+      # Repeated from x-common on purpose: this service replaces `environment`
+      # rather than extending it, so anything not relisted here is lost.
+      - LLM_API_KEY=${API_KEY:-}
+      - OPENROUTER_PROVIDER=${OPENROUTER_PROVIDER:-}
+      - OPENROUTER_ALLOW_FALLBACKS=${OPENROUTER_ALLOW_FALLBACKS:-false}
+      - LLM_CALL_DELAY_SEC=${LLM_CALL_DELAY_SEC:-}
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video,graphics,display
 

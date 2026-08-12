@@ -61,6 +61,21 @@ _KNOWN_LLM_ENDPOINT_PROFILES = {
         'https://api.groq.com/openai/v1/chat/completions',
         'llama-3.3-70b-versatile',
     ),
+    # E3 runs the campaign against a hosted model so the experiment does not
+    # depend on the operator owning a GPU. The model named here is only a
+    # fallback: every E3 run passes llm_model:= explicitly, and that override
+    # is applied after this profile (see ablation_overrides below).
+    #
+    # OpenRouter is a router, not a model. Which provider serves the request
+    # decides quantisation, latency and whether tool calling works at all, and
+    # it changes minute to minute. Pin one with OPENROUTER_PROVIDER (read by
+    # web/http_client.py) for anything whose numbers get compared.
+    'https://openrouter.ai/api/v1/chat/completions': _llm_profile(
+        'openrouter',
+        'http',
+        'https://openrouter.ai/api/v1/chat/completions',
+        'qwen/qwen3.5-397b-a17b',
+    ),
 }
 
 _KNOWN_LLM_ENDPOINT_DISPLAY = (
@@ -69,6 +84,7 @@ _KNOWN_LLM_ENDPOINT_DISPLAY = (
     'http://10.100.11.191:8000/v1/chat/completions',
     'http://10.100.11.191:8001/v1/chat/completions',
     'https://api.groq.com/openai/v1/chat/completions',
+    'https://openrouter.ai/api/v1/chat/completions',
 )
 
 
