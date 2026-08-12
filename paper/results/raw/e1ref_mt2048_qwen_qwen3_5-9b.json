@@ -1,0 +1,21 @@
+{
+  "SKIPPED": true,
+  "why": "Placeholder, not a result. The worker skips an arm whose output file is non-empty; this file exists only to take the hosted 2048-token control out of the running queue without editing a script bash is still reading.",
+  "replaced_by": "the same control measured locally: qwen3.5-9b:latest via Ollama at --llm-max-tokens 8192, compared against the existing 2048 run. Local isolates the token budget with runtime and quantisation held fixed, whereas this hosted cell varied all three at once.",
+  "results": [],
+  "total": 0,
+  "passed": 0,
+  "map": "amongus",
+  "llm_mode": "http",
+  "llm_model": "qwen/qwen3.5-9b (NOT RUN)",
+  "llm_temperature": 0.1,
+  "llm_num_ctx": 32768,
+  "llm_max_tokens": 2048,
+  "repeat": 5,
+  "grounding": "full",
+  "schema_constrained": false,
+  "schema_variant": null,
+  "schema_branches": null,
+  "test_subset": [],
+  "prompt_fingerprint": null
+}
