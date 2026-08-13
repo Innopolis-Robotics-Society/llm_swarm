@@ -87,20 +87,41 @@ def summarize(path: str) -> dict:
         by.setdefault(r['id'], []).append(r)
 
     n = len(by)
-    p1 = sum(1 for rs in by.values() if rs[0]['passed'])
+    # pass@1 is the mean success rate per attempt, estimated over ALL repeats:
+    #   pass@1 = (passed calls) / (total calls)
+    # This is the standard unbiased estimator (Chen et al., pass@k with n=k=1
+    # averaged over n samples), and it is what the paper's protocol section
+    # claims to report.
+    #
+    # It previously scored the FIRST repeat only, discarding four fifths of the
+    # data. That is an estimator of the same quantity, but a much noisier one:
+    # 44 Bernoulli trials instead of 220, so ~+/-6 points of standard error
+    # instead of ~+/-3. It also produced at least one wrong headline --
+    # qwen3.5-397b-a17b under the schema scored a "perfect" 44/44 because the
+    # first attempt happened to succeed on all five of the cases it actually
+    # fails most of the time (two of them pass 2/5). Its real rate is 95.0%.
+    #
+    # The old figure is kept under pass_at_1_first_sample so a reader can tell
+    # which estimator an older table used rather than having to guess.
+    total_calls = len(d['results'])
+    passed_calls = sum(1 for r in d['results'] if r['passed'])
+    p1_first = sum(1 for rs in by.values() if rs[0]['passed'])
     p5 = sum(1 for rs in by.values() if any(x['passed'] for x in rs))
     el = [r['elapsed_sec'] for r in d['results']]
     el_s = sorted(el)
 
     cats: dict[str, dict] = collections.OrderedDict()
     for cid, rs in by.items():
-        c = cats.setdefault(category(cid), {'n': 0, '_p1': 0, '_p5': 0})
+        c = cats.setdefault(
+            category(cid), {'n': 0, '_ok': 0, '_calls': 0, '_p5': 0})
         c['n'] += 1
-        c['_p1'] += 1 if rs[0]['passed'] else 0
+        c['_ok'] += sum(1 for x in rs if x['passed'])
+        c['_calls'] += len(rs)
         c['_p5'] += 1 if any(x['passed'] for x in rs) else 0
     for c in cats.values():
-        c['pass_at_1_pct'] = round(100 * c.pop('_p1') / c['n'], 1)
+        c['pass_at_1_pct'] = round(100 * c.pop('_ok') / c['_calls'], 1)
         c['pass_at_5_pct'] = round(100 * c.pop('_p5') / c['n'], 1)
+        c['calls'] = c.pop('_calls')
 
     modes = collections.Counter(
         classify(r) for r in d['results'] if not r['passed'])
@@ -115,8 +136,14 @@ def summarize(path: str) -> dict:
         'repeat': d.get('repeat'),
         'num_cases': n,
         'total_calls': len(d['results']),
-        'total_passed_calls': sum(1 for r in d['results'] if r['passed']),
-        'pass_at_1': {'count': p1, 'of': n, 'pct': round(100 * p1 / n, 1)},
+        'total_passed_calls': passed_calls,
+        'pass_at_1': {'count': passed_calls, 'of': total_calls,
+                      'pct': round(100 * passed_calls / total_calls, 1),
+                      'estimator': 'mean over all repeats'},
+        'pass_at_1_first_sample': {
+            'count': p1_first, 'of': n,
+            'pct': round(100 * p1_first / n, 1),
+            'estimator': 'first repeat only (superseded, kept for provenance)'},
         'pass_at_5': {'count': p5, 'of': n, 'pct': round(100 * p5 / n, 1)},
         'elapsed_sec': {
             'mean': round(statistics.mean(el), 2),

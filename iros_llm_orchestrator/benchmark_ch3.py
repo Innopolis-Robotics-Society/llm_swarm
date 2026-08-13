@@ -1089,16 +1089,30 @@ def _print_summary(results: list[Result], dry_run: bool = False, repeat: int = 1
                     print(f'        {e}')
 
     if repeat > 1:
-        # pass@1 (first sample only) and pass@repeat (any-of-N per case)
+        # pass@1 is the mean success rate per attempt over ALL repeats, and
+        # pass@repeat is any-of-N per case.
+        #
+        # pass@1 used to be scored on the first repeat only. That throws away
+        # four fifths of the samples to estimate the same quantity, roughly
+        # doubling the standard error (44 trials rather than 220 at repeat=5),
+        # and it can invent a perfect score: a model that fails a case 3 times
+        # in 5 still counts as passing it whenever attempt one happens to land.
         by_case: dict[str, list[Result]] = {}
         for r in results:
             by_case.setdefault(r.tc.id, []).append(r)
         n_cases = len(by_case)
-        pass_at_1 = sum(1 for rs in by_case.values() if rs[0].passed)
+        n_calls = len(results)
+        passed_calls = sum(1 for r in results if r.passed)
+        pass_at_1_first = sum(1 for rs in by_case.values() if rs[0].passed)
         pass_at_n = sum(1 for rs in by_case.values() if any(r.passed for r in rs))
         print()
-        print(BOLD(f'  pass@1  = {pass_at_1}/{n_cases} ({100*pass_at_1/n_cases:.1f}%)'))
-        print(BOLD(f'  pass@{repeat} = {pass_at_n}/{n_cases} ({100*pass_at_n/n_cases:.1f}%)'))
+        print(BOLD(f'  pass@1  = {passed_calls}/{n_calls} '
+                   f'({100*passed_calls/n_calls:.1f}%)  mean over repeats'))
+        print(BOLD(f'  pass@{repeat} = {pass_at_n}/{n_cases} '
+                   f'({100*pass_at_n/n_cases:.1f}%)'))
+        print(f'  (first-repeat-only pass@1 would read '
+              f'{pass_at_1_first}/{n_cases} '
+              f'({100*pass_at_1_first/n_cases:.1f}%) — not reported)')
     print(BOLD('─' * 60))
 
 

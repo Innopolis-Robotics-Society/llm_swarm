@@ -84,10 +84,23 @@ turns end-to-end mission success into an automatically scored quantity, so that
 planning accuracy and mission completion can be measured separately and
 attributed to individual architectural components by ablation.
 
+Measuring those components turned up a result we did not set out to find.
+Schema-constrained decoding, the first guard in the chain, destroys planning
+on one of the six models tested under it---a 68-point drop with eight of
+twelve plan categories at exactly zero---and a schema ladder locates the fault
+in branch \emph{selection} rather than in recursion or in filling a branch:
+the model alphabetises its keys in schema mode, so a \code{oneOf} discriminated
+by a trailing \code{type} field must be committed on a content key before the
+type is named. Re-running both arms against four hosted models shows the
+convention is one model's and the other five are unharmed, but also that
+whether it is expressed at all is decided by the decoding engine: the same
+weights alphabetise on every node under one runtime and a minority under
+another, passing 24\% or 91\% of calls accordingly.
+
 \pending{This draft fixes the system description and the experimental design.
-E1 (hermetic planning accuracy) is populated across five local models and E2
-(grounding and constraint ablation) across three; E3 remains unpopulated
-pending further runs.}
+E1 (hermetic planning accuracy) is populated across five local models, E2
+(grounding and constraint ablation) across three, and E2c (hosted reference
+sweep) across four; E3 remains unpopulated pending further runs.}
 \end{abstract}
 
 % ===========================================================================
@@ -142,7 +155,7 @@ an active-formation guard, an occupancy-aware goal rewriter, and automatic
 formation staging---all deterministic, none requiring another model call
 (Sec.~\ref{sec:guards}).
 Sec.~\ref{sec:res-e2} shows the first of these is also the one that can do the
-most damage, which is an argument for the other four rather than against the
+most damage, which is an argument for the other five rather than against the
 principle.
 
 \item \textbf{A bounded closed loop}: deterministic post-execution
@@ -657,7 +670,15 @@ planning accuracy, and folding it into a single pass rate obscured both
 signals.
 
 \emph{Protocol.} Each case is run $N{=}5$ times per model at temperature 0.1.
-We report pass@1 (mean over repeats) and pass@5, per-category breakdown,
+We report pass@1 as the mean success rate per attempt over all repeats---220
+Bernoulli trials per cell, not 44---and pass@5 as the fraction of cases
+solved by at least one of five attempts. The distinction matters and we got
+it wrong once: an earlier version of this paper scored pass@1 on the first
+repeat only, which estimates the same quantity from a fifth of the data
+($\approx\pm6$ points of standard error rather than $\approx\pm3$) and
+reported one model at a spurious 100\%, because the first attempt happened to
+land on all five of the cases it actually fails most of the time. All figures
+below use the mean-over-repeats estimator. We also report per-category breakdown,
 end-to-end latency, and the rate of each distinct failure mode (unparseable,
 schema-invalid, wrong ids, wrong coordinates, wrong structure). All runs
 reported here use \code{--llm-max-tokens 2048} (raised from an initial
@@ -928,17 +949,20 @@ calls per model), temperature 0.1, \code{--llm-max-tokens 2048},
 
 \begin{table}[t]
 \centering\footnotesize
-\caption{E1 overall pass rates and latency (44 cases, $N{=}5$, 220 calls/model).}
+\caption{E1 overall pass rates and latency (44 cases, $N{=}5$, 220 calls/model).
+Counts are given with every rate: pass@1 is over \emph{calls}, pass@5 over
+\emph{cases}, and the two denominators differ by design.}
 \label{tab:e1-summary}
+\setlength{\tabcolsep}{3pt}
 \begin{tabular}{lccccc}
 \toprule
-Model & pass@1 & pass@5 & med.\ (s) & p90 (s) & t/o \\
+Model & \makecell{pass@1\\\scriptsize /220 calls} & \makecell{pass@5\\\scriptsize /44 cases} & med.\ (s) & p90 (s) & t/o \\
 \midrule
-qwen3.5:4b          & 72.7\% & 93.2\% &  4.8 &  8.6 & 0 \\
-gemma3:12b           & 70.5\% & 72.7\% &  3.7 &  7.4 & 0 \\
-qwen2.5:14b          & 75.0\% & 81.8\% &  9.3 & 20.1 & 0 \\
-\textbf{qwen3.5-9b}  & \textbf{81.8\%} & \textbf{95.5\%} &  8.2 & 21.0 & 0 \\
-mistral-small3.2:24b     & 79.5\% & 81.8\% & 29.9 & 52.1 & 0 \\
+qwen3.5:4b          & \makecell{70.0\%\\\scriptsize 154/220} & \makecell{93.2\%\\\scriptsize 41/44} &  4.8 &  8.6 & 0 \\
+gemma3:12b           & \makecell{71.4\%\\\scriptsize 157/220} & \makecell{72.7\%\\\scriptsize 32/44} &  3.7 &  7.4 & 0 \\
+qwen2.5:14b          & \makecell{75.0\%\\\scriptsize 165/220} & \makecell{81.8\%\\\scriptsize 36/44} &  9.3 & 20.1 & 0 \\
+\textbf{qwen3.5-9b}  & \makecell{\textbf{87.3\%}\\\scriptsize 192/220} & \makecell{\textbf{95.5\%}\\\scriptsize 42/44} &  8.2 & 21.0 & 0 \\
+mistral-small3.2:24b     & \makecell{78.6\%\\\scriptsize 173/220} & \makecell{81.8\%\\\scriptsize 36/44} & 29.9 & 52.1 & 0 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -947,12 +971,12 @@ Raising the token budget from 768 to 2048 (Sec.~\ref{sec:e1}) removed timeouts
 entirely across all five models. The best model on both metrics,
 qwen3.5-9b, is not the largest: parameter count does not predict accuracy
 here. Two further patterns stand out. First, the \emph{smallest} model,
-qwen3.5:4b, is close behind on pass@1 and second-best on pass@5
-(93.2\%)---the gap between its pass@1 and pass@5 is the largest in the table,
-meaning most of its failures do not repeat under resampling and are closer to
+qwen3.5:4b, is last on pass@1 (70.0\%) and yet second-best on pass@5
+(93.2\%)---a 23.2-point gap, by far the largest in the table, meaning most of
+its failures do not repeat under resampling and are closer to
 sampling noise than to a structural gap. Second, gemma3:12b and
-mistral-small3.2:24b show almost no such recovery (70.5\%$\to$72.7\% and
-79.5\%$\to$81.8\%): their failures are largely the \emph{same} failure on
+mistral-small3.2:24b show almost no such recovery (71.4\%$\to$72.7\% and
+78.6\%$\to$81.8\%): their failures are largely the \emph{same} failure on
 every retry, i.e.\ systematic rather than stochastic. Latency also does not
 track accuracy: mistral-small3.2:24b's weights (15\,GB, 4-bit) leave under
 1\,GB of headroom on the 16\,GB card, forcing partial CPU offload and a
@@ -974,21 +998,26 @@ qwen2.5:14b (28/55 failures) and gemma3:12b (25/63); qwen3.5:4b has no
 single dominant mode, consistent with its noise-like failure profile above.
 \emph{Wrong escalation reason} is near-zero for four of the five models,
 gemma3:12b being the only one left at 5.
-\revised{This row read $\approx$10 for every model in an earlier version of
-this table, and carried our argument that escalation judgment is uniformly
-hard. Both were an artefact: two of the four escalation cases were unpassable
-by construction, because the check accepting ``either \code{needs\_help:} or
-\code{clarify:}'' combined two list-returning validators with \code{or},
-which reports an error whenever \emph{either} prefix is absent. Rescoring the
-stored outputs against the corrected check---no model was called again---moves
-159 calls across E1 and E2. What the corrected row shows is close to the
+
+That row is worth dwelling on, because an earlier version of this table read
+$\approx$10 for every model and we drew from it the conclusion that escalation
+judgment is uniformly hard. The uniformity was real; the explanation was not.
+Two of the four escalation cases were unpassable by construction: the check
+accepting ``either \code{needs\_help:} or \code{clarify:}'' combined two
+list-returning validators with \code{or}, an expression that reports an error
+whenever \emph{either} prefix is absent---and a reason cannot begin with both.
+Rescoring the stored outputs against the corrected check, with no model called
+again, moves 159 calls across E1 and E2. The corrected row says close to the
 opposite of the original claim: on the underspecified command \emph{form a
-triangle}, all five local models and the hosted reference emit the byte-
-identical plan \code{\{"type":"idle","reason":"clarify: no group specified
-for triangle formation"\}}, i.e.\ they recognise the ambiguity, decline to
-act, and say why. What differed was the prefix, and the prompt's own worked
-example is the one that teaches \code{clarify:}. Recognition is uniform and
-good; only compliance with an undocumented convention was failing.}
+triangle}, all five local models and every hosted model in
+Sec.~\ref{sec:res-e2c} emit the byte-identical plan
+\code{\{"type":"idle","reason":"clarify: no group specified for triangle
+formation"\}}. They recognise the ambiguity, decline to act, and say why.
+What differed between them was the prefix, and the prompt's own worked example
+is the one that teaches \code{clarify:}. Recognition is uniform and good; only
+compliance with an undocumented convention was failing. We record the episode
+rather than quietly fixing the number, because a benchmark that cannot be
+passed produces exactly the flat profile a real capability gap would.
 
 \begin{table}[t]
 \centering\footnotesize
@@ -1012,26 +1041,29 @@ Total failed / 220        & 66 & 63 & 55 & 28 & 47 \\
 \end{tabular}
 \end{table}
 
-By category, all five models are reliable (100\% pass@1) on \code{idle} and
-\code{parallel}, and near-reliable on \code{mapf\_basic} and \code{sequence}.
-\code{formation\_create} shows the widest spread across models (100\% for
-qwen3.5:4b down to 20\% for gemma3:12b), consistent with the formation-schema
-failure mode above being model-specific rather than a shared difficulty. One
-category is weak for \emph{every} model regardless of size or family:
-\code{mapf\_spread} sits at exactly 50\% pass@1 for all five---worth flagging
-as a possible benchmark-design artifact rather than a genuine model weakness,
-since the category has only two cases and a single flipped call moves the
-rate by 50 points; we do not read anything into it beyond that caveat.
-\code{escalate} ranges 50--100\% pass@1 with no relationship to model size
-(qwen2.5:14b, the largest of the mid-size models, is the \emph{worst} on this
-category).
-\revised{Two models now score 100\% here. The residual failures are of two
-different kinds and should not be pooled: gemma3:12b answers \emph{repeat the
+By category, all five models are perfect on \code{idle}, and all but
+qwen3.5:4b (90.0\%) on \code{parallel}; \code{mapf\_basic} and \code{sequence}
+are near-reliable. The widest spread across models is
+\code{formation\_complex} (13.3\% for gemma3:12b to 80.0\% for qwen3.5-9b) with
+\code{formation\_create} close behind (20.0\% to 68.0\%), consistent with the
+formation-schema failure mode above being model-specific rather than a shared
+difficulty. \code{mapf\_spread} is the weakest category for every model
+(50--60\%), but the category has only two cases and one flipped call moves the
+rate by 10 points at $N{=}5$, so we read it as a place where the benchmark is
+thin rather than as a measured weakness. \code{escalate} ranges 60--95\% with
+no relationship to model size: qwen2.5:14b, the largest of the mid-size
+models, is the \emph{worst} on it, and the two best are the smallest and the
+second-smallest.
+
+The residual escalation failures are of two
+different kinds and should not be pooled. gemma3:12b answers \emph{repeat the
 last command} with \code{reason:"operator stop"}, which is neither an action
-nor a question, while qwen2.5:14b answers it with a \code{mapf}---it acts on a
-command it cannot possibly have resolved. The second is the dangerous one and
-is the case that still argues for a check outside the model; the first is
-merely malformed. Four cases in this category is too few to say more.}
+nor a question---malformed, but inert. qwen2.5:14b answers the same command
+with a \code{mapf}: it acts on an instruction it cannot possibly have
+resolved. Only the second is dangerous, and it is the case that still argues
+for a check outside the model, since a plan that is well-formed and confidently
+wrong is precisely what a schema cannot catch. Four cases in this category is
+too few to say more than that the two behaviours exist.
 
 \emph{Reading with appropriate caution.} $N{=}5$ per case, and as few as 2
 cases in some categories, is enough to separate the reliable categories from
@@ -1075,20 +1107,20 @@ qwen2.5:14b. \emph{unp.} is the \emph{unparseable JSON} failure count over all
 Model & Condition & pass@1 & $\Delta$ & pass@5 & $\Delta$ & unp. \\
 \midrule
 \multirow{4}{*}{\makecell[l]{qwen3.5\\4b}}
- & baseline (E1)   & 72.7\% &        & 93.2\% &        & 16 \\
- & schema on         & 77.3\% & $+4.6$ & 95.5\% & $+2.3$ & 1 \\
- & locations-only     & 75.0\% & $+2.3$ & 90.9\% & $-2.3$ & 11 \\
- & coords-only         & 68.2\% & $-4.5$ & 84.1\% & $-9.1$ & 11 \\
+ & baseline (E1)   & \makecell{70.0\%\\\scriptsize 154/220} &        & \makecell{93.2\%\\\scriptsize 41/44} &        & 16 \\
+ & schema on         & \makecell{77.7\%\\\scriptsize 171/220} & $+7.7$ & \makecell{95.5\%\\\scriptsize 42/44} & $+2.3$ & 1 \\
+ & locations-only     & \makecell{76.8\%\\\scriptsize 169/220} & $+6.8$ & \makecell{90.9\%\\\scriptsize 40/44} & $-2.3$ & 11 \\
+ & coords-only         & \makecell{67.7\%\\\scriptsize 149/220} & $-2.3$ & \makecell{84.1\%\\\scriptsize 37/44} & $-9.1$ & 11 \\
 \midrule
 \multirow{2}{*}{\makecell[l]{qwen2.5\\14b}}
- & baseline (E1)   & 75.0\% &         & 81.8\% &         & 0 \\
- & schema on         & 72.7\% & $-2.3$  & 81.8\% & $\pm0.0$ & 0 \\
+ & baseline (E1)   & \makecell{75.0\%\\\scriptsize 165/220} &         & \makecell{81.8\%\\\scriptsize 36/44} &         & 0 \\
+ & schema on         & \makecell{75.5\%\\\scriptsize 166/220} & $+0.5$  & \makecell{81.8\%\\\scriptsize 36/44} & $\pm0.0$ & 0 \\
 \midrule
 \multirow{4}{*}{\makecell[l]{qwen3.5\\9b}}
- & baseline (E1)   & 81.8\% &         & 95.5\% &         & 6 \\
- & schema on         & \textbf{15.9\%} & $\mathbf{-65.9}$ & \textbf{22.7\%} & $\mathbf{-72.8}$ & 3 \\
- & locations-only     & 90.9\% & $+9.1$  & 95.5\% & $\pm0.0$ & 1 \\
- & coords-only         & 90.9\% & $+9.1$  & 95.5\% & $\pm0.0$ & 0 \\
+ & baseline (E1)   & \makecell{87.3\%\\\scriptsize 192/220} &         & \makecell{95.5\%\\\scriptsize 42/44} &         & 6 \\
+ & schema on         & \makecell{\textbf{19.1\%}\\\scriptsize 42/220} & $\mathbf{-68.2}$ & \makecell{\textbf{22.7\%}\\\scriptsize 10/44} & $\mathbf{-72.8}$ & 3 \\
+ & locations-only     & \makecell{90.5\%\\\scriptsize 199/220} & $+3.2$  & \makecell{95.5\%\\\scriptsize 42/44} & $\pm0.0$ & 1 \\
+ & coords-only         & \makecell{89.1\%\\\scriptsize 196/220} & $+1.8$  & \makecell{95.5\%\\\scriptsize 42/44} & $\pm0.0$ & 0 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1097,15 +1129,16 @@ Model & Condition & pass@1 & $\Delta$ & pass@5 & $\Delta$ & unp. \\
 and reverses sign on one model.} Its purpose is to remove malformed JSON, and
 the \emph{unp.} column shows it doing exactly that where the problem exists:
 qwen3.5:4b falls from 16 unparseable calls to 1, and both its pass rates
-improve modestly. qwen2.5:14b never emitted malformed JSON to begin with
-($0\to0$), so the schema has nothing to fix and changes nothing---pass@5 is
-identical, pass@1 moves $-2.2$, and its failure-mode counts barely shift
+improve ($+7.7$ pass@1, $+2.3$ pass@5). qwen2.5:14b never emitted malformed
+JSON to begin with ($0\to0$), so the schema has nothing to fix and changes
+nothing---pass@5 is identical, pass@1 moves $+0.5$, well inside the
+$\approx\pm3$ standard error, and its failure-mode counts barely shift
 (\emph{wrong structure} $28\to26$, the rest within one). For qwen3.5-9b the
-same mechanism is catastrophic: pass@1 drops 65.9 points and pass@5 72.8,
+same mechanism is catastrophic: pass@1 drops 68.2 points and pass@5 72.8,
 while repairing only three malformed calls.
 
 The collapse is deterministic rather than stochastic. pass@5 recovers only to
-18.2\%, so resampling five times almost never rescues a failed case, and the
+22.7\%, so resampling five times almost never rescues a failed case, and the
 per-category breakdown is degenerate: $0.0/0.0$ on eight of twelve
 categories---\code{mapf\_basic}, \code{mapf\_explicit}, \code{mapf\_spread},
 \code{parallel}, \code{sequence}, \code{formation\_create},
@@ -1191,18 +1224,19 @@ Table~\ref{tab:e2-summary}.
 Table~\ref{tab:e2-summary}. S1-no-idle applies only to the mapf subset.
 $^\dagger$S3 pins the node type, which the validators also check---its rate is
 \emph{not} like-for-like with the others and is reported only to show that the
-branch body is reachable.}
+branch body is reachable. S3 is a family of one-branch schemas and covers 22
+of the 23 cases (110 calls), which is why its denominator differs.}
 \label{tab:e2-ladder}
 \begin{tabular}{llcc}
 \toprule
  & & 23-case & 13-case mapf \\
-Variant & Plan node & subset & subset \\
+Variant & Plan node & \makecell{subset\\\scriptsize @1 \textbar{} @5} & \makecell{subset\\\scriptsize @1 \textbar{} @5} \\
 \midrule
-schema off   & ---                      & 73.9/82.6 & 76.9/84.6 \\
-S1           & 6-branch, recursive      & 21.7/30.4 & \textbf{0.0/0.0} \\
-S2           & 4-branch, no recursion   & 26.1/34.8 & \textbf{0.0/0.0} \\
-S3$^\dagger$ & 1 branch, no \code{oneOf}& 78.3/87.0 & 84.6/92.3 \\
-S1-no-idle   & 5-branch, recursive      & ---       & \textbf{0.0/0.0} \\
+schema off   & ---                      & \makecell{86.1/91.3\\\scriptsize 99/115 \textbar{} 21/23} & \makecell{81.5/84.6\\\scriptsize 53/65 \textbar{} 11/13} \\
+S1           & 6-branch, recursive      & \makecell{34.8/39.1\\\scriptsize 40/115 \textbar{} 9/23} & \makecell{\textbf{0.0/0.0}\\\scriptsize 0/65 \textbar{} 0/13} \\
+S2           & 4-branch, no recursion   & \makecell{37.4/43.5\\\scriptsize 43/115 \textbar{} 10/23} & \makecell{\textbf{0.0/0.0}\\\scriptsize 0/65 \textbar{} 0/13} \\
+S3$^\dagger$ & 1 branch, no \code{oneOf}& \makecell{86.4/95.5\\\scriptsize 95/110 \textbar{} 21/22} & \makecell{84.6/92.3\\\scriptsize 55/65 \textbar{} 12/13} \\
+S1-no-idle   & 5-branch, recursive      & ---       & \makecell{\textbf{0.0/0.0}\\\scriptsize 0/65 \textbar{} 0/13} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1210,8 +1244,8 @@ S1-no-idle   & 5-branch, recursive      & ---       & \textbf{0.0/0.0} \\
 Three readings follow, and they agree with the emitted-node evidence above.
 \emph{Recursion is not the cause}: S1 and S2 are both exactly $0.0/0.0$ on the
 mapf subset, so deleting the recursive branches and every \code{\$ref} changes
-nothing. Their difference on the 23-case subset ($21.7/30.4$ vs.\ $26.1/34.8$)
-is one to two cases at $N{=}5$ and we read it as noise, not as a recursion
+nothing. Their difference on the 23-case subset ($34.8/39.1$ vs.\ $37.4/43.5$)
+is 2.6 points, inside the standard error, and we read it as noise, not as a recursion
 effect in the opposite direction. \emph{The \code{oneOf} is}: pinning
 \code{type} to a single \code{const} restores \code{mapf} in 65 of 65 calls,
 against 0 of 65 under both S1 and S2. \emph{And the collapse is not simply a
@@ -1226,14 +1260,16 @@ type by \code{const}, and node type is exactly what the validators check first;
 \emph{wrong structure} is qwen3.5-9b's dominant failure mode under the schema
 ($11\to131$). On the mapf subset S3 therefore tells the model the answer to the
 question it is being scored on, and its $84.6/92.3$ is not comparable to the
-unconstrained $76.9/84.6$---one condition has half the task solved for it in
+unconstrained $81.5/84.6$---one condition has half the task solved for it in
 advance. What S3 licenses is the structural claim only: the \code{mapf} branch
 is reachable, its body is filled correctly when reached, and the failure is
 located in branch \emph{selection}. Whether constraining decoding helps a model
 that must still choose is not something this ladder measures.
 
-\emph{Scope.} Diagnostics place the trigger in the model, not in this stack or
-this schema. No chat template injects the schema into the prompt, nothing on
+\emph{Scope.} Diagnostics place the trigger in the model and this schema
+rather than in the surrounding code---though the runtime turns out to matter
+too, which we could not see from one stack and correct in
+Sec.~\ref{sec:res-e2c}. No chat template injects the schema into the prompt, nothing on
 the outbound path sorts keys, and the request bodies for the two qwen3.5
 models differ only in the model name, with the schema reaching the wire in
 declaration order. The grammar itself is any-order: qwen3.5:4b reproduces the
@@ -1244,7 +1280,9 @@ example putting \code{type} first---qwen3.5-9b still alphabetises (5/5), and
 with three keys it places \code{type} in the middle, which excludes mere
 reversal. The behaviour is therefore a schema-mode output convention learned
 by qwen3.5-9b, harmless in itself, that is fatal only in contact with a
-\code{oneOf} discriminated by a \code{type} field.
+\code{oneOf} discriminated by a \code{type} field. Sec.~\ref{sec:res-e2c}
+qualifies this once more: the convention is the model's, but whether it is
+expressed at all depends on the decoding engine.
 
 We resist two tempting generalisations. Model size is not the axis:
 qwen2.5:14b is larger than qwen3.5-9b and is unaffected. Nor is qwen3.5:4b
@@ -1296,7 +1334,7 @@ The declared defaults in \code{chat\_server.py} are
 thus avoids constrained decoding entirely, and only because tool calling
 happens to be switched on: the schema is enabled in the file but never
 reaches the model. The code defaults are the combination E2 measures at
-11.4\%, and an operator following the warning's own advice---disable tool
+19.1\%, and an operator following the warning's own advice---disable tool
 calling, since it suppresses structured output anyway---moves the system from
 the unconstrained path onto exactly that combination. The hazard is
 conditional on model choice rather than universal, since
@@ -1305,21 +1343,23 @@ models measured here; but a defaults pair that is safe only by accident, and
 that a documented remedy turns unsafe, is a configuration defect independent
 of which model is loaded.
 
-\emph{Symbolic grounding is load-bearing for the small model and inert---or
-negative---for the large one.} qwen3.5:4b degrades monotonically as
-scaffolding is removed, losing 9.1 points of pass@5 by \emph{coords-only},
+\emph{Symbolic grounding is load-bearing for the small model and inert for the
+large one.} qwen3.5:4b degrades monotonically on pass@5 as scaffolding is
+removed, losing 9.1 points by \emph{coords-only},
 with \emph{wrong structure} rising 17\,$\to$\,24 and \emph{wrong robot-id
 set} 0\,$\to$\,3: stripped of aliases and zones it starts mis-resolving which
 robots and which structure the request implies. qwen3.5-9b loses nothing
-(95.5\% pass@5 in all three grounding conditions) and \emph{gains} 9.1 points
-of pass@1 in both reduced conditions. Since \emph{locations-only} differs
-from \emph{full} only by the heuristics paragraph, that paragraph is a net
-negative for the larger model---it is prose advice about corridor deadlocks
-and room capacities, and the model plans better without it. This is a
-concrete answer to RQ2's question of what the $\approx$9{,}700-token prompt
-buys: for the deployed model, the most expensive symbolic block is
-counterproductive, and for the small model it is nearly free while the
-\emph{aliases and zones} carry the value.
+(95.5\% pass@5 in all three grounding conditions) and moves $+3.2$ and $+1.8$
+on pass@1---both inside the $\approx\pm3$ standard error, so the honest
+reading is that removing the scaffolding costs the larger model nothing rather
+than that it helps. An earlier version of this paper read the same cells as a
+$+9.1$ gain in both reduced conditions and concluded that the heuristics
+paragraph is actively counterproductive; that conclusion was an artefact of
+the first-sample estimator and does not survive using all the data. What
+remains is still an answer to RQ2's question of what the
+$\approx$9{,}700-token prompt buys, just a weaker one: for the larger model
+the most expensive symbolic block buys nothing measurable, and for the small
+model the \emph{aliases and zones} carry whatever value there is.
 
 The \emph{unp.} column carries a second, independent effect that the pass rates
 hide. Trimming the map block monotonically reduces malformed JSON in both
@@ -1334,20 +1374,16 @@ accuracy are not the same axis and a prompt-budget decision cannot be made on
 either alone. At five and six failures respectively these counts are small,
 and we report the direction rather than an effect size.
 
-\emph{Reading with appropriate caution.} Two cautions bound the above. The
-grounding effect on qwen3.5:4b rests on differences of 2--9 points at $N{=}5$
-over 44 cases, which is enough to show the direction and not enough to bound
-the effect size; only the \emph{coords-only} pass@5 drop ($-9.1$) is
-comfortably larger than the per-cell noise visible elsewhere in the table.
-More importantly, qwen3.5-9b's \emph{locations-only} and \emph{coords-only}
-cells produce identical aggregates (90.9\%/95.5\%). These are genuinely
-different prompts and their per-category results do differ
-(\code{mapf\_explicit} $50.0/100.0$ vs.\ $100.0/100.0$;
-\code{formation\_complex} $100.0/100.0$ vs.\ $66.7/100.0$), so the aggregate
-match is a coincidence at 44 cases rather than evidence that the two
-conditions are equivalent, and we read no effect into it. The schema result
-on qwen3.5-9b needs no such hedging: a 65.9-point drop with eight categories
-at exactly zero is not a sampling artifact.
+\emph{Reading with appropriate caution.} The grounding effects are at or below
+the resolution of this design. With 220 calls per cell the standard error on a
+pass@1 near 80\% is about 3 points before any correction for the fact that
+five repeats of one case are not independent draws, so the only grounding
+figure in the table that clears it comfortably is qwen3.5:4b's
+\emph{coords-only} pass@5 drop ($-9.1$). We report the others as directions,
+not effect sizes, and specifically decline to build on the $+3.2$/$+1.8$ moves
+for qwen3.5-9b. The schema result on the same model needs no such hedging: a
+68.2-point drop with eight of twelve categories at exactly zero is not a
+sampling artifact at any plausible interval.
 
 \emph{What E2 does not measure.} Sec.~\ref{sec:e2} proposed five factors; two
 are reported here. Tool calling is deferred to E3.
@@ -1383,6 +1419,145 @@ from goal arity when one centre is given for several robots; 4b's
 load-bearing in a way its own comment does not suggest, and removing it would
 silently disable the feature for any deployment using structured outputs.
 
+\subsection{E2c: hosted reference sweep, and what it does to the mechanism}
+\label{sec:res-e2c}
+
+Everything above runs on one machine through one runtime. That leaves the
+central claim of Sec.~\ref{sec:res-e2} resting on a single inference stack, so
+we re-ran both arms of the schema factor against four hosted models on
+OpenRouter: \textbf{google/gemini-2.5-flash}, \textbf{qwen/qwen3.5-9b} (the
+same weights that collapse locally), \textbf{qwen/qwen3.5-397b-a17b} and
+\textbf{nvidia/nemotron-3-ultra-550b-a55b}. Protocol is E1's, and the reuse is
+gated the same way: all eight cells carry the prompt fingerprint
+\code{42d660fe}, 44 cases $\times$ 5 repeats, 220 calls per cell.
+
+Transport failures had to be separated from planning failures before any of
+this could be scored. The harness has no retry, so a provider answering
+\code{403} in under a second---before generation---lands as a failed case with
+the HTTP text in \code{parse\_error}, indistinguishable from a bad plan. Three
+of the four models were affected; every such case was re-run in full, never
+per-repeat, and timeouts were deliberately \emph{not} repaired. The figures
+below contain no transport errors.
+
+\begin{table}[t]
+\centering\footnotesize
+\caption{Hosted reference sweep (44 cases, $N{=}5$, 220 calls/cell).
+Key order is measured over every plan node emitted in that cell.
+$^\ddagger$The qwen3.5-9b schema cell mixes two decoders and is not a single
+model-level number; see text.}
+\label{tab:e2c-hosted}
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{llcccc}
+\toprule
+Model & Cond. & pass@1 & pass@5 & \makecell{\code{type}\\first} & \makecell{alpha-\\betical} \\
+\midrule
+\multirow{2}{*}{\makecell[l]{gemini\\2.5-flash}}
+ & off    & \makecell{89.5\%\\\scriptsize 197/220} & \makecell{90.9\%\\\scriptsize 40/44} & 100\% & 0\% \\
+ & schema & \makecell{80.9\%\\\scriptsize 178/220} & \makecell{86.4\%\\\scriptsize 38/44} & 100\% & 0\% \\
+\midrule
+\multirow{2}{*}{\makecell[l]{qwen3.5\\9b}}
+ & off    & \makecell{90.5\%\\\scriptsize 199/220} & \makecell{97.7\%\\\scriptsize 43/44} & 100\% & 0\% \\
+ & schema & \makecell{51.4\%$^\ddagger$\\\scriptsize 113/220} & \makecell{61.4\%\\\scriptsize 27/44} & 38.8\% & \textbf{60.6\%} \\
+\midrule
+\multirow{2}{*}{\makecell[l]{nemotron-3\\ultra 550b}}
+ & off    & \makecell{90.5\%\\\scriptsize 199/220} & \makecell{97.7\%\\\scriptsize 43/44} & 100\% & 0\% \\
+ & schema & \makecell{88.6\%\\\scriptsize 195/220} & \makecell{95.5\%\\\scriptsize 42/44} & 100\% & 0\% \\
+\midrule
+\multirow{2}{*}{\makecell[l]{qwen3.5\\397b-a17b}}
+ & off    & \makecell{93.2\%\\\scriptsize 205/220} & \makecell{100.0\%\\\scriptsize 44/44} & 100\% & 0\% \\
+ & schema & \makecell{95.0\%\\\scriptsize 209/220} & \makecell{100.0\%\\\scriptsize 44/44} & 99.1\% & 0.9\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\emph{The mechanism survives the change of stack, and gains a cleaner test.}
+Unconstrained, all four models emit \code{type} first in 100\% of plan nodes.
+Under the schema, three of the four still do (397b slips on 5 nodes out of
+545), and all three are unharmed: gemini loses 8.6 points, nemotron 1.9, and
+397b moves $+1.8$---the last two inside the standard error, so the fair
+summary is that the schema costs them nothing rather than that it helps. Only
+qwen3.5-9b alphabetises, and only qwen3.5-9b loses accuracy, by 39.1 points.
+The correlation the local sweep could only show across models now holds across
+vendors, parameter counts from 9B to 550B, and an entirely different set of
+grammar engines.
+
+The within-cell evidence is stronger than the between-model evidence, because
+it removes every difference except the one under test. Hosted qwen3.5-9b
+alphabetises on only part of its calls, which splits the same cell---same
+model, same schema, same prompts---into two populations:
+
+\begin{center}\footnotesize
+\begin{tabular}{lccc}
+\toprule
+Key order & calls & pass rate & \code{mapf} at top level \\
+\midrule
+\code{type} first  &  93 & \textbf{91.4\%} & 35 \\
+mixed within a plan &   2 & 0.0\% & 0 \\
+alphabetical        & 117 & \textbf{23.9\%} & \textbf{0} \\
+\midrule
+no parseable plan   &   8 & 0.0\% & --- \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The last row is not a rounding remainder: 8 of the 220 calls produced JSON
+that does not parse, so no key order can be read off them. They are failures
+and are counted as such in Table~\ref{tab:e2c-hosted}; excluding them from the
+split would flatter both buckets, so they are shown rather than dropped.
+
+The \code{mapf} branch is emitted 35 times when the discriminator comes first
+and \emph{exactly zero} times when it does not, reproducing the local
+$58\to0$ result inside a single condition. This is the prediction of
+Sec.~\ref{sec:res-e2} stated as a dose relationship rather than a comparison:
+where the ordering convention appears, the branch disappears with it.
+
+\emph{But the trigger is not the model alone, and Sec.~\ref{sec:res-e2}
+overstated that.} We wrote there that diagnostics place the trigger in the
+model rather than in the stack. The hosted data contradicts the second half.
+The same weights alphabetise 220/220 nodes under Ollama and 60.6\% under
+OpenRouter, and the split is not random: it tracks which provider served the
+call. Seventeen cases re-run on a single pinned provider (SiliconFlow)
+alphabetised on 100\% of calls, while the cases served by the router's own
+choice did so on 28.6\%, a minority in every case family. The decisive pair is
+\code{parallel\_01} against \code{parallel\_02..04}---identical plan shape,
+different provider---where the first alphabetises 0/5 and passes 5/5, and the
+others alphabetise 5/5 and pass 0/5.
+
+The corrected statement is an interaction, not a property: qwen3.5-9b carries
+a latent schema-mode ordering convention that no other model tested shares,
+and whether that convention is expressed is decided by the constrained-
+decoding engine. Ollama expresses it always, SiliconFlow always, the remaining
+providers mostly not. This makes the deployment hazard \emph{worse} rather
+than better, because it is invisible in exactly the way that matters: the same
+model name and the same schema produce 91\% or 24\% depending on infrastructure
+the caller does not choose and cannot see.
+
+It also means the 51.4\% in Table~\ref{tab:e2c-hosted} is an average over two
+decoders in proportions we did not control, and must not be read as
+``qwen3.5-9b scores 51.4\% under schema when hosted''. We report it for
+completeness and rest no argument on it; the argument rests on the within-cell
+split, which does not depend on the mixture. A clean per-engine measurement
+needs the same cases run against each provider deliberately, which is one
+experiment we have specified and not yet run.
+
+\emph{Model size is still not the axis.} Sec.~\ref{sec:res-e2} declined to make
+it one, on the grounds that qwen2.5:14b is larger than qwen3.5-9b and
+unaffected. The hosted set strengthens that: the three unaffected models span
+9B to 550B parameters and four vendors, so susceptibility is not a threshold
+being crossed---it is one model's convention.
+
+What the hosted set does \emph{not} show, and an earlier draft of this section
+claimed, is that the schema \emph{helps} a large model. qwen3.5-397b-a17b
+moves $+1.8$ points under it, not the $+9.1$ we first reported, and its
+schema-on rate is 95.0\%, not a clean 44/44. Both of those were products of
+scoring pass@1 on the first repeat: the model fails three of its 44 cases on a
+majority of attempts, and on all three the first attempt happened to succeed.
+Counting all 220 attempts, the correct statement is the weaker one---for a
+model that does not alphabetise, constrained decoding is free rather than
+beneficial. That is still the claim the guard layer needs, since the schema is
+there to remove malformed output and not to improve planning; it is simply not
+the stronger claim.
+
 \pending{E3 --- end-to-end mission completion by configuration, with LLM-call
 cost and guard/repair firing counts.}
 
@@ -1399,9 +1574,9 @@ experiment that can actually support that sentence.}
 
 What E1 and E2 support is narrower but not nothing. First, bare planning
 accuracy without any of the system's guards or repair loops sits at
-70--82\% pass@1 across five locally-hosted 3.4--24B models under a realistic
+70--87\% pass@1 across five locally-hosted 3.4--24B models under a realistic
 $\approx$9{,}700-token prompt---a fleet-supervision system built on a single
-unguarded plan call would fail roughly one command in three to one in five
+unguarded plan call would fail between one command in three and one in eight
 \emph{regardless of which model is deployed}, which is the quantitative case
 for the defence-in-depth design of Sec.~\ref{sec:guards} rather than an
 assumption behind it. Second, the five models' failures are not
@@ -1411,23 +1586,21 @@ pass@1), while two mid/large models repeat the \emph{identical} validator
 complaint---a malformed \code{offsets\_x}/\code{offsets\_y} array in
 formation nodes---on retry after retry. That argues for model-specific
 schema-repair logic rather than a single fixed remediation budget applied
-uniformly. Third, escalation judgment (recognizing missing or ambiguous
-state and asking for help instead of acting) is weak and essentially flat
-across all five models independent of size or family, which is the
-strongest single piece of evidence in this data for keeping that decision
-outside the model rather than trying to prompt it better.
-\revised{This no longer follows from the corrected data and should be replaced.
-Recognition of ambiguity is in fact uniform and good: every model tested,
-including a hosted reference far outside the local size range, declines to act
-on an underspecified command and asks the right question. What the data
-supports instead is narrower and, we think, more useful: models agree on
-\emph{when} to escalate and disagree on \emph{how} to signal it, so the
-component worth putting outside the model is the protocol---a deterministic
-check that an idle plan carrying a question is routed to the operator
-regardless of which prefix the model chose---rather than the judgment itself.
-The one genuine judgment failure in the corrected data, a model issuing a
-\code{mapf} in response to \emph{repeat the last command}, is a single case
-on a single model and cannot carry the original claim.} Fourth, the
+uniformly. Third, escalation splits into a judgment and a protocol, and only
+the protocol is weak. Recognition of ambiguity is uniform and good: every
+model tested---five local, and four hosted spanning 9B to 550B parameters and
+four vendors---declines to act on the underspecified \emph{form a triangle}
+and asks the right question, in most cases with byte-identical wording. What
+they disagree on is how to \emph{signal} it, and an earlier version of this
+paper read that disagreement as a capability gap because the validator scored
+the prefix rather than the behaviour (Sec.~\ref{sec:e1-results}). The
+component worth placing outside the model is therefore the protocol---a
+deterministic check routing any idle plan that carries a question to the
+operator, whichever prefix the model chose---rather than the judgment. One
+genuine judgment failure does survive the correction, a model answering
+\emph{repeat the last command} with a \code{mapf}, and it is the shape of
+error that matters most: well-formed, confident, and wrong. It is also a
+single case on a single model, and we do not build on it. Fourth, the
 categories that are hardest across the board---formation staging order,
 escalation judgment---are exactly the categories the plan grammar
 (Sec.~\ref{sec:planlang}) and the guard layer were built to catch
@@ -1438,20 +1611,34 @@ E2 adds a fifth point that we did not anticipate and that cuts against one of
 our own design choices. Schema-constrained decoding---listed above as the
 first line of defence---is not a free safety net. It repairs the failure mode
 it was built for only where that failure mode exists, does nothing where it
-does not, and on one of the three models tested under it destroys planning
-outright, by a
-mechanism (alphabetised keys meeting a \code{type}-discriminated
-\code{oneOf}) that has nothing to do with planning ability. We can locate the
-fault precisely---the schema ladder puts it in branch \emph{selection}, not in
+does not, and on one model destroys planning outright, by a mechanism
+(alphabetised keys meeting a \code{type}-discriminated \code{oneOf}) that has
+nothing to do with planning ability. We can locate the fault
+precisely---the schema ladder puts it in branch \emph{selection}, not in
 recursion and not in filling a branch once chosen---but we stop short of
 claiming a fix: the two remedies the mechanism suggests, a fixed
 \code{sequence} envelope and renaming the discriminator so it sorts first, are
-both untested. The wider
-lesson for defence-in-depth is that a guard is only deterministic from the
-system's side; from the model's side it is another distribution shift, and it
-has to be measured per model rather than assumed. Whether the remaining guards
-actually close the plan-to-mission gap in a running fleet, and whether it
-holds under tool calling instead of constrained decoding, is what E3 is for.
+both untested.
+
+Six distinct sets of weights have now been run under the schema across two
+inference stacks---three locally and four hosted, with qwen3.5-9b in both---and
+they sharpen the finding in two directions at once
+(Sec.~\ref{sec:res-e2c}). It is narrower than we feared: five of the six emit
+the discriminator first and none of those five is measurably harmed, so for a
+model that does not alphabetise the constraint is free. And it is more
+insidious than we thought: the offending convention belongs to the model, but
+whether it is expressed belongs to the decoding engine. The same weights
+alphabetise on every node under one runtime and on a minority under another,
+and pass 24\% or 91\% of calls accordingly---a swing driven by infrastructure
+the caller does not choose and cannot see from the model name.
+
+The wider lesson for defence-in-depth is therefore stronger than
+per-model measurement. A guard is only deterministic from the system's side;
+from the model's side it is another distribution shift, and that shift is a
+property of the model \emph{and} the stack serving it. Whether the remaining
+guards actually close the plan-to-mission gap in a running fleet, and whether
+this holds under tool calling instead of constrained decoding, is what E3 is
+for.
 
 \section*{Code availability}
 
