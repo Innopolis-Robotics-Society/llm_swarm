@@ -5,7 +5,8 @@ import asyncio
 import pytest
 
 from iros_llm_orchestrator.common.plan_executor import (
-    PlanExecutor, coerce_robot_id, flatten_parallel, parse_plan)
+    PlanConflictError, PlanExecutor, coerce_robot_id, flatten_ordered,
+    flatten_parallel, parse_plan)
 from iros_llm_orchestrator.context.pose_cache import (
     compute_formation_staging)
 
@@ -45,20 +46,75 @@ def test_flatten_parallel_expands_single_center_spread_before_merge():
     assert len({tuple(goal) for goal in out[0]['goals']}) == 8
 
 
-def test_flatten_dedup_overlapping_robot_ids():
-    """Same robot in two parallel branches → last-write-wins."""
+def test_flatten_same_robot_same_goal_is_benign():
+    """One group phrased twice with the same goal still merges to one command."""
+    p = {'type': 'parallel', 'steps': [
+        _mapf([0, 1], [[1.0, 1.0], [2.0, 2.0]]),
+        _mapf([1, 2], [[2.0, 2.0], [3.0, 3.0]])]}
+    out = flatten_parallel(p)
+    assert len(out) == 1
+    rid_to_goal = dict(zip(out[0]['robot_ids'], out[0]['goals']))
+    assert sorted(out[0]['robot_ids']) == [0, 1, 2]
+    assert rid_to_goal[1] == [2.0, 2.0]
+
+
+def test_flatten_conflicting_goals_raise_instead_of_dropping_one():
+    """Two branches, one robot, two different goals -> refuse, do not guess.
+
+    This asserts the OPPOSITE of what this suite asserted before. The previous
+    contract was last-write-wins, chosen so a malformed plan would still
+    dispatch something. In practice that turned a wrong plan into a mission
+    that reported success while one goal had been silently discarded, which is
+    strictly worse than failing: a discarded goal cannot be re-planned by the
+    remediation loop, because nothing knows it went missing.
+    """
     p = {'type': 'parallel', 'steps': [
         _mapf([0, 1], [[1.0, 1.0], [2.0, 2.0]]),
         _mapf([1, 2], [[9.9, 9.9], [3.0, 3.0]])]}
+    with pytest.raises(PlanConflictError) as exc:
+        flatten_parallel(p)
+    assert 'robot_1' in str(exc.value)
+
+
+def test_flatten_keeps_nested_sequence_in_order():
+    """A carry inside a parallel must not collapse to its last leg.
+
+    Regression for session 20260813_085814: the two legs of a carry landed in
+    the same merge bucket, last-write-wins kept the dropoff, the robots drove
+    straight past the pickup, and the task stayed PENDING while the mission
+    reported success.
+    """
+    pickup, dropoff = [[-15.99, 3.65]], [[12.29, -5.06]]
+    p = {'type': 'parallel', 'steps': [
+        _mapf([4], [[-6.31, -3.66]], reason='point task'),
+        {'type': 'sequence', 'steps': [
+            _mapf([1], pickup, reason='to pickup'),
+            _mapf([1], dropoff, reason='to dropoff')]}]}
     out = flatten_parallel(p)
-    assert len(out) == 1
-    merged = out[0]
-    assert sorted(merged['robot_ids']) == [0, 1, 2]
-    # robot 1's goal must come from the second branch (last write wins).
-    rid_to_goal = dict(zip(merged['robot_ids'], merged['goals']))
-    assert rid_to_goal[1] == [9.9, 9.9]
-    assert rid_to_goal[0] == [1.0, 1.0]
-    assert rid_to_goal[2] == [3.0, 3.0]
+    assert len(out) == 3, 'merged point task, then pickup, then dropoff'
+    assert out[0]['robot_ids'] == [4]
+    assert out[1]['robot_ids'] == [1] and out[1]['goals'] == pickup
+    assert out[2]['robot_ids'] == [1] and out[2]['goals'] == dropoff
+
+
+def test_flatten_ordered_merges_parallel_nested_in_sequence():
+    """A parallel inside a sequence still gets its mapf leaves merged."""
+    s = {'type': 'sequence', 'steps': [
+        {'type': 'parallel', 'steps': [
+            _mapf([0], [[1.0, 1.0]]), _mapf([2], [[2.0, 2.0]])]},
+        _mapf([0], [[5.0, 5.0]])]}
+    out = flatten_ordered(s)
+    assert len(out) == 2
+    assert sorted(out[0]['robot_ids']) == [0, 2]
+    assert out[1]['goals'] == [[5.0, 5.0]]
+
+
+def test_flatten_idle_inside_nested_sequence_still_wins():
+    p = {'type': 'parallel', 'steps': [
+        _mapf([0], [[1.0, 1.0]]),
+        {'type': 'sequence', 'steps': [{'type': 'idle', 'reason': 'stop'}]}]}
+    assert flatten_parallel(p) == [
+        {'type': 'idle', 'reason': 'idle in parallel branch'}]
 
 
 def test_flatten_idle_takes_priority():

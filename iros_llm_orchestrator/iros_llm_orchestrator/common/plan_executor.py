@@ -187,6 +187,13 @@ def _validate_node(node: dict, path: str = 'plan') -> dict:
 # Parallel flattening
 # ---------------------------------------------------------------------------
 
+class PlanConflictError(ValueError):
+    """Two branches of one parallel send the same robot to different places.
+
+    Raised instead of silently keeping one of the goals. See flatten_parallel.
+    """
+
+
 def flatten_parallel(node: dict) -> list[dict]:
     """Flatten a parallel node into an ordered list of commands to execute.
 
@@ -196,40 +203,77 @@ def flatten_parallel(node: dict) -> list[dict]:
     - idle in any branch → return [idle] immediately (stop takes priority).
     - mixed mapf+formation → keep separate, execute as mini-sequence
       (formation requires its own BT mode, can't run simultaneously with mapf).
-    - Nested containers inside parallel → recurse.
+    - A nested ``sequence`` keeps its order and runs AFTER the merged mapf.
+    - A nested ``parallel`` is flattened into this one.
+
+    THE NESTED-SEQUENCE RULE EXISTS BECAUSE IT WAS BROKEN
+    This used to walk every branch with _collect_leaves, which recurses into
+    containers indiscriminately, so the two legs of a carry expressed as
+
+        parallel[ mapf(A), mapf(B), sequence[ mapf(C→pickup), mapf(C→dropoff) ] ]
+
+    landed in the same merge bucket and last-write-wins kept only the dropoff.
+    The robots drove straight to the delivery point, the task manager never saw
+    them at the pickup, and the carry stayed PENDING -- indistinguishable from
+    "never attempted". Worse, the mission reported success, because verification
+    checks that MAPF goals were reached and those goals were, in fact, reached.
+    Observed end to end in session 20260813_085814.
+
+    Serialising after the merge costs mission time -- the carry starts once the
+    point-task legs are on their way -- and that is the cheap side of the trade.
     """
     assert node['type'] == 'parallel'
 
-    # Collect all leaves by walking the steps
-    flat: list[dict] = []
+    # Branches that may run concurrently, versus branches whose internal order
+    # is load-bearing. A `sequence` is the second kind and must not be merged.
+    concurrent: list[dict] = []
+    ordered_tails: list[list[dict]] = []
     for step in node['steps']:
-        flat.extend(_collect_leaves(step))
+        if step.get('type') == 'sequence':
+            tail = flatten_ordered(step)
+            if tail:
+                ordered_tails.append(tail)
+        else:
+            concurrent.extend(_collect_leaves(step))
 
-    # idle takes priority
-    if any(n['type'] == 'idle' for n in flat):
+    # idle takes priority, wherever it appears — including inside a sequence.
+    if any(n['type'] == 'idle' for n in concurrent) or any(
+            n['type'] == 'idle' for tail in ordered_tails for n in tail):
         return [{'type': 'idle', 'reason': 'idle in parallel branch'}]
 
-    # Separate mapf and non-mapf
-    mapf_leaves      = [n for n in flat if n['type'] == 'mapf']
-    non_mapf_leaves  = [n for n in flat if n['type'] != 'mapf']
+    mapf_leaves      = [n for n in concurrent if n['type'] == 'mapf']
+    non_mapf_leaves  = [n for n in concurrent if n['type'] != 'mapf']
 
     result: list[dict] = []
 
-    # Merge all mapf leaves into one. If the same robot id shows up in two
-    # branches (LLM occasionally produces this when an operator phrases the
-    # same group twice), last-write-wins — the planner will reject duplicate
-    # agents and we'd rather submit a coherent goal than fail the leaf.
     if mapf_leaves:
         merged: dict[int, list] = {}
         merged_spread: dict[int, bool] = {}
         reasons: list[str]      = []
+        conflicts: list[str]    = []
         for leaf in mapf_leaves:
             ids, goals, should_spread = _mapf_ids_goals_for_merge(leaf)
             for rid, g in zip(ids, goals):
+                prev = merged.get(rid)
+                # Same robot named twice with the SAME goal is the benign case
+                # the old comment described: an operator phrasing one group
+                # twice. Two DIFFERENT goals is not benign — one of them is
+                # about to be dropped, and dropping it silently is how a broken
+                # plan reports success.
+                if prev is not None and not _same_goal(prev, g):
+                    conflicts.append(
+                        'robot_%d: (%.2f, %.2f) vs (%.2f, %.2f)'
+                        % (rid, prev[0], prev[1], g[0], g[1]))
                 merged[rid] = g
                 merged_spread[rid] = should_spread
             if leaf.get('reason'):
                 reasons.append(leaf['reason'])
+        if conflicts:
+            raise PlanConflictError(
+                'parallel branches disagree on where these robots go, so one '
+                'goal would be discarded: ' + '; '.join(conflicts)
+                + '. Put the steps in a sequence if they are meant to happen '
+                  'one after another.')
         robot_ids = list(merged.keys())
         goals = list(merged.values())
         if any(merged_spread.get(rid, False) for rid in robot_ids):
@@ -246,7 +290,35 @@ def flatten_parallel(node: dict) -> list[dict]:
 
     # Non-mapf (formation etc.) run after the merged mapf
     result.extend(non_mapf_leaves)
+    # Then each ordered branch, in its own order. Concatenating them is safe
+    # because _run_parallel executes the list sequentially and each command
+    # blocks until its robots arrive.
+    for tail in ordered_tails:
+        result.extend(tail)
     return result
+
+
+def flatten_ordered(node: dict) -> list[dict]:
+    """Ordered command list for any node: leaves as-is, sequences in order.
+
+    Mutually recursive with flatten_parallel, so a parallel nested inside a
+    sequence still gets its mapf leaves merged into one planner call.
+    """
+    t = node.get('type')
+    if t in _LEAF_TYPES:
+        return [node]
+    if t == 'parallel':
+        return flatten_parallel(node)
+    if t == 'sequence':
+        out: list[dict] = []
+        for step in node.get('steps', []):
+            out.extend(flatten_ordered(step))
+        return out
+    return []
+
+
+def _same_goal(a, b, tol: float = 1e-6) -> bool:
+    return abs(a[0] - b[0]) <= tol and abs(a[1] - b[1]) <= tol
 
 
 def _mapf_ids_goals_for_merge(
@@ -402,7 +474,14 @@ class PlanExecutor:
         merged mapf sends all robots in one goal, planner routes them
         without collisions. We don't need OS-level concurrency here.
         """
-        commands = flatten_parallel(node)
+        try:
+            commands = flatten_parallel(node)
+        except PlanConflictError as exc:
+            # Fail loudly rather than dropping a goal. The remediation loop
+            # sees this text and can re-plan; a silently discarded goal cannot
+            # be re-planned because nothing knows it went missing.
+            self._log(f"{'  '*self._depth}✗ parallel rejected: {exc}")
+            return False
         label = ' + '.join(
             f"{c['type']}({len(c.get('robot_ids',[]))}r)"
             if c['type'] == 'mapf' else c['type']
