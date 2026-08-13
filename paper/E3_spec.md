@@ -72,18 +72,37 @@ Tool-calling по HTTP реализован полностью и симметр
 четвёртой итерации, то есть поднятие `tool_max_iterations` до 20 не давало
 ничего. Локальных прогонов это касалось ровно так же — дефект был не в сети.
 
+| **скриптованный водитель для ячейки no-LLM** | `iros_llm_swarm_bt/scripts/e3_scripted_driver.py`, запускается как `ros2 run iros_llm_swarm_bt e3_scripted_driver` |
+| **дефект расписания PBS исправлен** | `mapf.launch.py`, `time_step_sec` `0.1` → `0.4` |
+
+Про водителя стоит знать три вещи, потому что от них зависит, сравнимы ли его
+числа с остальными ячейками.
+
+**Цели он берёт из `/tasks/list`, а не из констант.** Значит водитель и менеджер
+задач физически не могут разойтись в том, где находится задача: роботов везут
+ровно в ту точку, против которой менеджер потом проверяет близость.
+
+**Переноска идёт в два захода.** Менеджер защёлкивает **одного** носильщика —
+того, кто первым вошёл в радиус погрузки, — и закрывает задачу только по его
+прибытию на разгрузку. Поэтому водитель отправляет плечо погрузки, **дожидается
+статуса `carrying`** и лишь затем шлёт разгрузку. Это ровно то, что скриптованный
+арм обязан делать правильно по построению, и ровно то, на чём план от модели
+проваливается в ноль, выглядя как «робот никуда не поехал» (§3).
+
+**Ожидание статуса не косметика.** `/swarm/set_goals` завершается в момент
+прибытия, а менеджер узнаёт об этом на следующем опросе TF на 5 Гц. Проверка
+статуса сразу после действия проигрывает эту гонку достаточно часто, чтобы
+испортить ячейку: переноска выглядела бы `pending`, плечо разгрузки не ушло бы,
+и прогон записал бы провал планирования, которого не было.
+
+`demo_20_robot.py` для этого не годился и не переделывался: он зашит под склад
+30×30 м (цели вида `(15,15)`, `(26,22)`) при том, что E3 идёт на `amongus` с
+началом координат в центре, и он вообще не трогает систему задач — то есть не
+закрывает ни одной и оценивать его нечем.
+
 **Не готово, придётся сделать:**
 
-1. **Скриптованный водитель для арма «без модели»** (§7, ячейка `no-LLM`).
-   Существующий `iros_llm_swarm_bt/scripts/demo_20_robot.py` для этого **не
-   годится**: он зашит под склад 30×30 м (цели вида `(15,15)`, `(26,22)`), а
-   E3 идёт на карте `amongus` с началом координат в центре. И он вообще не
-   трогает систему задач, то есть не завершает ни одной задачи и его нечем
-   оценивать. Нужен маленький скрипт, который отдаёт **ту же миссию** заведомо
-   правильным планом (цели берутся прямо из позиций задач) и позволяет менеджеру
-   задач оценить его теми же метриками. Сети эта ячейка не касается вовсе.
-
-2. **Офлайн-разборщик записей.** Пишется после того, как появятся первые
+1. **Офлайн-разборщик записей.** Пишется после того, как появятся первые
    реальные записи — раньше нет смысла, формат уточнится.
 
 ---
@@ -863,13 +882,13 @@ tool-calling-арме она законная точка, и ячейка раз
 
 ## 9. Что должно быть на выходе
 
-Скрипт записи складывает всё в одну папку `~/swarm_sessions/<метка времени>/`.
+Скрипт записи складывает всё в одну папку `paper/results/sessions/<метка времени>/`.
 **Отдавать папку целиком.**
 
 | файл | что в нём | без него нельзя |
 |---|---|---|
 | `bag/` | топики по профилю `full` | считать выполнение, время, пробег |
-| `session.json` | коммит, флаг грязного дерева, планировщик, сценарий, число роботов, **разрешённые значения всех факторов**, модель с указанием источника, **точка входа и прибитый провайдер** | понять, какая это ячейка и на чём она гонялась |
+| `session.json` | коммит, флаг грязного дерева, планировщик, сценарий, число роботов, **разрешённые значения всех факторов**, модель с указанием источника, **точка входа и прибитый провайдер**, **`cell` / `mission` / `repeat_index`** | понять, какая это ячейка и на чём она гонялась |
 | `llm_chat/*.jsonl` | по одной записи на команду: `mission_id`, текст команды, план, успех, все счётчики | метрики 4–7, 9 и 10 |
 | `llm_decisions/`, `llm_commands/` | каналы 1 и 2 | материал для E3b |
 | `launch.log` | вывод запуска | разбор упавших прогонов |
@@ -921,7 +940,7 @@ COMMON=(--llm-endpoint https://openrouter.ai/api/v1/chat/completions
 bash $REC "${COMMON[@]}" \
   --remediation true --repair true --supervision true \
   --tool-calling true --structured-output false \
-  --note "cell=B mission=M2 rep=R provider=Chutes"
+  --cell B --mission M2 --rep R --note "provider=Chutes"
 ```
 
 **−remediation** — то же, но `--remediation false`:
@@ -930,7 +949,7 @@ bash $REC "${COMMON[@]}" \
 bash $REC "${COMMON[@]}" \
   --remediation false --repair true --supervision true \
   --tool-calling true --structured-output false \
-  --note "cell=no-remediation mission=M2 rep=R provider=Chutes"
+  --cell no-remediation --mission M2 --rep R --note "provider=Chutes"
 ```
 
 **−repair**
@@ -939,7 +958,7 @@ bash $REC "${COMMON[@]}" \
 bash $REC "${COMMON[@]}" \
   --remediation true --repair false --supervision true \
   --tool-calling true --structured-output false \
-  --note "cell=no-repair mission=M2 rep=R provider=Chutes"
+  --cell no-repair --mission M2 --rep R --note "provider=Chutes"
 ```
 
 **−supervision**
@@ -948,7 +967,7 @@ bash $REC "${COMMON[@]}" \
 bash $REC "${COMMON[@]}" \
   --remediation true --repair true --supervision false \
   --tool-calling true --structured-output false \
-  --note "cell=no-supervision mission=M2 rep=R provider=Chutes"
+  --cell no-supervision --mission M2 --rep R --note "provider=Chutes"
 ```
 
 **constrained** — единственная ячейка, где переключается пара флагов (§4.1):
@@ -957,7 +976,7 @@ bash $REC "${COMMON[@]}" \
 bash $REC "${COMMON[@]}" \
   --remediation true --repair true --supervision true \
   --tool-calling false --structured-output true \
-  --note "cell=constrained mission=M2 rep=R provider=Chutes"
+  --cell constrained --mission M2 --rep R --note "provider=Chutes"
 ```
 
 **model-9b** — единственная ячейка, где меняется модель. Флаг `--model`
@@ -967,7 +986,7 @@ bash $REC "${COMMON[@]}" \
 bash $REC "${COMMON[@]}" --model qwen/qwen3.5-9b \
   --remediation true --repair true --supervision true \
   --tool-calling true --structured-output false \
-  --note "cell=model-9b mission=M2 rep=R provider=Chutes"
+  --cell model-9b --mission M2 --rep R --note "provider=Chutes"
 ```
 
 Провайдера для девятки проверить отдельно: **Parasail для неё инструменты не
@@ -983,7 +1002,8 @@ DeepInfra, Venice или Together и записать замену в `--note`.
 bash $REC "${COMMON[@]}" \
   --remediation true --repair true --supervision true \
   --tool-calling true --structured-output false \
-  --note "cell=M2d-detour mission=M2 inject=close_lower_engine_west_at_60s rep=R provider=Chutes"
+  --cell M2d-detour --mission M2 --rep R \
+  --note "inject=close_lower_engine_west_at_60s provider=Chutes"
 
 # окно 2 — на 60-й секунде
 docker compose exec terminal bash
@@ -1007,7 +1027,7 @@ iros_llm_swarm_interfaces/srv/ListObstacles "{}"`.
 bash $REC "${COMMON[@]}" --planner pbs \
   --remediation true --repair true --supervision true \
   --tool-calling true --structured-output false \
-  --note "cell=PBS mission=M2 rep=R provider=Chutes"
+  --cell PBS --mission M2 --rep R --note "provider=Chutes"
 ```
 
 Перед первым прогоном этой ячейки — поправка `time_step_sec` из §7.4.
@@ -1019,8 +1039,9 @@ bash $REC "${COMMON[@]}" --planner pbs \
 bash $REC "${COMMON[@]}" \
   --remediation true --repair true --supervision true \
   --tool-calling true --structured-output false \
-  --note "cell=B-M1 mission=M1 rep=R provider=Chutes"   # M3: cell=B-M3 mission=M3
-                                                        # M4: cell=B-M4 mission=M4
+  --cell B-M1 --mission M1 --rep R --note "provider=Chutes"
+  # для M3:  --cell B-M3 --mission M3
+  # для M4:  --cell B-M4 --mission M4
 ```
 
 **no-LLM** — единственная ячейка, которая **не ходит в сеть вообще**. Стек
@@ -1029,7 +1050,7 @@ bash $REC "${COMMON[@]}" \
 
 ```bash
 # окно 1 — запись и стек
-bash $REC "${COMMON[@]}" --note "cell=no-LLM mission=M2 rep=R"
+bash $REC "${COMMON[@]}" --cell no-LLM --mission M2 --rep R
 
 # окно 2 — после того как стек поднялся
 docker compose exec terminal bash
@@ -1072,8 +1093,13 @@ source /home/fabian/ros2_ws/src/scripts/setup_swarm_env.sh
 
 **Что из записи не восстанавливается:**
 
-- **Имя ячейки и номер повтора** — только из `--note`. Факторы в `session.json`
-  есть, но две ячейки могут совпасть по факторам и различаться миссией.
+- **Имя ячейки, миссия и номер повтора** — из флагов `--cell` / `--mission` /
+  `--rep`, которые пишутся в `session.json` отдельными полями. Раньше это жило
+  только внутри свободного текста `--note`, и это было самое слабое место
+  кампании: ячейки B, B-M1, B-M3 и M4 запускаются побайтово одинаковыми флагами
+  и различаются **только** миссией, которую печатает оператор, так что опечатка
+  относила прогон не к той ячейке и ничто в папке этому не противоречило.
+  Скрипт предупреждает, если поля не заданы.
 - **Прибитый провайдер** — пока только из `--note`, потому что он живёт в
   переменной окружения, а её никто не записывает. Это чинится пунктом 2 §2, и
   до тех пор дисциплина `--note` — единственная защита.
