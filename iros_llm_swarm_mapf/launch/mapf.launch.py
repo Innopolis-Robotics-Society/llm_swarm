@@ -11,8 +11,22 @@ def generate_launch_description():
             description='Number of robots'
         ),
         DeclareLaunchArgument(
-            'time_step_sec', default_value='0.1',
-            description='Seconds per PBS grid step'
+            # 0.4 s, matching every other launch in the workspace (LNS2 uses
+            # 0.5). This used to default to 0.1 and that is not a tuning
+            # choice, it is a schedule the robots cannot physically follow.
+            # The PBS move set is sized as
+            #   reach = max(1, floor(max_speed * dt / resolution))
+            # (mapf_types.hpp) and the max(1, ...) clamp still advances an
+            # agent a whole 0.2 m cell per step once the product underflows.
+            # At dt = 0.1 that demands 0.2 / 0.1 = 2.0 m/s against a
+            # desired_linear_vel of 0.5, so every robot falls behind its
+            # schedule and the monitor replans forever. Only swarm_full_demo
+            # reached PBS through this file, which is why the defect survived:
+            # the dedicated swarm_pbs_mapf.launch.py always passed 0.4.
+            'time_step_sec', default_value='0.4',
+            description='Seconds per PBS grid step. Keep max_speed * '
+                        'time_step_sec >= pbs_resolution (0.5 * 0.4 = 0.2 m = '
+                        'one cell) or the schedule outruns the robots.'
         ),
         DeclareLaunchArgument(
             'use_sim_time', default_value='true'

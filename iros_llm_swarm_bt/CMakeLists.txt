@@ -92,6 +92,20 @@ install(PROGRAMS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+# E3 no-LLM cell: same mission, known-correct plan, scored by the same task
+# manager. Not a variant of demo_20_robot.py — that one is warehouse-shaped and
+# never touches the task system. See paper/E3_spec.md §2.
+#
+# RENAME, like fleet_cmd above and unlike the demo scripts, so the campaign is
+# driven by `ros2 run iros_llm_swarm_bt e3_scripted_driver`. The extension in
+# the invocation is the kind of detail an operator copies wrong once and then
+# records five runs under the wrong cell name.
+install(
+  PROGRAMS scripts/e3_scripted_driver.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME e3_scripted_driver
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)
