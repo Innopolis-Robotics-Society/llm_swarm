@@ -2,11 +2,11 @@
 # easy_record.sh — one flag per E3 grid cell. Everything else is baked in.
 #
 #   bash src/scripts/easy_record.sh --B
-#   bash src/scripts/easy_record.sh --M2d-cut
+#   bash src/scripts/easy_record.sh --M2d
 #   bash src/scripts/easy_record.sh --list
 #
 # WHY THIS EXISTS
-# The campaign is 61 runs across 13 cells whose commands differ by one or two
+# The campaign is 56 runs across 12 cells whose commands differ by one or two
 # flags. Assembling those by hand 61 times is the single most likely way to
 # lose a run: cells B, B-M1, B-M3 and M4 launch with byte-identical flags and
 # differ ONLY by the mission the operator types, so a wrong --cell is invisible
@@ -41,7 +41,14 @@ SESSIONS_ROOT="${SWARM_SESSIONS_DIR:-$SRC/paper/results/sessions}"
 ENDPOINT=https://openrouter.ai/api/v1/chat/completions
 MODEL=qwen/qwen3.5-397b-a17b
 MODEL_SMALL=qwen/qwen3.5-9b        # cell model-9b only
+# Exported, not just read. Reading it only to print in --note produced a
+# session.json whose note said "provider=Chutes" while llm_routing recorded
+# openrouter_provider: "" -- the manifest contradicted itself and the run was
+# actually unpinned. Exporting makes the note true and the pin real.
 PROVIDER="${OPENROUTER_PROVIDER:-Chutes}"
+export OPENROUTER_PROVIDER="$PROVIDER"
+export OPENROUTER_ALLOW_FALLBACKS="${OPENROUTER_ALLOW_FALLBACKS:-false}"
+export LLM_CALL_DELAY_SEC="${LLM_CALL_DELAY_SEC:-1}"
 
 # Base configuration: every guard on, tool-calling path.
 BASE=(--remediation true --repair true --supervision true
@@ -50,13 +57,13 @@ BASE=(--remediation true --repair true --supervision true
 # ── mission texts ─────────────────────────────────────────────────────────
 # Copied verbatim from paper/E3_spec.md §5. Operator pastes these into the RViz
 # chat panel. Do not reword: any edit makes runs incomparable.
-M1_TEXT='Send two orange robots to the electrical task at (-6.31, -3.66) and two orange robots to the communications task at (7.84, -15.76).'
-M2_TEXT='Send two magenta robots to the med task at (-6.84, 1.37). Send two other magenta robots to carry the security cargo: first to the pickup at (-15.99, 3.65), then to the dropoff at (12.29, -5.06). Send two orange robots to the electrical task at (-6.31, -3.66) and two orange robots to the communications task at (7.84, -15.76). Send two yellow robots to the O2 task at (12.13, 2.05).'
+M1_TEXT='Send one magenta robot and one orange robot to the electrical task at (-6.31, -3.66). Send one orange robot and one yellow robot to the communications task at (7.84, -15.76).'
+M2_TEXT='Send one magenta robot and one orange robot to the electrical task at (-6.31, -3.66). Send one cyan robot and one orange robot to the med task at (-6.84, 1.37). Send one yellow robot and one green robot to the hall task at (-2.58, 16.10). Send one yellow robot and one green robot to the communications task at (7.84, -15.76). Send one cyan robot and one magenta robot to carry the security cargo: first to the pickup at (-15.99, 3.65), then to the dropoff at (12.29, -5.06).'
 M3_TEXT='Complete all declared tasks.'
 M4_TEXT='Form a column of four cyan robots led by robot_0 in the cafeteria at (2.7, 10.1), then move the column to storage at (0.6, -10.9), then disband it.'
 
 CASES="B no-remediation no-repair no-supervision constrained model-9b no-LLM \
-M2d-detour M2d-cut PBS M4 B-M1 B-M3"
+M2d PBS M4 B-M1 B-M3"
 
 usage() {
   cat <<'EOF'
@@ -65,7 +72,7 @@ easy_record.sh — запуск одной ячейки сетки E3
   bash src/scripts/easy_record.sh --<ЯЧЕЙКА> [--rep N]
   bash src/scripts/easy_record.sh --list
 
-Ячейки (13, всего 61 прогон):
+Ячейки (12, всего 56 прогонов):
 
   --B               опорная точка: всё включено, миссия M2          5 прогонов
   --no-remediation  без перепромпта после отказа исполнения         5
@@ -74,8 +81,7 @@ easy_record.sh — запуск одной ячейки сетки E3
   --constrained     схема вместо инструментов                       5
   --model-9b        та же семья, в 44 раза меньше параметров        5
   --no-LLM          потолок субстрата, план без модели              5
-  --M2d-detour      дверь ломает маршрут, обход есть                5
-  --M2d-cut         дверь делает цель недостижимой                  5
+  --M2d             дверь ломает маршрут, обход остаётся            5
   --PBS             другой планировщик                              5
   --M4              строй: сбор, проход, роспуск                    5
   --B-M1            нижний край сложности                           3
@@ -156,10 +162,18 @@ case "$CASE" in
   M4)             MISSION=M4; MISSION_TEXT="$M4_TEXT" ;;
   B-M1)           MISSION=M1; MISSION_TEXT="$M1_TEXT" ;;
   B-M3)           MISSION=M3; MISSION_TEXT="$M3_TEXT" ;;
-  M2d-detour|M2d-cut)
-    if [ "$CASE" = "M2d-detour" ]; then DOOR=lower_engine_west
-    else DOOR=cafeteria_north; fi
-    SECOND_WINDOW="РОВНО через 60 с после отправки команды, во втором окне:
+  M2d)
+    DOOR="<ВЫБРАТЬ>"
+    SECOND_WINDOW="СТОП: дверь для этой ячейки ещё НЕ ОПРЕДЕЛЕНА.
+
+Прежняя (lower_engine_west) удлиняла переноску, когда та шла от electrical.
+Новый M2 отдал переноску циану из upper_engine, и маршрут стал северным, так
+что дверь, скорее всего, ни на что не влияет. До сбора данных — перемерить по
+occupancy grid и найти дверь, которая ломает РОВНО ОДНО плечо и ОСТАВЛЯЕТ
+ОБХОД. Наглухо перекрывать нельзя: субстрат этого не переживает достаточно
+тихо, чтобы измерять решение модели (E3_spec.md, раздел M2d).
+
+Когда дверь выбрана — РОВНО через 60 с после отправки команды, во втором окне:
 
   docker compose exec terminal bash
   source /home/fabian/ros2_ws/install/setup.bash
