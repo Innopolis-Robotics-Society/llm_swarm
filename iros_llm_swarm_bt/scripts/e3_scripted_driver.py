@@ -77,43 +77,57 @@ _TASKS_QOS = QoSProfile(
 )
 
 # Robot groups, mirroring the colour names the operator uses in the LLM arms.
-# Kept here rather than read from the scenario because the LLM arms resolve
-# these from the prompt's grounding block, and the point of this cell is that
-# the mapping is not in question.
-MAGENTA_A = [4, 5]
-MAGENTA_B = [6, 7]
-ORANGE_A = [12, 13]
-ORANGE_B = [14, 15]
-YELLOW = [16, 17]
+# Kept here rather than read from the scenario because the LLM arms resolve them
+# from the prompt's grounding block, and the point of this cell is that the
+# mapping is not in question. Two robots per team, the same ten the mission text implies. Kept as named
+# constants so a pair reads as "who", not as two magic numbers.
+CYAN    = [0, 1]
+GREEN   = [8, 9]
+MAGENTA = [4, 5]
+ORANGE  = [12, 13]
+YELLOW  = [16, 17]
 
-# Missions, expressed exactly as the operator text in E3_spec.md §5 does.
-# A leg is (robot_ids, task_id); carry tasks expand into two legs internally.
+# Missions, matching the operator text in E3_spec.md §5 leg for leg.
+# A leg is (robot_ids, task_id); carry tasks expand into two waves internally.
+#
+# EVERY PAIR IS DRAWN FROM TWO DIFFERENT TEAMS, exactly as the text says. That
+# is not cosmetic: this cell is the baseline every LLM cell is compared against,
+# so it has to attempt the same mission. If it drove a different composition the
+# gap would be read as "the model allocated badly" and nothing in the recording
+# would contradict that -- session.json records `mission: M2` either way.
+#
+# The allocation below is also what the model itself produced from this text in
+# a live run ([4,12], [0,13], [16,8], [17,9], [1,5]), so the scripted arm is not
+# being handed an easier reading of the same words.
 MISSIONS: dict[str, list[tuple[list[int], str]]] = {
     'm1': [
-        (ORANGE_A, 'task_electrical'),
-        (ORANGE_B, 'task_comms'),
+        ([MAGENTA[0], ORANGE[0]], 'task_electrical'),
+        ([ORANGE[1], YELLOW[0]],  'task_comms'),
     ],
     'm2': [
-        (MAGENTA_A, 'task_med'),
-        (MAGENTA_B, 'carry_security_to_admin'),
-        (ORANGE_A, 'task_electrical'),
-        (ORANGE_B, 'task_comms'),
-        (YELLOW, 'task_o2'),
+        ([MAGENTA[0], ORANGE[0]], 'task_electrical'),
+        ([CYAN[0], ORANGE[1]],    'task_med'),
+        ([YELLOW[0], GREEN[0]],   'task_hall'),
+        ([YELLOW[1], GREEN[1]],   'task_comms'),
+        ([CYAN[1], MAGENTA[1]],   'carry_security_to_admin'),
     ],
-    # M3 is "complete all declared tasks". The spec does not expect full
-    # completion even from a correct plan -- two carries end in the reactor,
-    # a dead-end spur that blocks once occupied -- so this exists to give the
-    # substrate ceiling on the hard mission, not to succeed.
+    # M3 is "complete all declared tasks". Full completion is not expected even
+    # from a correct plan -- two carries end in the reactor, a dead-end spur
+    # that blocks once occupied -- so this exists to give the substrate ceiling
+    # on the hard mission, not to succeed. task_o2 appears here and nowhere
+    # else: M3 names every declared task by definition, while M2 and M1 avoid
+    # it because its zone sits 1.85 m from the o2 room against a 1.5 m radius
+    # (E3_spec.md §5, rule 2).
     'm3': [
-        (MAGENTA_A, 'task_med'),
-        (ORANGE_A, 'task_electrical'),
-        (YELLOW, 'task_o2'),
-        (ORANGE_B, 'task_comms'),
-        ([0, 1], 'task_hall'),
-        ([2, 3], 'task_reactor'),
-        (MAGENTA_B, 'carry_security_to_admin'),
-        ([8, 9], 'carry_engine_to_reactor'),
-        ([10, 11], 'carry_shields_to_reactor'),
+        ([MAGENTA[0], ORANGE[0]], 'task_electrical'),
+        ([CYAN[0], ORANGE[1]],    'task_med'),
+        ([YELLOW[0], GREEN[0]],   'task_hall'),
+        ([YELLOW[1], GREEN[1]],   'task_comms'),
+        ([2, 18],                 'task_o2'),
+        ([3, 19],                 'task_reactor'),
+        ([CYAN[1], MAGENTA[1]],   'carry_security_to_admin'),
+        ([6, 10],                 'carry_engine_to_reactor'),
+        ([7, 11],                 'carry_shields_to_reactor'),
     ],
 }
 
