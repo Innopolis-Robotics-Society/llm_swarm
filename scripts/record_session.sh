@@ -8,7 +8,7 @@
 #
 # Stop with Ctrl+C. The bag is closed cleanly and the folder is summarised.
 #
-# Produces ~/swarm_sessions/<timestamp>/
+# Produces paper/results/sessions/<timestamp>/ inside the repo (gitignored)
 #   bag/                 rosbag2 of the topics listed in TOPICS below
 #   llm_chat/*.jsonl     channel 3, one record per operator command
 #   llm_decisions/*.jsonl  channel 1
@@ -46,6 +46,17 @@ MODEL_OVERRIDE=""
 # start.
 LLM_ENDPOINT=""
 
+# Which grid cell this run belongs to. Previously this lived only inside the
+# free-text --note, which is the weakest link in a 61-run campaign: cells B,
+# B-M1, B-M3 and M4 are launched with byte-identical flags and differ ONLY by
+# the mission the operator types into the panel, so a typo in --note silently
+# files a run under the wrong cell and nothing else in the folder contradicts
+# it. Recorded as separate fields so the analysis can group by them instead of
+# parsing prose.
+CELL=""
+MISSION=""
+REP=""
+
 while [ $# -gt 0 ]; do
   case "$1" in
     --planner)     PLANNER="$2";     shift 2 ;;
@@ -60,13 +71,32 @@ while [ $# -gt 0 ]; do
     --structured-output)  STRUCTURED_OUTPUT="$2"; shift 2 ;;
     --model)              MODEL_OVERRIDE="$2";    shift 2 ;;
     --llm-endpoint)       LLM_ENDPOINT="$2";      shift 2 ;;
+    --cell)               CELL="$2";              shift 2 ;;
+    --mission)            MISSION="$2";           shift 2 ;;
+    --rep)                REP="$2";               shift 2 ;;
     -h|--help)     sed -n '2,25p' "$0"; exit 0 ;;
     *)             EXTRA+=("$1");    shift ;;
   esac
 done
 
 STAMP=$(date +%Y%m%d_%H%M%S)
-SESSION="$HOME/swarm_sessions/$STAMP"
+# Recordings go under the repo, not $HOME.
+#
+# $HOME here is /home/fabian INSIDE the container, and the only host paths bound
+# in are .Xauthority and the repo itself. A session written to $HOME therefore
+# lives in the container's writable layer and is destroyed by `docker compose
+# down`, by any edit to docker-compose.yaml, and by switching between the
+# `terminal` and `terminal-cpu` services -- the same way build/ and install/
+# are. An E3 campaign is ~7.5 hours and several dollars of API calls, so that
+# is not a recoverable mistake.
+#
+# src/ is already bind-mounted, so writing here needs no new mount and survives
+# the container by construction. The directory is gitignored: a full campaign is
+# ~5 GB of bags and must never enter git, while the small text artefacts
+# (session.json, llm_chat/*.jsonl) can be copied out deliberately if a run is
+# worth committing.
+SESSIONS_ROOT="${SWARM_SESSIONS_DIR:-$SRC/paper/results/sessions}"
+SESSION="$SESSIONS_ROOT/$STAMP"
 mkdir -p "$SESSION"
 
 # Topic set depends on the experiment. Recording everything for every run is
@@ -154,11 +184,12 @@ YAML="$SRC/iros_llm_orchestrator/config/orchestrator.yaml"
 python3 - "$SESSION" "$GIT_COMMIT" "$GIT_DIRTY" "$MODEL" "$PLANNER" "$SCENARIO" \
          "$NUM_ROBOTS" "$NOTE" "$YAML" \
          "$REMEDIATION" "$REPAIR" "$SUPERVISION" "$TOOL_CALLING" \
-         "$STRUCTURED_OUTPUT" "$MODEL_OVERRIDE" "$LLM_ENDPOINT" <<'PROV'
+         "$STRUCTURED_OUTPUT" "$MODEL_OVERRIDE" "$LLM_ENDPOINT" \
+         "$CELL" "$MISSION" "$REP" <<'PROV'
 import json, os, re, sys, datetime
 (d, commit, dirty, model, planner, scenario, n, note, yaml_path,
  remediation, repair, supervision, tool_calling, structured, model_override,
- llm_endpoint) = sys.argv[1:17]
+ llm_endpoint, cell, mission, rep) = sys.argv[1:20]
 
 # Resolve every ablation factor to the value that will ACTUALLY be in force:
 # the CLI override when given, otherwise whatever orchestrator.yaml ships.
@@ -221,12 +252,23 @@ json.dump({
     'scenario': scenario,
     'num_robots': int(n),
     'note': note,
+    # The experiment coordinates. Empty is allowed (ad-hoc sessions exist) but
+    # warned about below, because an E3 run without them is unattributable.
+    'cell': cell,
+    'mission': mission,
+    'repeat_index': rep,
     'llm_model': effective_model,
     'llm_endpoint': effective_endpoint,
     'llm_routing': routing,
     'ablation_factors': factors,
 }, open(d + '/session.json', 'w'), indent=2)
 
+print(' cell   : %s  mission=%s  rep=%s'
+      % (cell or '(НЕ ЗАДАНА)', mission or '(НЕ ЗАДАНА)', rep or '?'))
+if not cell or not mission:
+    print(' WARNING: --cell / --mission не заданы. Ячейки B, B-M1, B-M3 и M4 '
+          'запускаются одинаковыми флагами и различаются только миссией, '
+          'поэтому без этих полей прогон нечем отнести к ячейке.')
 print(' factors: ' + ', '.join(
     k.replace('_enabled', '') + '=' + str(v['value'])
     for k, v in sorted(factors.items())))

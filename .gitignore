@@ -58,3 +58,30 @@ maf.md
 .env
 .env.*
 !.env.example
+
+# E3 session recordings: paper/results/sessions/ (see record_session.sh -- kept
+# in-tree so they survive container restarts, which destroy anything in $HOME).
+#
+# The split is deliberate. The heavy binary payload stays on the operator's
+# machine and is collected as files on request; everything textual is committed,
+# because that is the half a reviewer actually reads and it is what makes a run
+# attributable months later:
+#
+#   session.json        which cell, model, endpoint, provider, git commit
+#   llm_chat/*.jsonl    LLM calls, guard firings, refusals -- metrics 4-7 and 9
+#                       exist nowhere else, not in the bag and not in any topic
+#   bag/metadata.yaml   rosbag2's own index: topics, message counts, duration.
+#                       Small, and it answers "was this bag recorded correctly"
+#                       without anyone fetching the bag.
+#
+# launch.log is NOT committed, despite being text: the blanket *.log rule above
+# catches it and that is the right outcome here. A 20-robot bring-up with Nav2
+# writes megabytes per run, so 61 of them is not "the light half" of a session.
+# It ships with the bag when a run is collected as files.
+#
+# Git LFS was set up for the bags and then removed: a campaign is ~5 GB against
+# a 1 GB free quota, and LFS objects keep consuming quota after deletion.
+paper/results/sessions/**/*.db3
+paper/results/sessions/**/*.db3-*
+paper/results/sessions/**/*.mcap
+paper/results/sessions/**/bag_record.log
