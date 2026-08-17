@@ -1,0 +1,53 @@
+{
+  "started_at": "2026-08-15T15:45:41.647398+00:00",
+  "git_commit": "7219b5a4e2cd3c68459ce9f8b0655b4ed6ab15ac",
+  "git_dirty": true,
+  "planner": "lns",
+  "scenario": "amongus",
+  "num_robots": 20,
+  "note": "provider=Chutes",
+  "cell": "B-M3",
+  "mission": "M3",
+  "repeat_index": "2",
+  "llm_model": {
+    "value": "qwen/qwen3.5-397b-a17b",
+    "source": "cli"
+  },
+  "llm_endpoint": {
+    "value": "https://openrouter.ai/api/v1/chat/completions",
+    "source": "cli"
+  },
+  "llm_routing": {
+    "openrouter_provider": "Chutes",
+    "openrouter_allow_fallbacks": "false",
+    "llm_call_delay_sec": "1",
+    "api_key_present": true
+  },
+  "ablation_factors": {
+    "remediation_enabled": {
+      "value": true,
+      "source": "cli"
+    },
+    "llm_repair_enabled": {
+      "value": true,
+      "source": "cli"
+    },
+    "llm_mission_supervision_enabled": {
+      "value": true,
+      "source": "cli"
+    },
+    "tool_calling_enabled": {
+      "value": true,
+      "source": "cli"
+    },
+    "structured_output_enabled": {
+      "value": false,
+      "source": "cli"
+    }
+  },
+  "finished_at": "2026-08-15T15:59:12.694126+00:00",
+  "bag_finalised": true,
+  "operator_commands_logged": 0,
+  "bag_messages": 503798,
+  "topics_recorded_empty": []
+}
