@@ -292,6 +292,69 @@ def test_executor_aborts_when_staging_step_fails():
     assert executor.failed_leaf['type'] == 'mapf'
 
 
+def test_executor_publishes_conflict_text_for_the_remediation_prompt():
+    """A refused parallel must brief the caller, not only the log.
+
+    Regression for run 20260815_160042: the executor refused a nine-task plan
+    over one duplicated leaf, but left guard_failure empty, so the mission
+    continuation step was told "execution failed" with no detail and the run
+    scored 0/9. Both callers (chat_server._execute_plan, execute_server) read
+    `last_error`, so that is what has to carry the text.
+    """
+    sent: list[dict] = []
+
+    async def fake_send(node: dict) -> bool:
+        sent.append(node)
+        return True
+
+    executor = PlanExecutor(send_fn=fake_send)
+    plan = {
+        'type': 'parallel',
+        'steps': [
+            {'type': 'mapf', 'robot_ids': [10, 11],
+             'goals': [[-30.57, 5.02], [-29.51, 3.96]], 'reason': 'reactor'},
+            {'type': 'mapf', 'robot_ids': [10, 11],
+             'goals': [[13.40, 3.40], [14.15, 4.15]], 'reason': 'o2'},
+        ],
+    }
+    ok = asyncio.run(executor.run(plan))
+
+    assert not ok
+    assert not sent, 'a refused parallel must dispatch nothing'
+    failure = executor.guard_failure
+    assert failure is not None, 'conflict never reached the caller'
+    assert failure['leaf_type'] == 'parallel'
+    assert failure['failed_at_phase'] == 'plan_validation'
+    # The text is the value: it must name both robots and both destinations,
+    # because that is what lets the model repair the plan on the next turn.
+    err = failure['last_error']
+    assert 'robot_10' in err and 'robot_11' in err
+    assert '13.40' in err and '-30.57' in err
+    assert executor.failed_leaf['type'] == 'parallel'
+
+
+def test_executor_clears_stale_conflict_on_the_next_run():
+    """guard_failure must not survive into a subsequent successful plan."""
+    async def fake_send(_node: dict) -> bool:
+        return True
+
+    executor = PlanExecutor(send_fn=fake_send)
+    conflicting = {
+        'type': 'parallel',
+        'steps': [
+            {'type': 'mapf', 'robot_ids': [1], 'goals': [[0.0, 0.0]]},
+            {'type': 'mapf', 'robot_ids': [1], 'goals': [[9.0, 9.0]]},
+        ],
+    }
+    assert not asyncio.run(executor.run(conflicting))
+    assert executor.guard_failure is not None
+
+    clean = {'type': 'mapf', 'robot_ids': [1], 'goals': [[0.0, 0.0]]}
+    assert asyncio.run(executor.run(clean))
+    assert executor.guard_failure is None
+    assert executor.failed_leaf is None
+
+
 # ---------------------------------------------------------------------------
 # coerce_robot_id + robot_id / goal normalisation
 # ---------------------------------------------------------------------------

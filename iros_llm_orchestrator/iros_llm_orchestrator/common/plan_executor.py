@@ -477,10 +477,26 @@ class PlanExecutor:
         try:
             commands = flatten_parallel(node)
         except PlanConflictError as exc:
-            # Fail loudly rather than dropping a goal. The remediation loop
-            # sees this text and can re-plan; a silently discarded goal cannot
-            # be re-planned because nothing knows it went missing.
+            # Fail loudly rather than dropping a goal. A silently discarded
+            # goal cannot be re-planned because nothing knows it went missing.
+            #
+            # Publishing the text on guard_failure, not just the log, is the
+            # whole point. Both callers brief the LLM from `last_error`
+            # (chat_server._execute_plan, execute_server), and the message is
+            # already written as an instruction the model can act on -- it
+            # names the robots, both goals, and the fix. Left in the log it
+            # reached nobody: run 20260815_160042 refused a sound nine-task
+            # plan over one duplicated leaf, handed the continuation step an
+            # empty failure_info, and scored 0/9 on a mission that was
+            # otherwise complete.
             self._log(f"{'  '*self._depth}✗ parallel rejected: {exc}")
+            self.failed_leaf = {'type': 'parallel'}
+            self.guard_failure = {
+                'leaf_type': 'parallel',
+                'last_error': str(exc),
+                'failed_at_phase': 'plan_validation',
+                'action_status': 'ERROR',
+            }
             return False
         label = ' + '.join(
             f"{c['type']}({len(c.get('robot_ids',[]))}r)"
