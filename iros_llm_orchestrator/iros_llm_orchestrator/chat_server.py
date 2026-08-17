@@ -445,7 +445,7 @@ class ChatServer(Node):
         req = goal_handle.request
         result = LlmChat.Result()
         self._req_t0 = time.monotonic()
-        self._begin_mission_record()
+        self._begin_mission_record(req.user_message)
 
         # Fresh {{ref.path}} registry for this operator command — shared by
         # the initial plan and every mission-supervision continuation step
@@ -645,7 +645,16 @@ class ChatServer(Node):
                 stage='executing',
                 detail=f'mission_step={step}',
             )
-            return await self._execute_plan(plan)
+            # Before the await, not after: execution is the phase that blocks,
+            # so this is the checkpoint that survives an operator Ctrl+C.
+            self._checkpoint('executing', mission_step=step,
+                             plan_json=json.dumps(plan, ensure_ascii=False))
+            ok, failure = await self._execute_plan(plan)
+            self._checkpoint('executed', mission_step=step,
+                             execution_ok=ok,
+                             failure_info=json.dumps(failure or {},
+                                                     ensure_ascii=False))
+            return ok, failure
 
         async def _verify(
             plan: dict,
@@ -654,13 +663,16 @@ class ChatServer(Node):
             previous_verification: dict | None,
             step: int,
         ) -> dict:
-            return await self._verify_plan_execution_state(
+            verification = await self._verify_plan_execution_state(
                 original_user_request,
                 plan,
                 runtime_context=runtime_context,
                 last_failure=failure_info,
                 delay_sec=self._mission_verify_delay_sec,
             )
+            self._checkpoint('verified', mission_step=step,
+                             execution_ok=execution_ok)
+            return verification
 
         async def _continue(ctx) -> MissionContinuation:
             self._publish_fb(
@@ -668,6 +680,12 @@ class ChatServer(Node):
                 stage='repairing',
                 detail=f'mission_step={ctx.step} remaining={ctx.remaining_time_sec:.1f}s',
             )
+            # The continuation LLM call is the other phase that can hang --
+            # run 20260815_160042 died here on `abort reason=invalid_continuation
+            # error=LLM timeout`. Mark entry so a kill during the call is
+            # distinguishable from a kill during execution.
+            self._checkpoint('continuing', mission_step=ctx.step,
+                             execution_ok=ctx.execution_ok)
             fresh_ctx = await self._get_runtime_context()
             self._last_runtime_context = fresh_ctx
             execution_result = {
@@ -720,6 +738,8 @@ class ChatServer(Node):
                 output=plan_json,
                 reason=reply,
             )
+            self._checkpoint('continued', mission_step=ctx.step,
+                             plan_json=plan_json)
             return MissionContinuation(reply=reply, plan=plan, raw=raw)
 
         outcome = await supervise_mission(
@@ -1517,8 +1537,9 @@ class ChatServer(Node):
     # JSONL, so a run could not be scored after the fact. These counters are
     # accumulated during one operator command and flushed by _log_mission.
 
-    def _begin_mission_record(self) -> None:
+    def _begin_mission_record(self, user_message: str = '') -> None:
         self._mission_id = uuid.uuid4().hex[:12]
+        self._mission_user_message = user_message
         self._mission_counts = {
             'llm_calls': 0,
             'llm_seconds': 0.0,
@@ -1534,6 +1555,47 @@ class ChatServer(Node):
             'verification_ok': None,
             'verification_summary': '',
         }
+        self._checkpoint('start')
+
+    def _checkpoint(self, kind: str, **extra) -> None:
+        """Flush the mission record as it stands, mid-mission.
+
+        WHY THE RECORD IS NOT WRITTEN ONCE AT THE END
+        _log_mission runs only from the terminal paths (_fail / _succeed), so
+        a mission that never terminates is a mission that never gets written.
+        That is not hypothetical: of the three B-M3 runs in
+        paper/results/sessions/, the only one with a JSONL is the one that
+        failed. The two that completed eight of nine tasks were stopped by the
+        operator while the supervision loop was still going, and their guard,
+        remediation and repair counters -- which exist nowhere else, not in
+        the bag and not on any topic -- were lost with the process.
+
+        Checkpoints are written at phase boundaries rather than per step
+        because a step can block inside execution and never reach its own end
+        (run 20260815_154541 sat in `step=1 executing` for 797 s). Per phase,
+        the last durable record is at worst one phase stale.
+
+        Records share `mission_id` and counters are cumulative, so a reader
+        reduces by taking the LAST record per mission -- never by summing.
+        See paper/results/analyze_sessions.py:_read_chat_log.
+
+        Never raises: instrumentation must not be able to fail a mission.
+        """
+        try:
+            record = {
+                'mission_id':   getattr(self, '_mission_id', ''),
+                'record_kind':  kind,
+                'user_message': getattr(self, '_mission_user_message', ''),
+                'llm_mode':     self._llm_mode_name,
+                'llm_model':    self._llm_model_name,
+                'map_name':     self._map_name,
+                'elapsed_sec':  round(time.monotonic() - self._req_t0, 3),
+            }
+            record.update(getattr(self, '_mission_counts', {}) or {})
+            record.update(extra)
+            self._logger_ds.log(record)
+        except Exception:  # noqa: BLE001
+            pass
 
     def _bump(self, key: str, amount=1) -> None:
         """Increment one mission counter, tolerating a missing mission record.
@@ -1564,6 +1626,11 @@ class ChatServer(Node):
         record = {
             # Joins this record to a rosbag recorded over the same run.
             'mission_id':     getattr(self, '_mission_id', ''),
+            # `final` marks the mission as having reached a terminal path. A
+            # mission whose last record is any other kind was killed mid-flight;
+            # its counters are still valid up to that phase, but its outcome is
+            # unknown and it must not be scored as a failure.
+            'record_kind':    'final',
             'user_message':   req.user_message,
             'llm_mode':       self._llm_mode_name,
             'llm_model':      self._llm_model_name,
