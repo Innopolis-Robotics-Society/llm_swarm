@@ -49,6 +49,7 @@ test_send_goals.
 from __future__ import annotations
 
 import argparse
+import math
 import sys
 import time
 
@@ -132,6 +133,54 @@ MISSIONS: dict[str, list[tuple[list[int], str]]] = {
 }
 
 
+# Metres each robot is displaced from a task point it shares with others.
+#
+# WHY ROBOTS CANNOT SHARE A POINT
+# Sending two robots to the identical coordinate asks MAPF for a plan where
+# two footprints occupy one cell. The solver will not produce it, so they
+# fight over the last metre and at least one never registers inside the
+# radius. The first five recorded no-LLM runs
+# (paper/results/sessions/20260815_14*) needed this patched in by hand before
+# they would score.
+#
+# WHY THE GROUPING IS BY POINT AND NOT BY ASSIGNMENT
+# Spreading within each mission leg is not enough, because two legs can name
+# the SAME coordinate. In M3 both carry_engine_to_reactor and
+# carry_shields_to_reactor drop at (-29.65, -2.85): four robots, two legs, one
+# destination. Offsetting per leg gives each leg a tidy pair and still stacks
+# the two pairs on top of each other. The displacement therefore has to be
+# computed over every robot arriving at a point, across the whole dispatch.
+#
+# 1.0 m is what the recorded runs used and is kept so they stay reproducible.
+# It sits inside every declared task radius (1.5 m in `amongus`), so every
+# robot still scores the task, and it is wider than the 0.22 m footprint plus
+# inflation, so the planner can seat them side by side.
+_SPREAD_M = 1.0
+
+
+def _spread_offsets(n: int) -> list[tuple[float, float]]:
+    """Displacements for `n` robots converging on one task point.
+
+    One robot takes the point itself. Two go left and right, which is exactly
+    what the recorded no-LLM runs did, so those stay reproducible. Three and
+    four fill in below and above, giving the diamond the LLM arms produce
+    unprompted for whole-team assignments.
+
+    Beyond four the pattern falls back to an even circle. Note that at n > 6
+    the arc between neighbours drops under the footprint diameter, so a
+    scenario that puts that many robots on one point needs a larger radius,
+    not just this function -- no mission in E3 does.
+    """
+    if n <= 1:
+        return [(0.0, 0.0)]
+    ring = [(-_SPREAD_M, 0.0), (_SPREAD_M, 0.0),
+            (0.0, -_SPREAD_M), (0.0, _SPREAD_M)]
+    if n <= len(ring):
+        return ring[:n]
+    return [(_SPREAD_M * math.cos(2.0 * math.pi * i / n),
+             _SPREAD_M * math.sin(2.0 * math.pi * i / n)) for i in range(n)]
+
+
 class ScriptedDriver(Node):
     def __init__(self, mission: str, timeout: float, dry_run: bool):
         super().__init__('e3_scripted_driver')
@@ -210,12 +259,20 @@ class ScriptedDriver(Node):
         plans the whole fleet jointly -- issuing five separate calls would ask
         five independent planners to share corridors.
         """
+        # Group by destination first: two legs of one wave can name the same
+        # coordinate (both M3 carries drop at the reactor), and only a
+        # by-point view sees that.
+        by_point: dict[tuple[float, float], list[int]] = {}
+        for robots, (x, y) in assignments:
+            key = (round(float(x), 3), round(float(y), 3))
+            by_point.setdefault(key, []).extend(robots)
+
         ids: list[int] = []
         pts: list[Point] = []
-        for robots, (x, y) in assignments:
-            for r in robots:
+        for (x, y), robots in by_point.items():
+            for r, (dx, dy) in zip(robots, _spread_offsets(len(robots))):
                 ids.append(r)
-                pts.append(Point(x=float(x), y=float(y), z=0.0))
+                pts.append(Point(x=x + dx, y=y + dy, z=0.0))
 
         pretty = ', '.join(
             'robot_%d->(%.2f, %.2f)' % (r, p.x, p.y) for r, p in zip(ids, pts))
