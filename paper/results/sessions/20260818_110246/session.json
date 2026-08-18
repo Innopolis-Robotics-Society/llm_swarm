@@ -1,0 +1,48 @@
+{
+  "started_at": "2026-08-18T11:02:46.590600+00:00",
+  "git_commit": "c238244b742b6bd423d2cf15160872a979b40fe0",
+  "git_dirty": true,
+  "planner": "lns",
+  "scenario": "amongus",
+  "num_robots": 20,
+  "note": "provider=Parasail,AtlasCloud,GMICloud,Chutes",
+  "cell": "B-M3",
+  "mission": "M3",
+  "repeat_index": "1",
+  "llm_model": {
+    "value": "qwen/qwen3.5-397b-a17b",
+    "source": "cli"
+  },
+  "llm_endpoint": {
+    "value": "https://openrouter.ai/api/v1/chat/completions",
+    "source": "cli"
+  },
+  "llm_routing": {
+    "openrouter_provider": "Parasail,AtlasCloud,GMICloud,Chutes",
+    "openrouter_allow_fallbacks": "false",
+    "llm_call_delay_sec": "1",
+    "api_key_present": true
+  },
+  "ablation_factors": {
+    "remediation_enabled": {
+      "value": true,
+      "source": "cli"
+    },
+    "llm_repair_enabled": {
+      "value": true,
+      "source": "cli"
+    },
+    "llm_mission_supervision_enabled": {
+      "value": true,
+      "source": "cli"
+    },
+    "tool_calling_enabled": {
+      "value": true,
+      "source": "cli"
+    },
+    "structured_output_enabled": {
+      "value": false,
+      "source": "cli"
+    }
+  }
+}

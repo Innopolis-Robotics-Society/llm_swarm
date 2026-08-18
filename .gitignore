@@ -74,10 +74,17 @@ maf.md
 #                       Small, and it answers "was this bag recorded correctly"
 #                       without anyone fetching the bag.
 #
-# launch.log is NOT committed, despite being text: the blanket *.log rule above
-# catches it and that is the right outcome here. A 20-robot bring-up with Nav2
-# writes megabytes per run, so 61 of them is not "the light half" of a session.
-# It ships with the bag when a run is collected as files.
+# launch.log IS committed, against the blanket *.log rule above. The earlier
+# reasoning here said a 20-robot Nav2 bring-up writes megabytes a run; measured,
+# it writes 48-60 KB -- 400-500 lines, because the stack logs events rather than
+# telemetry. The whole campaign is about 2 MB.
+#
+# And it is not optional colour. Everything about the tool-calling loop lives
+# only here (`tool_loop iter=N: calling tools [...]`), and nothing about tools
+# reaches the mission JSONL, so pilot criterion 4 of section 6 is answerable
+# from this file alone. The planner's refusals are the same story: the action
+# carries its outcome in result.success, which is not a recorded topic, so
+# `no static path ... footprint won't fit through` exists nowhere else.
 #
 # Git LFS was set up for the bags and then removed: a campaign is ~5 GB against
 # a 1 GB free quota, and LFS objects keep consuming quota after deletion.
@@ -89,7 +96,9 @@ paper/results/sessions/**/*.db3
 paper/results/sessions/**/*.db3-*
 paper/results/sessions/**/*.mcap
 paper/results/sessions/**/bag_record.log
+!paper/results/sessions/**/launch.log
 paper/results/sessions_invalid/**/*.db3
 paper/results/sessions_invalid/**/*.db3-*
 paper/results/sessions_invalid/**/*.mcap
 paper/results/sessions_invalid/**/bag_record.log
+!paper/results/sessions_invalid/**/launch.log

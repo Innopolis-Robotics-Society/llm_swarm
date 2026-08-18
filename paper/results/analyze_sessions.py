@@ -35,6 +35,7 @@ import argparse
 import json
 import math
 import os
+import re
 import statistics
 import sys
 from typing import Any
@@ -69,6 +70,52 @@ _MOVED_M = 0.5
 
 
 # ─── per-run analysis ──────────────────────────────────────────────────────
+
+_TOOL_CALLS_RE  = re.compile(r"calling tools \[([^\]]*)\]")
+_TOOL_NAME_RE   = re.compile(r"'([a-z_]+)'")
+_TOOL_FINAL_RE  = re.compile(r"final text after (\d+) iteration")
+
+
+def _read_tool_loop(run_dir: str) -> dict:
+    """Tool-calling activity, parsed out of launch.log.
+
+    Pilot criterion 4 of section 6 asks whether the model actually calls its
+    tools, and the answer lives only here: chat_server logs each round as
+    ``tool_loop iter=N: calling tools [...]`` and nothing about tools reaches
+    the mission JSONL. `llm_calls` cannot stand in for it -- that counter is
+    bumped once per planning step (chat_server.py:1010), not once per network
+    round trip, so it reads 1 whether the loop ran once or twenty times.
+
+    Also worth separating: a second loop iteration is not evidence of a tool
+    call. The loop re-enters when the model answers with prose or with an
+    invalid plan, and both are counted here so that "the loop ran twice" is
+    never mistaken for "the model used a tool".
+    """
+    path = os.path.join(run_dir, 'launch.log')
+    out = {'present': False, 'n_calls': 0, 'names': {}, 'iterations': [],
+           'prose_retries': 0, 'schema_retries': 0}
+    if not os.path.isfile(path):
+        return out
+    out['present'] = True
+    with open(path, encoding='utf-8', errors='replace') as fh:
+        for line in fh:
+            if 'calling tools' in line:
+                m = _TOOL_CALLS_RE.search(line)
+                if m:
+                    names = _TOOL_NAME_RE.findall(m.group(1))
+                    out['n_calls'] += len(names)
+                    for n in names:
+                        out['names'][n] = out['names'].get(n, 0) + 1
+            elif 'prose response detected' in line:
+                out['prose_retries'] += 1
+            elif 'plan schema error' in line:
+                out['schema_retries'] += 1
+            elif 'final text after' in line:
+                m = _TOOL_FINAL_RE.search(line)
+                if m:
+                    out['iterations'].append(int(m.group(1)))
+    return out
+
 
 def _read_chat_log(run_dir: str) -> dict:
     """Channel-3 mission records from llm_chat/*.jsonl.
@@ -462,6 +509,7 @@ def analyse_run(run_dir: str) -> dict:
             out['operator_note'] = fh.read().strip()
 
     out['chat'] = _read_chat_log(run_dir)
+    out['tools'] = _read_tool_loop(run_dir)
     if out['cell'] and out['cell'] != 'no-LLM' and not out['chat']['present']:
         out['problems'].append(
             'no llm_chat/*.jsonl -- guard and remediation counters lost, '
@@ -519,6 +567,19 @@ def analyse_run(run_dir: str) -> dict:
         out['problems'].append(
             'operator_commands_logged == 0 -- mission text may not have been '
             'sent through the panel')
+    tools = out.get('tools') or {}
+    factors = (out.get('session') or {}).get('ablation_factors') or {}
+    tool_arm = (factors.get('tool_calling_enabled') or {}).get('value')
+    if cell and cell != 'no-LLM' and tool_arm and tools.get('present'):
+        if not tools.get('n_calls'):
+            out['problems'].append(
+                'tool_calling is on but the model called no tool at all '
+                '(section 6, criterion 4) -- the tool-calling arm is doing '
+                'the same thing the constrained arm would')
+    elif cell and cell != 'no-LLM' and tool_arm and not tools.get('present'):
+        out['problems'].append(
+            'no launch.log -- whether the model used its tools cannot be '
+            'told for this run')
     refused = (out.get('mapf') or {}).get('refused') or []
     if refused:
         out['problems'].append(
@@ -542,7 +603,7 @@ def _score_str(r: dict) -> str:
 
 def print_table(runs: list[dict]) -> None:
     hdr = ('run', 'cell', 'msn', 'rep', 'score', 'mkspn', 'dur',
-           'moved', 'dist', 'calls', 'remed', 'repair', 'guard',
+           'moved', 'dist', 'calls', 'tools', 'remed', 'repair', 'guard',
            'warn', 'err', 'replan', 'stall', '!')
     rows = []
     for r in runs:
@@ -561,6 +622,8 @@ def print_table(runs: list[dict]) -> None:
             str(m.get('n_robots_moved', '-')),
             str(m.get('total_distance_m', '-')),
             str(ct.get('llm_calls', '-')),
+            str((r.get('tools') or {}).get('n_calls', '-')
+                if (r.get('tools') or {}).get('present') else '-'),
             str(ct.get('remediation_attempts', '-')),
             str(ct.get('verification_repair_attempts', '-')),
             str(guard) if ct else '-',
@@ -715,6 +778,16 @@ def print_detail(r: dict) -> None:
         print('  modes: ' + ' -> '.join(bt['mode_sequence']))
         for e in bt['distinct_errors']:
             print(f'  error: {e}')
+
+    tl = r.get('tools') or {}
+    if tl.get('present'):
+        names = ('  '.join(f'{k}x{v}' for k, v in sorted(tl['names'].items()))
+                 or 'none called')
+        print(f"\ntools   {tl['n_calls']} tool call(s): {names}")
+        print('  loop iterations per step: %s   prose retries: %d   '
+              'schema retries: %d'
+              % (tl['iterations'] or '-', tl['prose_retries'],
+                 tl['schema_retries']))
 
     ch = r.get('chat') or {}
     if ch.get('present'):
