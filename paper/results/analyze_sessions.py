@@ -469,6 +469,112 @@ def _score_mapf(bag: B.Bag) -> dict:
     }
 
 
+# Narrow stretches of the M4 route, measured off amongus.pgm at its native
+# 0.05 m along the corridor line x = 2.70 (leader y, metres). Everything else
+# on the traverse is wide. eps_ss is defined on the wide part only (section
+# 3.1): a steady-state error averaged across the pinch would mix holding the
+# column with squeezing it through.
+#
+# The measurement also corrects the spec. Section "M4" describes the corridor
+# as narrowing to 1.30 m; the map says 2.60 m, at y = 1.60, free from x = 1.40
+# to x = 4.00. So the lateral budget for the formation is 2.16 m rather than
+# 1.08 m after two robot radii. A column is still the conservative choice, but
+# it is not the only one that fits.
+_M4_NARROW_BANDS = ((1.60, -0.25), (-3.40, -4.10))
+_M4_LEADER_X = 2.70
+
+
+def _in_narrow(y: float) -> bool:
+    return any(lo >= y >= hi for lo, hi in _M4_NARROW_BANDS)
+
+
+def _score_formation(bag: B.Bag) -> dict:
+    """Metrics 11-14 of section 3.1, from /formations/status.
+
+    -1.0 in an error field means the monitor had no data for that follower,
+    not a zero error. Averaged in as zero it would turn a lost follower into
+    perfect tracking -- the worst run into the best -- so those samples are
+    dropped and the dropped fraction is reported next to the numbers.
+
+    t_stable and f_degraded depend on the monitor's own thresholds
+    (stable_thresh_m 0.15, degraded_thresh_m 0.35) and are meaningless without
+    them; eps_ss and eps_peak do not. Both are reported for that reason.
+    """
+    topic = '/formations/status'
+    out: dict[str, Any] = {'present': False}
+    if topic not in bag.topics:
+        return out
+
+    samples: list[tuple[float, int, list[float]]] = []   # t, state, valid errors
+    dropped = kept = 0
+    leaders: set[str] = set()
+    for m in bag.read(topic):
+        for f in m.msg['formations']:
+            errs = [e for e in f['errors_m'] if e >= 0.0]
+            dropped += sum(1 for e in f['errors_m'] if e < 0.0)
+            kept += len(errs)
+            samples.append((m.t, f['state'], errs))
+            if f['leader_ns']:
+                leaders.add(f['leader_ns'].strip('/'))
+    if not samples:
+        return out
+
+    active = [s for s in samples if s[1] != 0]           # not INACTIVE
+    out['present'] = True
+    out['n_samples'] = len(samples)
+    out['n_active'] = len(active)
+    out['dropped_frac'] = (round(dropped / (dropped + kept), 4)
+                           if (dropped + kept) else 0.0)
+    if not active:
+        return out
+
+    # 13: activation (first non-INACTIVE) to first STABLE.
+    t_act = active[0][0]
+    t_stable = next((t for t, st, _ in active if st == 2), None)
+    out['t_stable_s'] = round(t_stable - t_act, 2) if t_stable else None
+
+    # 14: share of active samples in DEGRADED. Sample-counted rather than
+    # time-weighted -- the monitor publishes at a fixed 10 Hz, so the two are
+    # the same unless it stalls, and a stalled monitor should not be silently
+    # smoothed over.
+    out['f_degraded'] = round(
+        sum(1 for _, st, _ in active if st == 3) / len(active), 4)
+    out['f_broken'] = round(
+        sum(1 for _, st, _ in active if st == 4) / len(active), 4)
+
+    all_err = [e for _, _, es in active for e in es]
+    out['eps_peak_m'] = round(max(all_err), 3) if all_err else None
+    out['eps_all_median_m'] = (round(statistics.median(all_err), 3)
+                               if all_err else None)
+
+    # 11: eps_ss on the wide part only, which needs to know where the leader
+    # was at each sample. The status message names the leader but not its
+    # position, so it is read back out of the leader's odom.
+    out['leaders'] = sorted(leaders)
+    track: list[tuple[float, float]] = []
+    for ns in sorted(leaders):
+        odom = f'/{ns}/odom'
+        if odom in bag.topics:
+            track = [(m.t, m.msg['position'][1]) for m in bag.read(odom)]
+            break
+    if track:
+        wide, narrow = [], []
+        k = 0
+        for ts, _, es in active:
+            while k + 1 < len(track) and track[k + 1][0] <= ts:
+                k += 1
+            (narrow if _in_narrow(track[k][1]) else wide).extend(es)
+        out['eps_ss_wide_m'] = (round(statistics.median(wide), 3)
+                                if wide else None)
+        out['eps_narrow_m'] = (round(statistics.median(narrow), 3)
+                               if narrow else None)
+        out['n_wide'], out['n_narrow'] = len(wide), len(narrow)
+    else:
+        out['eps_ss_wide_m'] = None
+        out['problems_note'] = 'leader odom missing, eps_ss falls back to eps_all'
+    return out
+
+
 def _is_live(run_dir: str) -> bool:
     """True while a run is still recording.
 
@@ -573,6 +679,7 @@ def analyse_run(run_dir: str) -> dict:
         out['llm'] = _score_llm(bag)
         out['bt'] = _score_bt(bag)
         out['mapf'] = _score_mapf(bag)
+        out['formation'] = _score_formation(bag)
 
     # Cross-checks the operator cannot see while the run is happening.
     cell = out.get('cell')
@@ -798,6 +905,22 @@ def print_detail(r: dict) -> None:
         print('  modes: ' + ' -> '.join(bt['mode_sequence']))
         for e in bt['distinct_errors']:
             print(f'  error: {e}')
+
+    fm = r.get('formation') or {}
+    if fm.get('present') and fm.get('n_active'):
+        print(f"\nstroy   {fm['n_active']}/{fm['n_samples']} active samples,"
+              f" leader {', '.join(fm.get('leaders') or ['?'])}")
+        print('  11 eps_ss (wide)   = %s m   over %s samples'
+              % (fm.get('eps_ss_wide_m'), fm.get('n_wide', '-')))
+        print('     eps in the pinch= %s m   over %s samples'
+              % (fm.get('eps_narrow_m'), fm.get('n_narrow', '-')))
+        print('     eps all         = %s m' % fm.get('eps_all_median_m'))
+        print('  12 eps_peak        = %s m' % fm.get('eps_peak_m'))
+        print('  13 t_stable        = %s s' % fm.get('t_stable_s'))
+        print('  14 f_degraded      = %s   (f_broken %s)'
+              % (fm.get('f_degraded'), fm.get('f_broken')))
+        print('     dropped samples = %s  (-1.0 = no data, excluded)'
+              % fm.get('dropped_frac'))
 
     tl = r.get('tools') or {}
     if tl.get('present'):

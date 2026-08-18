@@ -14,6 +14,7 @@ Only what E3 scores, and nothing else:
   iros_llm_swarm_interfaces/msg/TaskStates                  <- ground truth
   iros_llm_swarm_interfaces/msg/BTState
   iros_llm_swarm_interfaces/msg/LlmEvent
+  iros_llm_swarm_interfaces/msg/FormationsStatus          <- metrics 11-14
   iros_llm_swarm_interfaces/action/SetGoals_FeedbackMessage
   nav_msgs/msg/Odometry                                     <- position only
 Anything else in the bag is skipped. If a future cell needs another type, add
@@ -243,6 +244,45 @@ def decode_odometry(buf: bytes) -> dict:
     return {'header': hdr, 'child_frame_id': child, 'position': (x, y, z)}
 
 
+_FORMATION_STATE = {
+    0: 'INACTIVE', 1: 'FORMING', 2: 'STABLE', 3: 'DEGRADED', 4: 'BROKEN',
+}
+_FORMATION_FAILURE = {
+    0: 'NONE', 1: 'FOLLOWER_LOST', 2: 'FOLLOWER_STUCK', 3: 'LEADER_LOST',
+}
+
+
+def decode_formations_status(buf: bytes) -> dict:
+    """iros_llm_swarm_interfaces/msg/FormationsStatus
+
+    Metrics 11-14 of section 3.1 come from here and nowhere else: the follower
+    errors are published at 10 Hz for the whole traverse, so eps_ss, eps_peak,
+    t_stable and f_degraded are all read off this stream.
+
+    -1.0 in an error field means "not available for this follower" and is not a
+    measurement -- callers must drop it rather than average it in, which is why
+    the raw value is passed through unchanged here.
+    """
+    c = _Cursor(buf)
+    hdr = _header(c)
+
+    def one() -> dict:
+        return {
+            'header':         _header(c),
+            'formation_id':   c.string(),
+            'leader_ns':      c.string(),
+            'follower_ns':    c.seq(c.string),
+            'state':          c.u8(),
+            'failure_code':   c.u8(),
+            'failure_reason': c.string(),
+            'errors_m':       c.seq(c.f32),
+            'max_error_m':    c.f32(),
+            'mean_error_m':   c.f32(),
+        }
+
+    return {'header': hdr, 'formations': c.seq(one)}
+
+
 DECODERS: dict[str, Callable[[bytes], Any]] = {
     'iros_llm_swarm_interfaces/msg/TaskStates': decode_task_states,
     'iros_llm_swarm_interfaces/msg/BTState': decode_bt_state,
@@ -251,6 +291,8 @@ DECODERS: dict[str, Callable[[bytes], Any]] = {
         decode_set_goals_feedback,
     'action_msgs/msg/GoalStatusArray': decode_goal_status_array,
     'nav_msgs/msg/Odometry': decode_odometry,
+    'iros_llm_swarm_interfaces/msg/FormationsStatus':
+        decode_formations_status,
 }
 
 
