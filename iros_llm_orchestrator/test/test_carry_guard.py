@@ -191,3 +191,56 @@ def test_malformed_goals_do_not_raise(goals):
     guarded, records = enforce_single_carrier(plan, TASKS)
     assert records == []
     assert guarded == plan
+
+
+# --- shared dropoff -------------------------------------------------------
+
+from iros_llm_orchestrator.common.carry_guard import spread_shared_dropoffs
+
+# The two M3 carries, which ship with one dropoff between them.
+M3_TASKS = {
+    'carry_engine_to_reactor': {
+        'type': 'carry', 'position': [-23.67, -10.86],
+        'dropoff': [-29.65, -2.85], 'radius': 1.5,
+    },
+    'carry_shields_to_reactor': {
+        'type': 'carry', 'position': [16.51, -12.19],
+        'dropoff': [-29.65, -2.85], 'radius': 1.5,
+    },
+}
+
+
+def test_two_deliveries_to_one_point_are_moved_apart_but_stay_delivered():
+    """Run 20260818_104157: robot_6 parked on the dropoff, robot_8 never got there."""
+    plan = {'type': 'sequence', 'steps': [
+        {'type': 'mapf', 'robot_ids': [6], 'goals': [[-29.65, -2.85]]},
+        {'type': 'mapf', 'robot_ids': [8], 'goals': [[-29.65, -2.85]]},
+    ]}
+    guarded, records = spread_shared_dropoffs(plan, M3_TASKS)
+    assert len(records) == 1
+
+    goals = [leaf['goals'][0] for leaf in _leaves(guarded)]
+    apart = ((goals[0][0] - goals[1][0]) ** 2
+             + (goals[0][1] - goals[1][1]) ** 2) ** 0.5
+    assert apart > 1.0, 'one robot would still stand on the other goal cell'
+    for g in goals:
+        off = ((g[0] + 29.65) ** 2 + (g[1] + 2.85) ** 2) ** 0.5
+        assert off < 1.5, 'moved outside the radius, the delivery stops counting'
+
+
+def test_one_delivery_is_left_alone():
+    plan = {'type': 'mapf', 'robot_ids': [6], 'goals': [[-29.65, -2.85]]}
+    guarded, records = spread_shared_dropoffs(plan, M3_TASKS)
+    assert records == []
+    assert guarded == plan
+
+
+def test_carries_with_their_own_dropoffs_are_left_alone():
+    """TASKS has one carry, so nothing is shared and nothing moves."""
+    plan = {'type': 'sequence', 'steps': [
+        {'type': 'mapf', 'robot_ids': [1], 'goals': [[-15.99, 3.65]]},
+        {'type': 'mapf', 'robot_ids': [1], 'goals': [[12.29, -5.06]]},
+    ]}
+    guarded, records = spread_shared_dropoffs(plan, TASKS)
+    assert records == []
+    assert guarded == plan

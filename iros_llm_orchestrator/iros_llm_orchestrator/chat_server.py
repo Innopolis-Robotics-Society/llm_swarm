@@ -56,7 +56,10 @@ from iros_llm_orchestrator.common.context_budget import (
 from iros_llm_orchestrator.common.occupancy_rewrite import (
     rewrite_occupied_room_mapf_goals,
 )
-from iros_llm_orchestrator.common.carry_guard import enforce_single_carrier
+from iros_llm_orchestrator.common.carry_guard import (
+    enforce_single_carrier,
+    spread_shared_dropoffs,
+)
 from iros_llm_orchestrator.common.active_formation_guard import (
     guard_plan_for_active_formations,
 )
@@ -1050,16 +1053,24 @@ class ChatServer(Node):
         try:
             tasks = self._get_task_context()
             guarded, records = enforce_single_carrier(plan, tasks)
+            guarded, spreads = spread_shared_dropoffs(guarded, tasks)
         except Exception as exc:
             self.get_logger().warning(f'carry_guard: skipped: {exc}')
             return plan
         self._bump('guard_single_carrier_fired', len(records))
+        self._bump('guard_shared_dropoff_fired', len(spreads))
         for rec in records:
             self.get_logger().warning(
                 'carry_guard: task=%s kept robot_%s dropped %s -- %s'
                 % (rec['task'], rec['kept'],
                    ', '.join(f"robot_{r}" for r in rec['dropped']) or 'nothing',
                    rec['reason']))
+        for rec in spreads:
+            self.get_logger().warning(
+                'carry_guard: %s share dropoff %s, spread to %s'
+                % ('+'.join(rec['tasks']), rec['spot'],
+                   ', '.join(f"robot_{m['robot']}->{m['goal']}"
+                             for m in rec['moved'])))
         return guarded
 
     def _rewrite_occupied_room_mapf_goals(
@@ -1577,6 +1588,9 @@ class ChatServer(Node):
             # A plan sending a second robot into a carry pickup zone costs
             # the mission the whole delivery; see common/carry_guard.py.
             'guard_single_carrier_fired': 0,
+            # Two carry tasks with one dropoff: the first carrier parks on the
+            # cell and blocks the second. See common/carry_guard.py.
+            'guard_shared_dropoff_fired': 0,
             'remediation_attempts': 0,
             'verification_repair_attempts': 0,
             'supervision_steps': 0,

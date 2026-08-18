@@ -137,7 +137,7 @@ def _read_chat_log(run_dir: str) -> dict:
         'llm_calls', 'remediation_attempts', 'verification_repair_attempts',
         'supervision_steps', 'guard_active_formation_fired',
         'guard_occupancy_rewrites', 'guard_formation_staging_fired',
-        'guard_single_carrier_fired')}
+        'guard_single_carrier_fired', 'guard_shared_dropoff_fired')}
     return {
         'present': bool(recs),
         'n_missions': len(finals),
@@ -551,7 +551,8 @@ def print_table(runs: list[dict]) -> None:
         ct = (r.get('chat') or {}).get('totals') or {}
         guard = sum(ct.get(k, 0) for k in (
             'guard_active_formation_fired', 'guard_occupancy_rewrites',
-            'guard_formation_staging_fired', 'guard_single_carrier_fired'))
+            'guard_formation_staging_fired', 'guard_single_carrier_fired',
+            'guard_shared_dropoff_fired'))
         rows.append((
             r['stamp'], str(r.get('cell')), str(r.get('mission')),
             str(r.get('repeat')), _score_str(r),
@@ -614,7 +615,8 @@ def print_mechanism_check(runs: list[dict]) -> None:
     """
     keys = ('remediation_attempts', 'verification_repair_attempts',
             'guard_active_formation_fired', 'guard_occupancy_rewrites',
-            'guard_formation_staging_fired', 'guard_single_carrier_fired')
+            'guard_formation_staging_fired', 'guard_single_carrier_fired',
+            'guard_shared_dropoff_fired')
     live = [r for r in runs if (r.get('chat') or {}).get('present')]
     if not live:
         return

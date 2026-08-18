@@ -215,3 +215,97 @@ def enforce_single_carrier(
         # dict is not.
         pruned = {'type': 'idle', 'reason': 'all steps were duplicate carriers'}
     return pruned, records
+
+
+def spread_shared_dropoffs(
+    plan: dict,
+    tasks: dict,
+) -> tuple[dict, list[dict]]:
+    """Separate goals that deliver to one point, so the second one can get there.
+
+    M3 gives carry_engine_to_reactor and carry_shields_to_reactor the same
+    dropoff, ``[-29.65, -2.85]``. The first carrier arrives, delivers and
+    parks on that cell; the MAPF server then blocks it into the grid as a
+    non-participant and the second carrier's leg dies on ``no static path``.
+    Seen in run 20260818_104157: engine delivered at +273 s, shields stuck
+    at ``carrying`` for the rest of the mission.
+
+    Unlike the pickup case this *is* fixable by geometry, and for the
+    opposite reason. A pickup must not be shared at all -- whoever stands in
+    the radius takes the load. A dropoff only has to be reached: anywhere
+    inside the radius counts as delivered, so moving the goals apart by a
+    metre leaves both deliveries valid and stops one robot standing on the
+    other's only cell.
+    """
+    if not isinstance(plan, dict) or not tasks:
+        return plan, []
+
+    # Dropoff points, deduplicated: two tasks that deliver within a radius of
+    # each other are one place as far as the robots are concerned.
+    spots: list[tuple[tuple[float, float], float, list[str]]] = []
+    for task_id, task in tasks.items():
+        if not isinstance(task, dict) or task.get('type') != 'carry':
+            continue
+        point = _point(task.get('dropoff'))
+        if point is None:
+            continue
+        try:
+            radius = float(task.get('radius'))
+        except (TypeError, ValueError):
+            continue
+        if radius <= 0.0:
+            continue
+        for existing, known_radius, ids in spots:
+            if _distance(point, existing) <= min(radius, known_radius):
+                ids.append(task_id)
+                break
+        else:
+            spots.append((point, radius, [task_id]))
+
+    shared = [(p, r, ids) for p, r, ids in spots if len(ids) > 1]
+    if not shared:
+        return plan, []
+
+    new_plan = copy.deepcopy(plan)
+    leaves: list[dict] = []
+    _mapf_leaves(new_plan, leaves)
+    records: list[dict] = []
+
+    for centre, radius, task_ids in shared:
+        # Every goal aimed at this spot, in plan order. Index by leaf so the
+        # goal can be written back in place.
+        targets: list[tuple[dict, int, int]] = []   # leaf, slot, robot
+        for leaf in leaves:
+            ids = node_ids(leaf)
+            goals = list(leaf.get('goals') or [])
+            for slot, raw in enumerate(goals):
+                if slot >= len(ids):
+                    break
+                pt = _point(raw)
+                if pt is not None and _distance(pt, centre) <= radius:
+                    targets.append((leaf, slot, ids[slot]))
+        if len(targets) <= 1:
+            continue
+
+        # Ring well inside the radius: every point still counts as delivered,
+        # and no robot ends up on another's goal cell.
+        ring = min(0.75, radius * 0.5)
+        moved: list[dict] = []
+        for k, (leaf, slot, rid) in enumerate(targets):
+            angle = 2.0 * math.pi * k / len(targets)
+            goals = list(leaf.get('goals') or [])
+            goals[slot] = [round(centre[0] + ring * math.cos(angle), 2),
+                           round(centre[1] + ring * math.sin(angle), 2)]
+            leaf['goals'] = goals
+            moved.append({'robot': rid, 'goal': goals[slot]})
+
+        records.append({
+            'type':  'shared_dropoff',
+            'tasks': sorted(task_ids),
+            'spot':  [round(centre[0], 2), round(centre[1], 2)],
+            'moved': moved,
+        })
+
+    if not records:
+        return plan, []
+    return new_plan, records
