@@ -463,7 +463,7 @@ OpenRouter — не модель, а маршрутизатор. `qwen3.5-397b-a
 **Обязательно в каждом прогоне:**
 
 ```
-OPENROUTER_PROVIDER=Chutes
+OPENROUTER_PROVIDER=Parasail
 OPENROUTER_ALLOW_FALLBACKS=false     # значение по умолчанию, указано явно
 ```
 
@@ -472,12 +472,26 @@ OPENROUTER_ALLOW_FALLBACKS=false     # значение по умолчанию,
 `session.json`** (§2, пункт 2) — иначе через месяц не восстановить, на чём
 гонялось.
 
-**Chutes — рекомендация, а не догма.** Он fp8, поддерживает инструменты,
-$0.45/$3.00 за миллион токенов и отдал 13.4 с на девятитысячном промпте.
-Проверить доступность **в день прогона** и при недоступности взять другой fp8 с
-инструментами (DeepInfra, Parasail, AtlasCloud, GMICloud), записав замену.
-Смена провайдера **посреди кампании недопустима**: если пришлось — перегоняются
-все ячейки, а не хвост.
+**Chutes был рекомендацией, а не догмой, и 2026-08-18 отвалился.** Он fp8,
+поддерживает инструменты, $0.45/$3.00 за миллион токенов и отдал 13.4 с на
+девятитысячном промпте. Проверить доступность **в день прогона** и при
+недоступности взять другой fp8 с инструментами (DeepInfra, Parasail,
+AtlasCloud, GMICloud), записав замену. Смена провайдера **посреди кампании
+недопустима**: если пришлось — перегоняются все ячейки, а не хвост.
+
+**Записанная замена: Parasail.** Он fp8, для 397b поддерживает инструменты и
+на замере §4.3 оказался самым быстрым в наборе — 7.2 с против 13.4 у Chutes и
+20.4 у DeepInfra. Это не только удобство: двадцать итераций цикла инструментов
+по 7.2 с дают 144 с в модели против 408 с у DeepInfra при бюджете миссии 600 с,
+то есть DeepInfra съел бы две трети бюджета до того, как поедет первый робот.
+**Для девятки Parasail не годится** — инструменты у него там не реализованы
+(§4.6, список выше), но ячейка `model-9b` уже снята на Venice и переснятия не
+требует: её провайдер не меняется.
+
+**Что эта замена стоит.** По правилу выше перегоняется каждая ячейка, снятая на
+Chutes. На момент замены это `B-M3` целиком — три прогона, из которых один
+(`20260815_160042`) и так был недействителен. Ячейка `no-LLM` в сеть не ходит и
+не затронута; `model-9b` снята на Venice и не затронута.
 
 **Не брать DigitalOcean**, несмотря на минимальную цену $0.30/M: квантизация не
 объявлена, а 36.6 с на вызов при двадцати итерациях перекрывают бюджет миссии
@@ -490,8 +504,9 @@ $0.45/$3.00 за миллион токенов и отдал 13.4 с на дев
 только имя переменной, `llm_api_key_env: "LLM_API_KEY"`.
 
 **Деньги.** Кампания платная, и это надо планировать, а не обнаруживать. Расчёт
-в §12. Порядок: **$4.5–7 на все 56 прогонов** при 397b на Chutes. Ключ выпускать с
-лимитом, лимит проверять до начала, а не после.
+в §12. Порядок: **$4.5–7 на все 56 прогонов** при 397b на Chutes; под Parasail
+смету пересчитать (§12). Ключ выпускать с лимитом, лимит проверять до начала,
+а не после.
 
 **Отказ сети — не результат.** Разобрано в §3 (метрика 10) и §8 (пункт 7).
 Повторяю здесь, потому что это самый дорогой способ испортить кампанию тихо:
@@ -998,7 +1013,7 @@ curl -s -H "Authorization: Bearer $API_KEY" https://openrouter.ai/api/v1/key
 кампании (§4.6, §4.7):
 
 ```bash
-export OPENROUTER_PROVIDER=Chutes
+export OPENROUTER_PROVIDER=Parasail
 export OPENROUTER_ALLOW_FALLBACKS=false
 export LLM_CALL_DELAY_SEC=1
 ```
@@ -1020,7 +1035,7 @@ COMMON=(--llm-endpoint https://openrouter.ai/api/v1/chat/completions
 bash $REC "${COMMON[@]}" \
   --remediation true --repair true --supervision true \
   --tool-calling true --structured-output false \
-  --cell B --mission M2 --rep R --note "provider=Chutes"
+  --cell B --mission M2 --rep R --note "provider=Parasail"
 ```
 
 **−remediation** — то же, но `--remediation false`:
@@ -1029,7 +1044,7 @@ bash $REC "${COMMON[@]}" \
 bash $REC "${COMMON[@]}" \
   --remediation false --repair true --supervision true \
   --tool-calling true --structured-output false \
-  --cell no-remediation --mission M2 --rep R --note "provider=Chutes"
+  --cell no-remediation --mission M2 --rep R --note "provider=Parasail"
 ```
 
 **−repair**
@@ -1038,7 +1053,7 @@ bash $REC "${COMMON[@]}" \
 bash $REC "${COMMON[@]}" \
   --remediation true --repair false --supervision true \
   --tool-calling true --structured-output false \
-  --cell no-repair --mission M2 --rep R --note "provider=Chutes"
+  --cell no-repair --mission M2 --rep R --note "provider=Parasail"
 ```
 
 **−supervision**
@@ -1047,7 +1062,7 @@ bash $REC "${COMMON[@]}" \
 bash $REC "${COMMON[@]}" \
   --remediation true --repair true --supervision false \
   --tool-calling true --structured-output false \
-  --cell no-supervision --mission M2 --rep R --note "provider=Chutes"
+  --cell no-supervision --mission M2 --rep R --note "provider=Parasail"
 ```
 
 **constrained** — единственная ячейка, где переключается пара флагов (§4.1):
@@ -1056,7 +1071,7 @@ bash $REC "${COMMON[@]}" \
 bash $REC "${COMMON[@]}" \
   --remediation true --repair true --supervision true \
   --tool-calling false --structured-output true \
-  --cell constrained --mission M2 --rep R --note "provider=Chutes"
+  --cell constrained --mission M2 --rep R --note "provider=Parasail"
 ```
 
 **model-9b** — единственная ячейка, где меняется модель. Флаг `--model`
@@ -1066,7 +1081,7 @@ bash $REC "${COMMON[@]}" \
 bash $REC "${COMMON[@]}" --model qwen/qwen3.5-9b \
   --remediation true --repair true --supervision true \
   --tool-calling true --structured-output false \
-  --cell model-9b --mission M2 --rep R --note "provider=Chutes"
+  --cell model-9b --mission M2 --rep R --note "provider=Venice"
 ```
 
 Провайдера для девятки проверить отдельно: **Parasail для неё инструменты не
@@ -1083,7 +1098,7 @@ bash $REC "${COMMON[@]}" \
   --remediation true --repair true --supervision true \
   --tool-calling true --structured-output false \
   --cell M2d-detour --mission M2 --rep R \
-  --note "inject=close_lower_engine_west_at_60s provider=Chutes"
+  --note "inject=close_lower_engine_west_at_60s provider=Parasail"
 
 # окно 2 — на 60-й секунде
 docker compose exec terminal bash
@@ -1106,7 +1121,7 @@ iros_llm_swarm_interfaces/srv/ListObstacles "{}"`.
 bash $REC "${COMMON[@]}" --planner pbs \
   --remediation true --repair true --supervision true \
   --tool-calling true --structured-output false \
-  --cell PBS --mission M2 --rep R --note "provider=Chutes"
+  --cell PBS --mission M2 --rep R --note "provider=Parasail"
 ```
 
 Перед первым прогоном этой ячейки — поправка `time_step_sec` из §7.4.
@@ -1118,7 +1133,7 @@ bash $REC "${COMMON[@]}" --planner pbs \
 bash $REC "${COMMON[@]}" \
   --remediation true --repair true --supervision true \
   --tool-calling true --structured-output false \
-  --cell B-M1 --mission M1 --rep R --note "provider=Chutes"
+  --cell B-M1 --mission M1 --rep R --note "provider=Parasail"
   # для M3:  --cell B-M3 --mission M3
   # для M4:  --cell B-M4 --mission M4
 ```
@@ -1289,7 +1304,8 @@ source /home/fabian/ros2_ws/src/scripts/setup_swarm_env.sh
 
 | модель | вход $/M | выход $/M | за прогон | 56 прогонов |
 |---|---:|---:|---:|---:|
-| `qwen3.5-397b-a17b` (Chutes) | 0.45 | 3.00 | ~$0.075 | **~$4.2** |
+| `qwen3.5-397b-a17b` (Chutes) | 0.45 | 3.00 | ~$0.075 | ~$4.2 |
+| `qwen3.5-397b-a17b` (**Parasail**) | ? | ? | ? | **пересчитать** |
 | `qwen3.5-397b-a17b` (DigitalOcean) | 0.30 | 1.93 | ~$0.050 | ~$2.8 |
 | `qwen3.5-9b` | 0.10 | 0.15 | ~$0.015 | ~$0.8 |
 | `google/gemini-2.5-flash` | 0.30 | 2.50 | ~$0.062 | ~$3.5 |

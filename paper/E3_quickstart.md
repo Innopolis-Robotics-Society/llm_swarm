@@ -56,7 +56,7 @@ printf 'API_KEY=sk-or-v1-...\n' > .env
 при создании контейнера, а не при каждом `exec`:
 
 ```bash
-export OPENROUTER_PROVIDER=Chutes
+export OPENROUTER_PROVIDER=Parasail
 export LLM_CALL_DELAY_SEC=1
 
 docker compose up -d terminal          # terminal-cpu, если нет NVIDIA
@@ -151,13 +151,18 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST \
   https://openrouter.ai/api/v1/chat/completions \
   -H "Authorization: Bearer $LLM_API_KEY" -H 'Content-Type: application/json' \
   -d '{"model":"qwen/qwen3.5-397b-a17b","messages":[{"role":"user","content":"hi"}],
-       "max_tokens":1,"provider":{"order":["Chutes"],"allow_fallbacks":false}}'
+       "max_tokens":1,"provider":{"order":["Parasail"],"allow_fallbacks":false}}'
 ```
 
 Если провайдер отдаёт не 200 — взять другой **fp8 с поддержкой инструментов**
-(DeepInfra, Parasail, AtlasCloud, GMICloud) и записать замену. **DigitalOcean
-не брать**, несмотря на цену: 36 с на вызов перекрывают бюджет миссии (§4.3).
-Менять провайдера посреди кампании нельзя — только перегонять всё (§4.6).
+(DeepInfra, AtlasCloud, GMICloud) и записать замену. **DigitalOcean не брать**,
+несмотря на цену: 36 с на вызов перекрывают бюджет миссии (§4.3). Менять
+провайдера посреди кампании нельзя — только перегонять всё (§4.6).
+
+**Одна замена уже сделана.** Chutes отвалился 2026-08-18, кампания идёт на
+**Parasail** — он в наборе самый быстрый (7.2 с против 13.4 у Chutes), что при
+двадцати итерациях цикла инструментов решает, останется ли от бюджета миссии
+что-нибудь на езду. Обоснование и цена замены — в §4.6 спеки.
 
 ---
 
