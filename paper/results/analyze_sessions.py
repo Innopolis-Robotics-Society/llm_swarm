@@ -136,7 +136,8 @@ def _read_chat_log(run_dir: str) -> dict:
     total = {k: sum(num(m, k) for m in finals) for k in (
         'llm_calls', 'remediation_attempts', 'verification_repair_attempts',
         'supervision_steps', 'guard_active_formation_fired',
-        'guard_occupancy_rewrites', 'guard_formation_staging_fired')}
+        'guard_occupancy_rewrites', 'guard_formation_staging_fired',
+        'guard_single_carrier_fired')}
     return {
         'present': bool(recs),
         'n_missions': len(finals),
@@ -398,9 +399,22 @@ def _score_mapf(bag: B.Bag) -> dict:
                     'elapsed_ms': 0, 'statuses': [], 'warnings': [],
                     'terminal': None})
                 g['terminal'] = _GOAL_STATUS.get(e['status'], e['status'])
+    # A goal that ends SUCCEEDED having planned nobody. The action server
+    # always calls succeed() and carries the outcome in result.success
+    # (mapf_lns2_node.cpp: every failure path does succeed() with
+    # success=false), and the result payload is not a recorded topic. So the
+    # terminal status alone reads as a clean goal for a refusal -- which is
+    # exactly how run 20260818_085836 looked until the launch.log was read.
+    # Zero arrivals with no elapsed time is the signature to surface.
+    refused = [
+        gid for gid, g in goals.items()
+        if g['terminal'] == 'SUCCEEDED' and not g['arrived']
+        and not g['elapsed_ms'] and not g['stall']
+    ]
     return {
         'n_goals': len(goals),
         'goals': goals,
+        'refused': refused,
         'total_replans': sum(g['replans'] for g in goals.values()),
         'total_stall': sum(g['stall'] for g in goals.values()),
         'terminal': [g['terminal'] for g in goals.values()],
@@ -505,6 +519,13 @@ def analyse_run(run_dir: str) -> dict:
         out['problems'].append(
             'operator_commands_logged == 0 -- mission text may not have been '
             'sent through the panel')
+    refused = (out.get('mapf') or {}).get('refused') or []
+    if refused:
+        out['problems'].append(
+            f'{len(refused)} MAPF goal(s) ended SUCCEEDED having planned '
+            'nobody -- the planner refused them (result.success is false but '
+            'the result payload is not recorded); read launch.log for the '
+            'reason, and do not read the terminal status as a clean goal')
     return out
 
 
@@ -530,7 +551,7 @@ def print_table(runs: list[dict]) -> None:
         ct = (r.get('chat') or {}).get('totals') or {}
         guard = sum(ct.get(k, 0) for k in (
             'guard_active_formation_fired', 'guard_occupancy_rewrites',
-            'guard_formation_staging_fired'))
+            'guard_formation_staging_fired', 'guard_single_carrier_fired'))
         rows.append((
             r['stamp'], str(r.get('cell')), str(r.get('mission')),
             str(r.get('repeat')), _score_str(r),
@@ -593,7 +614,7 @@ def print_mechanism_check(runs: list[dict]) -> None:
     """
     keys = ('remediation_attempts', 'verification_repair_attempts',
             'guard_active_formation_fired', 'guard_occupancy_rewrites',
-            'guard_formation_staging_fired')
+            'guard_formation_staging_fired', 'guard_single_carrier_fired')
     live = [r for r in runs if (r.get('chat') or {}).get('present')]
     if not live:
         return

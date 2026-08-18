@@ -56,6 +56,7 @@ from iros_llm_orchestrator.common.context_budget import (
 from iros_llm_orchestrator.common.occupancy_rewrite import (
     rewrite_occupied_room_mapf_goals,
 )
+from iros_llm_orchestrator.common.carry_guard import enforce_single_carrier
 from iros_llm_orchestrator.common.active_formation_guard import (
     guard_plan_for_active_formations,
 )
@@ -428,6 +429,7 @@ class ChatServer(Node):
                     'label': t.label,
                     'status': state.status,
                     'position': [round(t.position[0], 2), round(t.position[1], 2)],
+                    'radius': round(float(t.radius), 2),
                     'assigned': list(state.assigned_robot_ids),
                 }
                 if t.type == 'carry':
@@ -1035,7 +1037,30 @@ class ChatServer(Node):
             raise _LlmStageError(f'parse error: {exc}') from exc
         plan = _postprocess_plan(plan, self._map_cfg, self._goal_spread_enabled)
         plan = self._rewrite_occupied_room_mapf_goals(plan, user_message)
+        plan = self._enforce_single_carrier(plan)
         return reply, plan, full_raw
+
+    def _enforce_single_carrier(self, plan: dict) -> dict:
+        """Drop robots the plan routes into a carry pickup a carrier already owns.
+
+        See common/carry_guard.py for why this cannot be solved by moving
+        goals apart. Failure here must not cost the mission a plan that is
+        otherwise fine, so any error leaves the plan as it was.
+        """
+        try:
+            tasks = self._get_task_context()
+            guarded, records = enforce_single_carrier(plan, tasks)
+        except Exception as exc:
+            self.get_logger().warning(f'carry_guard: skipped: {exc}')
+            return plan
+        self._bump('guard_single_carrier_fired', len(records))
+        for rec in records:
+            self.get_logger().warning(
+                'carry_guard: task=%s kept robot_%s dropped %s -- %s'
+                % (rec['task'], rec['kept'],
+                   ', '.join(f"robot_{r}" for r in rec['dropped']) or 'nothing',
+                   rec['reason']))
+        return guarded
 
     def _rewrite_occupied_room_mapf_goals(
         self,
@@ -1549,6 +1574,9 @@ class ChatServer(Node):
             # line, so the one guard a formation mission actually exercises
             # was the one guard not countable from the session folder.
             'guard_formation_staging_fired': 0,
+            # A plan sending a second robot into a carry pickup zone costs
+            # the mission the whole delivery; see common/carry_guard.py.
+            'guard_single_carrier_fired': 0,
             'remediation_attempts': 0,
             'verification_repair_attempts': 0,
             'supervision_steps': 0,
