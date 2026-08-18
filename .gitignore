@@ -81,7 +81,15 @@ maf.md
 #
 # Git LFS was set up for the bags and then removed: a campaign is ~5 GB against
 # a 1 GB free quota, and LFS objects keep consuming quota after deletion.
+#
+# sessions_invalid/ holds runs withdrawn from the set (wrong provider, a defect
+# since fixed). Same split applies -- the reason a run was withdrawn is text and
+# belongs in the repo, its 130 MB bag does not.
 paper/results/sessions/**/*.db3
 paper/results/sessions/**/*.db3-*
 paper/results/sessions/**/*.mcap
 paper/results/sessions/**/bag_record.log
+paper/results/sessions_invalid/**/*.db3
+paper/results/sessions_invalid/**/*.db3-*
+paper/results/sessions_invalid/**/*.mcap
+paper/results/sessions_invalid/**/bag_record.log
