@@ -282,7 +282,7 @@ Complete all declared tasks.
 **M4** — строй:
 
 ```
-Form a column of four cyan robots led by robot_0 in the cafeteria at (2.7, 10.1), then move the column to storage at (0.6, -10.9), then disband it.
+Form a column of the four cyan robots (robot_0, robot_1, robot_2, robot_3) led by robot_0 in the cafeteria at (2.7, 10.1), then move the column to storage at (0.6, -10.9), then disband it.
 ```
 
 ---
