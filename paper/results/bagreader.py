@@ -267,7 +267,16 @@ class Bag:
 
     def __init__(self, db3_path: str) -> None:
         self.path = db3_path
-        self._con = sqlite3.connect(f'file:{db3_path}?mode=ro', uri=True)
+        # immutable=1, not mode=ro. A read-only connection still takes a
+        # shared lock, and that is enough to kill a rosbag2 recorder writing
+        # the same file: it dies with SqliteException "database is locked" and
+        # leaves the bag without its metadata.yaml. That happened to run
+        # 20260818_110246, which lost the last six minutes of a 9/9 mission
+        # because the analyser was reading the set while it recorded.
+        # immutable=1 promises the file will not change and skips locking
+        # entirely -- so callers must not point it at a live recording, which
+        # is what analyze_sessions._is_live() is for.
+        self._con = sqlite3.connect(f'file:{db3_path}?immutable=1', uri=True)
         self.topics = {
             name: (tid, typ)
             for tid, name, typ in self._con.execute(

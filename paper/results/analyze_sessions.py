@@ -469,6 +469,26 @@ def _score_mapf(bag: B.Bag) -> dict:
     }
 
 
+def _is_live(run_dir: str) -> bool:
+    """True while a run is still recording.
+
+    Opening a bag that rosbag2 is writing can kill the recorder (see the note
+    in bagreader.Bag.__init__), and a half-written bag scores wrong anyway.
+    session.json gets `finished_at` only when record_session.sh shuts the
+    stack down, so its absence is the signal. A directory with no session.json
+    at all is treated as live: it is more likely a run being set up than a
+    finished one.
+    """
+    sj = os.path.join(run_dir, 'session.json')
+    if not os.path.isfile(sj):
+        return True
+    try:
+        with open(sj, encoding='utf-8') as fh:
+            return not json.load(fh).get('finished_at')
+    except Exception:
+        return True
+
+
 def analyse_run(run_dir: str) -> dict:
     """Score one session directory. Never raises on a broken run -- a run that
     cannot be scored has to appear in the table as unscorable, not vanish."""
@@ -842,7 +862,11 @@ def main() -> int:
         print(f'no runs under {args.sessions}', file=sys.stderr)
         return 1
 
-    runs = [analyse_run(d) for d in dirs]
+    live = [d for d in dirs if _is_live(d)]
+    for d in live:
+        print(f'skipping {os.path.basename(d)}: still recording '
+              '(reading its bag would kill the recorder)', file=sys.stderr)
+    runs = [analyse_run(d) for d in dirs if d not in set(live)]
     if args.cell:
         want = {c.lower() for c in args.cell}
         runs = [r for r in runs if str(r.get('cell')).lower() in want]
