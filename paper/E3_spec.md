@@ -463,9 +463,32 @@ OpenRouter — не модель, а маршрутизатор. `qwen3.5-397b-a
 **Обязательно в каждом прогоне:**
 
 ```
-OPENROUTER_PROVIDER=Parasail
+OPENROUTER_PROVIDER=Parasail,AtlasCloud,GMICloud,Chutes
 OPENROUTER_ALLOW_FALLBACKS=false     # значение по умолчанию, указано явно
 ```
+
+**Это белый список, а не одиночная прибивка, и разница принципиальна.**
+`allow_fallbacks: false` запрещает роутеру выходить за перечисленных, порядок
+внутри списка соблюдается, то есть отказ первого перекатывается на второго и
+никогда — на произвольного. Прежняя редакция требовала ровно одного имени;
+редакция изменена после того, как Parasail отдал `429` с
+`limit_source: upstream_provider_shared_pool` на первом же прогоне пилота и
+убил его целиком (§4.7 — транспортный отказ не результат).
+
+Прибивка одного имени защищала не от «разных поставщиков» как таковых, а от
+трёх конкретных свойств: **нет инструментов** (StreamLake для 397b — арм
+tool-calling становится фикцией, а прогон выглядит нормальным), **задержка**
+(37 с × 20 итераций перекрывают бюджет миссии) и **квантизация**. Список из
+проверенных fp8 с инструментами даёт те же три гарантии и переживает `429`.
+DeepInfra в список не входит намеренно: он fp8 и с инструментами, но 20.4 с на
+вызов при `tool_max_iterations: 20` это 408 с в модели при бюджете 600 с.
+
+**Цена решения — прослеживаемость.** `session.json` пишет запрошенный список, а
+не того, кто фактически ответил. `http_client._with_router_hints` сам требует
+обратного в докстринге («whichever upstream actually served a call … must be
+recorded next to the numbers»), но поле `provider` из ответа не читает никто.
+Пока это не исправлено, состав смеси внутри ячейки восстанавливается только по
+косвенным признакам — по `llm_seconds`.
 
 Клиент превращает это в `provider.order` с `allow_fallbacks: false`
 (`web/http_client.py`, `_with_router_hints`). Провайдер **записывается в
@@ -1021,7 +1044,7 @@ curl -s -H "Authorization: Bearer $API_KEY" https://openrouter.ai/api/v1/key
 кампании (§4.6, §4.7):
 
 ```bash
-export OPENROUTER_PROVIDER=Parasail
+export OPENROUTER_PROVIDER=Parasail,AtlasCloud,GMICloud,Chutes
 export OPENROUTER_ALLOW_FALLBACKS=false
 export LLM_CALL_DELAY_SEC=1
 ```
@@ -1035,7 +1058,9 @@ COMMON=(--llm-endpoint https://openrouter.ai/api/v1/chat/completions
         --model qwen/qwen3.5-397b-a17b)
 ```
 
-Ниже `R` — номер повтора, подставлять руками.
+Ниже `R` — номер повтора, подставлять руками. `--note "providers=whitelist"`
+намеренно короткий: полный список всё равно уезжает в `session.json` в блоке
+`llm_routing` ровно в том виде, в каком стоял в окружении.
 
 **B — база**
 
@@ -1043,7 +1068,7 @@ COMMON=(--llm-endpoint https://openrouter.ai/api/v1/chat/completions
 bash $REC "${COMMON[@]}" \
   --remediation true --repair true --supervision true \
   --tool-calling true --structured-output false \
-  --cell B --mission M2 --rep R --note "provider=Parasail"
+  --cell B --mission M2 --rep R --note "providers=whitelist"
 ```
 
 **−remediation** — то же, но `--remediation false`:
@@ -1052,7 +1077,7 @@ bash $REC "${COMMON[@]}" \
 bash $REC "${COMMON[@]}" \
   --remediation false --repair true --supervision true \
   --tool-calling true --structured-output false \
-  --cell no-remediation --mission M2 --rep R --note "provider=Parasail"
+  --cell no-remediation --mission M2 --rep R --note "providers=whitelist"
 ```
 
 **−repair**
@@ -1061,7 +1086,7 @@ bash $REC "${COMMON[@]}" \
 bash $REC "${COMMON[@]}" \
   --remediation true --repair false --supervision true \
   --tool-calling true --structured-output false \
-  --cell no-repair --mission M2 --rep R --note "provider=Parasail"
+  --cell no-repair --mission M2 --rep R --note "providers=whitelist"
 ```
 
 **−supervision**
@@ -1070,7 +1095,7 @@ bash $REC "${COMMON[@]}" \
 bash $REC "${COMMON[@]}" \
   --remediation true --repair true --supervision false \
   --tool-calling true --structured-output false \
-  --cell no-supervision --mission M2 --rep R --note "provider=Parasail"
+  --cell no-supervision --mission M2 --rep R --note "providers=whitelist"
 ```
 
 **constrained** — единственная ячейка, где переключается пара флагов (§4.1):
@@ -1079,7 +1104,7 @@ bash $REC "${COMMON[@]}" \
 bash $REC "${COMMON[@]}" \
   --remediation true --repair true --supervision true \
   --tool-calling false --structured-output true \
-  --cell constrained --mission M2 --rep R --note "provider=Parasail"
+  --cell constrained --mission M2 --rep R --note "providers=whitelist"
 ```
 
 **model-9b** — единственная ячейка, где меняется модель. Флаг `--model`
@@ -1129,7 +1154,7 @@ iros_llm_swarm_interfaces/srv/ListObstacles "{}"`.
 bash $REC "${COMMON[@]}" --planner pbs \
   --remediation true --repair true --supervision true \
   --tool-calling true --structured-output false \
-  --cell PBS --mission M2 --rep R --note "provider=Parasail"
+  --cell PBS --mission M2 --rep R --note "providers=whitelist"
 ```
 
 Перед первым прогоном этой ячейки — поправка `time_step_sec` из §7.4.
@@ -1141,7 +1166,7 @@ bash $REC "${COMMON[@]}" --planner pbs \
 bash $REC "${COMMON[@]}" \
   --remediation true --repair true --supervision true \
   --tool-calling true --structured-output false \
-  --cell B-M1 --mission M1 --rep R --note "provider=Parasail"
+  --cell B-M1 --mission M1 --rep R --note "providers=whitelist"
   # для M3:  --cell B-M3 --mission M3
   # для M4:  --cell B-M4 --mission M4
 ```

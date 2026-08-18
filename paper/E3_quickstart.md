@@ -56,7 +56,7 @@ printf 'API_KEY=sk-or-v1-...\n' > .env
 при создании контейнера, а не при каждом `exec`:
 
 ```bash
-export OPENROUTER_PROVIDER=Parasail
+export OPENROUTER_PROVIDER=Parasail,AtlasCloud,GMICloud,Chutes
 export LLM_CALL_DELAY_SEC=1
 
 docker compose up -d terminal          # terminal-cpu, если нет NVIDIA
@@ -151,7 +151,7 @@ curl -s -o /dev/null -w '%{http_code}\n' -X POST \
   https://openrouter.ai/api/v1/chat/completions \
   -H "Authorization: Bearer $LLM_API_KEY" -H 'Content-Type: application/json' \
   -d '{"model":"qwen/qwen3.5-397b-a17b","messages":[{"role":"user","content":"hi"}],
-       "max_tokens":1,"provider":{"order":["Parasail"],"allow_fallbacks":false}}'
+       "max_tokens":1,"provider":{"order":["Parasail","AtlasCloud","GMICloud","Chutes"],"allow_fallbacks":false}}'
 ```
 
 Если провайдер отдаёт не 200 — взять другой **fp8 с поддержкой инструментов**
