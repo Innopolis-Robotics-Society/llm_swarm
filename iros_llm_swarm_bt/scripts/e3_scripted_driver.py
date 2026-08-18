@@ -405,9 +405,9 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--mission', default='m2', choices=sorted(MISSIONS),
                     help='which E3 mission to drive (default m2)')
-    ap.add_argument('--timeout', type=float, default=600.0,
+    ap.add_argument('--timeout', type=float, default=900.0,
                     help='seconds per wave, matching '
-                         'llm_mission_max_duration_sec (default 600)')
+                         'llm_mission_max_duration_sec (default 900)')
     ap.add_argument('--dry-run', action='store_true',
                     help='resolve tasks and print the legs without driving')
     args = ap.parse_args()

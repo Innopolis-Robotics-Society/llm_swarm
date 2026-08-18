@@ -98,7 +98,15 @@ llm_chat_server:
     # would have made the supervision ablation a measurement of this number.
     # 600 s leaves the mission budget as the outermost bound, above every
     # per-step and per-loop cap below it.
-    llm_mission_max_duration_sec: 600.0
+    #
+    # 600 turned out to be the same mistake one mission up. All three recorded
+    # M3 runs ended with carry_shields_to_reactor still `carrying` -- a ~65 m
+    # haul that starts only after the last point task finishes at 425-496 s.
+    # The other eight tasks were done; the ninth had no time left. So an M3 cell
+    # at 600 s measures this number, exactly as the 180 s cell measured the old
+    # one. 900 clears the observed makespan by ~400 s while staying above every
+    # cap below it (step_timeout_sec 300 -- a 65 m leg at 0.5 m/s is ~130 s).
+    llm_mission_max_duration_sec: 900.0
     llm_mission_max_steps: 6
     llm_mission_verify_delay_sec: 0.8
     llm_mission_min_progress_required: true
