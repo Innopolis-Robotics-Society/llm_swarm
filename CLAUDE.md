@@ -36,7 +36,19 @@ colcon build --packages-select iros_llm_swarm_interfaces iros_llm_swarm_mapf_lns
 colcon build                                            # then everything
 ```
 
-`--symlink-install` is the default for Python packages. `iros_llm_swarm_docs` carries a `COLCON_IGNORE` and is not part of the normal build.
+`iros_llm_swarm_docs` carries a `COLCON_IGNORE` and is not part of the normal build.
+
+**Do not pass `--symlink-install`.** `iros_llm_orchestrator`'s `setup.py`
+does not accept `--editable`, so the build fails — and worse, colcon then
+records the package as symlink-installed and every later plain build fails
+with `option --uninstall not recognized`. Recovery is
+`rm -rf build/iros_llm_orchestrator install/iros_llm_orchestrator` followed
+by a normal build.
+
+Consequence worth internalising: Python packages are installed as **copies**.
+`pytest` run from `src/<pkg>/` tests the sources, but a running node loads
+`install/`. Green tests do not mean the live stack has your change — rebuild
+the package before recording anything.
 
 ## Launch
 
