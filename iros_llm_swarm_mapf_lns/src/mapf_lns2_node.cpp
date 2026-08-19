@@ -588,6 +588,10 @@ class MapfLns2Node : public rclcpp::Node {
 
       mission_start_time_ = now();
       total_replans_ = 0;
+      // What the caller actually asked for, kept apart from what any one
+      // plan happened to contain. active_robot_ids_ is rewritten by every
+      // replan, so it cannot answer "was this mission delivered?".
+      requested_robot_ids_ = goal->robot_ids;
     }
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
   }
@@ -1346,27 +1350,27 @@ class MapfLns2Node : public rclcpp::Node {
       }
     }
     std::size_t arrived_and_planable = 0;
+    std::unordered_set<uint32_t> delivered;
     for (std::size_t i = 0; i < active_robot_ids_.size(); ++i) {
       const uint32_t rid = active_robot_ids_[i];
       if (rid >= static_cast<uint32_t>(num_robots_)) continue;
-      if (life_.unplanable.count(rid)) continue;
+      if (i >= active_goals_world_.size()) continue;
       const auto& [cx, cy] = current_positions_[rid];
       const double gx = active_goals_world_[i].x;
       const double gy = active_goals_world_[i].y;
-      if (std::hypot(cx - gx, cy - gy) <= goal_reached_m_) {
-        ++arrived_and_planable;
-      }
+      if (std::hypot(cx - gx, cy - gy) > goal_reached_m_) continue;
+      delivered.insert(rid);
+      if (!life_.unplanable.count(rid)) ++arrived_and_planable;
     }
 
     if (plan_required > 0 && arrived_and_planable == plan_required) {
       auto result = std::make_shared<SetGoalsAction::Result>(last_plan_metrics_);
-      // Robots this mission asked for that never got a route. They are
-      // excluded from plan_required above, so the arrival test passes
-      // without them -- which is why this has to be reported separately.
+      // Scored against what the caller asked for, not against whoever
+      // survived into the last plan. Unplanable robots are excluded from
+      // plan_required above, so the arrival test passes without them.
       std::string skipped;
-      for (uint32_t rid : active_robot_ids_) {
-        if (rid < static_cast<uint32_t>(num_robots_) &&
-            life_.unplanable.count(rid)) {
+      for (uint32_t rid : requested_robot_ids_) {
+        if (rid < static_cast<uint32_t>(num_robots_) && !delivered.count(rid)) {
           if (!skipped.empty()) skipped += ", ";
           skipped += "robot_" + std::to_string(rid);
         }
@@ -1386,7 +1390,7 @@ class MapfLns2Node : public rclcpp::Node {
         result->success = false;
         result->error_code = SetGoalsAction::Result::PARTIAL;
         result->message = "partial: " + skipped +
-            " never got a route and did not move; the rest arrived";
+            " did not reach the requested goal; the rest arrived";
       }
       result->total_replans = total_replans_;
       result->total_execution_sec = (now() - mission_start_time_).seconds();
@@ -2062,8 +2066,28 @@ class MapfLns2Node : public rclcpp::Node {
                           const std::vector<geometry_msgs::msg::Point>& goals,
                           const rclcpp::Time& plan_time)
   {
-    active_robot_ids_    = plan_ids_ext;
-    active_goals_world_  = goals;
+    // Merge, never shrink. A robot benched for one replan is absent from
+    // plan_ids_ext; dropping it here removed it from the mission for good,
+    // because the replan path snapshots active_robot_ids_ to decide who to
+    // plan for. Run 20260818_140918: robot_0 was benched during a replan,
+    // came off the bench 5 s later, and was never planned again -- yet the
+    // mission reported "All agents arrived" because it had forgotten it was
+    // ever asked to move it.
+    for (std::size_t k = 0; k < plan_ids_ext.size() && k < goals.size(); ++k) {
+      const uint32_t rid = plan_ids_ext[k];
+      auto it = std::find(active_robot_ids_.begin(), active_robot_ids_.end(),
+                          rid);
+      if (it == active_robot_ids_.end()) {
+        active_robot_ids_.push_back(rid);
+        active_goals_world_.push_back(goals[k]);
+      } else {
+        const std::size_t slot =
+            static_cast<std::size_t>(it - active_robot_ids_.begin());
+        if (slot < active_goals_world_.size()) {
+          active_goals_world_[slot] = goals[k];
+        }
+      }
+    }
 
     // Save grid paths indexed by EXTERNAL robot_id for warm-start reuse.
     prev_grid_paths_.assign(num_robots_, lns2::Path{});
@@ -2169,6 +2193,7 @@ class MapfLns2Node : public rclcpp::Node {
   // Active plan
   std::vector<lns2::Path> prev_grid_paths_;
   std::vector<uint32_t>   active_robot_ids_;
+  std::vector<uint32_t>   requested_robot_ids_;
   std::vector<geometry_msgs::msg::Point> active_goals_world_;
   rclcpp::Time plan_origin_time_{0, 0, RCL_ROS_TIME};
   rclcpp::Time last_replan_time_{0, 0, RCL_ROS_TIME};
