@@ -12,6 +12,13 @@ from __future__ import annotations
 class LLMClientBase:
     """Minimal interface all backends must implement."""
 
+    # Wire shape this backend expects for recorded tool calls and their
+    # results. Consumed by tool_definitions.build_tool_use_assistant_message
+    # / build_tool_result_message. 'openai' is the default because every
+    # hosted endpoint we target speaks it; only Ollama's native /api/chat
+    # differs, and it says so on its own class.
+    tool_message_dialect: str = 'openai'
+
     async def generate(
         self,
         prompt: str | list,

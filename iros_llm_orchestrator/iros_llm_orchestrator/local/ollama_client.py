@@ -17,6 +17,9 @@ from iros_llm_orchestrator.common.llm_factory import LLMClientBase
 
 
 class OllamaClient(LLMClientBase):
+    # Native /api/chat, not the OpenAI-compatible shim.
+    tool_message_dialect: str = 'ollama'
+
     def __init__(
         self,
         endpoint: str  = 'http://localhost:11434/api/chat',

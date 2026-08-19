@@ -90,9 +90,12 @@ from iros_llm_orchestrator.context.provider import (
 from iros_llm_orchestrator.common.tool_definitions import TOOL_DEFINITIONS
 from iros_llm_orchestrator.common.plan_schema import PLAN_RESPONSE_SCHEMA
 from iros_llm_orchestrator.common.tool_executor import ToolExecutor
+from iros_llm_orchestrator.common.tool_definitions import (
+    build_tool_result_message,
+    build_tool_use_assistant_message,
+)
 from iros_llm_orchestrator.user_chat_node import (
     _parse_response, _postprocess_plan,
-    _build_tool_use_assistant_message, _build_tool_result_message,
 )
 
 MAX_HISTORY = 8   # conversation turns kept per session
@@ -1161,6 +1164,7 @@ class ChatServer(Node):
         always emitted as stage='streaming' via _emit_reply_streaming.
         """
         msgs = list(messages)
+        dialect = getattr(self._llm, 'tool_message_dialect', 'openai')
         for iteration in range(self._tool_max_iterations):
             full_text = ''
             terminal: dict | None = None
@@ -1243,7 +1247,7 @@ class ChatServer(Node):
             self.get_logger().info(
                 f'tool_loop iter={iteration}: calling tools '
                 f'{[c["name"] for c in calls]}')
-            msgs.append(_build_tool_use_assistant_message(calls))
+            msgs.append(build_tool_use_assistant_message(calls, dialect))
 
             for call in calls:
                 name    = call['name']
@@ -1257,7 +1261,8 @@ class ChatServer(Node):
                 except Exception as exc:
                     tool_result = {'error': str(exc)}
                 result_str = json.dumps(tool_result, ensure_ascii=False)
-                msgs.append(_build_tool_result_message(call_id, result_str))
+                msgs.append(
+                    build_tool_result_message(call_id, result_str, dialect))
 
         raise RuntimeError(
             f'tool loop exceeded {self._tool_max_iterations} iterations '

@@ -328,7 +328,7 @@ def parse_openai_tool_calls(choice: dict) -> list[dict] | None:
     if not raw_calls:
         return None
     result: list[dict] = []
-    for tc in raw_calls:
+    for i, tc in enumerate(raw_calls):
         fn = tc.get("function", {})
         name = fn.get("name", "")
         args = fn.get("arguments", {})
@@ -342,6 +342,79 @@ def parse_openai_tool_calls(choice: dict) -> list[dict] | None:
         result.append({
             "name": name,
             "arguments": args,
-            "call_id": tc.get("id", f"call_{name}"),
+            # The index keeps the fallback unique. A turn that calls one
+            # tool several times -- run 20260819_073009 called
+            # find_free_group_goals_in_room seven times -- would otherwise
+            # give every call the same id, and an OpenAI-compatible endpoint
+            # matches tool results to calls by id.
+            "call_id": tc.get("id") or f"call_{i}_{name}",
         })
     return result or None
+
+
+# ---------------------------------------------------------------------------
+# Tool-loop message construction
+# ---------------------------------------------------------------------------
+#
+# The two wire dialects disagree on the shape of a recorded tool call, and
+# neither accepts the other's. Run 20260819_073009 sent the Ollama shape to
+# OpenRouter and got back, verbatim:
+#
+#   ChatCompletionMessageFunctionToolCallParam.id  Field required
+#   ChatCompletionMessageFunctionToolCallParam.function.arguments
+#                                     Input should be a valid string
+#
+# It surfaced only then because the provider whitelist rotates and only some
+# providers validate strictly -- which made it look like a flaky network
+# rather than a malformed request. The dialect comes from the client
+# (LLMClientBase.tool_message_dialect), not from a mode string at the call
+# site, so a new backend cannot forget to declare it.
+
+
+def build_tool_use_assistant_message(
+    calls: list[dict],
+    dialect: str = 'openai',
+) -> dict:
+    """The assistant message that records which tools the model asked for."""
+    if dialect == 'ollama':
+        # Arguments stay a dict: Ollama returns them that way and rejects a
+        # re-serialised string with "Value looks like object, but can't find
+        # closing '}'". No id/type wrapper either.
+        return {
+            'role': 'assistant',
+            'content': '',
+            'tool_calls': [
+                {'function': {'name': c['name'],
+                              'arguments': c.get('arguments', {})}}
+                for c in calls
+            ],
+        }
+    return {
+        'role': 'assistant',
+        'content': '',
+        'tool_calls': [
+            {
+                'id': c.get('call_id') or f'call_{i}_{c["name"]}',
+                'type': 'function',
+                'function': {
+                    'name': c['name'],
+                    'arguments': json.dumps(c.get('arguments', {}),
+                                            ensure_ascii=False),
+                },
+            }
+            for i, c in enumerate(calls)
+        ],
+    }
+
+
+def build_tool_result_message(
+    call_id: str,
+    result_str: str,
+    dialect: str = 'openai',
+) -> dict:
+    """The tool result message answering one recorded call."""
+    if dialect == 'ollama':
+        # Ollama native format has no tool_call_id field; sending one is a
+        # deserialization error on the follow-up /api/chat request.
+        return {'role': 'tool', 'content': result_str}
+    return {'role': 'tool', 'tool_call_id': call_id, 'content': result_str}

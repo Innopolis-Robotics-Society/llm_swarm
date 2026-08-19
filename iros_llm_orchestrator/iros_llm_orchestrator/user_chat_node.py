@@ -27,7 +27,11 @@ from iros_llm_orchestrator.common.llm_factory import get_llm_client
 from iros_llm_orchestrator.common.plan_executor import (
     PlanExecutor, coerce_robot_id, parse_plan)
 from iros_llm_orchestrator.common.plan_templating import find_used_refs
-from iros_llm_orchestrator.common.tool_definitions import TOOL_DEFINITIONS
+from iros_llm_orchestrator.common.tool_definitions import (
+    TOOL_DEFINITIONS,
+    build_tool_result_message,
+    build_tool_use_assistant_message,
+)
 from iros_llm_orchestrator.common.tool_executor import ToolExecutor
 from iros_llm_orchestrator.common.user_prompt import (
     build_remediation_prompt, build_user_prompt,
@@ -48,38 +52,6 @@ BOT='BOT'; THK='🧠'; WRN='⚠ '; OK='✓'; ERR='✗'; ARR='→'
 # ---------------------------------------------------------------------------
 # Tool loop message builders
 # ---------------------------------------------------------------------------
-
-def _build_tool_use_assistant_message(calls: list[dict]) -> dict:
-    """Build the assistant message that records tool call requests.
-
-    Uses Ollama native /api/chat format: arguments as a dict (not a JSON string),
-    content as empty string (not null), no id/type wrapper fields.
-    Ollama returns arguments as dicts; re-serialising as a string causes HTTP 400
-    on the follow-up request ("Value looks like object, but can't find closing '}'").
-    """
-    return {
-        "role": "assistant",
-        "content": "",
-        "tool_calls": [
-            {
-                "function": {
-                    "name": c["name"],
-                    "arguments": c.get("arguments", {}),
-                },
-            }
-            for c in calls
-        ],
-    }
-
-
-def _build_tool_result_message(call_id: str, result_str: str) -> dict:
-    """Build the tool result message to append to the conversation.
-
-    Ollama native format has no tool_call_id field; omitting it avoids
-    deserialization errors on the follow-up /api/chat request.
-    """
-    return {"role": "tool", "content": result_str}
-
 
 def _fmt_args(args: dict) -> str:
     """Format tool arguments for display, truncated to 80 chars."""
@@ -922,6 +894,7 @@ class UserChatNode(Node):
         Hard-capped at self._tool_max_iterations rounds to prevent infinite loops.
         """
         msgs = list(messages)
+        dialect = getattr(self._llm, 'tool_message_dialect', 'openai')
         for iteration in range(self._tool_max_iterations):
             if chunk_cb is not None:
                 result = await self._consume_stream(
@@ -939,10 +912,9 @@ class UserChatNode(Node):
                 f'{[c["name"] for c in calls]}'
             )
 
-            # Build the assistant message that requested the tools
-            # (needed for OpenAI multi-turn tool format)
-            tool_use_msg = _build_tool_use_assistant_message(calls)
-            msgs.append(tool_use_msg)
+            # Record the tools the model asked for, in whichever wire
+            # shape this backend accepts.
+            msgs.append(build_tool_use_assistant_message(calls, dialect))
 
             for call in calls:
                 name = call['name']
@@ -961,7 +933,8 @@ class UserChatNode(Node):
 
                 result_str = json.dumps(tool_result, ensure_ascii=False)
                 self._slog.debug(f'tool result: {name} → {result_str[:300]}')
-                msgs.append(_build_tool_result_message(call_id, result_str))
+                msgs.append(
+                    build_tool_result_message(call_id, result_str, dialect))
 
         raise RuntimeError(
             f'tool loop exceeded {self._tool_max_iterations} iterations '
