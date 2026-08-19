@@ -416,3 +416,91 @@ def test_flatten_parallel_normalises_string_robot_ids():
         _mapf(['robot_2'], [[3.0, 3.0]])]}
     out = flatten_parallel(p)
     assert sorted(out[0]['robot_ids']) == [0, 2]
+
+
+# ---------------------------------------------------------------------------
+# Staging refusal — run 20260818_140918
+# ---------------------------------------------------------------------------
+
+def _m4_snapshot() -> dict:
+    """Poses as they actually were when the M4 formation leaf ran.
+
+    robot_0 was dropped from the preceding MAPF plan and never left its
+    spawn; the three followers had reached the cafeteria 25 m away.
+    """
+    return {
+        0: {'x': -22.65, 'y': 9.15, 'yaw': 0.0, 'stale_ms': 50, 'stale': False},
+        1: {'x': 1.81, 'y': 12.2, 'yaw': 0.0, 'stale_ms': 50, 'stale': False},
+        2: {'x': 1.81, 'y': 10.71, 'yaw': 0.0, 'stale_ms': 50, 'stale': False},
+        3: {'x': 0.31, 'y': 10.71, 'yaw': 0.0, 'stale_ms': 50, 'stale': False},
+    }
+
+
+def _cyan_column() -> dict:
+    return {
+        'type': 'formation',
+        'formation_id': 'cyan_column',
+        'leader_ns': 'robot_0',
+        'follower_ns': ['robot_1', 'robot_2', 'robot_3'],
+        'offsets_x': [-1.5, -3.0, -4.5],
+        'offsets_y': [0.0, 0.0, 0.0],
+        'reason': 'column formation in cafeteria',
+    }
+
+
+def test_staging_refuses_when_the_leader_never_left_its_spawn():
+    from iros_llm_orchestrator.context.pose_cache import (
+        FormationStagingRefused)
+    with pytest.raises(FormationStagingRefused) as exc:
+        compute_formation_staging(
+            _cyan_column(), _m4_snapshot(), max_travel_m=8.0)
+    text = str(exc.value)
+    # The message has to point at the leader. Blaming the followers is what
+    # formation_manager already does, and it sent us looking at robot_2.
+    assert 'robot_0' in text
+    assert '-22.65' in text
+
+
+def test_staging_without_a_limit_keeps_the_old_behaviour():
+    """max_travel_m defaults to None so user_chat and existing callers
+    are unaffected until they opt in."""
+    staging = compute_formation_staging(_cyan_column(), _m4_snapshot())
+    assert staging is not None
+    assert staging['robot_ids'] == [1, 2, 3]
+
+
+def test_staging_allows_a_normal_walk_across_a_room():
+    snapshot = {
+        4: {'x': 0.0, 'y': 0.0, 'yaw': 0.0, 'stale_ms': 50, 'stale': False},
+        5: {'x': 3.0, 'y': 2.0, 'yaw': 0.0, 'stale_ms': 50, 'stale': False},
+        6: {'x': 3.0, 'y': -2.0, 'yaw': 0.0, 'stale_ms': 50, 'stale': False},
+        7: {'x': 1.0, 'y': 2.0, 'yaw': 0.0, 'stale_ms': 50, 'stale': False},
+    }
+    staging = compute_formation_staging(
+        _line_formation(), snapshot, max_travel_m=8.0)
+    assert staging is not None
+    assert staging['robot_ids'] == [5, 6, 7]
+
+
+def test_executor_fails_the_leaf_when_staging_is_refused():
+    """The refusal must reach `last_error`; that is what briefs the LLM."""
+    from iros_llm_orchestrator.context.pose_cache import (
+        FormationStagingRefused)
+    sent: list[dict] = []
+
+    async def fake_send(node: dict) -> bool:
+        sent.append(node)
+        return True
+
+    def hook(_node):
+        raise FormationStagingRefused('robot_0 is at (-22.65, 9.15)')
+
+    executor = PlanExecutor(send_fn=fake_send, formation_prestage_hook=hook)
+    ok = asyncio.run(executor.run(_cyan_column()))
+
+    assert ok is False
+    # Nothing was dispatched: no staging leaf, and no formation leaf either.
+    assert sent == []
+    assert executor.guard_failure is not None
+    assert executor.guard_failure['failed_at_phase'] == 'prestage'
+    assert 'robot_0' in executor.guard_failure['last_error']

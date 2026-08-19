@@ -131,6 +131,7 @@ BT::NodeStatus MapfPlan::onRunning()
       RCLCPP_ERROR(node->get_logger(), "MapfPlan: goal rejected");
       config().blackboard->set<std::string>("@action_status", "ERROR");
       config().blackboard->set<std::string>("@last_error", "goal rejected");
+      config().blackboard->set<std::string>("@active_action", "none");
       return BT::NodeStatus::FAILURE;
     }
     result_future_ = client_->async_get_result(goal_handle_);
@@ -145,6 +146,7 @@ BT::NodeStatus MapfPlan::onRunning()
   if (wrapped.code != rclcpp_action::ResultCode::SUCCEEDED) {
     config().blackboard->set<std::string>("@action_status", "ERROR");
     config().blackboard->set<std::string>("@last_error", "action transport error");
+    config().blackboard->set<std::string>("@active_action", "none");
     return BT::NodeStatus::FAILURE;
   }
 
@@ -164,6 +166,24 @@ BT::NodeStatus MapfPlan::onRunning()
     config().blackboard->set<std::string>(
       "@last_error",
       std::string("no agents planned: ") + res->message);
+    config().blackboard->set<std::string>("@active_action", "none");
+    return BT::NodeStatus::FAILURE;
+  }
+
+  // Partial delivery — the mission finished, but a robot the goal named
+  // never got a route and is still wherever it started. WARN would let the
+  // plan continue on a fleet position that never happened, so this one is
+  // a hard failure: the caller has to be told, and it is the only party
+  // that can decide whether the missing robot mattered.
+  if (res->error_code == SetGoals::Result::PARTIAL) {
+    RCLCPP_ERROR(
+      node->get_logger(),
+      "MapfPlan: FAILURE — %s. %s", res->message.c_str(), oss.str().c_str());
+    auto bb = config().blackboard;
+    bb->set<std::string>("@action_status", "ERROR");
+    bb->set<std::string>("@last_error", res->message);
+    bb->set<std::string>("@action_summary", oss.str());
+    bb->set<std::string>("@active_action", "none");
     return BT::NodeStatus::FAILURE;
   }
 
@@ -406,6 +426,12 @@ BT::NodeStatus SetFormation::onRunning()
     bb->set<std::string>("@action_status", "ERROR");
     bb->set<std::string>("@last_error", last_error_);
     bb->set<std::string>("@action_summary", last_error_);
+    // See the identical note in DisableFormation::onRunning. Observed in
+    // run 20260818_140918: formation_manager refused activation at once,
+    // this node returned FAILURE at once, and the caller still sat on the
+    // leaf for the full 300s step timeout because @active_action still
+    // read "SetFormation".
+    bb->set<std::string>("@active_action", "none");
   }
   return BT::NodeStatus::FAILURE;
 }
@@ -527,6 +553,13 @@ BT::NodeStatus DisableFormation::onRunning()
     bb->set<std::string>("@action_status", "ERROR");
     bb->set<std::string>("@last_error", last_error_);
     bb->set<std::string>("@action_summary", last_error_);
+    // The node is done — say so. Observers read @action_status only once
+    // @active_action is back to "none" (leaf_sender phase 2), because a
+    // still-running action leaves the previous leaf's status on the
+    // blackboard. Leaving it set here makes a failure indistinguishable
+    // from an action still in flight, and the caller waits out its whole
+    // step timeout on a node that already answered.
+    bb->set<std::string>("@active_action", "none");
   }
   return BT::NodeStatus::FAILURE;
 }

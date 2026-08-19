@@ -22,6 +22,10 @@ uint16 NO_VALID_AGENTS=201
 uint16 PBS_FAILED=202
 uint16 TIMEOUT=203
 uint16 CANCELLED=204
+# Every planable robot arrived, but at least one robot named in the goal
+# never got a route. Not a success: the caller asked for a fleet position
+# it did not get.
+uint16 PARTIAL=205
 
 bool success
 string message

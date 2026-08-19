@@ -108,11 +108,29 @@ class RobotPoseCache:
         return out
 
 
+class FormationStagingRefused(RuntimeError):
+    """Staging would have to haul followers across the map to reach the leader.
+
+    Staging only ever moves followers; it takes the leader's live pose as
+    ground truth. When the leader is nowhere near the followers that
+    assumption is unverified, and acting on it is worse than not acting:
+    in run 20260818_140918 the leader never left its spawn after the MAPF
+    server dropped it from the plan, and staging duly ordered the three
+    followers to drive 25 m back out of the room the mission had just sent
+    them to. Sixty seconds and one unplanable robot later the formation was
+    refused anyway.
+
+    Raised rather than returned so the caller cannot mistake it for "no
+    staging needed", which is what ``None`` means.
+    """
+
+
 def compute_formation_staging(
     formation_node: dict,
     snapshot: dict[int, dict],
     *,
     tolerance_m: float = 0.5,
+    max_travel_m: float | None = None,
 ) -> dict | None:
     """Return a mapf leaf that moves out-of-tolerance followers to their
     leader-relative targets, or None if no staging is required.
@@ -164,6 +182,15 @@ def compute_formation_staging(
         ty = ly + s * ox + c * oy
         dist = math.hypot(float(fpos['x']) - tx, float(fpos['y']) - ty)
         if dist > tolerance_m:
+            if max_travel_m is not None and dist > max_travel_m:
+                raise FormationStagingRefused(
+                    f'{follower_ns[i]} is {dist:.1f}m from its slot in '
+                    f"{formation_node.get('formation_id', '')} "
+                    f'(limit {max_travel_m:.1f}m). Staging only moves '
+                    f'followers, so this means leader {leader_ns} is not '
+                    f'where the plan expects it — it is at '
+                    f'({lx:.2f}, {ly:.2f}). Move the leader into position '
+                    f'first, or pick a leader that is already there.')
             out_ids.append(fid)
             out_goals.append([round(tx, 3), round(ty, 3)])
 

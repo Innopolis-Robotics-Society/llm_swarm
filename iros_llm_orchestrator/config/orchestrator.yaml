@@ -70,7 +70,10 @@ llm_chat_server:
     # full 2048-token plan over the network lands closer to 40-50 s, so 60 s
     # was inside the noise band. Local Ollama is unaffected — this is an upper
     # bound, not a delay.
-    timeout_sec: 120.0
+    # 120 was not enough for M4: the continuation prompt carries the
+    # formation failure plus a tool loop, and run 20260818_140918 died on
+    # `continuation generation failed: LLM timeout`.
+    timeout_sec: 180.0
     # Per-step cap. A single E3 leg can be a 45 m corridor drive, which is
     # ~90 s at desired_linear_vel 0.5 m/s before planning and dispatch, so 120 s
     # cut legs off mid-drive rather than on failure. See paper/E3_spec.md §4.3.
@@ -135,6 +138,11 @@ llm_chat_server:
     # any follower further than this from its target. Must match
     # formation_manager_node's position_tolerance (default 0.5 m).
     formation_tolerance_m: 0.5
+    # Staging only moves followers, never the leader. A follower that
+    # would have to travel further than this to reach its slot means the
+    # leader is not where the plan expects it; refuse rather than haul
+    # the fleet across the map. See FormationStagingRefused.
+    formation_max_staging_travel_m: 8.0
 
     # Tool calling loop for get_robot_position / get_positions / check_occupancy.
     # Off: with a context window that fits the prompt the model plans directly.

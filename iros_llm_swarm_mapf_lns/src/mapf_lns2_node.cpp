@@ -149,6 +149,13 @@ class MapfLns2Node : public rclcpp::Node {
     declare_parameter("goal_reached_m",          0.5,
         make_double_desc("Distance under which a goal is considered reached "
                          "(m).", 0.0, 10.0));
+    declare_parameter("max_goal_rehome_m",       0.5,
+        make_double_desc("How far a blocked goal may be relocated to the "
+                         "nearest free cell before the request is treated as "
+                         "unplanable instead. Arrival is measured against the "
+                         "relocated point, so an unbounded relocation reports "
+                         "success for a place the caller never asked for.",
+                         0.0, 10.0));
     // LNS2 params
     declare_parameter("collision_penalty",       10000,
         make_int_desc("Penalty applied per residual collision in LNS2 cost.",
@@ -244,6 +251,7 @@ class MapfLns2Node : public rclcpp::Node {
     inflation_radius_      = get_parameter("inflation_radius").as_double();
     max_speed_             = get_parameter("max_speed").as_double();
     goal_reached_m_        = get_parameter("goal_reached_m").as_double();
+    max_goal_rehome_m_     = get_parameter("max_goal_rehome_m").as_double();
     collision_penalty_     = get_parameter("collision_penalty").as_int();
     horizon_steps_         = get_parameter("horizon_steps").as_int();
     max_astar_expansions_  = get_parameter("max_astar_expansions").as_int();
@@ -744,8 +752,12 @@ class MapfLns2Node : public rclcpp::Node {
         if (snap_grid.is_blocked(rescued)) {
           RCLCPP_WARN(get_logger(),
               "robot_%u start grid(%d,%d) is blocked, no free cell within "
-              "escape radius — skip this mission",
+              "escape radius — marking unplanable",
               rid, a.start.row, a.start.col);
+          {
+            std::lock_guard<std::mutex> lk(state_mutex_);
+            life_.unplanable.insert(rid);
+          }
           continue;
         }
         RCLCPP_INFO(get_logger(),
@@ -760,18 +772,44 @@ class MapfLns2Node : public rclcpp::Node {
         if (snap_grid.is_blocked(rescued)) {
           RCLCPP_WARN(get_logger(),
               "robot_%u goal grid(%d,%d) is blocked, no free cell within "
-              "escape radius — skip",
+              "escape radius — marking unplanable",
               rid, a.goal.row, a.goal.col);
+          {
+            std::lock_guard<std::mutex> lk(state_mutex_);
+            life_.unplanable.insert(rid);
+          }
+          continue;
+        }
+        // Arrival is scored against the relocated point, so an unbounded
+        // relocation reports "arrived" for a place nobody asked for. Run
+        // 20260818_140918: a formation staging goal was moved 10 cells
+        // (1.97 m), the robot "arrived", and the formation manager then
+        // refused to activate because that same robot was 1.97 m off its
+        // slot with a 0.50 m tolerance. Past the cap the goal is wrong,
+        // not merely awkward -- say so instead of quietly moving it.
+        double rx = 0.0, ry = 0.0;
+        lns2_node::cell_to_world(rescued, snap_ox, snap_oy, snap_res, rx, ry);
+        const double rehome_m = std::hypot(rx - req->goals[i].x,
+                                           ry - req->goals[i].y);
+        if (rehome_m > max_goal_rehome_m_) {
+          RCLCPP_ERROR(get_logger(),
+              "robot_%u goal grid(%d,%d) is blocked and the nearest free cell "
+              "is %.2fm away (max_goal_rehome_m=%.2f). Marking unplanable "
+              "rather than delivering it somewhere else.",
+              rid, a.goal.row, a.goal.col, rehome_m, max_goal_rehome_m_);
+          {
+            std::lock_guard<std::mutex> lk(state_mutex_);
+            life_.unplanable.insert(rid);
+          }
           continue;
         }
         RCLCPP_INFO(get_logger(),
             "robot_%u goal grid(%d,%d) was blocked, using nearest free "
-            "cell grid(%d,%d) as virtual goal",
-            rid, a.goal.row, a.goal.col, rescued.row, rescued.col);
+            "cell grid(%d,%d) as virtual goal (%.2fm away)",
+            rid, a.goal.row, a.goal.col, rescued.row, rescued.col, rehome_m);
         a.goal = rescued;
-        lns2_node::cell_to_world(
-            a.goal, snap_ox, snap_oy, snap_res,
-            effective_goal.x, effective_goal.y);
+        effective_goal.x = rx;
+        effective_goal.y = ry;
         effective_goal.z = 0.0;
       }
       if (a.start.row == a.goal.row && a.start.col == a.goal.col) {
@@ -1322,13 +1360,33 @@ class MapfLns2Node : public rclcpp::Node {
 
     if (plan_required > 0 && arrived_and_planable == plan_required) {
       auto result = std::make_shared<SetGoalsAction::Result>(last_plan_metrics_);
-      result->success = true;
-      result->error_code = SetGoalsAction::Result::NONE;
-      if (life_.unplanable.empty()) {
+      // Robots this mission asked for that never got a route. They are
+      // excluded from plan_required above, so the arrival test passes
+      // without them -- which is why this has to be reported separately.
+      std::string skipped;
+      for (uint32_t rid : active_robot_ids_) {
+        if (rid < static_cast<uint32_t>(num_robots_) &&
+            life_.unplanable.count(rid)) {
+          if (!skipped.empty()) skipped += ", ";
+          skipped += "robot_" + std::to_string(rid);
+        }
+      }
+      if (skipped.empty()) {
+        result->success = true;
+        result->error_code = SetGoalsAction::Result::NONE;
         result->message = "All agents arrived";
       } else {
-        result->message = "All planable agents arrived (" +
-            std::to_string(life_.unplanable.size()) + " unplanable skipped)";
+        // Partial delivery is not success. The caller named these robots
+        // and they are not where it put them; a leg that reports OK here
+        // leaves every downstream step reasoning about a fleet position
+        // that does not exist. Observed in run 20260818_140918: the
+        // formation leader was dropped this way, the leg reported done,
+        // and the formation was then staged around a leader still sitting
+        // 25 m away at its spawn.
+        result->success = false;
+        result->error_code = SetGoalsAction::Result::PARTIAL;
+        result->message = "partial: " + skipped +
+            " never got a route and did not move; the rest arrived";
       }
       result->total_replans = total_replans_;
       result->total_execution_sec = (now() - mission_start_time_).seconds();
@@ -2057,6 +2115,7 @@ class MapfLns2Node : public rclcpp::Node {
   double inflation_radius_;
   double max_speed_;
   double goal_reached_m_;
+  double max_goal_rehome_m_;
   int    collision_penalty_;
   int    horizon_steps_;
   int    max_astar_expansions_;

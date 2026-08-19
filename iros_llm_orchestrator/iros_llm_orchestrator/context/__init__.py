@@ -1,6 +1,7 @@
 """Read-only context providers for the channel-3 chat path."""
 
 from iros_llm_orchestrator.context.pose_cache import (
+    FormationStagingRefused,
     RobotPoseCache,
     compute_formation_staging,
 )
@@ -20,6 +21,7 @@ __all__ = [
     'DEFAULT_MCP_READ_TOOLS',
     'ChatContextConfig',
     'ChatContextProvider',
+    'FormationStagingRefused',
     'NoneContextProvider',
     'RobotPoseCache',
     'assignment_from_bt',

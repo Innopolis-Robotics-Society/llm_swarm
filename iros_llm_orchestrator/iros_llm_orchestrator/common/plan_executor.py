@@ -29,6 +29,7 @@ import re
 from typing import Awaitable, Callable
 
 from iros_llm_orchestrator.common.plan_templating import resolve_plan_templates
+from iros_llm_orchestrator.context.pose_cache import FormationStagingRefused
 
 
 # ---------------------------------------------------------------------------
@@ -528,7 +529,25 @@ class PlanExecutor:
             # first. Skips silently when no hook is configured or when the
             # hook says staging is unnecessary.
             if self._prestage_hook is not None:
-                staging = self._prestage_hook(node)
+                try:
+                    staging = self._prestage_hook(node)
+                except FormationStagingRefused as exc:
+                    # Same reasoning as the parallel-conflict branch above:
+                    # the message names the leader, its actual position and
+                    # the fix, and both callers brief the LLM from
+                    # `last_error`. Swallowing it here would leave the
+                    # formation leaf to fail on its own with a message about
+                    # followers being out of position -- true, but it points
+                    # at the wrong robot.
+                    self._log(f'{ind}✗ auto-stage refused: {exc}')
+                    self.failed_leaf = node
+                    self.guard_failure = {
+                        'leaf_type': 'formation',
+                        'last_error': str(exc),
+                        'failed_at_phase': 'prestage',
+                        'action_status': 'ERROR',
+                    }
+                    return False
                 if staging is not None:
                     n = len(staging.get('robot_ids', []))
                     self._log(

@@ -139,6 +139,7 @@ class ChatServer(Node):
         # uses this to decide whether a formation leaf needs an auto-staging
         # mapf step prepended before dispatch.
         self.declare_parameter('formation_tolerance_m', 0.5)
+        self.declare_parameter('formation_max_staging_travel_m', 8.0)
         self.declare_parameter('mcp_enabled', False)
         self.declare_parameter('mcp_transport', 'stdio')
         self.declare_parameter('mcp_command', 'uvx')
@@ -271,6 +272,8 @@ class ChatServer(Node):
             self, known_robot_ids(self._map_cfg or {}))
         self._formation_tolerance_m = float(
             self.get_parameter('formation_tolerance_m').value)
+        self._formation_max_staging_travel_m = float(
+            self.get_parameter('formation_max_staging_travel_m').value)
         self._context_provider = make_context_provider(
             self, self._context_config, pose_cache=self._pose_cache)
 
@@ -1371,6 +1374,7 @@ class ChatServer(Node):
             formation_node,
             snapshot,
             tolerance_m=self._formation_tolerance_m,
+            max_travel_m=self._formation_max_staging_travel_m,
         )
         if result is not None:
             self._bump('guard_formation_staging_fired')
