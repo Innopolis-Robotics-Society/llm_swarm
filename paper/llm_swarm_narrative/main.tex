@@ -1,0 +1,832 @@
+% Official Springer Nature journal template, version 3.1, December 2024.
+% One-column working manuscript; numerical references.
+\documentclass[pdflatex,sn-mathphys-num]{sn-jnl}
+\usepackage{graphicx}
+\hypersetup{hidelinks,bookmarksdepth=2}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{makecell}
+\usepackage{needspace}
+\usepackage{etoolbox}
+% Keep headings with a useful amount of following text; avoid isolated lines.
+\let\unpatchedsection\section
+\pretocmd{\section}{\Needspace{6\baselineskip}}{}{}
+\pretocmd{\subsection}{\Needspace{7\baselineskip}}{}{}
+\pretocmd{\subsubsection}{\Needspace{6\baselineskip}}{}{}
+\pretocmd{\paragraph}{\Needspace{3\baselineskip}}{}{}
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000
+\newcommand{\code}[1]{{\def\{{\textnormal{\textbraceleft}}\def\}{\textnormal{\textbraceright}}\texttt{#1}}}
+\raggedbottom
+\begin{document}
+\title[Correctness Boundaries of Typed Fleet Plans]{Correctness Boundaries of Typed Plans for Natural-Language Robot Fleet Control}
+\author{\fnm{Author details pending}\sur{}}
+% Replace the author placeholder with the approved complete author list,
+% affiliations and corresponding-author e-mail before journal submission.
+\abstract{Typed plans can separate language-level task interpretation from
+robot execution, but structural validity does not establish semantic
+correctness, geometric feasibility, or mission completion. We examine these
+boundaries through a three-level ROS~2 implementation deployed with twenty
+simulated mobile robots. The model emits recursive fleet plans; deterministic
+checks validate or transform selected actions; classical components coordinate
+and execute them. An offline benchmark of 44 cases with five repeats gives
+70.0--87.3\% structural pass rates for local models. The reported main series
+contains 18 runs completing their task-evaluator conditions on two mission
+specifications and one map. Here, a carry task means satisfying a dwell
+condition at a pickup location and then at a drop-off location, not physically
+transporting an object. Duplicate-carrier assignments occur in 5 of 11
+inspectable plans. A separate, uncontrolled M3 comparison reports 8/9 tasks
+before and 9/9 after destination spreading; incomplete session mapping
+precludes pooling it with the main series. A formation failure and qualitative
+development observations expose gaps in geometric checks and completion
+reports. We organize these observations by check coverage and distinguish
+implemented mechanisms from evaluated effects. The evidence supports a
+bounded architectural case study, not a general reliability gain, a safety
+certificate, or a demonstration of twenty concurrently active robots.}
+
+\keywords{Multi-robot systems, Language models, Fleet coordination, Typed plans, Deterministic guards, ROS 2}
+\maketitle
+
+\section{Introduction}
+
+Commanding a fleet of mobile robots that share one workspace is a
+long-standing problem, and the classical decomposition separates fleet-level
+decisions --- which robot goes where, in what order --- from robot-level
+execution. Large language models make a natural-language front-end to that
+decomposition newly attractive~\citep{saycan,codeaspolicies}: a
+model can reason over compact semantic primitives instead of producing control
+commands.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\textwidth]{fig_hero.pdf}
+\caption{Illustrative duplicate-carrier correction at the language--coordination
+boundary. The typed plan contains an extra carrier; a task-specific guard
+removes it before execution. Duplicate-carrier assignments occurred in 5 of
+11 inspectable plans. The illustration is not the shared-drop-off
+before/after experiment.}
+
+\label{fig:hero}
+\end{figure}
+
+
+The difficulty is that a well-formed language response need not describe an
+executable fleet action. It may refer to unavailable robots, assign conflicting
+goals, or request a formation whose geometry is incompatible with a corridor.
+Direct MAPF generation also remains difficult in obstacle-rich environments
+\citep{mapfllmfail}. We therefore separate task interpretation from spatial
+planning and ask which errors can be handled at their interface.
+
+Hierarchical control, formal intermediate representations, and deterministic
+validation of language outputs are established approaches. Our contribution
+is an empirical characterization of their correctness boundaries in a
+specific ROS~2 fleet implementation, rather than a new general hierarchy or
+a claim that guards improve reliability across environments.
+
+We ask which structural errors occur in generated fleet plans under the
+tested model and serving configurations, addressing RQ1. To understand
+what happens after generation, RQ2 asks which observed assignment and spatial
+conflicts the implemented guards handle and which they leave unchecked.
+Finally, RQ3 asks why a component can report successful execution without
+fulfilling the mission's task-evaluator conditions. These questions follow
+a plan from generation through validation to its measured outcome.
+
+We distinguish plan representation, intended task meaning, spatial
+executability, and evaluator completion. The contribution combines an
+explicit description of the interface and its check coverage with recorded
+carry and formation cases and qualitative development observations. These
+sources have different denominators and provenance; they are not independent
+replications of one guard-effect experiment. Figure~\ref{fig:hero} illustrates
+a duplicate-carrier correction. The shared-drop-off comparison is a separate
+case in Section~\ref{sec:absorb}.
+
+% =========================================================================
+\section{Related Work}
+
+An instruction to a robot fleet leaves two different problems to solve:
+deciding what the robots should do and finding motions that realize those
+decisions. Classical multi-agent path finding addresses the latter once
+starts, goals and movement rules have been specified. Conflict-Based
+Search~\citep{cbs} resolves path conflicts through constraints, while
+prioritized search~\citep{pbs} and large-neighborhood repair~\citep{lns2}
+offer alternative ways to coordinate paths. The resulting paths
+coordinate motion under the specified rules, but do not determine whether
+the supplied assignments and goals express a
+user's request. A language interface must establish that connection before
+path planning can serve the intended task.
+
+Grounding language in executable skills is therefore central to early
+LLM-based robot planners. SayCan~\citep{saycan} combines a language model's
+estimate of a skill's usefulness with an affordance estimate of whether the
+robot can execute it in the current state. This connects task interpretation
+to available behavior without asking the language model to generate motor
+commands. Code as Policies~\citep{codeaspolicies} gives the model a more
+expressive interface: it composes perception and control APIs into programs,
+including control flow and numerical operations. The distinction matters
+for fleet control because choosing an available action and assembling
+several actions into a coherent mission require different checks.
+
+Execution can depart from a plan even when its actions are available. Inner
+Monologue~\citep{innermono} feeds observations and success reports back into
+language reasoning, allowing subsequent decisions to account for execution.
+ProgPrompt~\citep{progprompt} incorporates this concern into program-like
+plans through assertions and recovery steps. In its simulated evaluation,
+assertions are assessed by an LLM using environment-state information;
+they are not the same mechanism as deterministic runtime guards. Both
+approaches make feedback part of planning. They also motivate a question
+that is important in our implementation: what does the reported success
+establish, and is that sufficient for the original task?
+
+For a robot team, grounding individual actions must be combined with
+allocation and coordination~\citep{mrssurvey}. SMART-LLM~\citep{smartllm}
+uses prompted task decomposition, coalition formation and allocation to
+construct a team plan. This makes robot selection part of language-level
+planning rather than an input assumed to be correct. RoCo~\citep{roco}
+instead uses dialogue between robot-specific language agents to develop a
+joint plan, which is checked before a centralized multi-arm planner
+generates motion. These designs place coordination decisions at different
+points in the pipeline, but both require a connection between the proposed
+team behavior and the capabilities of its executor. Our duplicate-carrier
+and shared-destination cases examine that connection in a mobile fleet.
+
+Formal planning provides another way to make those decisions explicit.
+LaMMA-P~\citep{lammap} combines language reasoning with PDDL-based heuristic
+planning for heterogeneous teams, so language interpretation can be followed
+by search over a planning model. HiP-CL~\citep{hipcl} further separates
+translation from problem construction: instructions first become a
+controlled language, from which a planning problem and spatial and resource
+constraints are constructed. This separation clarifies where constraints
+enter the system. Its relevance here is that a planner can reason about
+constraints represented in its model; whether that model includes the
+geometry needed for a requested formation is a separate implementation
+question.
+
+A narrower execution interface can also reject unsupported outputs before
+motion begins. CommandSwarm~\citep{commandswarm} combines language-to-behavior-tree
+generation with command filtering and deterministic parser validation
+against permitted swarm primitives. This directly addresses the boundary
+between generated structure and accepted commands. Sangchai et
+al.~\citep{symbolicwrappers} examine symbolic wrappers using structured tools
+or PDDL, with human review before execution. Their design makes the
+intermediate plan available for inspection and correction. Such mechanisms
+already establish validation and intermediate representations as part of
+language-driven robot systems; neither is a novelty claim of this paper.
+
+Our study follows these architectural choices through execution in one
+implemented fleet. We examine which malformed plans are rejected, which
+assignments or destinations are rewritten, and which failures remain after
+those checks. The formation case shows how an accepted plan can still fail
+because of route geometry, while the completion cases distinguish component
+reports from the mission evaluator's ordered spatial conditions. This
+analysis characterizes the coverage and limits of the implemented checks.
+It does not compare our system's reliability with that of the approaches
+reviewed above.
+
+% =========================================================================
+\section{System Overview}
+\label{sec:overview}
+
+
+
+
+Figure~\ref{fig:arch} shows the contracts. Level~1 emits fleet-level actions
+in a typed plan tree. Level~2 maps those actions to coordinated waypoint
+sequences; Level~3 executes them. The model supplies neither velocity
+commands nor collision-resolution decisions. This separation makes the
+action fields and the available checks explicit, but a contract alone does
+not reject an invalid plan or guarantee successful execution.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=0.55\textwidth]{architecture.pdf}
+\caption{Three levels and the contract at each boundary. The language model
+produces only the object crossing the first contract; velocities, conflict
+resolution, and tracking live strictly below it.}
+\label{fig:arch}
+\end{figure}
+
+
+The interface exposes four distinct correctness questions. Structural
+validity concerns admissible node types and fields. Task meaning concerns
+the assignments and goals implied by the operator's command. Geometric
+feasibility concerns whether robots or formations can traverse the required
+space. Evaluator completion concerns whether the specified pose-based events
+occur. No implication between these properties follows from the typed
+representation alone. Table~\ref{tab:coverage} describes the implemented
+coverage and its limits; it is not a formal verification of system safety.
+
+\begin{table}[!htbp]
+\caption{Implemented check coverage and the evidence available in this study.
+Implemented does not mean experimentally isolated or generally sufficient.}
+\label{tab:coverage}
+\centering
+\begin{tabular}{p{0.25\textwidth}p{0.16\textwidth}p{0.48\textwidth}}
+\toprule
+Condition & Coverage & Evidence or limitation\\
+\midrule
+Plan types and fields & Structural & Schema and recursive validators; E1 measures case-specific validity, not complete task semantics.\\
+Robot assignments & Partial & Active-formation membership and single-carrier rules; general assignment correctness is not established.\\
+Occupied goal cells & Local rewrite & Occupancy-aware goal adjustment does not establish route feasibility or preservation of the requested location.\\
+Shared drop-off & Task-specific & Destination spreading is logged in the reported M3 comparison; no controlled effect estimate.\\
+Formation assembly & Staging & Preparation exists; correct assembly does not establish traversability.\\
+Formation route & Missing & Complete formation-footprint feasibility is not checked by the interface; the reported failure exposes this gap.\\
+Task completion & Pose-based & Ordered dwell conditions are scored separately from action flags; physical cargo transfer, collisions and operator intent are not certified.\\
+Repair and supervision & Implemented & Main-series counters do not exercise repeated repair; effectiveness is unmeasured.\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+\paragraph{One instantiation}
+The following implementation supplies the setting for the case study. Twenty differential-drive robots operate in
+Stage~\citep{stage} on a $66.6 \times 37.75$\,m non-convex map
+(Fig.~\ref{fig:map}) with narrow corridors and looping paths, in five groups
+of four with a home location each. Twenty is the deployed population, not
+a measured concurrency level. The reported metrics do not provide per-run
+counts of simultaneously moving or jointly planned robots. We therefore
+make no throughput, scaling, or twenty-active-agent claim.
+
+% =========================================================================
+\section{Level 3: Per-Robot Execution}
+\label{sec:lvl3}
+
+Each robot runs a Nav2~\citep{nav2} stack with namespace substitution and staggered
+bring-up. The development record reports discovery and launch difficulties
+when starting twenty stacks simultaneously. Stage 2D was selected after
+Gazebo Harmonic did not provide a usable real-time factor in the development
+setup. These are engineering observations, not controlled simulator or DDS
+comparisons.
+
+Localization uses simulator-derived poses instead of AMCL. During
+development, scans from nearby robots caused difficulties with static-map
+localization; this motivated removing localization uncertainty from the
+case study. The experiments therefore do not test peer-aware localization
+or robustness to pose noise. A tuned CycloneDDS profile and a dynamic-blocker
+costmap plugin are part of the implementation, but their individual effects
+are not measured here.
+
+% =========================================================================
+\section{Level 2: Fleet Coordination}
+
+\paragraph{MAPF as an interchangeable backend}
+MAPF provides joint spatial coordination behind the fleet-action interface. Both PBS~\citep{pbs} and LNS2~\citep{lns2} sit behind one action interface: a
+request carries robot identifiers and one goal point per robot, and the
+solver publishes the resulting conflict-free paths to the robots as ordered
+waypoint sequences with holds rather than returning them.
+Nothing above Level~2 names an algorithm, so replacing the solver is a
+configuration change --- made true by the contract of Sec.~\ref{sec:overview},
+not by a coincidence of our code. All runs use LNS2.
+
+\paragraph{Supporting components}
+Formation management and mission execution use the same separation between fleet actions and per-robot execution. A centralized manager implements
+leader--follower control: a specification names a leader, its followers and
+per-follower offsets in the leader frame; while a formation is active its
+members leave the free pool and the group's extent transfers to an inflated
+leader footprint, so MAPF plans for the group as one body. BehaviorTree.CPP~\citep{btcpp} runs the
+mission tree with parameters supplied from above.
+
+\paragraph{Operational meaning of task completion}
+The task evaluator uses robot positions rather than component success flags.
+A visit task requires its configured presence condition in a target zone.
+A carry task requires satisfying a dwell condition in its pickup zone first
+and then satisfying a dwell condition in its drop-off zone. A drop-off event
+before the qualifying pickup does not complete the task. The reported task
+zone radius is 1.5\,m; the numerical dwell threshold is not documented in the
+retained manuscript-level record and is a reproducibility limitation.
+
+\Needspace{8\baselineskip}
+Here, pickup and drop-off are logical stages of an ordered spatial task.
+The success criterion does not verify grasping, attaching, transferring, or
+physically transporting a cargo object. We retain the term \emph{carry} as
+the task label and use \emph{evaluator completion} for its measured outcome.
+Completion of a mission means that all its specified task conditions have
+been registered; it is not a separate assertion of physical transport or
+collision safety.
+
+A rewritten goal is still assessed against the original task evaluator.
+Its successful pose-based score therefore establishes satisfaction of that
+evaluator's zone conditions, not equivalence to the operator's full intent.
+For instance, two points inside the same acceptance zone may receive the
+same score while representing different requested placements. This matters
+when interpreting destination spreading and occupied-goal rewrites.
+
+% =========================================================================
+\section{Level 1: Language Orchestration}
+\label{sec:orch}
+
+\paragraph{Plan grammar}
+The model emits one JSON object containing a natural-language reply and a plan
+tree. Four leaf types cover fleet actions --- \code{mapf} (move a robot set to
+a goal set), \code{formation} (assemble and hold), \code{disband}, and
+\code{idle} (do nothing, with a reason, also the escalation channel) --- and
+two containers, \code{sequence} and \code{parallel}, nest recursively:
+
+\begin{center}\small
+\begin{minipage}{\columnwidth}
+\begin{verbatim}
+{"type":"sequence","steps":[
+ {"type":"mapf","robot_ids":[8,9,10,11],
+  "goals":[[-8.7,-5.9],[-9.6,-5.9],
+           [-8.7,-6.8],[-9.6,-6.8]]},
+ {"type":"formation",
+  "leader_ns":"robot_8",
+  "follower_ns":["robot_9",
+   "robot_10","robot_11"],
+  "offsets_x":[-1.5,-3.0,-4.5],
+  "offsets_y":[0,0,0]}]}
+\end{verbatim}
+\end{minipage}
+\end{center}
+
+The finite set of node types supports recursive validation and a JSON schema.
+These checks cover the implemented structural rules, not arbitrary task semantics or geometric feasibility.
+
+\paragraph{Three channels and grounding}
+A reactive channel is invoked by behavior-tree nodes on WARN/ERROR, a
+proactive channel may intervene on its own initiative, and an operator chat
+channel streams a reply with an executable plan; all three produce objects in
+the same grammar and pass the same guards. Grounding facilities include a live pose cache, a room-occupancy-aware
+placement solver, and eight allowlisted semantic tools. Their presence does
+not eliminate coordinate errors; their use depends on the mission, and the
+main-series runs make no auxiliary lookup calls.
+
+\paragraph{Generation and runtime checks}
+The interface combines a generation configuration with runtime checks.
+Schema-constrained decoding restricts the output representation at generation
+time; it is not a post-generation repair. Runtime components validate the
+schema, coerce selected field types, reject actions addressing active formation
+members, rewrite occupied goals, and stage robots before formation assembly.
+The campaign additionally introduced a single-carrier guard and a
+shared-drop-off guard, examined in Section~\ref{sec:absorb}. These runtime
+checks do not require an additional model call.
+
+Rejection and transformation have different semantics. Rejecting an action
+prevents its execution under the checked condition. Transforming it changes
+an assignment or goal and can change the operator's intended behavior. The
+single-carrier rule keeps the carrier also routed to the destination; the
+shared-drop-off rule spreads coincident destinations. Neither is a general
+proof that the transformed plan preserves intent. Task completion must still
+be checked independently, and the implemented rules do not cover every
+possible conflict.
+
+Schema restrictions also need empirical assessment. On the offline benchmark,
+the local 9B model's structural pass rate drops from 87.3\% with native tool
+calling to 19.1\% with schema-constrained decoding. The corresponding hosted
+comparison is 90.5\% versus 51.4\%. These are configuration-specific
+observations, not evidence that schema constraints generally harm planning.
+The simulation campaign uses the native tool-calling response configuration;
+this does not imply that auxiliary state-lookup tools are invoked on every
+mission.
+
+\paragraph{Closed loop}
+Post-execution verification is deterministic, computed from formation status
+and pose state, and feeds three nested repair loops --- remediation,
+verification repair, mission supervision --- each with a step, time and
+no-progress budget. These mechanisms are described as implemented
+capabilities; the main-series counters do not establish their effectiveness.
+
+% =========================================================================
+\section{Experimental Design}
+\label{sec:design}
+
+We report two complementary evaluations of the implemented system.
+The offline benchmark characterizes generated plans; the simulation campaign
+examines selected execution outcomes. Neither is a component-removal ablation.
+
+\paragraph{E1 --- structural plan accuracy, hermetic}
+A 44-case benchmark spanning twelve structural categories
+(\code{mapf\_\{basic,spread,explicit\}}, \code{parallel}, \code{sequence},
+\code{formation\_\{create,move,complex\}}, \code{disband}, \code{idle},
+\code{escalate}, \code{edge}) is run against five locally-hosted models with
+$N{=}5$ repeats per case at temperature 0.1: 220 calls per model, 1{,}100 in
+total. Each response is scored by programmatic validators against the
+structural properties the case requires, not by string match against a
+reference plan.
+The harness is hermetic: no robots run.
+
+\paragraph{E2 --- task-evaluator completion in simulation}
+The main-series report describes four cells and 18 included runs on the
+deployed twenty-robot population. M2 has five tasks, one labelled carry.
+M3 has nine tasks, three labelled carry, with two naming the same drop-off
+cell. The cells are a scripted M2 driver with hard-coded allocation and no
+model ($n=5$), a 9B model on M2 ($n=5$), a hosted 397B model B on M2 ($n=5$),
+and B-M3 ($n=3$). The scripted driver uses the same coordination and
+per-robot execution levels. There is no scripted M3 baseline, and the cells
+do not isolate model, provider, allocation, or guard-version effects.
+
+The reporting record accounts for 21 sessions, 18 included and three
+excluded at bring-up on a mission outside these cells. Its inclusion rules
+require the start configuration to be reached, one command delivery, and a
+finalized bag with the target topics present. It reports no outcome-based
+exclusion. A complete session-ID inventory and version mapping do not
+accompany the manuscript, so that accounting cannot be independently audited
+from the supplied reporting material.
+
+Table~\ref{tab:provenance} separates the evidence sources. The M3 development
+comparison describes three pre-guard and three post-guard runs. Their mapping
+to the 21-session report, including whether the post-guard cases are the
+three B-M3 table entries, is not established by session identifiers. We
+report that comparison as its own account without assuming that all six
+cases are additional to the main series. The formation observations and
+qualitative defect reports are likewise not added to its denominator.
+Consequently, 18 successful included runs is not an all-campaign success rate.
+
+\begin{table}[!htbp]
+\caption{Evidence sources and denominator limits. Counts are retained from
+the reporting record; rows are not disjoint sets that can be summed.}
+\label{tab:provenance}
+\centering
+\begin{tabular}{p{0.25\textwidth}p{0.13\textwidth}p{0.50\textwidth}}
+\toprule
+Source & Reported count & Use and unresolved provenance\\
+\midrule
+Main mission series & 18 runs & Four cells; three M2 cells and one M3 cell. Session/version inventory is not supplied.\\
+Decision journals & 11 of 13 & Inspectable language plans; a subset of the main series, biased toward later runs.\\
+Bring-up exclusions & 3 sessions & Described within the 21-session account; reported startup criteria, no independent ID audit.\\
+M3 guard comparison & 3 before, 3 after & Development before/after observations with provider/version changes; overlap with the main series is not ID-reconciled.\\
+Formation cases & One detailed failure & Additional qualitative observations, not a systematic formation benchmark or main-series denominator.\\
+Substrate defects & Not counted & Development observations of misleading local completion reports; no estimated frequency.\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Configuration and reproducibility}
+E1 reports the model identifiers, five attempts per case, temperature 0.1,
+and a single 16\,GB GPU for local serving. These identifiers do not uniquely
+specify quantization, model revision, serving-library version, prompt or
+schema hash, endpoint configuration, or random seed. Exact per-run versions,
+the full prompts, and an executable offline harness are not included in the
+manuscript package. The numbers below are retained descriptive measurements;
+the present package does not support their independent recomputation.
+
+\begin{figure}[!htbp]
+\centering
+\includegraphics[width=\textwidth]{fig_map.pdf}
+\caption{The 20-robot environment ($66.6 \times 37.75$\,m, 0.05\,m cells)
+with the nine task zones of mission M3 drawn at their true 1.5\,m radius.
+Blue: visit tasks. Orange: the three carry tasks, pickup to drop-off. Two of
+the three name the same drop-off cell, creating an execution conflict handled
+by the shared-drop-off guard (Sec.~\ref{sec:absorb}). Mission M2 uses the five-task subset.}
+\label{fig:map}
+\end{figure}
+
+% =========================================================================
+\section{Results}
+\label{sec:results}
+
+The results are organized around observed boundary failures before the
+aggregate scores. Assignment and geometric cases address RQ2; qualitative
+completion-report mismatches address RQ3; the offline results characterize
+RQ1. Each source retains its own provenance and denominator.
+
+\subsection{Assignment defects and shared-destination conflicts}
+\label{sec:absorb}
+
+The inspectable plans reveal an assignment-level defect relevant to RQ2. Of the 13 language runs,
+11 retain a complete decision journal; the two that do not are the earliest
+recorded, before per-phase checkpointing was added, so the surviving set is
+biased towards later runs rather than random. Among those 11 plans, 5 carry
+the same assignment defect: the plan assigns two robots to carry a single
+item. An extra robot sent to the pickup can occupy space needed by the intended
+carrier. The count describes this inspected subset, not the prevalence of
+defects across unseen missions.
+
+\paragraph{Duplicate-carrier assignments}
+In the model-9b cell, the defect occurs in three runs, all of which complete
+M2. In cell B, the single-carrier guard fires in two runs, removing the extra
+carrier and retaining the robot routed to the drop-off. These records show
+that the guard handles the targeted assignment pattern. They do not show
+that it was necessary for task completion: the three 9B cases succeed
+without that correction. Execution order and corridor occupancy can affect
+whether an extra carrier obstructs another robot.
+
+\paragraph{Shared-drop-off execution conflict}
+M3 explicitly asks two carry tasks to use the same drop-off location
+(Figure~\ref{fig:map}). Coincident destinations are therefore a coordination
+problem under the given mission, not by themselves evidence that the model
+misinterpreted the request. Before the shared-drop-off guard, three
+consecutive development runs complete 8/9 tasks: two on one provider and one
+on another. Three subsequent runs with the guard complete 9/9 tasks, and
+their logs record destination spreading:
+\begin{center}\small
+\texttt{carry\_guard: carry\_engine\_to\_reactor+}\\
+\texttt{carry\_shields\_to\_reactor share dropoff}\\
+\texttt{[-29.65,-2.85], spread to robot\_3, robot\_16}
+\end{center}
+This is a small before/after case study, not a randomized or paired ablation.
+The observations are consistent with the intended conflict-handling
+mechanism; changing providers and software versions prevents attributing the
+entire completion difference to that guard alone.
+
+The two carry cases support different conclusions. A duplicate-carrier
+assignment can coexist with successful execution, and its correction is
+visible in logs. A mission-specified shared destination can require spatial
+adjustment even when the requested plan is otherwise appropriate. Combining
+these cases into one defect count or one general guard-benefit estimate would
+lose that distinction.
+
+\Needspace{11\baselineskip}
+\subsection{Case study: a formation that cannot move}
+
+One run is worth reporting on its own, with $n{=}1$ stated plainly. Asked for
+a column, the model emitted
+\code{offsets\_x=[0,0,0]}, \code{offsets\_y=[1.5,-1.5,3.0]} --- geometrically
+a line abreast 4.5\,m wide, not a column. The formation itself assembled and
+held, stable in 6.5\,s and never broken --- though under static localization
+the tracking error these runs report is that of the controller given an exact
+pose estimate, and should not be read as a formation-control result. It then
+could not move at all:
+\begin{center}\small
+\code{robot\_0: no static path ... (footprint won't fit through)}
+\end{center}
+With a formation active the group's extent transfers to an inflated leader
+footprint, and the reported widest corridor on this map is 2.85\,m.
+
+The plan is structurally valid and passes the implemented interface
+checks, yet mismatches the requested column and cannot traverse the reported
+corridors while keeping that formation: the occupancy-aware goal rewrite does consult the environment, but the
+implemented checks do not establish traversability of the complete formation
+footprint along the route. This motivates an additional check --- formation feasibility against the occupancy
+grid --- which we do not implement, and which the contract of
+Sec.~\ref{sec:overview} places at Level~2, the lowest level holding both the
+group extent and the map. A separate observation with the same command produced appropriate offsets.
+These cases show output variability, but do not estimate a formation failure
+rate or establish systematic behavior.
+
+\subsection{Local action reports and mission conditions}
+\label{sec:failures}
+
+This is a qualitative finding and we label it as such: the defects below were
+found and repaired as they appeared while building the system, not counted
+under a protocol, so we give no rates. It identifies a recurring engineering concern in this implementation:
+components can report local success without satisfying the mission-level
+completion condition. A misleading completion report can affect later execution and any
+repair decision based on that report. This is distinct from a detectable
+plan-schema violation.
+
+The pattern recurred in several forms. An executor step for a task labelled carry reported all agents
+arrived while one robot had never left its spawn. A robot benched by a guard
+was silently dropped from the requested set and never reassigned. A
+blocked-goal rewrite moved a target by two metres and the robot reported
+arrival somewhere the mission had not asked for. A formation manager refused a
+request immediately while the executor learned of it only at step-budget
+expiry. These reports did not by themselves establish that every requested
+agent or original goal had satisfied the task conditions. The examples are
+not a count of additional failed experimental runs.
+
+Some reports reflect a component's reduced local request rather than the
+original mission requirement. Others arise when layers exchange incomplete
+status information. Component tests alone may miss such interactions; the
+reported examples motivate explicit completion conditions and integration
+checks, but were not collected as a quantified failure study.
+
+Hence the choice we adopted: score missions using observed pose state rather than treating
+an action-status flag as sufficient evidence of task completion. A contract should also specify what
+counts as completion at its boundary, not only what crosses it.
+
+\subsection{Structural plan errors and serving configurations}
+\label{sec:planacc}
+
+Table~\ref{tab:e1} reports E1. Local structural pass rates range from
+70.0\% to 87.3\%. The 9B model has the highest observed local score,
+8.7 percentage points above the 24B model and 12.3 above the 14B model.
+Model size therefore does not order these particular configurations.
+The comparison does not isolate parameter count from model family,
+quantization, or serving behavior.
+
+Five repeats characterize response variability on the same 44 cases; they
+are not 220 independent task designs. We report descriptive pass rates and
+the fraction of cases with at least one valid response among five attempts,
+without model-ranking significance claims or confidence intervals that
+treat repeated cases as independent. For the 4B model, the difference
+between pass@1 and pass@5 is 23.2 points; other models recover less through
+resampling. A malformed formation-offsets array recurs byte-identically
+in 25 of the 24B model's 47 failures. This is a repeated error pattern,
+not evidence that generation is deterministic.
+
+Offline rejection rates cannot be read as mission failure rates. The
+validators assess case-specific structural properties without a running
+fleet; runtime transformations and execution ordering can change outcomes.
+
+\begin{table}[!htbp]
+\centering
+\caption{Structural plan accuracy on the 44-case benchmark, $N{=}5$, 220 calls
+per model per configuration. \emph{tools} is native tool calling, the deployed
+configuration; \emph{schema} is schema-constrained decoding. Two hosted models are mixture-of-experts, reported as
+total/active parameters; gemini does not disclose its size.}
+\label{tab:e1}
+\setlength{\tabcolsep}{3.2pt}
+\begin{tabular}{lcccc}
+\toprule
+Model & \makecell{\small params\\\small tot./act.} &
+\makecell{pass@1 \%\\tools} &
+\makecell{pass@5\\\small tools} & \makecell{pass@1\\\small schema} \\
+\midrule
+\multicolumn{5}{l}{\emph{local, single 16\,GB card, all dense}}\\
+qwen3.5:4b           & 4B  & 70.0 & 93.2 & --- \\
+gemma3:12b           & 12B & 71.4 & 72.7 & --- \\
+qwen2.5:14b          & 14B & 75.0 & 81.8 & --- \\
+\textbf{qwen3.5-9b}  & 9B  & \textbf{87.3} & \textbf{95.5} & 19.1 \\
+mistral-small3.2:24b & 24B & 78.6 & 81.8 & --- \\
+\midrule
+\multicolumn{5}{l}{\emph{hosted}}\\
+qwen3.5-9b            & 9B \small dense & 90.5 & 97.7 & 51.4 \\
+gemini-2.5-flash      & n/d & 89.5 & 90.9 & 80.9 \\
+nemotron-3-ultra & \small 550B/55B & 90.5 & 97.7 & 88.6 \\
+qwen3.5-397b-a17b & \small 397B/17B & \textbf{93.2} & \textbf{100} & \textbf{95.0} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\Needspace{8\baselineskip}
+\subsubsection{Hosted and constrained-decoding observations}
+\label{sec:hosted}
+
+The hosted block applies the same benchmark to four models. Two are
+mixture-of-experts, so total and active parameter counts are shown separately.
+These results characterize the tested configurations; they do not identify
+the causal effect of model scale.
+
+Schema-constrained decoding changes the scores unevenly. The hosted 397B/17B
+model rises from 93.2\% to 95.0\%, while Gemini falls from 89.5\% to 80.9\%.
+For the 9B model, the decrease is 39.1 points remotely and 68.2 locally.
+Without a controlled serving-stack experiment, these differences cannot be
+attributed to one decoding mechanism. They motivate retaining representation
+validity and task-plan validity as separate evaluation targets. Investigation
+of the model-specific causes is outside this study.
+
+\subsection{Main-series task-evaluator completion}
+
+Table~\ref{tab:e3} gives E2. Every reported cell satisfies all assigned task-evaluator conditions. The reported series therefore has no task-completion variation with which
+to estimate a language-model or guard effect. Timing differs descriptively,
+as discussed below.
+
+\begin{table}[!htbp]
+\centering
+\caption{E2: 18 included runs with twenty deployed robots. Tasks are
+pose-based evaluator outcomes, not physical cargo-transfer measurements. \emph{in model} is
+wall-clock time spent waiting on the language model.}
+\label{tab:e3}
+\setlength{\tabcolsep}{3.2pt}
+\begin{tabular}{llcccc}
+\toprule
+Cell & Mission & $n$ & Tasks & \makecell{makespan (s)\\\small mean $\pm$ sd} & \makecell{in model\\\small (s)} \\
+\midrule
+no-LLM   & M2 & 5 & 5/5 & $203.5 \pm 10.6$ & 0 \\
+model-9b & M2 & 5 & 5/5 & $252.2 \pm 26.6$ & 9.5 \\
+B        & M2 & 5 & 5/5 & $260.0 \pm 16.5$ & 31.6 \\
+B-M3     & M3 & 3 & 9/9 & $587.7 \pm 67.0$ & 51.2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+All reported main-series runs complete their tasks, but the missions cover
+one map and two task specifications. This observation establishes execution
+on those cases, not equivalence between the arms or reliability on unseen
+missions. The separate pre-guard and formation cases also show why this
+completion column is not a summary of every development run.
+
+\subsection{Timing and inactive mechanisms}
+The M2 language cells have reported mean makespans of
+$252.2\pm26.6$\,s for 9B and $260.0\pm16.5$\,s for B. Both complete all tasks,
+but they differ in model, provider, allocation, and guard version. These
+measurements do not establish an effect or absence of effect of model size.
+
+The B mean exceeds the scripted baseline by 56.5\,s
+($203.5$ versus $260.0$\,s), with 31.6\,s recorded as model waiting time.
+Makespan is measured from the first \texttt{/tasks/state} tick in the bag,
+not from command submission. The recording-to-command offset was not
+measured consistently, and allocations differ. Thus the gap is a descriptive
+comparison of recorded intervals, not a controlled language-interface
+overhead or operator-to-completion latency estimate.
+
+Across the 13 language runs, remediation attempts, verification-repair
+attempts, and active-formation-guard activations are all zero; supervision
+records one pass rather than a repeated loop. M2 and M3 therefore do not
+evaluate those mechanisms. Auxiliary state-lookup tool calls are also zero
+in these runs: named-room coordinates are already supplied by the static
+prompt context. Separate formation observations record 10 and 33 calls, but
+are not part of the main M2/M3 comparison. This distinction separates the
+native tool-calling output configuration from actual use of grounding tools.
+
+\section{Discussion}
+\label{sec:discussion}
+
+The results show why structural validity is a useful first check but an
+incomplete account of fleet behavior. For RQ1, the benchmark distinguishes
+tested structural rules from mission execution.
+The repeated malformed offset array is an observed error pattern, while the
+tool/schema comparisons expose configuration sensitivity. Aggregate pass
+rates and the reported offset example do not constitute a complete
+per-category error taxonomy; the retained reporting record does not provide
+the underlying responses needed to reconstruct one.
+
+Passing those structural checks leaves the assignment and spatial questions
+of RQ2. The single-carrier cases show targeted assignment correction, with successful
+uncorrected cases preventing a necessity claim. The shared-drop-off account
+shows destination spreading consistent with the intended coordination rule,
+without isolating its causal effect. The formation case reveals both a
+semantic mismatch and a missing footprint-route check. Together these
+observations identify different checks for different properties. A parseable
+plan, a locally admissible goal, and a traversable group route are distinct
+requirements.
+
+The distinction extends to execution feedback, as examined in RQ3. A
+component may report success for an adjusted goal or reduced robot set
+without satisfying the original mission condition. The pose-based evaluator
+provides a separate check of the specified spatial events, but its own
+specification is also limited: ordered dwell success does not establish
+physical transport, intent preservation, or collision safety. An engineering
+implication is to record the requested action, its transformed action, the
+component report, and the evaluator outcome separately. This is a lesson
+drawn from the cases, not a demonstrated general reliability improvement.
+
+\Needspace{12\baselineskip}
+\section*{Artifact Availability and AI Assistance}
+
+The manuscript package includes the article source, bibliography and figures,
+but does not include a versioned simulation repository, rosbag inventory,
+decision journals, raw offline responses, full prompts, or analysis scripts.
+Their availability for independent reproduction is therefore not established
+by this submission package. The quantitative values are retained from the
+existing reporting record; no new simulation runs or offline calls were
+performed for this revision. A code-and-data release requires confirmation
+and packaging of the actual artifacts, rather than a promise treated as
+evidence of reproducibility.
+
+\Needspace{6\baselineskip}
+Generative AI assistance was reported for software development and analysis
+scripts in the original work, and was used for manuscript restructuring and
+language editing in this revision. It did not supply new empirical results.
+The authors remain responsible for validating the final text and the reported
+measurements against their original records.
+
+% =========================================================================
+
+\section{Limitations}
+\label{sec:limitations}
+
+The study uses one Stage map, simulator-derived poses, two main mission
+specifications, and small reported samples. Twenty deployed stacks do not
+establish twenty simultaneously active or jointly planned agents. No
+per-run activity trace, fleet-size sweep, or throughput analysis is supplied.
+The carry metric is ordered zone dwell; it does not test physical load
+handling. There are no independent collision or intent-preservation metrics.
+These limits preclude fleet-wide reliability, physical transport, and safety
+claims.
+
+The main-series completion metric is saturated. Two decision journals are
+missing, biasing inspection toward later runs, and the relation between the
+M3 before/after account and the session inventory remains unreconciled.
+The absence of a complete ID/version registry limits auditability and cannot
+be repaired merely by naming the series separately. The reported 18-run
+result must not be interpreted as an all-campaign success probability.
+
+E1 repeats 44 case designs and measures selected structural requirements.
+It does not estimate general language competence or end-to-end success.
+The reporting package omits exact prompts, revisions, quantization settings,
+serving configurations and seeds required for full reproduction. Models and
+serving settings are confounded. Makespan is anchored to the first task-state
+tick, with uncontrolled command offset and allocation, so it does not isolate
+language overhead or operator latency.
+
+No controlled component-removal ablation was performed. The six-case
+drop-off account changes providers and software versions, so a causal
+guard-benefit estimate is unavailable. Inactive repair counters do not
+validate recovery behavior. Goal and assignment rewrites can change task
+meaning, and formation-route feasibility remains unchecked. Qualitative
+substrate observations motivate checks but establish no failure frequencies.
+These are limitations of the evidence, not deficiencies that stronger wording
+or architectural integration can remove.
+
+% =========================================================================
+\Needspace{18\baselineskip}
+\section{Conclusion}
+
+This architectural case study distinguishes the correctness properties at
+the boundary between language plans and classical fleet execution. The
+reported offline cases expose structural errors and configuration sensitivity.
+Carry-labelled simulation cases demonstrate selected assignment and goal
+transformations, while the formation and local-status observations expose
+conditions that the implemented interface does not establish.
+
+The central result is a documented separation of structural validity, task
+meaning, spatial feasibility, and pose-based evaluator completion in this
+implementation. The main-series task outcomes apply to the reported missions
+and their ordered dwell specification. They do not prove improved guard
+reliability, physical cargo transport, collision safety, or twenty-agent
+concurrent scaling. Better artifact traceability and controlled evaluation
+would be needed to establish those stronger claims.
+
+% =========================================================================
+%BRK%
+% The bibliography uses its native heading spacing and tighter entry gaps.
+\begingroup
+\let\section\unpatchedsection
+\setlength{\bibsep}{0.5em}
+\interlinepenalty=10000
+\bibliography{refs}
+\endgroup
+
+\end{document}
