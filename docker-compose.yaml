@@ -8,7 +8,7 @@ x-common: &common-setup
   volumes:
     - ${HOME}/.Xauthority:/home/fabian/.Xauthority:rw
     - .:/home/fabian/ros2_ws/src:rw
-    # Session recordings land under the repo (paper/results/sessions), which is
+    # Session recordings land under the repo (paper/results/e2_mission_series), which is
     # already inside the bind mount above, so they survive the container by
     # construction and need no mount of their own. See record_session.sh.
     - /tmp/.X11-unix:/tmp/.X11-unix:rw

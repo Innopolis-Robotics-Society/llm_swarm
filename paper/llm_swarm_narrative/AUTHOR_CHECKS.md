@@ -2,7 +2,7 @@
 
 Площадка не зафиксирована. Ниже нужны проверки уже существующих материалов, а не новые эксперименты.
 
-1. Реестр запусков: session IDs для 21 reported sessions, 18 included runs, 3 bring-up exclusions и M3 before/after. Не предполагать, что 3 post-guard cases совпадают с B-M3, пока это не подтверждено ID. Не складывать 6 before/after cases с 18 основной серии.
+1. Реестр запусков: session IDs для 21 reported sessions, 18 included runs, 3 formation-mission exclusions (M4) и M3 before/after. Три post-guard cases подтверждены как B-M3 entries по session ID (`20260818_111548`, `113030`, `114445`); pre-guard cases — `20260815_153035`, `154541` (8/9, Chutes). Не складывать 5 before/after cases с 18 основной серии.
 2. Конфигурации: commit/tag системы, model revision, quantization, serving versions, endpoint/provider, prompt/schema hashes, launch parameters и seeds — только если такие сведения сохранились. Не подставлять неизвестные defaults.
 3. Carry evaluator: автор подтвердил dwell сначала в pickup, затем в drop-off как единственное условие success. Нужны численный dwell threshold и код переходов для воспроизводимости. Радиус 1.5 м взят из исходной рукописи. Дополнительные детали identity binding между двумя этапами не описывались как проверенный факт без кода.
 4. Assignment counts: сверить 5/11 inspected plans с тремя model-9b и двумя B cases. Если decision journals не сохранились, описывать это как reported inspection, не как новый аудит.

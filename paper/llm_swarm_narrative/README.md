@@ -1,14 +1,25 @@
-# Correctness Boundaries — review revision
+# Correctness Boundaries — the narrative version of the article
 
-Редакционная переработка по рецензии, 12 октября 2026. Использован официальный Springer Nature sn-jnl, одна колонка и числовые ссылки. Площадка подачи остаётся открытой.
+This is the article. It is the only manuscript in the repository; the earlier
+two-column draft was removed. Editorial revision following review, 12 October
+2026, using the official Springer Nature `sn-jnl` class, single column, numeric
+citations. The submission venue is still open.
 
-Основной файл — main.tex, собранная версия — main.pdf. В текущей сборке 18 страниц и 18 цитируемых источников (19 записей в refs.bib). Новых экспериментов нет. Числа обеих исходных экспериментальных таблиц сохранены.
+`main.tex` is the source, `main.pdf` the built version: 18 pages, 18 cited
+sources (19 entries in `refs.bib`). No new experiments. The numbers of both
+original experimental tables are preserved.
 
-Изменены центральный тезис и название, добавлены три RQ, связный обзор механизмов, таблицы покрытия проверок и provenance. Уточнено carry success: dwell сначала в pickup, потом в drop-off; физическая перевозка объекта не является измеряемым условием. Failure cases вынесены в центр Results. Неизвестные параметры и проблемы учёта прямо признаны.
+The central thesis and the title were changed, three RQs were added, along with
+a connected review of mechanisms and tables for check coverage and provenance.
+Carry success was made precise: a dwell at the pickup first, then at the
+drop-off; physical transport of the object is not a measured condition. Failure
+cases were moved to the centre of Results. Unknown parameters and accounting
+problems are stated outright.
 
-## Сборка
+## Build
 
-Все необходимые файлы основной сборки находятся в одном каталоге. Нужен обычный TeX Live с зависимостями официального класса.
+Everything the main build needs is in this directory. A normal TeX Live with
+the dependencies of the official class is enough.
 
 ```bash
 pdflatex -interaction=nonstopmode -halt-on-error main.tex
@@ -17,7 +28,7 @@ pdflatex -interaction=nonstopmode -halt-on-error main.tex
 pdflatex -interaction=nonstopmode -halt-on-error main.tex
 ```
 
-Готовые рисунки включены. Для их пересборки:
+The figures are included as finished PDFs. To rebuild them:
 
 ```bash
 python3 mkhero.py
@@ -25,24 +36,48 @@ python3 mkmap.py
 pdflatex -interaction=nonstopmode -halt-on-error architecture.tex
 ```
 
-Python-скрипты используют Matplotlib, NumPy, Pillow и PyMuPDF. Они не нужны для сборки готовой рукописи. Геометрия карты восстановлена из встроенного occupancy bitmap и исходных координат задач; легенда вынесена под рисунок.
+The Python scripts use Matplotlib, NumPy, Pillow and PyMuPDF. They are not
+needed to build the finished manuscript. The map geometry was recovered from
+the embedded occupancy bitmap and the original task coordinates; the legend was
+moved below the figure.
 
-## Статус
+## Status
 
-REVIEW_RESPONSE.md описывает выполненные изменения и оставшиеся ограничения. AUTHOR_CHECKS.md — конкретные сведения, которые нужно подтвердить по существующим материалам. Эти приватные заметки не являются частью статьи для подачи.
+`REVIEW_RESPONSE.md` describes the changes made and the limitations that
+remain. `AUTHOR_CHECKS.md` lists the specific facts that still have to be
+confirmed against existing material. These are private working notes, not part
+of the submitted article.
 
-В титуле оставлено Author details pending: полный список авторов, affiliations и corresponding-author email не были предоставлены. Funding/competing-interest declarations не выдуманы. Код симуляции и исходные экспериментальные журналы в этот пакет не входят.
+The title page keeps "Author details pending": the full author list,
+affiliations and corresponding-author email were not provided. Funding and
+competing-interest declarations were not invented. The simulation code and the
+original experimental journals are not part of this package; they live in
+`../results/`.
 
-Штатный класс и bst не изменены. Официальное руководство сохранено как template_manual.pdf.
-
+The stock class and `.bst` are unmodified. The official class manual is not
+vendored here — it is at
 https://www.springernature.com/gp/authors/campaigns/latex-author-support
 
-## Проверка вёрстки, 13 октября 2026
+## Layout pass, 13 October 2026
 
-Настроены переносы заголовков и одиноких строк, размещение рисунков и таблиц, сохранение заключения на одной странице и запрет разрыва отдельной библиографической записи. Класс Springer не изменён. Текст и содержимое всех рисунков и таблиц сверены с предыдущей версией; изменения касаются только вёрстки. PDF проверен постранично; сборка без предупреждений, неопределённых ссылок и переполнения строк.
+Heading and orphan-line breaking, figure and table placement, keeping the
+conclusion on one page and preventing a single bibliography entry from being
+split were all configured. The Springer class is unmodified. The text and the
+content of every figure and table were checked against the previous version;
+the changes are layout only. The PDF was checked page by page; the build has no
+warnings, no undefined references and no overfull lines.
 
-## Редактура повествования, 16 октября 2026
+## Narrative edit, 16 October 2026
 
-Related Work переписан как связное обсуждение перехода от планирования путей к интерпретации команд, обратной связи, командной координации и проверкам исполнения. Удалены четыре внутренних подзаголовка и дублирующая таблица перечисления методов. Введение связывает исследовательские вопросы с этапами прохождения плана; Discussion изложен без трёх отдельных RQ-подзаголовков. Ссылка на Nav2 перенесена к описанию исполнения.
+Related Work was rewritten as a connected discussion of the transition from
+path planning to command interpretation, feedback, team coordination and
+execution checks. Four internal subheadings and the redundant table listing
+methods were removed. The introduction ties the research questions to the
+stages a plan passes through; the discussion is written without three separate
+RQ subheadings. The Nav2 reference was moved to the description of execution.
 
-Abstract, методы, Experimental Design, Results, Limitations, Conclusion, числовые значения, иллюстрации и refs.bib не изменены. Нумерация таблиц и ссылок обновлена при сборке. Использовались первичные публикации и страницы авторов; ориентир для организации аргумента — Gerkey and Mataric, IJRR 2004, без заимствования формулировок.
+Abstract, methods, experimental design, results, limitations, conclusion,
+numeric values, illustrations and `refs.bib` were not changed. Table and
+reference numbering was updated at build time. Primary publications and author
+pages were used; the organising reference for the argument is Gerkey and
+Mataric, IJRR 2004, without borrowing its wording.

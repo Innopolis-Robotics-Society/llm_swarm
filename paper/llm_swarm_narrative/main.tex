@@ -37,7 +37,7 @@ specifications and one map. Here, a carry task means satisfying a dwell
 condition at a pickup location and then at a drop-off location, not physically
 transporting an object. Duplicate-carrier assignments occur in 5 of 11
 inspectable plans. A separate, uncontrolled M3 comparison reports 8/9 tasks
-before and 9/9 after destination spreading; incomplete session mapping
+before and 9/9 after destination spreading; its non-randomized design
 precludes pooling it with the main series. A formation failure and qualitative
 development observations expose gaps in geometric checks and completion
 reports. We organize these observations by check coverage and distinguish
@@ -416,7 +416,7 @@ per-robot execution levels. There is no scripted M3 baseline, and the cells
 do not isolate model, provider, allocation, or guard-version effects.
 
 The reporting record accounts for 21 sessions, 18 included and three
-excluded at bring-up on a mission outside these cells. Its inclusion rules
+excluded as non-valid repeats of the formation mission outside these cells. Its inclusion rules
 require the start configuration to be reached, one command delivery, and a
 finalized bag with the target topics present. It reports no outcome-based
 exclusion. A complete session-ID inventory and version mapping do not
@@ -424,11 +424,9 @@ accompany the manuscript, so that accounting cannot be independently audited
 from the supplied reporting material.
 
 Table~\ref{tab:provenance} separates the evidence sources. The M3 development
-comparison describes three pre-guard and three post-guard runs. Their mapping
-to the 21-session report, including whether the post-guard cases are the
-three B-M3 table entries, is not established by session identifiers. We
-report that comparison as its own account without assuming that all six
-cases are additional to the main series. The formation observations and
+comparison describes two pre-guard and three post-guard runs. The post-guard
+runs are the three B-M3 entries in the main series; the pre-guard runs are
+reported as their own account and are not added to the 18-run denominator. The formation observations and
 qualitative defect reports are likewise not added to its denominator.
 Consequently, 18 successful included runs is not an all-campaign success rate.
 
@@ -443,8 +441,8 @@ Source & Reported count & Use and unresolved provenance\\
 \midrule
 Main mission series & 18 runs & Four cells; three M2 cells and one M3 cell. Session/version inventory is not supplied.\\
 Decision journals & 11 of 13 & Inspectable language plans; a subset of the main series, biased toward later runs.\\
-Bring-up exclusions & 3 sessions & Described within the 21-session account; reported startup criteria, no independent ID audit.\\
-M3 guard comparison & 3 before, 3 after & Development before/after observations with provider/version changes; overlap with the main series is not ID-reconciled.\\
+Bring-up exclusions & 3 sessions & Three M4 sessions excluded as non-valid repeats: pilot stack failure, leader ejection, interactive session; no independent ID audit.\\
+M3 guard comparison & 2 before, 3 after & Pre-guard runs are separate from the main series; the three post-guard runs are its B-M3 entries. Provider and software versions differ between series.\\
 Formation cases & One detailed failure & Additional qualitative observations, not a systematic formation benchmark or main-series denominator.\\
 Substrate defects & Not counted & Development observations of misleading local completion reports; no estimated frequency.\\
 \bottomrule
@@ -505,10 +503,10 @@ whether an extra carrier obstructs another robot.
 M3 explicitly asks two carry tasks to use the same drop-off location
 (Figure~\ref{fig:map}). Coincident destinations are therefore a coordination
 problem under the given mission, not by themselves evidence that the model
-misinterpreted the request. Before the shared-drop-off guard, three
-consecutive development runs complete 8/9 tasks: two on one provider and one
-on another. Three subsequent runs with the guard complete 9/9 tasks, and
-their logs record destination spreading:
+misinterpreted the request. Before the shared-drop-off guard, two
+consecutive development runs complete 8/9 tasks, both on the same provider.
+Three subsequent runs with the guard complete 9/9 tasks, and their logs
+record destination spreading:
 \begin{center}\small
 \texttt{carry\_guard: carry\_engine\_to\_reactor+}\\
 \texttt{carry\_shields\_to\_reactor share dropoff}\\
@@ -777,8 +775,9 @@ These limits preclude fleet-wide reliability, physical transport, and safety
 claims.
 
 The main-series completion metric is saturated. Two decision journals are
-missing, biasing inspection toward later runs, and the relation between the
-M3 before/after account and the session inventory remains unreconciled.
+missing, biasing inspection toward later runs. The M3 before/after account is
+identified by session, but its two series differ in provider and software
+version.
 The absence of a complete ID/version registry limits auditability and cannot
 be repaired merely by naming the series separately. The reported 18-run
 result must not be interpreted as an all-campaign success probability.

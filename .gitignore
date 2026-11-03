@@ -92,13 +92,20 @@ maf.md
 # sessions_invalid/ holds runs withdrawn from the set (wrong provider, a defect
 # since fixed). Same split applies -- the reason a run was withdrawn is text and
 # belongs in the repo, its 130 MB bag does not.
-paper/results/sessions/**/*.db3
-paper/results/sessions/**/*.db3-*
-paper/results/sessions/**/*.mcap
-paper/results/sessions/**/bag_record.log
-!paper/results/sessions/**/launch.log
-paper/results/sessions_invalid/**/*.db3
-paper/results/sessions_invalid/**/*.db3-*
-paper/results/sessions_invalid/**/*.mcap
-paper/results/sessions_invalid/**/bag_record.log
-!paper/results/sessions_invalid/**/launch.log
+# Every rosbag under paper/results/ is untracked, wherever it lives: the main
+# series, the qualitative cases, the M3 guard comparison. The per-run
+# derived/metrics.json next to each bag is tracked and carries the numbers.
+paper/results/**/*.db3
+paper/results/**/*.db3-*
+paper/results/**/*.mcap
+paper/results/**/bag_record.log
+!paper/results/**/launch.log
+# Runs withdrawn from the article's set live outside paper/results/.
+llm_swarm_rejected/**/*.db3
+llm_swarm_rejected/**/*.db3-*
+llm_swarm_rejected/**/*.mcap
+llm_swarm_rejected/**/bag_record.log
+!llm_swarm_rejected/**/launch.log
+
+# Author contact details and ORCIDs are kept out of the public repository.
+paper/llm_swarm_narrative/authors.txt

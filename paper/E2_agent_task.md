@@ -14,12 +14,12 @@ Repo: `Innopolis-Robotics-Society/llm_swarm`, branch **`paper`**.
 This is one experiment (E2) inside a larger evaluation for an academic paper.
 Before writing any code, read:
 
-- `paper/main.tex`, section **"Experimental Design" → "E2: Grounding and
+- `paper/llm_swarm_narrative/main.tex`, section **"Experimental Design" → "E2: Grounding and
   constraint ablation"** (`\label{sec:e2}`) — authoritative spec for what E2
   is and why. Also read "Research questions" (RQ2) above it, and "Principle:
   reuse existing instrumentation" — the paper commits to adding as little new
   measurement code as possible.
-- `paper/main.tex`, section **"Results" → "E1: Planning accuracy"** — the only
+- `paper/llm_swarm_narrative/main.tex`, section **"Results" → "E1: Planning accuracy"** — the only
   experiment currently done, and the template for rigor and tone your E2
   results subsection must match (pass@1/pass@5, per-category breakdown,
   failure-mode table, explicit caution paragraph about sample size).
@@ -27,7 +27,7 @@ Before writing any code, read:
   (~1000 lines) used for E1. 44 test cases, each a prompt + synthetic runtime
   context + programmatic validator (`chk_*` helpers). You are extending this,
   not replacing it.
-- `paper/results/e1b_manifest.json`, `e1b_summary.json`, `raw/e1b_*.json` —
+- `paper/results/e1_plan_accuracy/local_tools/e1b_manifest.json`, `e1b_summary.json`, `paper/results/e1_plan_accuracy/raw/e1b_*.json` —
   the output convention to match exactly. Read the `notes` array carefully:
   it documents real bugs found mid-sweep and is the model for how to report
   deviations.
@@ -45,7 +45,7 @@ record the discrepancy in your manifest `notes`.
 
 1. Extend the offline harness with the two ablation factors E2 needs.
 2. Run the ablation, output in the project's existing results format.
-3. Draft the E2 results subsection for `main.tex`, replacing the placeholder
+3. Draft the E2 results subsection for `paper/llm_swarm_narrative/main.tex`, replacing the placeholder
    `\pending{E2 --- ablation: effect of constrained decoding, tool calling,
    pose context, context budget.}`
 
@@ -74,7 +74,7 @@ Verified: `_call_llm()` (line ~745) calls `llm.stream(messages)` with no
 `response_format`, and `OllamaClient.stream()` defaults it to `None`. **E1 and
 E1b therefore ran fully unconstrained.** This is good news — E1b is already a
 clean "constrained decoding OFF" baseline — but it means the ON arm is new
-code, and it means the current sentence in `main.tex` §E2 claiming the
+code, and it means the current sentence in `paper/llm_swarm_narrative/main.tex` §E2 claiming the
 harness "exercises only the plain and schema-constrained paths" is inaccurate
 about the second one. Flag that prose error in your report; it needs fixing.
 
@@ -111,8 +111,8 @@ That structure maps directly onto the three required variants:
 ### 1.3 Output format
 
 Match `e1b_manifest.json` / `e1b_summary.json` exactly:
-`paper/results/e2_manifest.json`, `e2_summary.json`, and per-condition raw
-files under `paper/results/raw/` named `e2_<factor>_<value>_<model>.json`
+`paper/results/e1_plan_accuracy/schema_grounding/e2_manifest.json`, `e2_summary.json`, and per-condition raw
+files under `paper/results/e1_plan_accuracy/raw/` named `e2_<factor>_<value>_<model>.json`
 (e.g. `e2_schema_on_qwen3.5-4b.json`,
 `e2_grounding_coords_only_qwen3.5-9b.json`).
 
@@ -156,8 +156,8 @@ New runs: 3 conditions × 2 models = 6 runs × 220 calls = 1,320 calls.
 ## Part 3 — Deliverables
 
 1. Code changes as a reviewable diff against `paper`.
-2. `paper/results/e2_manifest.json`, `e2_summary.json`,
-   `paper/results/raw/e2_*.json`.
+2. `paper/results/e1_plan_accuracy/schema_grounding/e2_manifest.json`, `e2_summary.json`,
+   `paper/results/e1_plan_accuracy/raw/e2_*.json`.
 3. Drafted LaTeX subsection replacing the `\pending{E2 ...}` line, in the
    voice of the existing "E1: Planning accuracy" results subsection: specific
    numbers, which factors moved which failure modes (cross-reference E1's
@@ -166,7 +166,7 @@ New runs: 3 conditions × 2 models = 6 runs × 220 calls = 1,320 calls.
    a strong claim. Do not overstate what the data supports. The subsection
    must also state plainly that tool calling, pose context, auto-spread, and
    context budget were **not** measured in E2, and where each went.
-4. A short list of discrepancies found between `main.tex` and the code. Two
+4. A short list of discrepancies found between `paper/llm_swarm_narrative/main.tex` and the code. Two
    are already known and expected — the "schema-constrained path" claim in
    §E2 (§1.1 above), and `orchestrator.yaml` currently shipping both
    `tool_calling_enabled: true` and `structured_output_enabled: true` despite
@@ -206,7 +206,7 @@ harness already holds as a Python dict, so the tool implementations — and
 therefore the measurement — would be identical either way. It adds
 apparatus without adding fidelity.
 
-**Consequence for `main.tex`:** §E2 lines 658–665 currently assert *"requires
+**Consequence for `paper/llm_swarm_narrative/main.tex`:** §E2 lines 658–665 currently assert *"requires
 either extending the harness to route through the chat server, or measuring
 that factor only in E3. We take the first option, as the second confounds
 planning mode with execution noise."* That sentence must be rewritten — the

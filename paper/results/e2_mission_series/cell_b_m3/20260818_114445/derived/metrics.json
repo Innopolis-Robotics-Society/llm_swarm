@@ -1,0 +1,569 @@
+{
+  "stamp": "20260818_114445",
+  "dir": "paper/results/e2_mission_series/cell_b_m3/20260818_114445",
+  "problems": [
+    "tool_calling is on but the model called no tool at all (section 6, criterion 4) -- the tool-calling arm is doing the same thing the constrained arm would"
+  ],
+  "session": {
+    "started_at": "2026-08-18T11:44:46.302894+00:00",
+    "git_commit": "a74f655c77673244f8bc88c856339c6e1917bb6f",
+    "git_dirty": true,
+    "planner": "lns",
+    "scenario": "amongus",
+    "num_robots": 20,
+    "note": "provider=Parasail,AtlasCloud,GMICloud,Chutes",
+    "cell": "B-M3",
+    "mission": "M3",
+    "repeat_index": "3",
+    "llm_model": {
+      "value": "qwen/qwen3.5-397b-a17b",
+      "source": "cli"
+    },
+    "llm_endpoint": {
+      "value": "https://openrouter.ai/api/v1/chat/completions",
+      "source": "cli"
+    },
+    "llm_routing": {
+      "openrouter_provider": "Parasail,AtlasCloud,GMICloud,Chutes",
+      "openrouter_allow_fallbacks": "false",
+      "llm_call_delay_sec": "1",
+      "api_key_present": true
+    },
+    "ablation_factors": {
+      "remediation_enabled": {
+        "value": true,
+        "source": "cli"
+      },
+      "llm_repair_enabled": {
+        "value": true,
+        "source": "cli"
+      },
+      "llm_mission_supervision_enabled": {
+        "value": true,
+        "source": "cli"
+      },
+      "tool_calling_enabled": {
+        "value": true,
+        "source": "cli"
+      },
+      "structured_output_enabled": {
+        "value": false,
+        "source": "cli"
+      }
+    },
+    "finished_at": "2026-08-18T11:54:19.228983+00:00",
+    "bag_finalised": true,
+    "operator_commands_logged": 5,
+    "bag_messages": 357695,
+    "topics_recorded_empty": []
+  },
+  "cell": "B-M3",
+  "mission": "M3",
+  "repeat": "3",
+  "planner": "lns",
+  "model": "qwen/qwen3.5-397b-a17b",
+  "provider": "Parasail,AtlasCloud,GMICloud,Chutes",
+  "operator_commands": 5,
+  "git_commit": "a74f655c",
+  "git_dirty": true,
+  "factors": {
+    "remediation_enabled": true,
+    "llm_repair_enabled": true,
+    "llm_mission_supervision_enabled": true,
+    "tool_calling_enabled": true,
+    "structured_output_enabled": false
+  },
+  "chat": {
+    "present": true,
+    "n_missions": 1,
+    "n_rows": 5,
+    "n_killed": 0,
+    "last_phase": [
+      "final"
+    ],
+    "totals": {
+      "llm_calls": 1,
+      "remediation_attempts": 0,
+      "verification_repair_attempts": 0,
+      "supervision_steps": 1,
+      "guard_active_formation_fired": 0,
+      "guard_occupancy_rewrites": 0,
+      "guard_formation_staging_fired": 0,
+      "guard_single_carrier_fired": 0,
+      "guard_shared_dropoff_fired": 1
+    },
+    "llm_seconds": 30.7,
+    "success": [
+      true
+    ],
+    "verification_ok": [
+      true
+    ],
+    "info": [
+      "mission success: MAPF goals reached and spacing checks passed"
+    ],
+    "plan_json": [
+      "{\"type\": \"parallel\", \"steps\": [{\"type\": \"mapf\", \"robot_ids\": [0], \"goals\": [[-6.84, 1.37]], \"reason\": \"task_med\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [4], \"goals\": [[-6.31, -3.66]], \"reason\": \"task_electrical\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [1], \"goals\": [[-29.51, 5.02]], \"reason\": \"task_reactor\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [2], \"goals\": [[-2.58, 16.1]], \"reason\": \"task_hall\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [12], \"goals\": [[7.84, -15.76]], \"reason\": \"task_comms\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [8], \"goals\": [[12.13, 2.05]], \"reason\": \"task_o2\", \"spread\": false}, {\"type\": \"sequence\", \"steps\": [{\"type\": \"mapf\", \"robot_ids\": [3], \"goals\": [[-23.67, -10.86]], \"reason\": \"carry_engine_to_reactor pickup\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [3], \"goals\": [[-28.9, -2.85]], \"reason\": \"carry_engine_to_reactor dropoff\", \"spread\": false}]}, {\"type\": \"sequence\", \"steps\": [{\"type\": \"mapf\", \"robot_ids\": [5], \"goals\": [[-15.99, 3.65]], \"reason\": \"carry_security_to_admin pickup\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [5], \"goals\": [[12.29, -5.06]], \"reason\": \"carry_security_to_admin dropoff\", \"spread\": false}]}, {\"type\": \"sequence\", \"steps\": [{\"type\": \"mapf\", \"robot_ids\": [16], \"goals\": [[16.51, -12.19]], \"reason\": \"carry_shields_to_reactor pickup\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [16], \"goals\": [[-30.4, -2.85]], \"reason\": \"carry_shields_to_reactor dropoff\", \"spread\": false}]}]}"
+    ],
+    "plan_shape": [
+      {
+        "parsed": true,
+        "root_type": "parallel",
+        "node_counts": {
+          "parallel": 1,
+          "mapf": 12,
+          "sequence": 3
+        },
+        "depth": 2,
+        "n_leaves": 12,
+        "robots_named": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          8,
+          12,
+          16
+        ],
+        "nested_sequence_in_parallel": true,
+        "conflicts": []
+      }
+    ],
+    "records": [
+      {
+        "mission_id": "6dc83e74aa13",
+        "record_kind": "final",
+        "user_message": "Complete all declared tasks.",
+        "llm_mode": "http",
+        "llm_model": "qwen/qwen3.5-397b-a17b",
+        "map_name": "amongus_description",
+        "elapsed_sec": 500.542,
+        "llm_calls": 1,
+        "llm_seconds": 30.693,
+        "guard_active_formation_fired": 0,
+        "guard_occupancy_rewrites": 0,
+        "guard_formation_staging_fired": 0,
+        "guard_single_carrier_fired": 0,
+        "guard_shared_dropoff_fired": 1,
+        "remediation_attempts": 0,
+        "verification_repair_attempts": 0,
+        "supervision_steps": 1,
+        "verification_ok": true,
+        "verification_summary": "MAPF goals reached and spacing checks passed",
+        "timestamp": "2026-08-18T11:54:00.775788+00:00",
+        "mission_step": 1,
+        "plan_json": "{\"type\": \"parallel\", \"steps\": [{\"type\": \"mapf\", \"robot_ids\": [0], \"goals\": [[-6.84, 1.37]], \"reason\": \"task_med\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [4], \"goals\": [[-6.31, -3.66]], \"reason\": \"task_electrical\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [1], \"goals\": [[-29.51, 5.02]], \"reason\": \"task_reactor\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [2], \"goals\": [[-2.58, 16.1]], \"reason\": \"task_hall\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [12], \"goals\": [[7.84, -15.76]], \"reason\": \"task_comms\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [8], \"goals\": [[12.13, 2.05]], \"reason\": \"task_o2\", \"spread\": false}, {\"type\": \"sequence\", \"steps\": [{\"type\": \"mapf\", \"robot_ids\": [3], \"goals\": [[-23.67, -10.86]], \"reason\": \"carry_engine_to_reactor pickup\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [3], \"goals\": [[-28.9, -2.85]], \"reason\": \"carry_engine_to_reactor dropoff\", \"spread\": false}]}, {\"type\": \"sequence\", \"steps\": [{\"type\": \"mapf\", \"robot_ids\": [5], \"goals\": [[-15.99, 3.65]], \"reason\": \"carry_security_to_admin pickup\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [5], \"goals\": [[12.29, -5.06]], \"reason\": \"carry_security_to_admin dropoff\", \"spread\": false}]}, {\"type\": \"sequence\", \"steps\": [{\"type\": \"mapf\", \"robot_ids\": [16], \"goals\": [[16.51, -12.19]], \"reason\": \"carry_shields_to_reactor pickup\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [16], \"goals\": [[-30.4, -2.85]], \"reason\": \"carry_shields_to_reactor dropoff\", \"spread\": false}]}]}",
+        "execution_ok": true,
+        "failure_info": "{}",
+        "success": true,
+        "plan_executed": true,
+        "info": "mission success: MAPF goals reached and spacing checks passed",
+        "final_reply": "Assigning robots to complete all 9 pending tasks (6 point tasks, 3 carry tasks).\n\nVerification: MAPF goals reached and spacing checks passed"
+      }
+    ]
+  },
+  "tools": {
+    "present": true,
+    "n_calls": 0,
+    "names": {},
+    "iterations": [
+      1
+    ],
+    "prose_retries": 0,
+    "schema_retries": 0
+  },
+  "bag": "paper/results/e2_mission_series/cell_b_m3/20260818_114445/bag/bag_0.db3",
+  "bag_bytes": 138887168,
+  "wall_duration_s": 567.3,
+  "tasks": {
+    "declared": [
+      "task_med",
+      "task_electrical",
+      "carry_engine_to_reactor",
+      "task_reactor",
+      "carry_security_to_admin",
+      "task_hall",
+      "task_comms",
+      "task_o2",
+      "carry_shields_to_reactor"
+    ],
+    "targets": [
+      "task_med",
+      "task_electrical",
+      "carry_engine_to_reactor",
+      "task_reactor",
+      "carry_security_to_admin",
+      "task_hall",
+      "task_comms",
+      "task_o2",
+      "carry_shields_to_reactor"
+    ],
+    "missing_from_bag": [],
+    "final": {
+      "task_med": {
+        "status": "done",
+        "type": "point",
+        "assigned": [
+          "robot_0"
+        ]
+      },
+      "task_electrical": {
+        "status": "done",
+        "type": "point",
+        "assigned": [
+          "robot_4"
+        ]
+      },
+      "carry_engine_to_reactor": {
+        "status": "done",
+        "type": "carry",
+        "assigned": [
+          "robot_3"
+        ]
+      },
+      "task_reactor": {
+        "status": "done",
+        "type": "point",
+        "assigned": [
+          "robot_1"
+        ]
+      },
+      "carry_security_to_admin": {
+        "status": "done",
+        "type": "carry",
+        "assigned": [
+          "robot_5"
+        ]
+      },
+      "task_hall": {
+        "status": "done",
+        "type": "point",
+        "assigned": [
+          "robot_2"
+        ]
+      },
+      "task_comms": {
+        "status": "done",
+        "type": "point",
+        "assigned": [
+          "robot_12"
+        ]
+      },
+      "task_o2": {
+        "status": "done",
+        "type": "point",
+        "assigned": [
+          "robot_8"
+        ]
+      },
+      "carry_shields_to_reactor": {
+        "status": "done",
+        "type": "carry",
+        "assigned": [
+          "robot_16"
+        ]
+      }
+    },
+    "done": [
+      "task_med",
+      "task_electrical",
+      "carry_engine_to_reactor",
+      "task_reactor",
+      "carry_security_to_admin",
+      "task_hall",
+      "task_comms",
+      "task_o2",
+      "carry_shields_to_reactor"
+    ],
+    "n_done": 9,
+    "n_targets": 9,
+    "done_times_s": {
+      "task_med": 109.8,
+      "task_electrical": 81.6,
+      "carry_engine_to_reactor": 198.2,
+      "task_reactor": 99.4,
+      "carry_security_to_admin": 367.0,
+      "task_hall": 112.6,
+      "task_comms": 103.2,
+      "task_o2": 100.0,
+      "carry_shields_to_reactor": 534.8
+    },
+    "makespan_s": 534.8,
+    "carry_picked_up": [
+      "carry_engine_to_reactor",
+      "carry_security_to_admin",
+      "carry_shields_to_reactor"
+    ],
+    "incidental_done": []
+  },
+  "motion": {
+    "distance_m": {
+      "0": 21.25,
+      "1": 15.49,
+      "2": 22.63,
+      "3": 39.58,
+      "4": 6.04,
+      "5": 81.16,
+      "6": 0.0,
+      "7": 0.0,
+      "8": 16.4,
+      "9": 0.0,
+      "10": 0.0,
+      "11": 0.0,
+      "12": 17.74,
+      "13": 0.0,
+      "14": 0.0,
+      "15": 0.0,
+      "16": 81.39,
+      "17": 0.0,
+      "18": 0.0,
+      "19": 0.0
+    },
+    "end_position": {
+      "0": [
+        -6.95,
+        1.58
+      ],
+      "1": [
+        -29.45,
+        4.88
+      ],
+      "2": [
+        -2.75,
+        15.87
+      ],
+      "3": [
+        -28.85,
+        -2.63
+      ],
+      "4": [
+        -6.54,
+        -3.75
+      ],
+      "5": [
+        12.04,
+        -4.82
+      ],
+      "6": [
+        -9.45,
+        -5.15
+      ],
+      "7": [
+        -7.95,
+        -5.15
+      ],
+      "8": [
+        12.34,
+        2.19
+      ],
+      "9": [
+        29.25,
+        1.15
+      ],
+      "10": [
+        27.75,
+        2.65
+      ],
+      "11": [
+        29.25,
+        2.65
+      ],
+      "12": [
+        7.95,
+        -15.62
+      ],
+      "13": [
+        1.35,
+        -11.65
+      ],
+      "14": [
+        -0.15,
+        -10.15
+      ],
+      "15": [
+        1.35,
+        -10.15
+      ],
+      "16": [
+        -30.24,
+        -2.62
+      ],
+      "17": [
+        18.35,
+        9.95
+      ],
+      "18": [
+        16.85,
+        11.45
+      ],
+      "19": [
+        18.35,
+        11.45
+      ]
+    },
+    "robots_moved": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      8,
+      12,
+      16
+    ],
+    "n_robots_moved": 9,
+    "total_distance_m": 301.7
+  },
+  "llm": {
+    "present": true,
+    "n_events": 1,
+    "by_channel": {
+      "user": 1
+    },
+    "events": [
+      {
+        "channel": "user",
+        "stamp_ms": 1787053570937,
+        "trigger": "Complete all declared tasks.",
+        "output": "{\"type\": \"parallel\", \"steps\": [{\"type\": \"mapf\", \"robot_ids\": [0], \"goals\": [[-6.84, 1.37]], \"reason\": \"task_med\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [4], \"goals\": [[-6.31, -3.66]], \"reason\": \"task_electrical\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [1], \"goals\": [[-29.51, 5.02]], \"reason\": \"task_reactor\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [2], \"goals\": [[-2.58, 16.1]], \"reason\": \"task_hall\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [12], \"goals\": [[7.84, -15.76]], \"reason\": \"task_comms\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [8], \"goals\": [[12.13, 2.05]], \"reason\": \"task_o2\", \"spread\": false}, {\"type\": \"sequence\", \"steps\": [{\"type\": \"mapf\", \"robot_ids\": [3], \"goals\": [[-23.67, -10.86]], \"reason\": \"carry_engine_to_reactor pickup\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [3], \"goals\": [[-28.9, -2.85]], \"reason\": \"carry_engine_to_reactor dropoff\", \"spread\": false}]}, {\"type\": \"sequence\", \"steps\": [{\"type\": \"mapf\", \"robot_ids\": [5], \"goals\": [[-15.99, 3.65]], \"reason\": \"carry_security_to_admin pickup\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [5], \"goals\": [[12.29, -5.06]], \"reason\": \"carry_security_to_admin dropoff\", \"spread\": false}]}, {\"type\": \"sequence\", \"steps\": [{\"type\": \"mapf\", \"robot_ids\": [16], \"goals\": [[16.51, -12.19]], \"reason\": \"carry_shields_to_reactor pickup\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [16], \"goals\": [[-30.4, -2.85]], \"reason\": \"carry_shields_to_reactor dropoff\", \"spread\": false}]}]}",
+        "reason": "Assigning robots to complete all 9 pending tasks (6 point tasks, 3 carry tasks)."
+      }
+    ]
+  },
+  "bt": {
+    "present": true,
+    "status_ticks": {
+      "OK": 5447
+    },
+    "n_warn": 0,
+    "n_error": 0,
+    "mode_sequence": [
+      "idle",
+      "mapf"
+    ],
+    "distinct_errors": [],
+    "thinking_ticks": 0
+  },
+  "mapf": {
+    "n_goals": 7,
+    "goals": {
+      "5dfa7fc437b6ec901f8629a015ee8a2d": {
+        "arrived": 5,
+        "stall": 0,
+        "replans": 0,
+        "deviated": 6,
+        "elapsed_ms": 45700,
+        "statuses": [
+          "validating",
+          "planning",
+          "executing"
+        ],
+        "warnings": [],
+        "terminal": "SUCCEEDED"
+      },
+      "833384c1b67c606bed73a1bbd791565b": {
+        "arrived": 0,
+        "stall": 0,
+        "replans": 0,
+        "deviated": 1,
+        "elapsed_ms": 45500,
+        "statuses": [
+          "validating",
+          "planning",
+          "executing"
+        ],
+        "warnings": [],
+        "terminal": "SUCCEEDED"
+      },
+      "e3d05f2be8c8b46861b4acf6ba39c259": {
+        "arrived": 0,
+        "stall": 0,
+        "replans": 0,
+        "deviated": 1,
+        "elapsed_ms": 36500,
+        "statuses": [
+          "validating",
+          "planning",
+          "executing"
+        ],
+        "warnings": [],
+        "terminal": "SUCCEEDED"
+      },
+      "17ced561016486e6b188af15184939ef": {
+        "arrived": 0,
+        "stall": 0,
+        "replans": 0,
+        "deviated": 1,
+        "elapsed_ms": 60600,
+        "statuses": [
+          "validating",
+          "planning",
+          "executing"
+        ],
+        "warnings": [],
+        "terminal": "SUCCEEDED"
+      },
+      "4def09cd8f71217e21c3089b71b8e5b3": {
+        "arrived": 0,
+        "stall": 0,
+        "replans": 0,
+        "deviated": 1,
+        "elapsed_ms": 105700,
+        "statuses": [
+          "validating",
+          "planning",
+          "executing"
+        ],
+        "warnings": [],
+        "terminal": "SUCCEEDED"
+      },
+      "e2d1ce90bb8b086ef6051500094673d0": {
+        "arrived": 0,
+        "stall": 0,
+        "replans": 0,
+        "deviated": 1,
+        "elapsed_ms": 51500,
+        "statuses": [
+          "validating",
+          "planning",
+          "executing"
+        ],
+        "warnings": [],
+        "terminal": "SUCCEEDED"
+      },
+      "c18e29b8c192f70bf72fd445c6b0b1d6": {
+        "arrived": 0,
+        "stall": 0,
+        "replans": 0,
+        "deviated": 1,
+        "elapsed_ms": 114800,
+        "statuses": [
+          "validating",
+          "planning",
+          "executing"
+        ],
+        "warnings": [],
+        "terminal": "SUCCEEDED"
+      }
+    },
+    "refused": [],
+    "total_replans": 0,
+    "total_stall": 0,
+    "terminal": [
+      "SUCCEEDED",
+      "SUCCEEDED",
+      "SUCCEEDED",
+      "SUCCEEDED",
+      "SUCCEEDED",
+      "SUCCEEDED",
+      "SUCCEEDED"
+    ],
+    "warnings": []
+  },
+  "formation": {
+    "present": false
+  }
+}
