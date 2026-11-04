@@ -8,7 +8,7 @@
  c/.style={align=center,font=\fontsize{9.5}{11}\selectfont},
  a/.style={-{Latex},thick}]
 \node[n,fill=blue!6] (l) {\textbf{Level 1: language orchestration}\\
-Operator, reactive and proactive channels\\
+Operator-chat channel\\
 Typed recursive fleet plan};
 \node[n,fill=gray!7,below=5mm of l] (g) {\textbf{Deterministic interface checks}\\
 Validate, coerce, reject or transform\\
@@ -21,7 +21,7 @@ Behavior-tree mission executor};
 \node[c,below=4mm of m] (c2) {Contract: per-robot waypoints and mode};
 \node[n,fill=green!7,below=4mm of c2] (r) {\textbf{Level 3: per-robot execution}\\
 Twenty deployed Nav2 stacks\\
-Stage simulation, ground-truth localization};
+Stage simulation, simulator-derived poses};
 \draw[a] (l)--(g);
 \draw[a] (g)--(c1);
 \draw[a] (c1)--(m);

@@ -5,9 +5,27 @@ two-column draft was removed. Editorial revision following review, 12 October
 2026, using the official Springer Nature `sn-jnl` class, single column, numeric
 citations. The submission venue is still open.
 
-`main.tex` is the source, `main.pdf` the built version: 20 pages, 24 cited
-sources (24 entries in `refs.bib`). No new experiments. The numbers of both
+`main.tex` is the source, `main.pdf` the built version: 18 pages, 25 cited
+sources (25 entries in `refs.bib`). No new experiments. The numbers of both
 original experimental tables are preserved.
+
+## AIS revision, 4 November 2026
+
+The current `main.tex`, `refs.bib` and the three figure PDFs come from the
+external review revision based on commit `cab6312`. It rewrites the abstract,
+restructures Table 1 to three columns and Table 2 to a provenance table,
+removes the separate timing subsection, renames several subsections, adds the
+schema-off/schema-on E1 detail, discloses the outcome-dependent selection of
+the B/M2 runs, and adds one reference (Khatana et al., verifier-mediated
+planning). It uses the existing data only.
+
+Two points in that revision need an author decision before submission:
+
+- Its README asks for the generative-AI assistance to be documented under the
+  AIS and Springer Nature policies. The AI-assistance paragraph was removed
+  from the manuscript at the authors' request, so this is still open.
+- Data Availability now links a Google Drive folder directly instead of
+  pointing at the archive link in the repository README.
 
 The central thesis and the title were changed, three RQs were added, along with
 a connected review of mechanisms and tables for check coverage and provenance.

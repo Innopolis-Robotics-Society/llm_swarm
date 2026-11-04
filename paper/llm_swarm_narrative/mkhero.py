@@ -9,10 +9,10 @@ plt.rcParams.update({'font.family':'DejaVu Sans', 'font.size':10, 'pdf.fonttype'
 fig, axes=plt.subplots(2,2,figsize=(5.35,2.9))
 fig.subplots_adjust(left=.015,right=.985,bottom=.08,top=.91,wspace=.12,hspace=.5)
 panels=[
-    ('1  Operator command', 'Move cargo from electrical\nand shields to the reactor.'),
-    ('2  Typed plan', 'sequence / parallel\nmapf / formation / disband / idle'),
-    ('3  Assignment correction', 'Duplicate carrier detected\nKeep the routed carrier'),
-    ('4  Independent outcome check', 'Coordinate and execute\nScore ordered spatial conditions')
+    ('1  Operator command', 'Move cargo from Security\nto Admin.'),
+    ('2  Typed plan', 'One pickup and drop-off leg\nplus an extra pickup assignment'),
+    ('3  Assignment correction', 'Remove the extra pickup leg\nKeep the routed carrier'),
+    ('4  Independent outcome check', 'Execute the effective plan\nCheck pickup, then drop-off')
 ]
 for ax,(title,text) in zip(axes.flat,panels):
     ax.set_axis_off()
