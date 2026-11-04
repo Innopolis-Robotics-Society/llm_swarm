@@ -424,7 +424,8 @@ A 44-case benchmark spanning twelve structural categories
 $N{=}5$ repeats per case at temperature 0.1: 220 calls per model, 1{,}100 in
 total. Each response is scored by programmatic validators against the
 structural properties the case requires, not by string match against a
-reference plan.
+reference plan. E1 is therefore a format test: it measures whether a response
+is a well-formed plan, not whether it is the right plan for a mission.
 The harness is hermetic: no robots run.
 
 \paragraph{E2 --- task-evaluator completion in simulation}
@@ -616,8 +617,9 @@ counts as completion at its boundary, not only what crosses it.
 \subsection{Structural plan errors and serving configurations}
 \label{sec:planacc}
 
-Table~\ref{tab:e1} reports E1. Local structural pass rates range from
-70.0\% to 87.3\%. The 9B model has the highest observed local score,
+Table~\ref{tab:e1} reports E1, a format test: a pass means a well-formed
+plan, not the right plan. Local structural pass rates range from 70.0\% to
+87.3\%. The 9B model has the highest observed local score,
 8.7 percentage points above the 24B model and 12.3 above the 14B model.
 Model size therefore does not order these particular configurations.
 The comparison does not isolate parameter count from model family,
@@ -634,9 +636,9 @@ resampling. The same offsets-arity error accounts for 20 of the 24B model's
 This is a repeated error pattern,
 not evidence that generation is deterministic.
 
-Offline rejection rates cannot be read as mission failure rates. The
-validators assess case-specific structural properties without a running
-fleet; runtime transformations and execution ordering can change outcomes.
+These rates are not mission failure rates: the validators assess
+case-specific structural properties without a running fleet, and runtime
+transformations and execution ordering can change outcomes.
 
 \begin{table}[!htbp]
 \centering
@@ -723,8 +725,9 @@ on those cases, not equivalence between the arms or reliability on unseen
 missions. The separate pre-guard and formation cases also show why this
 completion column is not a summary of every development run.
 
-\subsection{Timing and inactive mechanisms}
-Across the M2 cells the recorded makespan ranges from 203.5\,s to 260.0\,s,
+\subsection{Timing is descriptive, not an effect}
+We report timing to bound the language layer's contribution, not to estimate
+it. Across the M2 cells the recorded makespan ranges from 203.5\,s to 260.0\,s,
 and the per-run maximum time spent waiting on the model ranges from 0 to
 31.6\,s. Even read as an upper bound, model waiting accounts for at most 12\%
 of the longest recorded interval, so the language layer cannot account for the
@@ -732,6 +735,7 @@ spread between cells. The remainder is not attributable with this design:
 allocation, provider and guard version differ, and makespan is anchored to the
 first \texttt{/tasks/state} tick rather than to command submission.
 
+\paragraph{Inactive mechanisms}
 Across the 13 language runs, remediation attempts, verification-repair
 attempts, and active-formation-guard activations are all zero; supervision
 records one pass rather than a repeated loop (\code{supervision\_steps} is 1 in
