@@ -179,6 +179,23 @@ Two smaller wording fixes: the abstract now says *call-level* pass rates
 with the same command" now names it as a separate run with the same column
 request.
 
+### The five claims that looked unsupported
+
+They were not wrong, they were untraceable, and the trace was in the decision
+journal rather than in `metrics.json`:
+
+| Claim | Source |
+| --- | --- |
+| "in model" 0 / 9.5 / 31.6 / 51.2 s | per-run max of `llm_seconds` in `llm_chat/decisions_*.jsonl`; means reproduce exactly |
+| "supervision records one pass" | `supervision_steps` is 1 in all thirteen journals |
+| "five groups of four with a home location each" | `amongus.world`: five colours, four robots each, 2x2 grid, centre = home from YAML |
+| "moved a target by two metres" | no artifact; a development observation, and the paragraph already says no rates are given |
+| "Gazebo Harmonic did not provide a usable real-time factor" | no artifact; already framed as an engineering observation, not a comparison |
+
+The first three are now cited in the text: the E2 caption names `llm_seconds`
+and the timing paragraph names `supervision_steps`. The last two stay as
+labelled development observations.
+
 ## Results archive, 4 November 2026
 
 The rosbag payloads are no longer "available from the corresponding author on

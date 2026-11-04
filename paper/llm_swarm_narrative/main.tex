@@ -685,9 +685,10 @@ as discussed below.
 \begin{table}[!htbp]
 \centering
 \caption{E2: 18 included runs with twenty deployed robots. Tasks are
-pose-based evaluator outcomes, not physical cargo-transfer measurements. \emph{in model} is
-wall-clock time spent waiting on the language model. Dispersion is the sample
-standard deviation ($n-1$).}
+pose-based evaluator outcomes, not physical cargo-transfer measurements.
+\emph{in model} is the per-run maximum of \code{llm\_seconds} in the decision
+journal, i.e.\ wall-clock time spent waiting on the language model. Dispersion
+is the sample standard deviation ($n-1$).}
 \label{tab:e2}
 \setlength{\tabcolsep}{3.2pt}
 \begin{tabular}{llcccc}
@@ -724,7 +725,8 @@ overhead or operator-to-completion latency estimate.
 
 Across the 13 language runs, remediation attempts, verification-repair
 attempts, and active-formation-guard activations are all zero; supervision
-records one pass rather than a repeated loop. M2 and M3 therefore do not
+records one pass rather than a repeated loop (\code{supervision\_steps} is 1 in
+all thirteen journals). M2 and M3 therefore do not
 evaluate those mechanisms. Auxiliary state-lookup tool calls are also almost
 absent: twelve of the thirteen runs made none, and one B-M3 run made three
 (\code{list\_tasks} once, \code{verify\_plan\_execution\_state} twice), because
