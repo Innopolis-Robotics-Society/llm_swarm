@@ -40,12 +40,11 @@ boundaries through a three-level ROS~2 implementation deployed with twenty
 simulated mobile robots. The model emits recursive fleet plans; deterministic
 checks validate or transform selected actions; classical components coordinate
 and execute them. An offline benchmark of 44 cases with five repeats gives
-70.0--87.3\% structural pass rates for local models. The reported main series
+70.0--87.3\% call-level structural pass rates for local models. The reported main series
 contains 18 runs completing their task-evaluator conditions on two mission
-specifications and one map. Here, a carry task means satisfying a dwell
-condition at a pickup location and then at a drop-off location, not physically
-transporting an object. Duplicate-carrier assignments occur in 5 of 13
-language plans. A separate, uncontrolled M3 comparison reports 8/9 tasks
+specifications and one map. Here, a carry task means being observed inside a pickup zone and then
+inside a drop-off zone, not physically transporting an object.
+Duplicate-carrier assignments occur in 5 of 13 generated language plans. A separate, uncontrolled M3 comparison reports 8/9 tasks
 before and 9/9 after destination spreading; its non-randomized design
 precludes pooling it with the main series. A formation failure and qualitative
 development observations expose gaps in geometric checks and completion
@@ -240,7 +239,7 @@ Occupied goal cells & Local rewrite & Occupancy-aware goal adjustment does not e
 Shared drop-off & Task-specific & Destination spreading is logged in the reported M3 comparison; no controlled effect estimate.\\
 Formation assembly & Staging & Preparation exists; correct assembly does not establish traversability.\\
 Formation route & Missing & Complete formation-footprint feasibility is not checked by the interface; the reported failure exposes this gap.\\
-Task completion & Pose-based & Ordered dwell conditions are scored separately from action flags; physical cargo transfer, collisions and operator intent are not certified.\\
+Task completion & Pose-based & Ordered zone-presence conditions are scored separately from action flags; physical cargo transfer, collisions and operator intent are not certified.\\
 Repair and supervision & Implemented & Main-series counters do not exercise repeated repair; effectiveness is unmeasured.\\
 \bottomrule
 \end{tabular}
@@ -297,12 +296,14 @@ mission tree with parameters supplied from above.
 
 \paragraph{Operational meaning of task completion}
 The task evaluator uses robot positions rather than component success flags.
-A visit task requires its configured presence condition in a target zone.
-A carry task requires satisfying a dwell condition in its pickup zone first
-and then satisfying a dwell condition in its drop-off zone. A drop-off event
-before the qualifying pickup does not complete the task. The reported task
-zone radius is 1.5\,m; the numerical dwell threshold is not documented in the
-retained manuscript-level record and is a reproducibility limitation.
+A visit task is complete when a robot is observed inside its target zone.
+A carry task is complete when a robot is observed inside its pickup zone and
+later inside its drop-off zone. A drop-off event before the qualifying pickup
+does not complete the task. The zone radius is 1.5\,m. The condition is a
+single presence sample at the 5\,Hz poll rate, not a sustained dwell: the task
+manager marks a task done on the first poll that finds the robot inside the
+radius, so a robot that crosses a zone without stopping still completes it.
+This is weaker than a dwell requirement and is a limitation of the metric.
 
 \Needspace{8\baselineskip}
 Here, pickup and drop-off are logical stages of an ordered spatial task.
@@ -429,9 +430,10 @@ The reporting record accounts for 21 sessions, 18 included and three
 excluded as non-valid repeats of the formation mission outside these cells. Its inclusion rules
 require the start configuration to be reached, one command delivery, and a
 finalized bag with the target topics present. It reports no outcome-based
-exclusion. A complete session-ID inventory and version mapping do not
-accompany the manuscript, so that accounting cannot be independently audited
-from the supplied reporting material.
+exclusion. The archive records a session identifier and a git commit for
+every run, but all eighteen were recorded from a dirty working tree, so the
+commit does not identify the code that ran and the accounting cannot be
+independently audited.
 
 Table~\ref{tab:provenance} separates the evidence sources. The M3 development
 comparison describes two pre-guard and three post-guard runs. The post-guard
@@ -498,7 +500,7 @@ The inspectable plans reveal an assignment-level defect relevant to RQ2. All
 13 language runs retain a plan and a decision journal, but only eight also
 retain per-phase checkpoints; the five model-9b runs predate checkpointing and
 store a single record, so execution order is inspectable only for the later
-cells. Among the 13 plans, 5 carry the same assignment defect: the plan
+cells. Among the 13 generated plans, 5 carry the same assignment defect: the plan
 assigns two robots to carry a single item. In three model-9b runs the extra
 carrier is visible in the stored plan; in two cell-B runs the single-carrier
 guard had already removed it, and the defect is recorded only by the guard
@@ -564,7 +566,8 @@ implemented checks do not establish traversability of the complete formation
 footprint along the route. This motivates an additional check --- formation feasibility against the occupancy
 grid --- which we do not implement, and which the contract of
 Sec.~\ref{sec:overview} places at Level~2, the lowest level holding both the
-group extent and the map. A separate observation with the same command produced appropriate offsets.
+group extent and the map. A separate run with the same column request
+produced appropriate offsets.
 These cases show output variability, but do not estimate a formation failure
 rate or establish systematic behavior.
 
@@ -756,7 +759,7 @@ The distinction extends to execution feedback, as examined in RQ3. A
 component may report success for an adjusted goal or reduced robot set
 without satisfying the original mission condition. The pose-based evaluator
 provides a separate check of the specified spatial events, but its own
-specification is also limited: ordered dwell success does not establish
+specification is also limited: ordered zone presence does not establish
 physical transport, intent preservation, or collision safety. An engineering
 implication is to record the requested action, its transformed action, the
 component report, and the evaluator outcome separately. This is a lesson
@@ -825,8 +828,9 @@ The study uses one Stage map, simulator-derived poses, two main mission
 specifications, and small reported samples. Twenty deployed stacks do not
 establish twenty simultaneously active or jointly planned agents. No
 per-run activity trace, fleet-size sweep, or throughput analysis is supplied.
-The carry metric is ordered zone dwell; it does not test physical load
-handling. There are no independent collision or intent-preservation metrics.
+The carry metric is ordered zone presence sampled at 5\,Hz; it does not
+test physical load handling, and a single sample does not establish that a
+robot stopped or waited. There are no independent collision or intent-preservation metrics.
 These limits preclude fleet-wide reliability, physical transport, and safety
 claims.
 
@@ -835,14 +839,16 @@ single-record journal without per-phase checkpoints, biasing inspection of
 execution order toward the later cells. The M3 before/after account is
 identified by session, but its two series differ in provider and software
 version.
-The absence of a complete ID/version registry limits auditability and cannot
-be repaired merely by naming the series separately. The reported 18-run
+Every run records a git commit, but all eighteen were made from a dirty
+tree, so the version registry does not identify the code; naming the series
+separately does not repair that. The reported 18-run
 result must not be interpreted as an all-campaign success probability.
 
 E1 repeats 44 case designs and measures selected structural requirements.
 It does not estimate general language competence or end-to-end success.
-The reporting package omits exact prompts, revisions, quantization settings,
-serving configurations and seeds required for full reproduction. Models and
+The reporting package retains the per-call prompts and responses but omits
+model revisions, quantization settings, serving configurations and seeds
+required for full reproduction. Models and
 serving settings are confounded. Makespan is anchored to the first task-state
 tick, with uncontrolled command offset and allocation, so it does not isolate
 language overhead or operator latency.
@@ -870,7 +876,7 @@ conditions that the implemented interface does not establish.
 The central result is a documented separation of structural validity, task
 meaning, spatial feasibility, and pose-based evaluator completion in this
 implementation. The main-series task outcomes apply to the reported missions
-and their ordered dwell specification. They do not prove improved guard
+and their ordered zone-presence specification. They do not prove improved guard
 reliability, physical cargo transport, collision safety, or twenty-agent
 concurrent scaling. Better artifact traceability and controlled evaluation
 would be needed to establish those stronger claims.

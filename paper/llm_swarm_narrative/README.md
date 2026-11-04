@@ -132,6 +132,53 @@ Note the residual risk: the journal's editorial policy asks for the use of
 generative AI in manuscript preparation to be documented, so a reviewer may
 ask for it back. The removal is deliberate, not an oversight.
 
+## Fact check, 4 November 2026
+
+Every quantitative claim was recomputed from `paper/results` rather than
+re-read. E1 was rebuilt from `e1b_summary.json`, `e1ref_summary.json` and
+`e2ref_summary.json`; E2 from `tasks.makespan_s` in the eighteen
+`derived/metrics.json` files; the mechanism counters from
+`analyze_sessions.py`. All table values reproduce exactly.
+
+Six claims did not survive.
+
+**The carry metric is not a dwell.** The manuscript said, in the abstract, in
+Section 3.2, in Table 1, in the Discussion, in the Limitations and in the
+Conclusion, that a carry task requires a *dwell* condition at the pickup and
+then at the drop-off, and that the dwell threshold was undocumented. There is
+no dwell anywhere in the implementation: `grep -ri dwell` over the source
+returns nothing. `task_manager_node.py` sets `DONE` on the first 5 Hz poll
+that finds the robot inside the radius, and `analyze_sessions.py` reads the
+resulting status transition out of `/tasks/state`. The condition is a single
+presence sample. The text now says so, and the "undocumented threshold"
+limitation is replaced by the real one: a robot that crosses a zone without
+stopping still completes the task.
+
+**Auxiliary tool calls were not zero.** One B-M3 run (`20260818_113030`) made
+three: `list_tasks` once, `verify_plan_execution_state` twice. Twelve of the
+thirteen made none.
+
+**The drop-off account is five runs, not six** (two pre-guard, three
+post-guard).
+
+**The prompts and responses are in the archive.** Two paragraphs claimed the
+reporting package omitted them; `e1_plan_accuracy/raw/*.json` holds all 220
+prompt/response pairs per model. What is missing is the serving stack.
+
+**The version registry exists but is useless.** The text said no session-ID or
+version mapping accompanied the manuscript. Every run has a `session.json`
+with a `git_commit`, but all eighteen were recorded with `git_dirty: true`, so
+the commit does not identify the code. That is the accurate limitation.
+
+**"5 of 13 plans carry the defect"** was imprecise: in two of the five the
+guard had already removed the extra carrier before the plan was stored, so the
+count is of generated plans, not stored ones.
+
+Two smaller wording fixes: the abstract now says *call-level* pass rates
+(70.0--87.3 % is pass@1; pass@5 reaches 95.5 %), and "a separate observation
+with the same command" now names it as a separate run with the same column
+request.
+
 ## Results archive, 4 November 2026
 
 The rosbag payloads are no longer "available from the corresponding author on
