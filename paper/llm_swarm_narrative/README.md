@@ -5,7 +5,7 @@ two-column draft was removed. Editorial revision following review, 12 October
 2026, using the official Springer Nature `sn-jnl` class, single column, numeric
 citations. The submission venue is still open.
 
-`main.tex` is the source, `main.pdf` the built version: 19 pages, 18 cited
+`main.tex` is the source, `main.pdf` the built version: 20 pages, 19 cited
 sources (19 entries in `refs.bib`). No new experiments. The numbers of both
 original experimental tables are preserved.
 
@@ -131,6 +131,37 @@ Contributions. The AI-assistance paragraph was removed at the authors' request.
 Note the residual risk: the journal's editorial policy asks for the use of
 generative AI in manuscript preparation to be documented, so a reviewer may
 ask for it back. The removal is deliberate, not an oversight.
+
+## Results archive, 4 November 2026
+
+The rosbag payloads are no longer "available from the corresponding author on
+reasonable request". The whole `paper/results` directory is shipped as one
+archive, and Data Availability names it, its size and its checksum:
+
+```bash
+cd paper && tar --zstd -cf ~/llm_swarm_results_2026-11-04.tar.zst results
+sha256sum llm_swarm_results_2026-11-04.tar.zst | tee llm_swarm_results_2026-11-04.tar.zst.sha256
+find results -type f -print0 | sort -z | xargs -0 sha256sum > llm_swarm_results_2026-11-04.manifest.sha256
+```
+
+| | |
+| --- | --- |
+| Archive | `llm_swarm_results_2026-11-04.tar.zst` |
+| Uncompressed | 2.1 GB (1.97 GiB), 282 files, 382 entries |
+| Compressed | 135 MB (128.3 MiB), ratio 15.7x |
+| SHA-256 | `3866f1fce6254243986b0052e2fc0d6039eadc351e10c460f4ed0feec69f740d` |
+| Manifest | 282 per-file checksums, sorted by path |
+
+The 15.7x ratio is a property of the format, not of the data being small:
+rosbag2 writes fixed-width CDR messages into 4 KB SQLite pages, so padding,
+repeated frame names and near-identical consecutive `/tf` and `/odom` records
+compress almost for free. The largest single bag, 195 MB, compresses to 12.7 MB
+on its own with `zstd -3`.
+
+The archive is **not** in the repository. At 135 MB it is above GitHub's 100 MB
+hard per-file limit, and dropping `/tf` would still leave a 121 MB bag. The
+download link lives in the repository `README.md`; the manuscript points there
+rather than carrying a URL that would have to be updated in two places.
 
 ## Reference pass, 4 November 2026
 
