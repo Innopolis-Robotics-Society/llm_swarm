@@ -1,5 +1,7 @@
 # IROS LLM Swarm — Simulation
 
+## ROS bags are availabe via link [link](https://drive.google.com/drive/folders/1fpkuhE1f3ET2YIJLI5sV4jPzE1IJophs?usp=sharing)
+
 Multi-robot simulation on ROS 2 Humble with Nav2 local navigation stack. Runs 20 differential-drive robots in a 2D Stage environment with per-robot navigation controllers, a shared map, two MAPF planners (PBS, LNS2), leader-follower formations, BehaviorTree.CPP orchestration, an LLM advisory layer with three channels (reactive, proactive, operator chat), an RViz operator panel with chat / STOP-ALL / status views, click-to-command RViz tools, a dynamic-obstacle layer, and a proximity-driven task system (point and carry tasks) for LLM mission planning.
 
 ## Quick Start (Docker)
