@@ -358,7 +358,8 @@ channel streams a reply with an executable plan; all three produce objects in
 the same grammar and pass the same guards. Grounding facilities include a live pose cache, a room-occupancy-aware
 placement solver, and eight allowlisted semantic tools. Their presence does
 not eliminate coordinate errors; their use depends on the mission, and the
-main-series runs make no auxiliary lookup calls.
+main-series runs make almost no auxiliary lookup calls: twelve of the thirteen
+made none.
 
 \paragraph{Generation and runtime checks}
 The interface combines a generation configuration with runtime checks.
@@ -460,12 +461,15 @@ Substrate defects & Not counted & Development observations of misleading local c
 
 \paragraph{Configuration and reproducibility}
 E1 reports the model identifiers, five attempts per case, temperature 0.1,
-and a single 16\,GB GPU for local serving. These identifiers do not uniquely
+and a single 16\,GB GPU for local serving, which bounds the quantization level
+available to the larger local models. These identifiers do not uniquely
 specify quantization, model revision, serving-library version, prompt or
-schema hash, endpoint configuration, or random seed. Exact per-run versions,
-the full prompts, and an executable offline harness are not included in the
-manuscript package. The numbers below are retained descriptive measurements;
-the present package does not support their independent recomputation.
+schema hash, endpoint configuration, or random seed. Exact per-run versions
+and an executable offline harness are not included in the manuscript package.
+The per-call prompts and responses are retained in the artifact archive, but
+the serving stack that produced them is not recorded. The numbers below are
+retained descriptive measurements; the present package does not support their
+independent recomputation.
 
 \begin{figure}[!htbp]
 \centering
@@ -718,11 +722,13 @@ overhead or operator-to-completion latency estimate.
 Across the 13 language runs, remediation attempts, verification-repair
 attempts, and active-formation-guard activations are all zero; supervision
 records one pass rather than a repeated loop. M2 and M3 therefore do not
-evaluate those mechanisms. Auxiliary state-lookup tool calls are also zero
-in these runs: named-room coordinates are already supplied by the static
-prompt context. Separate formation observations record 10 and 33 calls, but
-are not part of the main M2/M3 comparison. This distinction separates the
-native tool-calling output configuration from actual use of grounding tools.
+evaluate those mechanisms. Auxiliary state-lookup tool calls are also almost
+absent: twelve of the thirteen runs made none, and one B-M3 run made three
+(\code{list\_tasks} once, \code{verify\_plan\_execution\_state} twice), because
+named-room coordinates are already supplied by the static prompt context.
+Separate formation observations record 10 and 33 calls, but are not part of
+the main M2/M3 comparison. This distinction separates the native tool-calling
+output configuration from actual use of grounding tools.
 
 \section{Discussion}
 \label{sec:discussion}
@@ -733,8 +739,8 @@ tested structural rules from mission execution.
 The repeated malformed offset array is an observed error pattern, while the
 tool/schema comparisons expose configuration sensitivity. Aggregate pass
 rates and the reported offset example do not constitute a complete
-per-category error taxonomy; the retained reporting record does not provide
-the underlying responses needed to reconstruct one.
+per-category error taxonomy; the retained responses are not accompanied by a
+per-category coding that would reconstruct one.
 
 Passing those structural checks leaves the assignment and spatial questions
 of RQ2. The single-carrier cases show targeted assignment correction, with successful
@@ -841,7 +847,7 @@ serving settings are confounded. Makespan is anchored to the first task-state
 tick, with uncontrolled command offset and allocation, so it does not isolate
 language overhead or operator latency.
 
-No controlled component-removal ablation was performed. The six-case
+No controlled component-removal ablation was performed. The five-run
 drop-off account changes providers and software versions, so a causal
 guard-benefit estimate is unavailable. Inactive repair counters do not
 validate recovery behavior. Goal and assignment rewrites can change task
