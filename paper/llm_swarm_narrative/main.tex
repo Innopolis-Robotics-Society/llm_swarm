@@ -6,10 +6,8 @@
 \documentclass[pdflatex,sn-mathphys-num]{sn-jnl}
 \usepackage{graphicx}
 \usepackage{xcolor}
-% The class ships \orcidlogo as a bare \includegraphics{Orcidlogo.eps}; the
-% logo is not distributed with the class, so a local copy is provided and
-% scaled/raised to sit with the author names.
-\renewcommand{\orcidlogo}{\raisebox{0.7pt}{\includegraphics[height=7.2pt]{Orcidlogo.eps}}}
+% Use the bundled PDF badge so the build needs no EPS conversion.
+\renewcommand{\orcidlogo}{\raisebox{0.7pt}{\includegraphics[height=7.2pt]{Orcidlogo-eps-converted-to.pdf}}}
 \hypersetup{hidelinks,bookmarksdepth=2}
 % The bibliography style emits \burl for online references.
 \let\burl\url
@@ -40,36 +38,34 @@
 \author[1]{\fnm{Alexander}\sur{Maloletov}\hspace{2pt}\orcid{https://orcid.org/0000-0002-7312-2944}}\email{a.maloletov@innopolis.ru}
 \affil[1]{\orgname{Innopolis University}, \orgaddress{\city{Innopolis}, \country{Russia}}}
 
-\abstract{A robot fleet can accept a plan whose assignments, routes, or
-completion reports still fail to meet the mission requirements. We examine
-these distinctions in a three-level Robot Operating System 2 implementation
-with twenty simulated robots. An offline benchmark of 44 cases measures
-whether generated plans pass checks on representation and selected
+\abstract{A fleet can accept a well-formed plan and still assign an extra
+robot, reject a requested route, or report success for only part of the
+original command. We examine these outcomes in a three-level Robot
+Operating System 2 implementation with twenty simulated robots. An
+offline benchmark of 44 cases checks plan structure and selected
 case-specific requirements. Across five local configurations without
-constrained decoding, 70.0--87.3\% of responses pass. In the selected
-18-run simulation series, every run satisfies its pose-based task conditions.
-The series includes two successful repeats that replaced two incomplete
-runs after a software change. Separate execution traces document a robot
-routed to a pickup already assigned to another carrier, rejection of a
-route for a formation whose offsets did not match the requested column,
-and an arrival report that omitted a requested robot. A carry task records
-ordered zone presence for the same robot. The measured outcome therefore
-covers spatial events; physical cargo transfer is outside the evaluation.
-The case study identifies which conditions the implemented checks enforce
-and which require separate evidence.}
+a response schema, 70.0--87.3\% of responses pass. All runs in the selected
+18-run simulation series meet their pose-based task conditions. That series
+includes two successful repeats that replaced two incomplete runs after a
+software change. The available plans and logs document an extra pickup
+assignment, a route rejection after the system assembled a line abreast
+in response to a column request, and an arrival report that omitted a
+requested robot. For carry tasks, the evaluator records pickup and
+drop-off zone presence for the same robot. The cases show why the
+original command, the action sent to the robots, and the observed outcome
+need to be tracked separately.}
 
 \keywords{Multi-robot systems, Language models, Fleet coordination, Typed plans, Deterministic guards, ROS 2}
 \maketitle
 
 \section{Introduction}
 
-Commanding a fleet of mobile robots that share one workspace is a
-long-standing problem, and the classical decomposition separates fleet-level
-decisions --- which robot goes where, in what order --- from robot-level
-execution. Large language models make a natural-language front-end to that
-decomposition newly attractive~\citep{saycan,codeaspolicies}: a
-model can reason over compact semantic primitives instead of producing control
-commands.
+In three recorded plans, the plan sent an extra robot to a pickup already
+assigned to another carrier. The plan format admitted both assignments
+(Fig.~\ref{fig:hero}). Language interfaces can express actions in terms of
+skills and programs~\citep{saycan,codeaspolicies}. For a fleet, the
+resulting assignments and goals still need to be coordinated across
+robots sharing the same workspace.
 
 \begin{figure}[!htbp]
 \centering
@@ -81,14 +77,10 @@ robot with the drop-off leg and removes the extra pickup assignment}
 \label{fig:hero}
 \end{figure}
 
-
-The difficulty is that a well-formed language response need not describe an
-executable fleet action. It may refer to unavailable robots, assign conflicting
-goals, or request a formation whose geometry is incompatible with a corridor.
-Direct generation of multi-agent path finding (MAPF) solutions by a language
-model has failed on tested room and maze instances~\citep{mapfllmfail}. We therefore separate task interpretation from spatial
-planning and ask which errors can be handled at their interface.
-
+We separate task interpretation from multi-agent path finding (MAPF).
+Direct language-model generation of MAPF solutions has failed on tested
+room and maze instances~\citep{mapfllmfail}. Our system instead sends
+fleet-level actions to a dedicated planner.
 
 Hierarchical control, formal intermediate representations, and deterministic
 validation are established approaches. Our contribution is a case study of
@@ -97,21 +89,14 @@ and document execution cases in which a structurally accepted plan still
 exhibits an assignment error, a route rejection, or a mismatch between a
 component report and the original request.
 
-Research question 1 (RQ1) asks which checks on generated fleet plans fail
-under the tested model and serving configurations. To understand
-what happens after generation, RQ2 asks which observed assignment and spatial
-conflicts the implemented guards handle and which they leave unchecked.
-Finally, RQ3 asks why a component can report successful execution without
-fulfilling the mission's task-evaluator conditions.
+We ask which validation criteria generated plans fail to satisfy in the
+tested configurations (RQ1), which assignment and spatial conflicts the
+implemented checks handle in the recorded cases (RQ2), and how a
+component can report success while part of the original requested action
+remains incomplete (RQ3). The offline benchmark addresses RQ1. The
+simulation plans, logs and task-state summaries provide evidence for
+RQ2 and RQ3.
 
-We distinguish plan representation, intended task meaning, spatial
-executability, and evaluator completion. The sources behind these claims have
-different denominators and provenance; they are not independent replications
-of one guard-effect experiment. Figure~\ref{fig:hero} shows a
-duplicate-carrier correction; the shared-drop-off comparison is a separate
-case (Sec.~\ref{sec:absorb}).
-
-% =========================================================================
 \section{Related Work}
 
 An instruction to a robot fleet leaves two different problems to solve:
@@ -124,11 +109,8 @@ Priority-Based Search (PBS)~\citep{pbs} and large-neighborhood repair
 offer alternative ways to coordinate paths. The resulting paths
 coordinate motion under the specified rules, but do not determine whether
 the supplied assignments and goals express a
-user's request. A language interface must establish that connection before
-path planning can serve the intended task. 
-Whether a language model can supply those assignments is a separate
-question. PlanBench documents plan-generation failures on its tested models
-and tasks~\citep{planbench}.
+user's request. PlanBench documents failures of language models on its
+own plan-generation tasks~\citep{planbench}.
 
 Grounding language in executable skills is therefore central to early
 robot planners based on large language models (LLMs). SayCan~\citep{saycan} combines a language model's
@@ -147,9 +129,8 @@ language reasoning, allowing subsequent decisions to account for execution.
 ProgPrompt~\citep{progprompt} incorporates this concern into program-like
 plans through assertions and recovery steps. In its simulated evaluation,
 assertions are assessed by an LLM using environment-state information,
-whereas our runtime guards apply explicit predicates. Both
-approaches make feedback part of planning, and both raise the question our
-implementation turns on: what does a reported success establish?
+whereas our runtime guards apply explicit predicates. In both systems,
+feedback informs the next planning decision.
 
 For a robot team, grounding individual actions must be combined with
 allocation and coordination~\citep{mrssurvey}.
@@ -167,46 +148,24 @@ pipeline, but both need a connection between the proposed team behavior and
 its executor's capabilities; our duplicate-carrier and shared-destination
 cases examine that connection.
 
+LaMMA-P and HiP-CL construct explicit planning problems for robot
+teams~\citep{lammap,hipcl}. LLM+P translates instructions into the Planning
+Domain Definition Language (PDDL) and delegates search to a classical
+planner~\citep{llmp}. LLM-Modulo uses external checks to evaluate model
+proposals~\citep{llmmodulo}. Temporal-logic synthesis can give guarantees
+relative to a realizable specification and an environment
+model~\citep{ltlmission}.
 
-Formal planning makes constraints explicit. LaMMA-P~\citep{lammap} uses the
-Planning Domain Definition Language (PDDL) and heuristic search for
-heterogeneous teams. HiP-CL~\citep{hipcl} translates instructions into a
-controlled language and then constructs a planning problem with spatial and
-resource constraints. LLM+P~\citep{llmp} translates a problem into PDDL and
-delegates search to a classical planner. LLM-Modulo~\citep{llmmodulo}
-describes a broader pattern in which external verifiers evaluate proposals
-and provide feedback. Our checks cover a subset of the properties at that
-boundary. Temporal-logic mission planning can synthesize a controller with
-guarantees relative to a realizable specification and modeled environment
-assumptions~\citep{ltlmission}.
+CommandSwarm checks generated behavior trees against allowed swarm
+primitives~\citep{commandswarm}. Sangchai et al.~\citep{symbolicwrappers}
+provide an intermediate plan for human review. Khatana et
+al.~\citep{verifiermediated} ground candidate plans into trajectories
+and check for inter-robot conflicts. Our case study traces what changes
+between the original command and the action sent to the fleet, and what
+the resulting status reports establish.
 
-CommandSwarm~\citep{commandswarm} checks generated behavior trees against
-allowed swarm primitives. Sangchai et al.~\citep{symbolicwrappers} use
-structured tools or PDDL and let a person review the intermediate plan.
-Khatana et al.~\citep{verifiermediated} separately ground candidate multi-robot
-plans into trajectories and predict inter-robot conflicts to guide
-replanning. Their geometric verifier checks trajectory conflicts. Our
-case study follows the mobile-fleet interface through assignment and goal
-rewrites, a static route rejection, and the evidence used to count mission
-completion.
-
-Our study follows these architectural choices through execution in one
-implemented fleet. We examine which malformed plans are rejected, which
-assignments or destinations are rewritten, and which failures remain after
-those checks. The formation case shows how an accepted plan can still fail
-because of route geometry, while the completion cases distinguish component
-reports from the mission evaluator's ordered spatial conditions. This
-analysis characterizes the coverage and limits of the implemented checks.
-It does not compare our system's reliability with that of the approaches
-reviewed above.
-
-% =========================================================================
 \section{System Overview}
 \label{sec:overview}
-
-
-
-
 
 Figure~\ref{fig:arch} shows the operator-chat path. Level~1 turns a natural
 language command into a typed plan and applies interface checks. Level~2
@@ -227,9 +186,8 @@ the assignments and goals implied by the operator's command. Geometric
 feasibility concerns whether robots or formations can traverse the required
 space. Evaluator completion concerns whether the specified pose-based events
 occur. No implication between these properties follows from the typed
-representation alone. Table~\ref{tab:coverage} describes the implemented
-coverage and its limits; it is not a formal verification of system safety.
-
+representation alone. Table~\ref{tab:coverage} links each check to the
+corresponding evidence.
 
 \begin{table}[!htbp]
 \caption{Implemented checks and their observed scope}
@@ -247,13 +205,13 @@ Plan representation & Recursive node and field checks, with selected type coerci
 Robot assignments & Active-formation membership and single-carrier rules
  & Single-carrier rule fired in two selected M2 runs. \\
 Occupied goals & Chat-level goal adjustment and planner-level blocked-cell substitution
- & No chat rewrites in the 13 selected language runs. Both mechanisms appear in the additional M4 records. \\
+ & Both mechanisms appear in M4 run \code{20260818\_140918}. No chat rewrites in the 13 selected language runs. \\
 Shared drop-off & Spread coincident goals for distinct carry tasks
  & Logged in three M3 runs. The design does not isolate its effect. \\
 Formation assembly & Stage followers and check pose tolerances
  & M4 includes an assembled formation and a separate staging failure. \\
 Formation route & Static path check with the planner's footprint approximation
- & M4 rejected a route at planning time. No pre-assembly check of the full oriented formation route. \\
+ & LNS2 rejected the leader's route in M4 run \code{20260819\_073009}. No pre-assembly check of the full oriented formation route. \\
 Task completion & Pose samples in specified zones at 5\,Hz, with pickup before drop-off
  & All 18 selected M2/M3 runs satisfy this evaluator. Physical transport and intent are outside the metric. \\
 Repair and supervision & Execution remediation, verification repair and bounded mission supervision
@@ -261,7 +219,6 @@ Repair and supervision & Execution remediation, verification repair and bounded 
 \bottomrule
 \end{tabular}
 \end{table}
-
 
 \paragraph{Simulation environment}
 Twenty differential-drive robots operate in Stage~\citep{stage} on the
@@ -277,9 +234,9 @@ The number deployed is distinct from the number moving in any interval.
 In the operator-chat channel, a response contains a natural-language reply
 and a plan tree in a JavaScript Object Notation (JSON) object. Four leaf types cover fleet actions --- \code{mapf} (move a robot set to
 a goal set), \code{formation} (assemble and hold), \code{disband}, and
-\code{idle} (do nothing, with a reason, also the escalation channel) --- and
-two containers, \code{sequence} and \code{parallel}, nest recursively. The
-following example shows the plan subtree:
+\code{idle} (returns no action and can carry an escalation reason). Two
+containers, \code{sequence} and \code{parallel}, nest recursively. This
+example illustrates the plan format:
 
 \begin{center}\small
 \begin{minipage}{\columnwidth}
@@ -300,7 +257,6 @@ following example shows the plan subtree:
 
 The finite set of node types supports recursive validation and a JSON schema.
 These checks cover the implemented structural rules, not arbitrary task semantics or geometric feasibility.
-
 
 \paragraph{Three channels and grounding}
 The reactive channel returns a wait, abort, or replan decision to a
@@ -323,8 +279,8 @@ values, guards active-formation membership, adjusts occupied goals, and
 stages robots before assembly. The single-carrier rule removes a redundant
 pickup assignment when it can identify the robot routed onward to the
 drop-off. The shared-drop-off rule spreads coincident destinations in
-eligible cases. Both transformations can change the action requested of a
-robot. The pose-based evaluator checks the original task zones after execution.
+eligible cases. The task evaluator monitors the original zones during
+execution, including when a guard changes a waypoint.
 
 \paragraph{Execution feedback}
 The operator-chat implementation distinguishes three mechanisms: remediation
@@ -335,7 +291,6 @@ results report which mechanisms were invoked in the selected runs.
 
 % =========================================================================
 \section{Level 2: Fleet Coordination}
-
 
 \paragraph{MAPF backends}
 The PBS and LNS2 implementations accept robot identifiers and a goal for
@@ -351,51 +306,28 @@ the leader's enlarged planning footprint. This approximation is distinct
 from planning with the full, orientation-dependent group shape.
 BehaviorTree.CPP~\citep{btcpp} runs the mission tree.
 
-
 \paragraph{Operational meaning of task completion}
-The evaluator samples robot positions at 5\,Hz. A visit task completes
-when a robot is observed within 1.5\,m of its target. For a carry task, the
-first robot detected in the pickup zone becomes the evaluator's carrier.
-The same robot must subsequently be detected in the drop-off zone. One
-sample inside each zone is sufficient. This procedure can count a robot
-that passes through without stopping, and the recorded carrier may differ
-from the one named in the plan.
+The evaluator samples robot positions during execution at 5\,Hz. A visit
+task completes when a pose sample shows a robot within 1.5\,m of the target.
+For a carry task, the evaluator records the first robot it detects in the
+pickup zone and marks the task complete when it later detects that same
+robot in the drop-off zone. Each transition requires a single in-zone
+sample. The evaluator records zone presence independently of component
+status reports. Physical load handling is outside the metric.
 
-Pickup and drop-off are logical states. The evaluator checks neither
-physical load handling nor the full meaning of the operator's command.
-It continues to use the original zones if a guard rewrites a waypoint.
-A rewritten goal can therefore receive the same evaluator score while
-requiring different motion.
-
-% =========================================================================
 \section{Level 3: Per-Robot Execution}
 \label{sec:lvl3}
 
-Each robot runs a Robot Operating System 2 (ROS~2) Humble~\citep{ros2}
-Nav2~\citep{nav2} stack with namespace substitution and staggered
-bring-up. The development record reports discovery and launch difficulties
-when starting twenty stacks simultaneously. Stage 2D was selected after
-Gazebo Harmonic did not provide a usable real-time factor in the development
-setup. These are engineering observations, not controlled simulator or DDS
-comparisons.
+Each robot runs a namespaced Robot Operating System 2 (ROS~2) Humble~\citep{ros2}
+Nav2~\citep{nav2} stack with staggered startup. Stage supplies the poses
+used for navigation and task evaluation. Adaptive Monte Carlo localization
+(AMCL) is disabled.
 
-Localization uses simulator-derived poses. Adaptive Monte Carlo
-localization (AMCL) is disabled. During
-development, scans from nearby robots caused difficulties with static-map
-localization; this motivated removing localization uncertainty from the
-case study. The experiments therefore do not test peer-aware localization
-or robustness to pose noise. A tuned CycloneDDS profile and a dynamic-blocker
-costmap plugin are part of the implementation, but their individual effects
-are not measured here.
-
-% =========================================================================
 \section{Experimental Design}
 \label{sec:design}
 
-We report two complementary evaluations of the implemented system.
-The offline benchmark characterizes generated plans; the simulation campaign
-examines selected execution outcomes. Neither is a component-removal ablation.
-
+The analysis uses the saved benchmark outputs, plans, logs and derived
+metrics at repository revision \code{cab6312}.
 
 \paragraph{E1 --- offline plan validation}
 The benchmark has 44 cases in twelve categories covering navigation,
@@ -465,12 +397,14 @@ Selected M2/M3 & 18 & Four cells. Session IDs and base commits are
  journal, of which eight have per-phase checkpoints. \\
 Superseded B/M2 & 2 & Two runs at 4/5 tasks replaced after a software change.
  The three original successes remain in the selected cell. \\
-M3 before/after & 2 + 3 & Two separate pre-guard runs have bags and logs but
- no decision journal. The three post-guard runs are the B-M3 cell above. \\
+M3 before/after & 2 additional & The pre-guard runs have logs and derived
+ metrics but no decision journal. The three post-guard runs are already
+ counted in the B-M3 cell above. \\
 M4 formation & 4 recorded attempts & Two retained qualitative cases
  (\code{20260818\_140918}, \code{20260819\_073009}). A pilot
  (\code{20260818\_135527}) stopped early and a 42\,s recording
- (\code{20260819\_072231}) with no motion was discarded. All are outside the selected series. \\
+ (\code{20260819\_072231}) with no motion was discarded. M4 is outside
+ the task-completion scoring for M2/M3. \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -478,15 +412,17 @@ M4 formation & 4 recorded attempts & Two retained qualitative cases
 The archived session files and logs identify the included runs. A recorded
 base commit does not identify the uncommitted changes present in a run. The
 comparison uses the task evaluator recorded in \code{/tasks/state} and
-the target task list defined for each mission. In completed runs, makespan is the
-simulation-time interval from the first recorded task-state sample to the
-first sample at which the last target reaches done.
+the target task list defined for each mission. For completed runs, the
+task-completion interval runs from the first recorded task-state sample to
+the first sample in which the last target is marked complete, using
+simulation time. Language-loop duration uses the final cumulative
+wall-clock counter in each language run's mission journal.
 
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{fig_map.pdf}
 \caption{The \code{amongus} map ($66.6 \times 37.75$\,m, 0.05\,m cells) and
-the eleven distinct 1.5\,m zones used by the nine M3 tasks. Circles show the
+the eleven distinct zones of radius 1.5\,m used by the nine M3 tasks. Circles show the
 zone boundaries and center markers identify visit, pickup, and drop-off
 zones. Arrows link pickup and drop-off locations. Stars mark the M2 subset.
 Squares mark the home locations of the five groups of four robots}
@@ -494,44 +430,25 @@ Squares mark the home locations of the five groups of four robots}
 \end{figure}
 
 % =========================================================================
+\Needspace{12\baselineskip}
 \section{Results}
 \label{sec:results}
-
-The results are organized around observed boundary failures before the
-aggregate scores. Assignment and geometric cases address RQ2; qualitative
-completion-report mismatches address RQ3; the offline results characterize
-RQ1. Each source retains its own provenance and denominator.
 
 \subsection{Assignment defects and shared-destination conflicts}
 \label{sec:absorb}
 
-The inspectable plans reveal an assignment-level defect relevant to RQ2. All
-13 language runs retain a plan and a decision journal, but only eight also
-retain per-phase checkpoints; the five model-9b runs predate checkpointing and
-store a single record, so execution order is inspectable only for the later
-cells. Among the 13 generated plans, 5 carry the same assignment defect: the plan
-assigns two robots to carry a single item. In three model-9b runs the extra
-carrier is visible in the stored plan; in two cell-B runs the single-carrier
-guard had already removed it, and the defect is recorded only by the guard
-counter. An extra robot sent to the pickup can occupy space needed by the
-intended carrier. The count describes this inspected set, not the prevalence
-of defects across unseen missions.
-
-
 \paragraph{Duplicate-carrier assignments}
-Three model-9b runs visibly route an extra robot to the pickup and still
-complete M2. In the two original incomplete B runs, the development record
-attributes the stall to robot~5 reaching the pickup before robot~1, which
-was assigned the drop-off leg. The guard later removed an extra pickup
-assignment in each of the two replacement runs. Both replacements
-completed M2. The guard counters establish the recorded intervention.
-The successful uncorrected runs and the outcome-dependent selection limit
-what this comparison establishes about completion.
-
+Three of the 13 selected language runs have a saved plan that sends an
+extra robot to the pickup. In two further runs, the single-carrier guard
+counter records a correction and the saved plan already reflects it.
+All three model-9b runs with a visible extra assignment completed M2.
+Both B/M2 replacements also completed M2 after the guard removed an
+extra pickup assignment. These are observed interventions and outcomes
+in the selected series.
 
 \paragraph{Shared-drop-off execution conflict}
 M3 assigns two carry tasks to the same drop-off center
-(Fig.~\ref{fig:map}). This conflict follows from the mission specification.
+(Fig.~\ref{fig:map}), so both carriers can be directed to the same point.
 Both archived pre-guard runs (\code{20260815\_153035} and
 \code{20260815\_154541}) complete 8/9 tasks. Each of the three B-M3 runs
 completes 9/9. In run \code{20260818\_111548} the guard changed the common
@@ -543,65 +460,47 @@ and provider routing, and the pre-guard journals are absent. These records
 document the intervention and outcomes without isolating its effect.
 
 \subsection{Case study: an assembled formation with a rejected route}
-In the interactive M4 session \code{20260819\_073009}, the operator asked
-for a column. The model returned \code{offsets\_x=[0,0,0]} and
-\code{offsets\_y=[1.5,-1.5,3.0]}, a line abreast with a 4.5\,m span between
-the outer centers. The formation assembled at the generated offsets and
-reached stable status after 6.5\,s. The logged fraction of broken samples
-was zero. On a subsequent move request, LNS2 reported that there was no
-static path for the leader under its enlarged footprint model.
+In M4 run
+\href{https://github.com/Innopolis-Robotics-Society/llm_swarm/blob/cab6312716321282b1c600b85abebe789085f654/paper/results/qualitative_cases/m4_formation_interactive_20260819_073009/launch.log#L1681-L1696}{\code{20260819\_073009}},
+the operator asked for a column. The
+model returned \code{offsets\_x=[0,0,0]} and
+\code{offsets\_y=[1.5,-1.5,3.0]}, a line abreast with a nominal span of
+4.5\,m between the outer centers. The log records activation with those offsets. On the
+following move, LNS2 reported no static path for the leader with the
+footprint approximation on the planning grid used for that request.
+The derived status metrics report 6.5\,s from the first active sample
+to the first stable sample and no broken samples while active.
 
-This trace separates three checks. The plan passes structural validation,
-the generated offsets disagree with the requested geometry, and the
-planner rejects a route under its footprint approximation. The system
-does not check an oriented trajectory for the entire formation before
-assembly. The log therefore establishes rejection by the implemented
-planner for the requested start and goal. In a separate M4 run
-(\code{20260818\_140918}), the same column request elicited
-\code{offsets\_x=[-1.5,-3.0,-4.5]}. These two cases show variation in the
-generated offsets. They provide no estimate of its frequency.
+The plan passed structural validation and activated a formation whose
+shape differed from the request. The route was then rejected under the
+planner's approximation. In M4 run \code{20260818\_140918}, the recorded
+plan used column offsets \code{offsets\_x=[-1.5,-3.0,-4.5]}. These two
+records document different outcomes of plan generation.
 
-
-\subsection{Local action reports and mission conditions}
+\subsection{Local success reports and the original request}
 \label{sec:failures}
 
-The M4 run \code{20260818\_140918} exposes a chain of failures during
-formation staging. A replan temporarily benched robot~0 and replaced the
-requested set with the smaller set of planned robots. The action later
-reported \emph{All agents arrived} although robot~0 was still at its
-starting position. In a subsequent leg, the planner substituted a free
-cell for a blocked goal. The formation manager reported that robot~3
-was 1.97\,m from its required slot, outside its 0.50\,m staging tolerance.
-The executor learned of the refusal only at the step timeout. These
-observations come from one development trace and are not counted as
-independent failures.
+In M4 run
+\href{https://github.com/Innopolis-Robotics-Society/llm_swarm/blob/cab6312716321282b1c600b85abebe789085f654/paper/results/qualitative_cases/m4_leader_ejection_20260818_140918/launch.log#L994-L1011}{\code{20260818\_140918}},
+MAPF reported \emph{All agents arrived}
+while robot~0, part of the original request, remained at its starting
+position. The development record traces the mismatch to a replan that
+removed robot~0 from the set used to check arrival.
 
-An arrival report describes the action that the component tracked. The
-same report can omit a requested robot or concern a substituted goal.
-The case motivates recording the original request, effective action and
-completion condition separately.
+In a later step of the same run, the planner substituted a free cell for
+a blocked goal. The formation manager reported robot~3 at 1.97\,m from
+its required slot, outside the 0.50\,m tolerance. The executor learned
+of the refusal at its step timeout. These are two observations from one
+trace.
 
 \subsection{Offline plan validation results}
 \label{sec:planacc}
 
-Table~\ref{tab:e1} gives the E1 scores. In the local schema-off runs, the
-9B configuration has the highest observed call-level rate (192/220). It
-leads the 24B and 14B configurations by 8.6 and 12.3 percentage points,
-respectively, calculated before rounding the displayed rates. Five repeats
-measure response variation on the same cases. For example, 154/220
-responses pass for the local 4B model, while 41/44 cases have at least one
-pass in five tries.
-
-The published scoring script assigns one diagnostic category per failed
-response by a fixed priority of error strings. Across the 1{,}100 local
-schema-off records, 259 fail. The categories include formation fields or
-staging (82), structure (81), goals (34), unparseable JSON (34), escalation
-reason (5), robot identifiers (1), and other validator messages (22).
-These are script labels: for example, a goal error can concern arity or
-the requested destination. For Mistral Small 3.2, the same offsets-arity
-message accounts for 20 of 47 failures, and the most frequent failed
-response is byte-identical across eight records. This is evidence of a
-recurring error, not of deterministic generation.
+Table~\ref{tab:e1} reports a response-level pass rate and the share of
+cases with at least one pass in five attempts. Table~\ref{tab:e1errors}
+breaks down the 259 failed responses among the 1{,}100 local schema-off
+responses. For Mistral Small 3.2, the same offsets-arity message accounts
+for 20 of 47 failures.
 
 \begin{table}[!htbp]
 \centering
@@ -635,36 +534,58 @@ Qwen3.5-397B-A17B & 397B/17B & 93.2 & 100.0 & 95.0 & 100.0 \\
 \end{tabular}
 \end{table}
 
+\begin{table}[!htbp]
+\centering
+\caption{Failure categories for local schema-off responses in E1. The
+scoring script assigns one category per failed response using a fixed
+priority order over error messages}
+\label{tab:e1errors}
+\begin{tabular}{lr}
+\toprule
+Category & Failed responses \\
+\midrule
+Formation fields or staging & 82 \\
+Plan structure & 81 \\
+Goal checks & 34 \\
+Unparseable JSON & 34 \\
+Other validator messages & 22 \\
+Escalation reason & 5 \\
+Robot identifiers & 1 \\
+\midrule
+Total & 259 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsubsection{Decoding configurations}
 \label{sec:hosted}
-Call-level scores under schema constraints rise for the local 4B and 14B
-configurations and fall for the local 9B configuration. Hosted differences
-also vary in direction. For example, the 397B/17B score rises from 93.2\%
-to 95.0\% while Gemini falls from 89.5\% to 80.9\%. In the hosted
-comparison, the provider and its support for the response schema can
-affect both the output and whether a request succeeds. These observations
-describe the tested configurations. They do not identify a general
-decoding or model-size effect.
+When a response schema was requested, the local 9B score was 19.1\%,
+versus 87.3\% without one. The local 4B score was 77.7\%, versus
+70.0\%, and the local 14B condition gained one passing response out of
+220. Hosted differences also vary in direction. The 397B/17B scores were
+95.0\% with a schema and 93.2\% without one, while Gemini scored 80.9\%
+and 89.5\%, respectively. These comparisons describe the logged
+configurations.
 
 \subsection{Task-evaluator completion in the selected series}
-Every included run satisfies all of its target task conditions
-(Table~\ref{tab:e2}). In the original B/M2 series, 3/5 runs completed all
-tasks according to the run history. The two incomplete runs reached 4/5.
-After the two replacements, 5/5 runs in the selected B/M2 cell complete all
-tasks. The table reports the selected runs' outcomes and timing.
+All 18 included runs satisfy their target task conditions
+(Table~\ref{tab:e2}). The B/M2 row combines the three successful original
+runs with the two successful replacements.
 
 \begin{table}[!htbp]
 \centering
 \caption{Selected M2/M3 runs. Task counts are pose-based outcomes per run.
-Makespan is the mean and sample standard deviation (SD) in simulation seconds.
-Language-loop time is the mean cumulative wall-clock duration recorded in
-the decision journals, including any auxiliary calls or retries within the loop}
+The task interval uses simulation seconds and is reported as mean and sample
+standard deviation (SD). Language-loop time is the mean wall-clock duration,
+including auxiliary calls and retries. The version log reports that 3/5
+original B/M2 runs completed all tasks. The two runs that stopped at 4/5
+tasks were replaced after a software change}
 \label{tab:e2}
 \setlength{\tabcolsep}{4pt}
 \begin{tabular}{llcccc}
 \toprule
 Cell & Mission & \makecell{Full\\runs} & \makecell{Tasks\\per run}
- & \makecell{Makespan (s)\\mean $\pm$ SD} & \makecell{Language\\loop (s)} \\
+ & \makecell{Task interval (sim s)\\mean $\pm$ SD} & \makecell{Language\\loop (wall s)} \\
 \midrule
 no-LLM   & M2 & 5/5 & 5/5 & $203.5 \pm 10.6$ & 0 \\
 model-9b & M2 & 5/5 & 5/5 & $252.2 \pm 26.6$ & 9.5 \\
@@ -675,15 +596,11 @@ B-M3     & M3 & 3/3 & 9/9 & $587.7 \pm 67.0$ & 51.2 \\
 \end{table}
 
 \paragraph{Timing and fleet activity}
-The M2 mean makespan ranges from 203.5 to 260.0 simulation seconds.
+The M2 mean task interval ranges from 203.5 to 260.0 simulation seconds.
 The mean language-loop duration ranges from 0 to 31.6 wall-clock seconds.
-The analysis uses the final cumulative counter for the unique mission
-record in each language run.
-The intervals have different clocks and start events, and allocation and
-software version vary across the cells. We report them separately.
-Odometry records show that 9--10 distinct robots per selected run traveled
-at least 0.5\,m over the recording. This measures activity over the run,
-without estimating peak simultaneous motion.
+These intervals start at different events and use different clocks.
+Recorded odometry summaries show that 9--10 distinct robots per selected
+run traveled at least 0.5\,m during the recording.
 
 \paragraph{Observed mechanism use}
 None of the 13 selected language runs invoked remediation or verification
@@ -691,72 +608,50 @@ repair, and none triggered the active-formation guard or chat-level
 occupancy rewrites. Each logged one supervision step. Twelve runs made no
 auxiliary calls. One B-M3 run (\code{20260818\_113030}) called
 \code{list\_tasks} once and \code{verify\_plan\_execution\_state} twice.
-The two additional M4 records contain 10 and 33 auxiliary calls. The
-available context differs across missions, and the records do not
-establish why the model chose to call a tool.
-
+The two additional M4 records contain 10 and 33 auxiliary calls.
 
 \section{Discussion}
 \label{sec:discussion}
 
-For RQ1, the offline benchmark distinguishes failures to parse a plan from
-failures on selected requirements for robot selection, goals, and step
-composition. Differences across decoding settings include both gains and
-losses. The scored responses describe the tested cases and configurations.
-They have no paired mission outcomes for estimating the predictive value of
-structural validity.
+For RQ1, the same model label can have very different observed pass rates
+across generation settings. The benchmark evaluates
+saved plans against case criteria. It has no paired mission outcomes.
 
-For RQ2, the carry cases distinguish a redundant pickup assignment from a
-shared drop-off requested by the operator. The first can be corrected by
-removing a pickup assignment. The second can be addressed by adjusting the
-two destinations within the original zone. A formation can also satisfy
-the structural and assembly checks while its generated shape differs from
-the request and the planner rejects the route. These cases show which
-properties require checks beyond the plan representation.
+For RQ2, the observed corrections address different problems. The
+single-carrier rule changes the assignment. The shared-drop-off rule
+changes the two waypoints while retaining the original evaluator zone.
+The M4 formation trace adds a separate distinction between accepting
+formation offsets and finding a route for the resulting footprint.
 
-For RQ3, a component can report success for a reduced robot set or
-substituted waypoint while the original action remains incomplete. The
-evaluator provides separate evidence of the specified spatial events.
-The evidence does not establish physical load transfer, collision safety,
-or full preservation of intent. The cases motivate logging the original
-action, its transformed action, the component report, and the evaluator
-outcome as separate records.
+For RQ3, the arrival report in M4 referred to the set remaining after
+replanning. Checking it against the original request exposed the missing
+robot. A success report should therefore identify the robots and goals
+it covers, so it can be compared with the original command.
 
 \section{Limitations}
 \label{sec:limitations}
 
-The study uses one Stage map, simulator-derived poses, two main mission
-specifications and a small, selected run series. Five language runs have
-only one journal record each. Dirty worktrees prevent exact reconstruction
-from the recorded commit IDs, and the superseded B/M2 outcomes come from
-the development record. The M3 comparison changes software version and
-provider routing. A controlled guard comparison would require fixed
-conditions and a prespecified record of all attempts.
+The simulation evidence covers one Stage map, two main missions and
+selected runs. The version log documents the B/M2 replacements. The M3
+before/after series differ in software version and provider routing, so
+the comparison cannot isolate the guard's effect. The recorded commits
+do not capture uncommitted changes in the historical runs.
 
-E1 repeats 44 case designs. Exact model revisions and complete serving
-settings are unavailable, and hosted transport replacements can change the
-provider. E2 uses a task-state interval in simulation time and separately
-records language-loop duration in wall-clock time. It does not measure
-operator-to-completion latency or isolate the cost of language orchestration.
-
-The task metric samples zone presence. It does not measure stopping,
-load handling, or independent collision and intent outcomes. No fleet-size
-sweep or peak concurrency measurement is available. The observed
-formation route rejection applies to the planner's footprint model.
-Inactive repair counters and qualitative development observations do not
-establish reliability or failure rates.
+E1 repeats 44 case designs and provides a comparison of the logged model
+and serving configurations. Exact model revisions and complete serving
+settings are unavailable. The simulation task metric records zone
+presence. It does not measure physical cargo transfer, collision safety
+or peak concurrency. The M4 observations illustrate individual failures
+and do not estimate their frequency.
 
 \section{Conclusion}
 
-This case study documents how structural validity, task meaning, route
-feasibility and evaluator completion differ in a typed-plan interface for
-robot fleets. Offline validation finds recurring errors in formation
-fields, structure and goals. Simulation traces show how assignment guards,
-goal transformations and planner checks act on accepted plans, and how
-a component's report can omit part of the original request. The results
-characterize the implemented checks and the cases in which they were
-exercised. They provide specific conditions to test in future controlled
-evaluations.
+The recorded cases separate plan validity, task assignment, route
+planning and completion. An accepted plan in these records could still
+include an extra pickup assignment, produce the wrong formation shape,
+or lead to an arrival report for a reduced robot set. To audit execution,
+record the original request, the action actually sent, the robot and
+goal set covered by the status report, and the observed outcome.
 
 \backmatter
 
@@ -779,13 +674,6 @@ Not applicable.
 
 \subsection*{Consent for Publication}
 Not applicable.
-
-\subsection*{Use of Generative AI}
-OpenAI Codex (0.135.0) and Anthropic Claude Code (2.1.159) were used to write
-the implementation code and as assistants in preparing the manuscript,
-including the figures. All text, results and interpretations were reviewed by
-the authors, who take full responsibility for the content.
-
 
 \subsection*{Data Availability}
 The benchmark outputs, session metadata, logs, derived metrics, and
