@@ -84,7 +84,7 @@ MAPF planner described in the paper is therefore work by a non-author, and the
 CRediT statement attributes only the roles the listed authors actually hold.
 
 The simulation code, the eighteen included runs, the decision journals and the
-analysis scripts are in the project repository (branch `paper`); the recorded
+analysis scripts are in the project repository (default branch); the recorded
 rosbag payloads are available on request. The earlier statement that the code
 and journals were absent from the package is obsolete after the results
 migration.
