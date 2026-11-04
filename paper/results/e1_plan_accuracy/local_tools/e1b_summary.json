@@ -1,511 +1,617 @@
 {
-  "experiment": "E1b — hermetic channel-3 planning accuracy (v2: 5 models, no-Russian test set, 2048-token budget)",
-  "models": {
-    "qwen3.5:4b": {
-      "source_file": "e1b_qwen3.5-4b.json",
-      "llm_mode": "ollama",
-      "llm_model": "qwen3.5:4b",
-      "llm_max_tokens": null,
-      "repeat": 5,
-      "num_cases": 44,
-      "total_calls": 220,
-      "total_passed_calls": 154,
-      "pass_at_1": {
-        "count": 32,
-        "of": 44,
-        "pct": 72.7
-      },
-      "pass_at_5": {
-        "count": 41,
-        "of": 44,
-        "pct": 93.2
-      },
-      "elapsed_sec": {
-        "mean": 5.24,
-        "median": 4.82,
-        "p90": 8.59
-      },
-      "timeouts": 0,
-      "by_category": {
-        "mapf_basic": {
-          "n": 5,
-          "pass_at_1_pct": 80.0,
-          "pass_at_5_pct": 100.0
-        },
-        "mapf_spread": {
-          "n": 2,
-          "pass_at_1_pct": 50.0,
-          "pass_at_5_pct": 100.0
-        },
-        "mapf_explicit": {
-          "n": 2,
-          "pass_at_1_pct": 50.0,
-          "pass_at_5_pct": 100.0
-        },
-        "parallel": {
-          "n": 4,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "sequence": {
-          "n": 4,
-          "pass_at_1_pct": 50.0,
-          "pass_at_5_pct": 100.0
-        },
-        "formation_create": {
-          "n": 5,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "formation_move": {
-          "n": 3,
-          "pass_at_1_pct": 33.3,
-          "pass_at_5_pct": 100.0
-        },
-        "disband": {
-          "n": 3,
-          "pass_at_1_pct": 66.7,
-          "pass_at_5_pct": 66.7
-        },
-        "formation_complex": {
-          "n": 3,
-          "pass_at_1_pct": 66.7,
-          "pass_at_5_pct": 66.7
-        },
-        "idle": {
-          "n": 3,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "escalate": {
-          "n": 4,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "edge": {
-          "n": 6,
-          "pass_at_1_pct": 50.0,
-          "pass_at_5_pct": 83.3
-        }
-      },
-      "failure_modes_all_reps": {
-        "wrong_formation_fields": 22,
-        "wrong_structure": 17,
-        "unparseable_json": 16,
-        "wrong_goals": 11
-      },
-      "cases_with_any_failure": 24,
-      "grounding": "full",
-      "schema_constrained": false,
-      "prompt_fingerprint": null
+ "experiment": "E1b — hermetic channel-3 planning accuracy (v2: 5 models, no-Russian test set, 2048-token budget)",
+ "models": {
+  "qwen3.5:4b": {
+   "source_file": "e1b_qwen3.5-4b.json",
+   "llm_mode": "ollama",
+   "llm_model": "qwen3.5:4b",
+   "llm_max_tokens": null,
+   "repeat": 5,
+   "num_cases": 44,
+   "total_calls": 220,
+   "total_passed_calls": 154,
+   "pass_at_1": {
+    "count": 154,
+    "of": 220,
+    "pct": 70.0,
+    "estimator": "mean over all repeats"
+   },
+   "pass_at_5": {
+    "count": 41,
+    "of": 44,
+    "pct": 93.2
+   },
+   "elapsed_sec": {
+    "mean": 5.24,
+    "median": 4.82,
+    "p90": 8.59
+   },
+   "timeouts": 0,
+   "by_category": {
+    "mapf_basic": {
+     "n": 5,
+     "pass_at_1_pct": 84.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 25
     },
-    "gemma3:12b": {
-      "source_file": "e1b_gemma3-12b.json",
-      "llm_mode": "ollama",
-      "llm_model": "gemma3:12b",
-      "llm_max_tokens": null,
-      "repeat": 5,
-      "num_cases": 44,
-      "total_calls": 220,
-      "total_passed_calls": 157,
-      "pass_at_1": {
-        "count": 31,
-        "of": 44,
-        "pct": 70.5
-      },
-      "pass_at_5": {
-        "count": 32,
-        "of": 44,
-        "pct": 72.7
-      },
-      "elapsed_sec": {
-        "mean": 3.91,
-        "median": 3.73,
-        "p90": 7.4
-      },
-      "timeouts": 0,
-      "by_category": {
-        "mapf_basic": {
-          "n": 5,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "mapf_spread": {
-          "n": 2,
-          "pass_at_1_pct": 50.0,
-          "pass_at_5_pct": 50.0
-        },
-        "mapf_explicit": {
-          "n": 2,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "parallel": {
-          "n": 4,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "sequence": {
-          "n": 4,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "formation_create": {
-          "n": 5,
-          "pass_at_1_pct": 20.0,
-          "pass_at_5_pct": 20.0
-        },
-        "formation_move": {
-          "n": 3,
-          "pass_at_1_pct": 66.7,
-          "pass_at_5_pct": 66.7
-        },
-        "disband": {
-          "n": 3,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "formation_complex": {
-          "n": 3,
-          "pass_at_1_pct": 0.0,
-          "pass_at_5_pct": 33.3
-        },
-        "idle": {
-          "n": 3,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "escalate": {
-          "n": 4,
-          "pass_at_1_pct": 75.0,
-          "pass_at_5_pct": 75.0
-        },
-        "edge": {
-          "n": 6,
-          "pass_at_1_pct": 50.0,
-          "pass_at_5_pct": 50.0
-        }
-      },
-      "failure_modes_all_reps": {
-        "wrong_structure": 25,
-        "wrong_formation_fields": 24,
-        "other_validator": 8,
-        "wrong_escalation_reason": 5,
-        "unparseable_json": 1
-      },
-      "cases_with_any_failure": 13,
-      "grounding": "full",
-      "schema_constrained": false,
-      "prompt_fingerprint": null
+    "mapf_spread": {
+     "n": 2,
+     "pass_at_1_pct": 60.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 10
     },
-    "qwen2.5:14b": {
-      "source_file": "e1b_qwen2.5-14b.json",
-      "llm_mode": "ollama",
-      "llm_model": "qwen2.5:14b",
-      "llm_max_tokens": null,
-      "repeat": 5,
-      "num_cases": 44,
-      "total_calls": 220,
-      "total_passed_calls": 165,
-      "pass_at_1": {
-        "count": 33,
-        "of": 44,
-        "pct": 75.0
-      },
-      "pass_at_5": {
-        "count": 36,
-        "of": 44,
-        "pct": 81.8
-      },
-      "elapsed_sec": {
-        "mean": 9.81,
-        "median": 9.31,
-        "p90": 20.07
-      },
-      "timeouts": 0,
-      "by_category": {
-        "mapf_basic": {
-          "n": 5,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "mapf_spread": {
-          "n": 2,
-          "pass_at_1_pct": 50.0,
-          "pass_at_5_pct": 100.0
-        },
-        "mapf_explicit": {
-          "n": 2,
-          "pass_at_1_pct": 50.0,
-          "pass_at_5_pct": 50.0
-        },
-        "parallel": {
-          "n": 4,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "sequence": {
-          "n": 4,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "formation_create": {
-          "n": 5,
-          "pass_at_1_pct": 40.0,
-          "pass_at_5_pct": 60.0
-        },
-        "formation_move": {
-          "n": 3,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "disband": {
-          "n": 3,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "formation_complex": {
-          "n": 3,
-          "pass_at_1_pct": 66.7,
-          "pass_at_5_pct": 66.7
-        },
-        "idle": {
-          "n": 3,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "escalate": {
-          "n": 4,
-          "pass_at_1_pct": 50.0,
-          "pass_at_5_pct": 75.0
-        },
-        "edge": {
-          "n": 6,
-          "pass_at_1_pct": 50.0,
-          "pass_at_5_pct": 50.0
-        }
-      },
-      "failure_modes_all_reps": {
-        "wrong_structure": 28,
-        "wrong_goals": 10,
-        "wrong_formation_fields": 9,
-        "other_validator": 8
-      },
-      "cases_with_any_failure": 13,
-      "grounding": "full",
-      "schema_constrained": false,
-      "prompt_fingerprint": null
+    "mapf_explicit": {
+     "n": 2,
+     "pass_at_1_pct": 50.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 10
     },
-    "qwen3.5-9b:latest": {
-      "source_file": "e1b_qwen3.5-9b.json",
-      "llm_mode": "ollama",
-      "llm_model": "qwen3.5-9b:latest",
-      "llm_max_tokens": null,
-      "repeat": 5,
-      "num_cases": 44,
-      "total_calls": 220,
-      "total_passed_calls": 192,
-      "pass_at_1": {
-        "count": 36,
-        "of": 44,
-        "pct": 81.8
-      },
-      "pass_at_5": {
-        "count": 42,
-        "of": 44,
-        "pct": 95.5
-      },
-      "elapsed_sec": {
-        "mean": 11.26,
-        "median": 8.25,
-        "p90": 20.97
-      },
-      "timeouts": 0,
-      "by_category": {
-        "mapf_basic": {
-          "n": 5,
-          "pass_at_1_pct": 80.0,
-          "pass_at_5_pct": 100.0
-        },
-        "mapf_spread": {
-          "n": 2,
-          "pass_at_1_pct": 50.0,
-          "pass_at_5_pct": 50.0
-        },
-        "mapf_explicit": {
-          "n": 2,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "parallel": {
-          "n": 4,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "sequence": {
-          "n": 4,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "formation_create": {
-          "n": 5,
-          "pass_at_1_pct": 60.0,
-          "pass_at_5_pct": 100.0
-        },
-        "formation_move": {
-          "n": 3,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "disband": {
-          "n": 3,
-          "pass_at_1_pct": 66.7,
-          "pass_at_5_pct": 100.0
-        },
-        "formation_complex": {
-          "n": 3,
-          "pass_at_1_pct": 66.7,
-          "pass_at_5_pct": 100.0
-        },
-        "idle": {
-          "n": 3,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "escalate": {
-          "n": 4,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "edge": {
-          "n": 6,
-          "pass_at_1_pct": 66.7,
-          "pass_at_5_pct": 83.3
-        }
-      },
-      "failure_modes_all_reps": {
-        "wrong_structure": 11,
-        "wrong_goals": 8,
-        "unparseable_json": 6,
-        "wrong_formation_fields": 2,
-        "other_validator": 1
-      },
-      "cases_with_any_failure": 10,
-      "grounding": "full",
-      "schema_constrained": false,
-      "prompt_fingerprint": null
+    "parallel": {
+     "n": 4,
+     "pass_at_1_pct": 90.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 20
     },
-    "mistral-small3.2:24b": {
-      "source_file": "e1b_mistral-small3.2-24b.json",
-      "llm_mode": "ollama",
-      "llm_model": "mistral-small3.2:24b",
-      "llm_max_tokens": null,
-      "repeat": 5,
-      "num_cases": 44,
-      "total_calls": 220,
-      "total_passed_calls": 173,
-      "pass_at_1": {
-        "count": 35,
-        "of": 44,
-        "pct": 79.5
-      },
-      "pass_at_5": {
-        "count": 36,
-        "of": 44,
-        "pct": 81.8
-      },
-      "elapsed_sec": {
-        "mean": 29.72,
-        "median": 29.95,
-        "p90": 52.12
-      },
-      "timeouts": 0,
-      "by_category": {
-        "mapf_basic": {
-          "n": 5,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "mapf_spread": {
-          "n": 2,
-          "pass_at_1_pct": 50.0,
-          "pass_at_5_pct": 50.0
-        },
-        "mapf_explicit": {
-          "n": 2,
-          "pass_at_1_pct": 50.0,
-          "pass_at_5_pct": 50.0
-        },
-        "parallel": {
-          "n": 4,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "sequence": {
-          "n": 4,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "formation_create": {
-          "n": 5,
-          "pass_at_1_pct": 60.0,
-          "pass_at_5_pct": 60.0
-        },
-        "formation_move": {
-          "n": 3,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "disband": {
-          "n": 3,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "formation_complex": {
-          "n": 3,
-          "pass_at_1_pct": 33.3,
-          "pass_at_5_pct": 33.3
-        },
-        "idle": {
-          "n": 3,
-          "pass_at_1_pct": 100.0,
-          "pass_at_5_pct": 100.0
-        },
-        "escalate": {
-          "n": 4,
-          "pass_at_1_pct": 75.0,
-          "pass_at_5_pct": 75.0
-        },
-        "edge": {
-          "n": 6,
-          "pass_at_1_pct": 66.7,
-          "pass_at_5_pct": 83.3
-        }
-      },
-      "failure_modes_all_reps": {
-        "wrong_formation_fields": 25,
-        "unparseable_json": 11,
-        "wrong_goals": 5,
-        "other_validator": 5,
-        "wrong_robot_ids": 1
-      },
-      "cases_with_any_failure": 11,
-      "grounding": "full",
-      "schema_constrained": false,
-      "prompt_fingerprint": null
+    "sequence": {
+     "n": 4,
+     "pass_at_1_pct": 70.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 20
+    },
+    "formation_create": {
+     "n": 5,
+     "pass_at_1_pct": 56.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 25
+    },
+    "formation_move": {
+     "n": 3,
+     "pass_at_1_pct": 73.3,
+     "pass_at_5_pct": 100.0,
+     "calls": 15
+    },
+    "disband": {
+     "n": 3,
+     "pass_at_1_pct": 53.3,
+     "pass_at_5_pct": 66.7,
+     "calls": 15
+    },
+    "formation_complex": {
+     "n": 3,
+     "pass_at_1_pct": 33.3,
+     "pass_at_5_pct": 66.7,
+     "calls": 15
+    },
+    "idle": {
+     "n": 3,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 15
+    },
+    "escalate": {
+     "n": 4,
+     "pass_at_1_pct": 95.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 20
+    },
+    "edge": {
+     "n": 6,
+     "pass_at_1_pct": 60.0,
+     "pass_at_5_pct": 83.3,
+     "calls": 30
     }
+   },
+   "failure_modes_all_reps": {
+    "wrong_formation_fields": 22,
+    "wrong_structure": 17,
+    "unparseable_json": 16,
+    "wrong_goals": 11
+   },
+   "cases_with_any_failure": 24,
+   "grounding": "full",
+   "schema_constrained": false,
+   "prompt_fingerprint": null,
+   "pass_at_1_first_sample": {
+    "count": 32,
+    "of": 44,
+    "pct": 72.7,
+    "estimator": "first repeat only (superseded, kept for provenance)"
+   }
   },
-  "rescored": [
-    {
-      "at": "2026-08-11T11:10:48.634985+00:00",
-      "what": "regenerated after the either-prefix validator fix: escalate_04 and edge_06 were unpassable (chk(a) or chk(b) with list-returning checks reports an error whenever either prefix is absent). Scored from the stored raw output; no model was called again.",
-      "changes": [
-        "qwen3.5:4b: pass@1 30→32, pass@5 39→41, вызовов 144→154",
-        "gemma3:12b: pass@1 30→31, pass@5 31→32, вызовов 152→157",
-        "qwen2.5:14b: pass@1 32→33, pass@5 35→36, вызовов 160→165",
-        "qwen3.5-9b:latest: pass@1 34→36, pass@5 40→42, вызовов 182→192",
-        "mistral-small3.2:24b: pass@1 33→35, pass@5 34→36, вызовов 163→173"
-      ]
+  "gemma3:12b": {
+   "source_file": "e1b_gemma3-12b.json",
+   "llm_mode": "ollama",
+   "llm_model": "gemma3:12b",
+   "llm_max_tokens": null,
+   "repeat": 5,
+   "num_cases": 44,
+   "total_calls": 220,
+   "total_passed_calls": 157,
+   "pass_at_1": {
+    "count": 157,
+    "of": 220,
+    "pct": 71.4,
+    "estimator": "mean over all repeats"
+   },
+   "pass_at_5": {
+    "count": 32,
+    "of": 44,
+    "pct": 72.7
+   },
+   "elapsed_sec": {
+    "mean": 3.91,
+    "median": 3.73,
+    "p90": 7.4
+   },
+   "timeouts": 0,
+   "by_category": {
+    "mapf_basic": {
+     "n": 5,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 25
+    },
+    "mapf_spread": {
+     "n": 2,
+     "pass_at_1_pct": 50.0,
+     "pass_at_5_pct": 50.0,
+     "calls": 10
+    },
+    "mapf_explicit": {
+     "n": 2,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 10
+    },
+    "parallel": {
+     "n": 4,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 20
+    },
+    "sequence": {
+     "n": 4,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 20
+    },
+    "formation_create": {
+     "n": 5,
+     "pass_at_1_pct": 20.0,
+     "pass_at_5_pct": 20.0,
+     "calls": 25
+    },
+    "formation_move": {
+     "n": 3,
+     "pass_at_1_pct": 66.7,
+     "pass_at_5_pct": 66.7,
+     "calls": 15
+    },
+    "disband": {
+     "n": 3,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 15
+    },
+    "formation_complex": {
+     "n": 3,
+     "pass_at_1_pct": 13.3,
+     "pass_at_5_pct": 33.3,
+     "calls": 15
+    },
+    "idle": {
+     "n": 3,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 15
+    },
+    "escalate": {
+     "n": 4,
+     "pass_at_1_pct": 75.0,
+     "pass_at_5_pct": 75.0,
+     "calls": 20
+    },
+    "edge": {
+     "n": 6,
+     "pass_at_1_pct": 50.0,
+     "pass_at_5_pct": 50.0,
+     "calls": 30
     }
-  ]
+   },
+   "failure_modes_all_reps": {
+    "wrong_structure": 25,
+    "wrong_formation_fields": 24,
+    "other_validator": 8,
+    "wrong_escalation_reason": 5,
+    "unparseable_json": 1
+   },
+   "cases_with_any_failure": 13,
+   "grounding": "full",
+   "schema_constrained": false,
+   "prompt_fingerprint": null,
+   "pass_at_1_first_sample": {
+    "count": 31,
+    "of": 44,
+    "pct": 70.5,
+    "estimator": "first repeat only (superseded, kept for provenance)"
+   }
+  },
+  "qwen2.5:14b": {
+   "source_file": "e1b_qwen2.5-14b.json",
+   "llm_mode": "ollama",
+   "llm_model": "qwen2.5:14b",
+   "llm_max_tokens": null,
+   "repeat": 5,
+   "num_cases": 44,
+   "total_calls": 220,
+   "total_passed_calls": 165,
+   "pass_at_1": {
+    "count": 165,
+    "of": 220,
+    "pct": 75.0,
+    "estimator": "mean over all repeats"
+   },
+   "pass_at_5": {
+    "count": 36,
+    "of": 44,
+    "pct": 81.8
+   },
+   "elapsed_sec": {
+    "mean": 9.81,
+    "median": 9.31,
+    "p90": 20.07
+   },
+   "timeouts": 0,
+   "by_category": {
+    "mapf_basic": {
+     "n": 5,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 25
+    },
+    "mapf_spread": {
+     "n": 2,
+     "pass_at_1_pct": 60.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 10
+    },
+    "mapf_explicit": {
+     "n": 2,
+     "pass_at_1_pct": 50.0,
+     "pass_at_5_pct": 50.0,
+     "calls": 10
+    },
+    "parallel": {
+     "n": 4,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 20
+    },
+    "sequence": {
+     "n": 4,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 20
+    },
+    "formation_create": {
+     "n": 5,
+     "pass_at_1_pct": 44.0,
+     "pass_at_5_pct": 60.0,
+     "calls": 25
+    },
+    "formation_move": {
+     "n": 3,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 15
+    },
+    "disband": {
+     "n": 3,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 15
+    },
+    "formation_complex": {
+     "n": 3,
+     "pass_at_1_pct": 40.0,
+     "pass_at_5_pct": 66.7,
+     "calls": 15
+    },
+    "idle": {
+     "n": 3,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 15
+    },
+    "escalate": {
+     "n": 4,
+     "pass_at_1_pct": 60.0,
+     "pass_at_5_pct": 75.0,
+     "calls": 20
+    },
+    "edge": {
+     "n": 6,
+     "pass_at_1_pct": 50.0,
+     "pass_at_5_pct": 50.0,
+     "calls": 30
+    }
+   },
+   "failure_modes_all_reps": {
+    "wrong_structure": 28,
+    "wrong_goals": 10,
+    "wrong_formation_fields": 9,
+    "other_validator": 8
+   },
+   "cases_with_any_failure": 13,
+   "grounding": "full",
+   "schema_constrained": false,
+   "prompt_fingerprint": null,
+   "pass_at_1_first_sample": {
+    "count": 33,
+    "of": 44,
+    "pct": 75.0,
+    "estimator": "first repeat only (superseded, kept for provenance)"
+   }
+  },
+  "qwen3.5-9b:latest": {
+   "source_file": "e1b_qwen3.5-9b.json",
+   "llm_mode": "ollama",
+   "llm_model": "qwen3.5-9b:latest",
+   "llm_max_tokens": null,
+   "repeat": 5,
+   "num_cases": 44,
+   "total_calls": 220,
+   "total_passed_calls": 192,
+   "pass_at_1": {
+    "count": 192,
+    "of": 220,
+    "pct": 87.3,
+    "estimator": "mean over all repeats"
+   },
+   "pass_at_5": {
+    "count": 42,
+    "of": 44,
+    "pct": 95.5
+   },
+   "elapsed_sec": {
+    "mean": 11.26,
+    "median": 8.25,
+    "p90": 20.97
+   },
+   "timeouts": 0,
+   "by_category": {
+    "mapf_basic": {
+     "n": 5,
+     "pass_at_1_pct": 92.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 25
+    },
+    "mapf_spread": {
+     "n": 2,
+     "pass_at_1_pct": 50.0,
+     "pass_at_5_pct": 50.0,
+     "calls": 10
+    },
+    "mapf_explicit": {
+     "n": 2,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 10
+    },
+    "parallel": {
+     "n": 4,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 20
+    },
+    "sequence": {
+     "n": 4,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 20
+    },
+    "formation_create": {
+     "n": 5,
+     "pass_at_1_pct": 68.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 25
+    },
+    "formation_move": {
+     "n": 3,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 15
+    },
+    "disband": {
+     "n": 3,
+     "pass_at_1_pct": 93.3,
+     "pass_at_5_pct": 100.0,
+     "calls": 15
+    },
+    "formation_complex": {
+     "n": 3,
+     "pass_at_1_pct": 80.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 15
+    },
+    "idle": {
+     "n": 3,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 15
+    },
+    "escalate": {
+     "n": 4,
+     "pass_at_1_pct": 95.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 20
+    },
+    "edge": {
+     "n": 6,
+     "pass_at_1_pct": 73.3,
+     "pass_at_5_pct": 83.3,
+     "calls": 30
+    }
+   },
+   "failure_modes_all_reps": {
+    "wrong_structure": 11,
+    "wrong_goals": 8,
+    "unparseable_json": 6,
+    "wrong_formation_fields": 2,
+    "other_validator": 1
+   },
+   "cases_with_any_failure": 10,
+   "grounding": "full",
+   "schema_constrained": false,
+   "prompt_fingerprint": null,
+   "pass_at_1_first_sample": {
+    "count": 36,
+    "of": 44,
+    "pct": 81.8,
+    "estimator": "first repeat only (superseded, kept for provenance)"
+   }
+  },
+  "mistral-small3.2:24b": {
+   "source_file": "e1b_mistral-small3.2-24b.json",
+   "llm_mode": "ollama",
+   "llm_model": "mistral-small3.2:24b",
+   "llm_max_tokens": null,
+   "repeat": 5,
+   "num_cases": 44,
+   "total_calls": 220,
+   "total_passed_calls": 173,
+   "pass_at_1": {
+    "count": 173,
+    "of": 220,
+    "pct": 78.6,
+    "estimator": "mean over all repeats"
+   },
+   "pass_at_5": {
+    "count": 36,
+    "of": 44,
+    "pct": 81.8
+   },
+   "elapsed_sec": {
+    "mean": 29.72,
+    "median": 29.95,
+    "p90": 52.12
+   },
+   "timeouts": 0,
+   "by_category": {
+    "mapf_basic": {
+     "n": 5,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 25
+    },
+    "mapf_spread": {
+     "n": 2,
+     "pass_at_1_pct": 50.0,
+     "pass_at_5_pct": 50.0,
+     "calls": 10
+    },
+    "mapf_explicit": {
+     "n": 2,
+     "pass_at_1_pct": 50.0,
+     "pass_at_5_pct": 50.0,
+     "calls": 10
+    },
+    "parallel": {
+     "n": 4,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 20
+    },
+    "sequence": {
+     "n": 4,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 20
+    },
+    "formation_create": {
+     "n": 5,
+     "pass_at_1_pct": 60.0,
+     "pass_at_5_pct": 60.0,
+     "calls": 25
+    },
+    "formation_move": {
+     "n": 3,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 15
+    },
+    "disband": {
+     "n": 3,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 15
+    },
+    "formation_complex": {
+     "n": 3,
+     "pass_at_1_pct": 33.3,
+     "pass_at_5_pct": 33.3,
+     "calls": 15
+    },
+    "idle": {
+     "n": 3,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 15
+    },
+    "escalate": {
+     "n": 4,
+     "pass_at_1_pct": 75.0,
+     "pass_at_5_pct": 75.0,
+     "calls": 20
+    },
+    "edge": {
+     "n": 6,
+     "pass_at_1_pct": 60.0,
+     "pass_at_5_pct": 83.3,
+     "calls": 30
+    }
+   },
+   "failure_modes_all_reps": {
+    "wrong_formation_fields": 25,
+    "unparseable_json": 11,
+    "wrong_goals": 5,
+    "other_validator": 5,
+    "wrong_robot_ids": 1
+   },
+   "cases_with_any_failure": 11,
+   "grounding": "full",
+   "schema_constrained": false,
+   "prompt_fingerprint": null,
+   "pass_at_1_first_sample": {
+    "count": 35,
+    "of": 44,
+    "pct": 79.5,
+    "estimator": "first repeat only (superseded, kept for provenance)"
+   }
+  }
+ },
+ "rescored": [
+  {
+   "at": "2026-08-11T11:10:48.634985+00:00",
+   "what": "regenerated after the either-prefix validator fix: escalate_04 and edge_06 were unpassable (chk(a) or chk(b) with list-returning checks reports an error whenever either prefix is absent). Scored from the stored raw output; no model was called again.",
+   "changes": [
+    "qwen3.5:4b: pass@1 30→32, pass@5 39→41, вызовов 144→154",
+    "gemma3:12b: pass@1 30→31, pass@5 31→32, вызовов 152→157",
+    "qwen2.5:14b: pass@1 32→33, pass@5 35→36, вызовов 160→165",
+    "qwen3.5-9b:latest: pass@1 34→36, pass@5 40→42, вызовов 182→192",
+    "mistral-small3.2:24b: pass@1 33→35, pass@5 34→36, вызовов 163→173"
+   ]
+  },
+  {
+   "at": "2026-11-03T14:50:52.736331+00:00",
+   "what": "regenerated to switch pass_at_1 from the first-sample estimator to the call-level one (passed calls over total calls), which is the estimator the manuscript table reports. The superseded first-sample figure is retained as pass_at_1_first_sample. Scored from the stored raw output; no model was called again.",
+   "changes": [
+    "qwen3.5:4b: pass_at_1 32->154, pass@5 41->41, calls 154->154",
+    "gemma3:12b: pass_at_1 31->157, pass@5 32->32, calls 157->157",
+    "qwen2.5:14b: pass_at_1 33->165, pass@5 36->36, calls 165->165",
+    "qwen3.5-9b:latest: pass_at_1 36->192, pass@5 42->42, calls 192->192",
+    "mistral-small3.2:24b: pass_at_1 35->173, pass@5 36->36, calls 173->173"
+   ]
+  }
+ ]
 }

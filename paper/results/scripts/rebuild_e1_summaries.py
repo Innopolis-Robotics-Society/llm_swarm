@@ -46,7 +46,7 @@ def rebuild(summary_path: str, write: bool) -> None:
     doc = json.load(open(summary_path, encoding='utf-8'))
     models = doc.get('models') or doc.get('conditions')
     if not models:
-        print('%s: нет блока models/conditions, пропускаю' % summary_path)
+        print('%s: no models/conditions block, skipping' % summary_path)
         return
 
     changed = []
@@ -71,7 +71,7 @@ def rebuild(summary_path: str, write: bool) -> None:
         after = (block['pass_at_1']['count'], block['pass_at_5']['count'],
                  block['total_passed_calls'])
         if before != after:
-            changed.append('%s: pass@1 %s→%s, pass@5 %s→%s, вызовов %s→%s'
+            changed.append('%s: pass@1 %s->%s, pass@5 %s->%s, calls %s->%s'
                            % (name, before[0], after[0], before[1], after[1],
                               before[2], after[2]))
 
@@ -88,12 +88,12 @@ def rebuild(summary_path: str, write: bool) -> None:
         })
         with open(summary_path, 'w', encoding='utf-8') as f:
             json.dump(doc, f, ensure_ascii=False, indent=2)
-        print('   записано')
+        print('   written')
 
 
 def main() -> None:
     write = '--write' in sys.argv
-    print('РЕЖИМ:', 'ЗАПИСЬ' if write else 'сухой прогон (добавьте --write)')
+    print('MODE:', 'WRITE' if write else 'dry run (add --write)')
     for name in ('e1_summary.json', 'e1b_summary.json'):
         p = os.path.join(LOCAL, name)
         if not os.path.exists(p):
