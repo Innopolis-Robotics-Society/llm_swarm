@@ -784,11 +784,15 @@ The simulation code, the eighteen included runs with their per-run metadata,
 decision journals, derived metrics and analysis scripts are available in the
 project repository at
 \url{https://github.com/Innopolis-Robotics-Society/llm_swarm}, on the default
-branch. The recorded rosbag payloads (approximately 2~GB) are not
-tracked in the repository; they are available from the corresponding author on
-reasonable request. No new simulation runs or offline model calls were
-performed for this revision; the reported values are retained from the existing
-reporting record.
+branch. The complete results directory, including the recorded rosbag payloads
+(2.0~GB uncompressed), is distributed as a single archive; the download link is
+given in the README of that repository. The archive is
+\code{llm\_swarm\_results\_2026-11-04.tar.zst}, a zstd-compressed tar of
+129~MB. Its SHA-256 checksum is
+\code{3866f1fce6254243\hspace{0pt}986b0052e2fc0d60\hspace{0pt}39eadc351e10c460\hspace{0pt}f4ed0feec69f740d}.
+A per-file checksum manifest is distributed alongside it. No new simulation
+runs or offline model calls were performed for this revision; the reported
+values are retained from the existing reporting record.
 
 \subsection*{Code Availability}
 The ROS~2 simulation stack, the MAPF planners, the language-orchestration
