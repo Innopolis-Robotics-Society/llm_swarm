@@ -1150,7 +1150,7 @@ def _write_json(path: str, results: list[Result], args) -> None:
         'schema_constrained': args.schema_constrained,
         # 's1' is the shipped PLAN_RESPONSE_SCHEMA; other values are E2 ladder
         # variants and are only comparable on the subset of cases they can
-        # express (see paper/results/build_e2_ladder.py).
+        # express (see paper/results/scripts/build_e2_ladder.py).
         'schema_variant': args.schema_variant if args.schema_constrained else None,
         'schema_branches': (list(SCHEMA_VARIANTS.get(args.schema_variant, _ALL_BRANCHES))
                             if args.schema_constrained else None),

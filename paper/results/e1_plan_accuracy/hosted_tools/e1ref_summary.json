@@ -1,0 +1,475 @@
+{
+  "condition": "schema_off",
+  "note": "Hosted OpenRouter models, same 44-case set and same scoring as the local cells. pass_at_1_pct is call-level (passed calls / total calls); pass_at_5_pct is case-level (cases with at least one pass).",
+  "models": {
+    "google/gemini-2.5-flash": {
+      "source_file": "e1ref_google_gemini-2_5-flash.json",
+      "llm_mode": "http",
+      "llm_model": "google/gemini-2.5-flash",
+      "llm_max_tokens": 8192,
+      "repeat": 5,
+      "num_cases": 44,
+      "total_calls": 220,
+      "total_passed_calls": 197,
+      "pass_at_1": {
+        "count": 197,
+        "of": 220,
+        "pct": 89.5,
+        "estimator": "mean over all repeats"
+      },
+      "pass_at_1_first_sample": {
+        "count": 39,
+        "of": 44,
+        "pct": 88.6,
+        "estimator": "first repeat only (superseded, kept for provenance)"
+      },
+      "pass_at_5": {
+        "count": 40,
+        "of": 44,
+        "pct": 90.9
+      },
+      "elapsed_sec": {
+        "mean": 2.36,
+        "median": 1.62,
+        "p90": 2.77
+      },
+      "timeouts": 0,
+      "by_category": {
+        "mapf_basic": {
+          "n": 5,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 25
+        },
+        "mapf_spread": {
+          "n": 2,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 10
+        },
+        "mapf_explicit": {
+          "n": 2,
+          "pass_at_1_pct": 50.0,
+          "pass_at_5_pct": 50.0,
+          "calls": 10
+        },
+        "parallel": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "sequence": {
+          "n": 4,
+          "pass_at_1_pct": 95.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "formation_create": {
+          "n": 5,
+          "pass_at_1_pct": 76.0,
+          "pass_at_5_pct": 80.0,
+          "calls": 25
+        },
+        "formation_move": {
+          "n": 3,
+          "pass_at_1_pct": 93.3,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "disband": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "formation_complex": {
+          "n": 3,
+          "pass_at_1_pct": 66.7,
+          "pass_at_5_pct": 66.7,
+          "calls": 15
+        },
+        "idle": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "escalate": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "edge": {
+          "n": 6,
+          "pass_at_1_pct": 83.3,
+          "pass_at_5_pct": 83.3,
+          "calls": 30
+        }
+      },
+      "failure_modes_all_reps": {
+        "wrong_goals": 5,
+        "wrong_formation_fields": 5,
+        "other_validator": 5,
+        "wrong_structure": 5,
+        "unparseable_json": 3
+      },
+      "cases_with_any_failure": 7,
+      "grounding": "full",
+      "schema_constrained": false,
+      "prompt_fingerprint": "42d660fe681eaa3857c239bbe8d8e97043ae15c07ef8fe088a202e49048c37ed"
+    },
+    "nvidia/nemotron-3-ultra-550b-a55b": {
+      "source_file": "e1ref_nvidia_nemotron-3-ultra-550b-a55b.json",
+      "llm_mode": "http",
+      "llm_model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "llm_max_tokens": 8192,
+      "repeat": 5,
+      "num_cases": 44,
+      "total_calls": 220,
+      "total_passed_calls": 199,
+      "pass_at_1": {
+        "count": 199,
+        "of": 220,
+        "pct": 90.5,
+        "estimator": "mean over all repeats"
+      },
+      "pass_at_1_first_sample": {
+        "count": 40,
+        "of": 44,
+        "pct": 90.9,
+        "estimator": "first repeat only (superseded, kept for provenance)"
+      },
+      "pass_at_5": {
+        "count": 43,
+        "of": 44,
+        "pct": 97.7
+      },
+      "elapsed_sec": {
+        "mean": 11.41,
+        "median": 6.43,
+        "p90": 19.72
+      },
+      "timeouts": 2,
+      "by_category": {
+        "mapf_basic": {
+          "n": 5,
+          "pass_at_1_pct": 96.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 25
+        },
+        "mapf_spread": {
+          "n": 2,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 10
+        },
+        "mapf_explicit": {
+          "n": 2,
+          "pass_at_1_pct": 90.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 10
+        },
+        "parallel": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "sequence": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "formation_create": {
+          "n": 5,
+          "pass_at_1_pct": 76.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 25
+        },
+        "edge": {
+          "n": 6,
+          "pass_at_1_pct": 66.7,
+          "pass_at_5_pct": 83.3,
+          "calls": 30
+        },
+        "formation_move": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "disband": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "formation_complex": {
+          "n": 3,
+          "pass_at_1_pct": 80.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "idle": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "escalate": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        }
+      },
+      "failure_modes_all_reps": {
+        "wrong_structure": 11,
+        "unparseable_json": 4,
+        "other_validator": 3,
+        "wrong_escalation_reason": 2,
+        "wrong_goals": 1
+      },
+      "cases_with_any_failure": 10,
+      "grounding": "full",
+      "schema_constrained": false,
+      "prompt_fingerprint": "42d660fe681eaa3857c239bbe8d8e97043ae15c07ef8fe088a202e49048c37ed"
+    },
+    "qwen/qwen3.5-397b-a17b": {
+      "source_file": "e1ref_qwen_qwen3_5-397b-a17b.json",
+      "llm_mode": "http",
+      "llm_model": "qwen/qwen3.5-397b-a17b",
+      "llm_max_tokens": 8192,
+      "repeat": 5,
+      "num_cases": 44,
+      "total_calls": 220,
+      "total_passed_calls": 205,
+      "pass_at_1": {
+        "count": 205,
+        "of": 220,
+        "pct": 93.2,
+        "estimator": "mean over all repeats"
+      },
+      "pass_at_1_first_sample": {
+        "count": 40,
+        "of": 44,
+        "pct": 90.9,
+        "estimator": "first repeat only (superseded, kept for provenance)"
+      },
+      "pass_at_5": {
+        "count": 44,
+        "of": 44,
+        "pct": 100.0
+      },
+      "elapsed_sec": {
+        "mean": 20.59,
+        "median": 9.2,
+        "p90": 33.7
+      },
+      "timeouts": 4,
+      "by_category": {
+        "mapf_basic": {
+          "n": 5,
+          "pass_at_1_pct": 88.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 25
+        },
+        "parallel": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "sequence": {
+          "n": 4,
+          "pass_at_1_pct": 95.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "formation_create": {
+          "n": 5,
+          "pass_at_1_pct": 96.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 25
+        },
+        "formation_move": {
+          "n": 3,
+          "pass_at_1_pct": 93.3,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "disband": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "formation_complex": {
+          "n": 3,
+          "pass_at_1_pct": 93.3,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "idle": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "escalate": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "edge": {
+          "n": 6,
+          "pass_at_1_pct": 93.3,
+          "pass_at_5_pct": 100.0,
+          "calls": 30
+        },
+        "mapf_spread": {
+          "n": 2,
+          "pass_at_1_pct": 80.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 10
+        },
+        "mapf_explicit": {
+          "n": 2,
+          "pass_at_1_pct": 60.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 10
+        }
+      },
+      "failure_modes_all_reps": {
+        "wrong_goals": 7,
+        "other_validator": 4,
+        "wrong_structure": 3,
+        "unparseable_json": 1
+      },
+      "cases_with_any_failure": 8,
+      "grounding": "full",
+      "schema_constrained": false,
+      "prompt_fingerprint": "42d660fe681eaa3857c239bbe8d8e97043ae15c07ef8fe088a202e49048c37ed"
+    },
+    "qwen/qwen3.5-9b": {
+      "source_file": "e1ref_qwen_qwen3_5-9b.json",
+      "llm_mode": "http",
+      "llm_model": "qwen/qwen3.5-9b",
+      "llm_max_tokens": 8192,
+      "repeat": 5,
+      "num_cases": 44,
+      "total_calls": 220,
+      "total_passed_calls": 199,
+      "pass_at_1": {
+        "count": 199,
+        "of": 220,
+        "pct": 90.5,
+        "estimator": "mean over all repeats"
+      },
+      "pass_at_1_first_sample": {
+        "count": 41,
+        "of": 44,
+        "pct": 93.2,
+        "estimator": "first repeat only (superseded, kept for provenance)"
+      },
+      "pass_at_5": {
+        "count": 43,
+        "of": 44,
+        "pct": 97.7
+      },
+      "elapsed_sec": {
+        "mean": 17.67,
+        "median": 7.56,
+        "p90": 42.9
+      },
+      "timeouts": 0,
+      "by_category": {
+        "mapf_basic": {
+          "n": 5,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 25
+        },
+        "mapf_spread": {
+          "n": 2,
+          "pass_at_1_pct": 50.0,
+          "pass_at_5_pct": 50.0,
+          "calls": 10
+        },
+        "mapf_explicit": {
+          "n": 2,
+          "pass_at_1_pct": 60.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 10
+        },
+        "parallel": {
+          "n": 4,
+          "pass_at_1_pct": 80.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "sequence": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "formation_create": {
+          "n": 5,
+          "pass_at_1_pct": 92.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 25
+        },
+        "formation_move": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "disband": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "formation_complex": {
+          "n": 3,
+          "pass_at_1_pct": 93.3,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "idle": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "escalate": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "edge": {
+          "n": 6,
+          "pass_at_1_pct": 83.3,
+          "pass_at_5_pct": 100.0,
+          "calls": 30
+        }
+      },
+      "failure_modes_all_reps": {
+        "wrong_goals": 10,
+        "wrong_structure": 8,
+        "wrong_formation_fields": 3
+      },
+      "cases_with_any_failure": 7,
+      "grounding": "full",
+      "schema_constrained": false,
+      "prompt_fingerprint": "42d660fe681eaa3857c239bbe8d8e97043ae15c07ef8fe088a202e49048c37ed"
+    }
+  }
+}

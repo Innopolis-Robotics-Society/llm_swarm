@@ -33,7 +33,7 @@ set -u
 # up a 20-robot stack.
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REC="$SRC/scripts/record_session.sh"
-SESSIONS_ROOT="${SWARM_SESSIONS_DIR:-$SRC/paper/results/sessions}"
+SESSIONS_ROOT="${SWARM_SESSIONS_DIR:-$SRC/paper/results/e2_mission_series}"
 
 # ── campaign constants ────────────────────────────────────────────────────
 # Pinned for the whole campaign. Changing any of these mid-run invalidates the
@@ -125,7 +125,9 @@ if [ -z "$REP" ]; then
 import glob, json, os, sys
 root, cell = sys.argv[1], sys.argv[2]
 n = 0
-for p in glob.glob(os.path.join(root, '*', 'session.json')):
+# Runs are grouped one level down by cell, so scan two levels.
+for p in glob.glob(os.path.join(root, '*', '*', 'session.json')) + \
+         glob.glob(os.path.join(root, '*', 'session.json')):
     try:
         if json.load(open(p, encoding='utf-8')).get('cell') == cell:
             n += 1

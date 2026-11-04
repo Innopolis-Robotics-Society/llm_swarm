@@ -140,7 +140,7 @@ MISSIONS: dict[str, list[tuple[list[int], str]]] = {
 # two footprints occupy one cell. The solver will not produce it, so they
 # fight over the last metre and at least one never registers inside the
 # radius. The first five recorded no-LLM runs
-# (paper/results/sessions/20260815_14*) needed this patched in by hand before
+# (paper/results/e2_mission_series/no_llm/20260815_14*) needed this patched in by hand before
 # they would score.
 #
 # WHY THE GROUPING IS BY POINT AND NOT BY ASSIGNMENT

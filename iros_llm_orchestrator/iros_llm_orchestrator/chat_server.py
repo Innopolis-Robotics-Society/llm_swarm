@@ -1615,7 +1615,7 @@ class ChatServer(Node):
         _log_mission runs only from the terminal paths (_fail / _succeed), so
         a mission that never terminates is a mission that never gets written.
         That is not hypothetical: of the three B-M3 runs in
-        paper/results/sessions/, the only one with a JSONL is the one that
+        paper/results/e2_mission_series/, the only one with a JSONL is the one that
         failed. The two that completed eight of nine tasks were stopped by the
         operator while the supervision loop was still going, and their guard,
         remediation and repair counters -- which exist nowhere else, not in
@@ -1628,7 +1628,7 @@ class ChatServer(Node):
 
         Records share `mission_id` and counters are cumulative, so a reader
         reduces by taking the LAST record per mission -- never by summing.
-        See paper/results/analyze_sessions.py:_read_chat_log.
+        See paper/results/scripts/analyze_sessions.py:_read_chat_log.
 
         Never raises: instrumentation must not be able to fail a mission.
         """

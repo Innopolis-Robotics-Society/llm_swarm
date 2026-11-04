@@ -8,7 +8,9 @@
 #
 # Stop with Ctrl+C. The bag is closed cleanly and the folder is summarised.
 #
-# Produces paper/results/sessions/<timestamp>/ inside the repo (gitignored)
+# Produces paper/results/e2_mission_series/<cell>/<timestamp>/ inside the repo
+# (bags gitignored, text artefacts tracked). The cell directory is derived from
+# --cell, so a run is filed where the article expects it without a manual move.
 #   bag/                 rosbag2 of the topics listed in TOPICS below
 #   llm_chat/*.jsonl     channel 3, one record per operator command
 #   llm_decisions/*.jsonl  channel 1
@@ -95,8 +97,18 @@ STAMP=$(date +%Y%m%d_%H%M%S)
 # ~5 GB of bags and must never enter git, while the small text artefacts
 # (session.json, llm_chat/*.jsonl) can be copied out deliberately if a run is
 # worth committing.
-SESSIONS_ROOT="${SWARM_SESSIONS_DIR:-$SRC/paper/results/sessions}"
-SESSION="$SESSIONS_ROOT/$STAMP"
+SESSIONS_ROOT="${SWARM_SESSIONS_DIR:-$SRC/paper/results/e2_mission_series}"
+# Cell name -> directory. The article's cells are the directory names; a run
+# with no --cell lands in _incoming and has to be filed by hand, which is the
+# point: an unlabelled run must not silently join a cell.
+case "$CELL" in
+  no-LLM)   CELL_DIR=no_llm ;;
+  model-9b) CELL_DIR=model_9b ;;
+  B)        CELL_DIR=cell_b ;;
+  B-M3)     CELL_DIR=cell_b_m3 ;;
+  *)        CELL_DIR=_incoming ;;
+esac
+SESSION="$SESSIONS_ROOT/$CELL_DIR/$STAMP"
 mkdir -p "$SESSION"
 
 # Topic set depends on the experiment. Recording everything for every run is

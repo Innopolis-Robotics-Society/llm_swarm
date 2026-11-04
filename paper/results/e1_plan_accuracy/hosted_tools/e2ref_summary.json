@@ -1,0 +1,475 @@
+{
+  "condition": "schema_on",
+  "note": "Hosted OpenRouter models, same 44-case set and same scoring as the local cells. pass_at_1_pct is call-level (passed calls / total calls); pass_at_5_pct is case-level (cases with at least one pass).",
+  "models": {
+    "google/gemini-2.5-flash": {
+      "source_file": "e2ref_google_gemini-2_5-flash.json",
+      "llm_mode": "http",
+      "llm_model": "google/gemini-2.5-flash",
+      "llm_max_tokens": 8192,
+      "repeat": 5,
+      "num_cases": 44,
+      "total_calls": 220,
+      "total_passed_calls": 178,
+      "pass_at_1": {
+        "count": 178,
+        "of": 220,
+        "pct": 80.9,
+        "estimator": "mean over all repeats"
+      },
+      "pass_at_1_first_sample": {
+        "count": 36,
+        "of": 44,
+        "pct": 81.8,
+        "estimator": "first repeat only (superseded, kept for provenance)"
+      },
+      "pass_at_5": {
+        "count": 38,
+        "of": 44,
+        "pct": 86.4
+      },
+      "elapsed_sec": {
+        "mean": 2.48,
+        "median": 1.78,
+        "p90": 2.88
+      },
+      "timeouts": 0,
+      "by_category": {
+        "mapf_basic": {
+          "n": 5,
+          "pass_at_1_pct": 92.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 25
+        },
+        "mapf_spread": {
+          "n": 2,
+          "pass_at_1_pct": 60.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 10
+        },
+        "mapf_explicit": {
+          "n": 2,
+          "pass_at_1_pct": 90.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 10
+        },
+        "parallel": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "sequence": {
+          "n": 4,
+          "pass_at_1_pct": 75.0,
+          "pass_at_5_pct": 75.0,
+          "calls": 20
+        },
+        "formation_create": {
+          "n": 5,
+          "pass_at_1_pct": 88.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 25
+        },
+        "formation_move": {
+          "n": 3,
+          "pass_at_1_pct": 86.7,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "disband": {
+          "n": 3,
+          "pass_at_1_pct": 66.7,
+          "pass_at_5_pct": 66.7,
+          "calls": 15
+        },
+        "formation_complex": {
+          "n": 3,
+          "pass_at_1_pct": 33.3,
+          "pass_at_5_pct": 33.3,
+          "calls": 15
+        },
+        "idle": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "escalate": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "edge": {
+          "n": 6,
+          "pass_at_1_pct": 66.7,
+          "pass_at_5_pct": 66.7,
+          "calls": 30
+        }
+      },
+      "failure_modes_all_reps": {
+        "other_validator": 25,
+        "unparseable_json": 9,
+        "wrong_structure": 8
+      },
+      "cases_with_any_failure": 14,
+      "grounding": "full",
+      "schema_constrained": true,
+      "prompt_fingerprint": "42d660fe681eaa3857c239bbe8d8e97043ae15c07ef8fe088a202e49048c37ed"
+    },
+    "nvidia/nemotron-3-ultra-550b-a55b": {
+      "source_file": "e2ref_nvidia_nemotron-3-ultra-550b-a55b.json",
+      "llm_mode": "http",
+      "llm_model": "nvidia/nemotron-3-ultra-550b-a55b",
+      "llm_max_tokens": 8192,
+      "repeat": 5,
+      "num_cases": 44,
+      "total_calls": 220,
+      "total_passed_calls": 195,
+      "pass_at_1": {
+        "count": 195,
+        "of": 220,
+        "pct": 88.6,
+        "estimator": "mean over all repeats"
+      },
+      "pass_at_1_first_sample": {
+        "count": 40,
+        "of": 44,
+        "pct": 90.9,
+        "estimator": "first repeat only (superseded, kept for provenance)"
+      },
+      "pass_at_5": {
+        "count": 42,
+        "of": 44,
+        "pct": 95.5
+      },
+      "elapsed_sec": {
+        "mean": 2.5,
+        "median": 2.21,
+        "p90": 3.68
+      },
+      "timeouts": 0,
+      "by_category": {
+        "mapf_basic": {
+          "n": 5,
+          "pass_at_1_pct": 92.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 25
+        },
+        "mapf_spread": {
+          "n": 2,
+          "pass_at_1_pct": 90.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 10
+        },
+        "mapf_explicit": {
+          "n": 2,
+          "pass_at_1_pct": 50.0,
+          "pass_at_5_pct": 50.0,
+          "calls": 10
+        },
+        "parallel": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "sequence": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "formation_create": {
+          "n": 5,
+          "pass_at_1_pct": 72.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 25
+        },
+        "formation_move": {
+          "n": 3,
+          "pass_at_1_pct": 93.3,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "disband": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "formation_complex": {
+          "n": 3,
+          "pass_at_1_pct": 66.7,
+          "pass_at_5_pct": 66.7,
+          "calls": 15
+        },
+        "idle": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "escalate": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "edge": {
+          "n": 6,
+          "pass_at_1_pct": 86.7,
+          "pass_at_5_pct": 100.0,
+          "calls": 30
+        }
+      },
+      "failure_modes_all_reps": {
+        "wrong_structure": 12,
+        "wrong_goals": 6,
+        "wrong_formation_fields": 6,
+        "wrong_robot_ids": 1
+      },
+      "cases_with_any_failure": 10,
+      "grounding": "full",
+      "schema_constrained": true,
+      "prompt_fingerprint": "42d660fe681eaa3857c239bbe8d8e97043ae15c07ef8fe088a202e49048c37ed"
+    },
+    "qwen/qwen3.5-397b-a17b": {
+      "source_file": "e2ref_qwen_qwen3_5-397b-a17b.json",
+      "llm_mode": "http",
+      "llm_model": "qwen/qwen3.5-397b-a17b",
+      "llm_max_tokens": 8192,
+      "repeat": 5,
+      "num_cases": 44,
+      "total_calls": 220,
+      "total_passed_calls": 209,
+      "pass_at_1": {
+        "count": 209,
+        "of": 220,
+        "pct": 95.0,
+        "estimator": "mean over all repeats"
+      },
+      "pass_at_1_first_sample": {
+        "count": 44,
+        "of": 44,
+        "pct": 100.0,
+        "estimator": "first repeat only (superseded, kept for provenance)"
+      },
+      "pass_at_5": {
+        "count": 44,
+        "of": 44,
+        "pct": 100.0
+      },
+      "elapsed_sec": {
+        "mean": 14.83,
+        "median": 8.05,
+        "p90": 27.16
+      },
+      "timeouts": 2,
+      "by_category": {
+        "mapf_basic": {
+          "n": 5,
+          "pass_at_1_pct": 84.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 25
+        },
+        "mapf_spread": {
+          "n": 2,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 10
+        },
+        "parallel": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "sequence": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "formation_create": {
+          "n": 5,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 25
+        },
+        "formation_move": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "disband": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "formation_complex": {
+          "n": 3,
+          "pass_at_1_pct": 93.3,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "escalate": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "edge": {
+          "n": 6,
+          "pass_at_1_pct": 90.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 30
+        },
+        "mapf_explicit": {
+          "n": 2,
+          "pass_at_1_pct": 70.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 10
+        },
+        "idle": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        }
+      },
+      "failure_modes_all_reps": {
+        "wrong_structure": 4,
+        "unparseable_json": 3,
+        "other_validator": 2,
+        "wrong_goals": 2
+      },
+      "cases_with_any_failure": 5,
+      "grounding": "full",
+      "schema_constrained": true,
+      "prompt_fingerprint": "42d660fe681eaa3857c239bbe8d8e97043ae15c07ef8fe088a202e49048c37ed"
+    },
+    "qwen/qwen3.5-9b": {
+      "source_file": "e2ref_qwen_qwen3_5-9b.json",
+      "llm_mode": "http",
+      "llm_model": "qwen/qwen3.5-9b",
+      "llm_max_tokens": 8192,
+      "repeat": 5,
+      "num_cases": 44,
+      "total_calls": 220,
+      "total_passed_calls": 113,
+      "pass_at_1": {
+        "count": 113,
+        "of": 220,
+        "pct": 51.4,
+        "estimator": "mean over all repeats"
+      },
+      "pass_at_1_first_sample": {
+        "count": 26,
+        "of": 44,
+        "pct": 59.1,
+        "estimator": "first repeat only (superseded, kept for provenance)"
+      },
+      "pass_at_5": {
+        "count": 27,
+        "of": 44,
+        "pct": 61.4
+      },
+      "elapsed_sec": {
+        "mean": 19.66,
+        "median": 7.4,
+        "p90": 29.59
+      },
+      "timeouts": 5,
+      "by_category": {
+        "mapf_basic": {
+          "n": 5,
+          "pass_at_1_pct": 60.0,
+          "pass_at_5_pct": 80.0,
+          "calls": 25
+        },
+        "mapf_spread": {
+          "n": 2,
+          "pass_at_1_pct": 40.0,
+          "pass_at_5_pct": 50.0,
+          "calls": 10
+        },
+        "mapf_explicit": {
+          "n": 2,
+          "pass_at_1_pct": 40.0,
+          "pass_at_5_pct": 50.0,
+          "calls": 10
+        },
+        "parallel": {
+          "n": 4,
+          "pass_at_1_pct": 25.0,
+          "pass_at_5_pct": 25.0,
+          "calls": 20
+        },
+        "formation_move": {
+          "n": 3,
+          "pass_at_1_pct": 53.3,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "disband": {
+          "n": 3,
+          "pass_at_1_pct": 93.3,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "formation_complex": {
+          "n": 3,
+          "pass_at_1_pct": 73.3,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "idle": {
+          "n": 3,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 15
+        },
+        "escalate": {
+          "n": 4,
+          "pass_at_1_pct": 100.0,
+          "pass_at_5_pct": 100.0,
+          "calls": 20
+        },
+        "edge": {
+          "n": 6,
+          "pass_at_1_pct": 43.3,
+          "pass_at_5_pct": 50.0,
+          "calls": 30
+        },
+        "sequence": {
+          "n": 4,
+          "pass_at_1_pct": 20.0,
+          "pass_at_5_pct": 25.0,
+          "calls": 20
+        },
+        "formation_create": {
+          "n": 5,
+          "pass_at_1_pct": 0.0,
+          "pass_at_5_pct": 0.0,
+          "calls": 25
+        }
+      },
+      "failure_modes_all_reps": {
+        "wrong_structure": 56,
+        "wrong_robot_ids": 24,
+        "wrong_formation_fields": 11,
+        "wrong_goals": 8,
+        "other_validator": 5,
+        "unparseable_json": 3
+      },
+      "cases_with_any_failure": 31,
+      "grounding": "full",
+      "schema_constrained": true,
+      "prompt_fingerprint": "42d660fe681eaa3857c239bbe8d8e97043ae15c07ef8fe088a202e49048c37ed"
+    }
+  }
+}

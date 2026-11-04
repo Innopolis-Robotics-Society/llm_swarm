@@ -1,0 +1,271 @@
+{
+ "experiment": "E1 -- hermetic channel-3 planning accuracy",
+ "note": "A third model, qwen3.5-9b-32k, was originally planned as a third condition but was found to be byte-identical in weights/quantization to qwen3.5-9b (ollama show: same FROM blob SHA256s, same Q8_0 quantization); the only Modelfile difference is a baked-in num_ctx=32768 default, which our harness overrides explicitly via --llm-num-ctx for every model regardless. Under our invocation the two tags are functionally the same model, so the run was cancelled mid-sweep rather than reported as a distinct third condition. E1 therefore covers 2 distinct models: qwen2.5:14b and qwen3.5-9b.",
+ "models": {
+  "qwen2.5:14b": {
+   "source_file": "/home/zifka/Personal/inno_study/llm_swarm/paper/results/raw/e1_qwen2_5_14b.json",
+   "llm_mode": "ollama",
+   "llm_model": "qwen2.5:14b",
+   "repeat": 5,
+   "num_cases": 49,
+   "total_calls": 245,
+   "total_passed_calls": 168,
+   "pass_at_1": {
+    "count": 168,
+    "of": 245,
+    "pct": 68.6,
+    "estimator": "mean over all repeats"
+   },
+   "pass_at_5": {
+    "count": 35,
+    "of": 49,
+    "pct": 71.4
+   },
+   "elapsed_sec": {
+    "mean": 10.58,
+    "median": 9.29,
+    "p90": 20.79
+   },
+   "timeouts": 1,
+   "by_category": {
+    "mapf_basic": {
+     "n": 5,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 25
+    },
+    "mapf_spread": {
+     "n": 2,
+     "pass_at_1_pct": 50.0,
+     "pass_at_5_pct": 50.0,
+     "calls": 10
+    },
+    "mapf_explicit": {
+     "n": 2,
+     "pass_at_1_pct": 50.0,
+     "pass_at_5_pct": 50.0,
+     "calls": 10
+    },
+    "parallel": {
+     "n": 4,
+     "pass_at_1_pct": 95.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 20
+    },
+    "sequence": {
+     "n": 4,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 20
+    },
+    "formation_create": {
+     "n": 5,
+     "pass_at_1_pct": 44.0,
+     "pass_at_5_pct": 60.0,
+     "calls": 25
+    },
+    "formation_move": {
+     "n": 3,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 15
+    },
+    "disband": {
+     "n": 3,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 15
+    },
+    "formation_complex": {
+     "n": 3,
+     "pass_at_1_pct": 53.3,
+     "pass_at_5_pct": 66.7,
+     "calls": 15
+    },
+    "idle": {
+     "n": 3,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 15
+    },
+    "escalate": {
+     "n": 4,
+     "pass_at_1_pct": 50.0,
+     "pass_at_5_pct": 50.0,
+     "calls": 20
+    },
+    "russian": {
+     "n": 5,
+     "pass_at_1_pct": 20.0,
+     "pass_at_5_pct": 20.0,
+     "calls": 25
+    },
+    "edge": {
+     "n": 6,
+     "pass_at_1_pct": 50.0,
+     "pass_at_5_pct": 50.0,
+     "calls": 30
+    }
+   },
+   "cases_with_any_failure": 18,
+   "llm_max_tokens": null,
+   "failure_modes_all_reps": {
+    "other_validator": 31,
+    "wrong_structure": 27,
+    "wrong_goals": 10,
+    "wrong_formation_fields": 8,
+    "unparseable_json": 1
+   },
+   "grounding": "full",
+   "schema_constrained": false,
+   "prompt_fingerprint": null,
+   "pass_at_1_first_sample": {
+    "count": 33,
+    "of": 49,
+    "pct": 67.3,
+    "estimator": "first repeat only (superseded, kept for provenance)"
+   }
+  },
+  "qwen3.5-9b": {
+   "source_file": "/home/zifka/Personal/inno_study/llm_swarm/paper/results/raw/e1_qwen3_5-9b_latest.json",
+   "llm_mode": "ollama",
+   "llm_model": "qwen3.5-9b:latest",
+   "repeat": 5,
+   "num_cases": 49,
+   "total_calls": 245,
+   "total_passed_calls": 192,
+   "pass_at_1": {
+    "count": 192,
+    "of": 245,
+    "pct": 78.4,
+    "estimator": "mean over all repeats"
+   },
+   "pass_at_5": {
+    "count": 43,
+    "of": 49,
+    "pct": 87.8
+   },
+   "elapsed_sec": {
+    "mean": 10.56,
+    "median": 8.04,
+    "p90": 19.77
+   },
+   "timeouts": 0,
+   "by_category": {
+    "mapf_basic": {
+     "n": 5,
+     "pass_at_1_pct": 92.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 25
+    },
+    "mapf_spread": {
+     "n": 2,
+     "pass_at_1_pct": 50.0,
+     "pass_at_5_pct": 50.0,
+     "calls": 10
+    },
+    "mapf_explicit": {
+     "n": 2,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 10
+    },
+    "parallel": {
+     "n": 4,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 20
+    },
+    "sequence": {
+     "n": 4,
+     "pass_at_1_pct": 85.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 20
+    },
+    "formation_create": {
+     "n": 5,
+     "pass_at_1_pct": 40.0,
+     "pass_at_5_pct": 60.0,
+     "calls": 25
+    },
+    "formation_move": {
+     "n": 3,
+     "pass_at_1_pct": 66.7,
+     "pass_at_5_pct": 66.7,
+     "calls": 15
+    },
+    "disband": {
+     "n": 3,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 15
+    },
+    "formation_complex": {
+     "n": 3,
+     "pass_at_1_pct": 46.7,
+     "pass_at_5_pct": 66.7,
+     "calls": 15
+    },
+    "idle": {
+     "n": 3,
+     "pass_at_1_pct": 100.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 15
+    },
+    "escalate": {
+     "n": 4,
+     "pass_at_1_pct": 90.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 20
+    },
+    "russian": {
+     "n": 5,
+     "pass_at_1_pct": 84.0,
+     "pass_at_5_pct": 100.0,
+     "calls": 25
+    },
+    "edge": {
+     "n": 6,
+     "pass_at_1_pct": 70.0,
+     "pass_at_5_pct": 83.3,
+     "calls": 30
+    }
+   },
+   "cases_with_any_failure": 16,
+   "llm_max_tokens": null,
+   "failure_modes_all_reps": {
+    "unparseable_json": 41,
+    "wrong_structure": 5,
+    "wrong_goals": 5,
+    "wrong_formation_fields": 2
+   },
+   "grounding": "full",
+   "schema_constrained": false,
+   "prompt_fingerprint": null,
+   "pass_at_1_first_sample": {
+    "count": 39,
+    "of": 49,
+    "pct": 79.6,
+    "estimator": "first repeat only (superseded, kept for provenance)"
+   }
+  }
+ },
+ "rescored": [
+  {
+   "at": "2026-08-11T11:10:48.629715+00:00",
+   "what": "regenerated after the either-prefix validator fix: escalate_04 and edge_06 were unpassable (chk(a) or chk(b) with list-returning checks reports an error whenever either prefix is absent). Scored from the stored raw output; no model was called again.",
+   "changes": [
+    "qwen2.5:14b: pass@1 32→33, pass@5 34→35, вызовов 163→168",
+    "qwen3.5-9b: pass@1 37→39, pass@5 41→43, вызовов 182→192"
+   ]
+  },
+  {
+   "at": "2026-11-03T14:50:52.731203+00:00",
+   "what": "regenerated to switch pass_at_1 from the first-sample estimator to the call-level one (passed calls over total calls). The superseded first-sample figure is retained as pass_at_1_first_sample. Scored from the stored raw output; no model was called again.",
+   "changes": [
+    "qwen2.5:14b: pass_at_1 33->168, pass@5 35->35, calls 168->168",
+    "qwen3.5-9b: pass_at_1 39->192, pass@5 43->43, calls 192->192"
+   ]
+  }
+ ]
+}

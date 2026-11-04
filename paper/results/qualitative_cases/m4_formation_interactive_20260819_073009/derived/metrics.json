@@ -1,0 +1,787 @@
+{
+  "stamp": "m4_formation_interactive_20260819_073009",
+  "dir": "paper/results/qualitative_cases/m4_formation_interactive_20260819_073009",
+  "problems": [
+    "mission killed mid-flight, last phase continuing -- counters are valid up to that point but the outcome is unknown, do not score it as a failure",
+    "3 MAPF goal(s) ended SUCCEEDED having planned nobody -- the planner refused them (result.success is false but the result payload is not recorded); read launch.log for the reason, and do not read the terminal status as a clean goal"
+  ],
+  "session": {
+    "started_at": "2026-08-19T07:30:10.202007+00:00",
+    "git_commit": "12e32e59f4039aea4719a3063f9aa491ce536fe0",
+    "git_dirty": true,
+    "planner": "lns",
+    "scenario": "amongus",
+    "num_robots": 20,
+    "note": "provider=Parasail,AtlasCloud,GMICloud,Chutes",
+    "cell": "M4",
+    "mission": "M4",
+    "repeat_index": "4",
+    "llm_model": {
+      "value": "qwen/qwen3.5-397b-a17b",
+      "source": "cli"
+    },
+    "llm_endpoint": {
+      "value": "https://openrouter.ai/api/v1/chat/completions",
+      "source": "cli"
+    },
+    "llm_routing": {
+      "openrouter_provider": "Parasail,AtlasCloud,GMICloud,Chutes",
+      "openrouter_allow_fallbacks": "false",
+      "llm_call_delay_sec": "1",
+      "api_key_present": true
+    },
+    "ablation_factors": {
+      "remediation_enabled": {
+        "value": true,
+        "source": "cli"
+      },
+      "llm_repair_enabled": {
+        "value": true,
+        "source": "cli"
+      },
+      "llm_mission_supervision_enabled": {
+        "value": true,
+        "source": "cli"
+      },
+      "tool_calling_enabled": {
+        "value": true,
+        "source": "cli"
+      },
+      "structured_output_enabled": {
+        "value": false,
+        "source": "cli"
+      }
+    },
+    "finished_at": "2026-08-19T07:42:25.548568+00:00",
+    "bag_finalised": true,
+    "operator_commands_logged": 29,
+    "bag_messages": 454915,
+    "topics_recorded_empty": []
+  },
+  "cell": "M4",
+  "mission": "M4",
+  "repeat": "4",
+  "planner": "lns",
+  "model": "qwen/qwen3.5-397b-a17b",
+  "provider": "Parasail,AtlasCloud,GMICloud,Chutes",
+  "operator_commands": 29,
+  "git_commit": "12e32e59",
+  "git_dirty": true,
+  "factors": {
+    "remediation_enabled": true,
+    "llm_repair_enabled": true,
+    "llm_mission_supervision_enabled": true,
+    "tool_calling_enabled": true,
+    "structured_output_enabled": false
+  },
+  "chat": {
+    "present": true,
+    "n_missions": 4,
+    "n_rows": 29,
+    "n_killed": 1,
+    "last_phase": [
+      "final",
+      "final",
+      "final",
+      "continuing"
+    ],
+    "totals": {
+      "llm_calls": 8,
+      "remediation_attempts": 0,
+      "verification_repair_attempts": 0,
+      "supervision_steps": 5,
+      "guard_active_formation_fired": 0,
+      "guard_occupancy_rewrites": 1,
+      "guard_formation_staging_fired": 0,
+      "guard_single_carrier_fired": 0,
+      "guard_shared_dropoff_fired": 0
+    },
+    "llm_seconds": 374.3,
+    "success": [
+      false,
+      true,
+      false,
+      false
+    ],
+    "verification_ok": [
+      false,
+      false,
+      true,
+      false
+    ],
+    "info": [
+      "continuation generation failed: LLM error: HTTP LLM 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"error\\\":{\\\"message\\\":\\\"6 validation errors for ValidatorIterator\\\\n0.ChatCompletionMessageFunctionToolCallParam.id\\\\n  Field required [type=missing, input_value={'function': {'name': 'fi... 'min_clearance_m': 2}}}, input_type=dict]\\\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\\\n0.ChatCompletionMessageFunctionToolCallParam.function.arguments\\\\n  Input should be a valid string [type=str: missing formations: cyan_column; 3 follower(s) out of tolerance; missing state: /formations/status",
+      "needs_help: LLM emitted needs_help on initial reply",
+      "continuation generation failed: LLM timeout: cyan_column active; followers within tolerance",
+      ""
+    ],
+    "plan_json": [
+      "{\"type\": \"sequence\", \"steps\": [{\"type\": \"mapf\", \"robot_ids\": [0, 1, 2, 3], \"goals\": [[2.7, 10.1], [1.95, 9.35], [1.95, 10.85], [3.45, 9.35]], \"reason\": \"cyan to cafeteria for column formation; occupancy-aware room placement in cafeteria\"}, {\"type\": \"formation\", \"formation_id\": \"cyan_column\", \"leader_ns\": \"robot_0\", \"follower_ns\": [\"robot_1\", \"robot_2\", \"robot_3\"], \"offsets_x\": [-1.5, -3.0, -4.5], \"offsets_y\": [0.0, 0.0, 0.0], \"reason\": \"column formation\", \"_hint\": \"Formation \\\"cyan_column\\\" is not in a pre-approved zone (min clearance ~2.0 m). Approved zones: ['cafeteria', 'reactor', 'storage']\"}, {\"type\": \"mapf\", \"robot_ids\": [0], \"goals\": [[0.6, -10.9]], \"reason\": \"move cyan column leader to storage (followers track)\", \"spread\": false}, {\"type\": \"disband\", \"formation_id\": \"cyan_column\", \"reason\": \"operator disband after reaching storage\"}]}",
+      "{\"type\": \"idle\", \"reason\": \"clarify: no destination specified for robot_0\"}",
+      "{\"type\": \"sequence\", \"steps\": [{\"type\": \"mapf\", \"robot_ids\": [0, 1, 2, 3], \"goals\": [[2.7, 9.6], [2.7, 11.1], [2.7, 8.1], [2.7, 12.6]], \"reason\": \"cyan to column formation positions in cafeteria\", \"spread\": false}, {\"type\": \"formation\", \"formation_id\": \"cyan_column\", \"leader_ns\": \"robot_0\", \"follower_ns\": [\"robot_1\", \"robot_2\", \"robot_3\"], \"offsets_x\": [0.0, 0.0, 0.0], \"offsets_y\": [1.5, -1.5, 3.0], \"reason\": \"column formation in cafeteria\", \"_hint\": \"Formation \\\"cyan_column\\\" is not in a pre-approved zone (min clearance ~2.0 m). Approved zones: ['cafeteria', 'reactor', 'storage']\"}, {\"type\": \"mapf\", \"robot_ids\": [0], \"goals\": [[0.6, -10.9]], \"reason\": \"move cyan column leader to storage (followers track)\", \"spread\": false}, {\"type\": \"disband\", \"formation_id\": \"cyan_column\", \"reason\": \"disband column after reaching storage\"}]}",
+      "{\"type\": \"mapf\", \"robot_ids\": [0, 1, 2, 3], \"goals\": [[2.7, 10.1], [1.7, 9.1], [1.7, 11.1], [3.7, 9.1]], \"reason\": \"retry cafeteria placement with recomputed free group goals after partial failure\", \"spread\": false}"
+    ],
+    "plan_shape": [
+      {
+        "parsed": true,
+        "root_type": "sequence",
+        "node_counts": {
+          "sequence": 1,
+          "mapf": 2,
+          "formation": 1,
+          "disband": 1
+        },
+        "depth": 1,
+        "n_leaves": 4,
+        "robots_named": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "nested_sequence_in_parallel": false,
+        "conflicts": []
+      },
+      {
+        "parsed": true,
+        "root_type": "idle",
+        "node_counts": {
+          "idle": 1
+        },
+        "depth": 0,
+        "n_leaves": 1,
+        "robots_named": [],
+        "nested_sequence_in_parallel": false,
+        "conflicts": []
+      },
+      {
+        "parsed": true,
+        "root_type": "sequence",
+        "node_counts": {
+          "sequence": 1,
+          "mapf": 2,
+          "formation": 1,
+          "disband": 1
+        },
+        "depth": 1,
+        "n_leaves": 4,
+        "robots_named": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "nested_sequence_in_parallel": false,
+        "conflicts": []
+      },
+      {
+        "parsed": true,
+        "root_type": "mapf",
+        "node_counts": {
+          "mapf": 1
+        },
+        "depth": 0,
+        "n_leaves": 1,
+        "robots_named": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "nested_sequence_in_parallel": false,
+        "conflicts": []
+      }
+    ],
+    "records": [
+      {
+        "mission_id": "83f336e2bf07",
+        "record_kind": "final",
+        "user_message": "Form a column of the four cyan robots (robot_0, robot_1, robot_2, robot_3) led by robot_0 in the cafeteria at (2.7, 10.1), then move the column to storage at (0.6, -10.9), then disband it.",
+        "llm_mode": "http",
+        "llm_model": "qwen/qwen3.5-397b-a17b",
+        "map_name": "amongus_description",
+        "elapsed_sec": 145.522,
+        "llm_calls": 2,
+        "llm_seconds": 77.99799999999999,
+        "guard_active_formation_fired": 0,
+        "guard_occupancy_rewrites": 1,
+        "guard_formation_staging_fired": 0,
+        "guard_single_carrier_fired": 0,
+        "guard_shared_dropoff_fired": 0,
+        "remediation_attempts": 0,
+        "verification_repair_attempts": 0,
+        "supervision_steps": 1,
+        "verification_ok": false,
+        "verification_summary": "missing formations: cyan_column; 3 follower(s) out of tolerance; missing state: /formations/status",
+        "timestamp": "2026-08-19T07:33:00.847346+00:00",
+        "mission_step": 1,
+        "plan_json": "{\"type\": \"sequence\", \"steps\": [{\"type\": \"mapf\", \"robot_ids\": [0, 1, 2, 3], \"goals\": [[2.7, 10.1], [1.95, 9.35], [1.95, 10.85], [3.45, 9.35]], \"reason\": \"cyan to cafeteria for column formation; occupancy-aware room placement in cafeteria\"}, {\"type\": \"formation\", \"formation_id\": \"cyan_column\", \"leader_ns\": \"robot_0\", \"follower_ns\": [\"robot_1\", \"robot_2\", \"robot_3\"], \"offsets_x\": [-1.5, -3.0, -4.5], \"offsets_y\": [0.0, 0.0, 0.0], \"reason\": \"column formation\", \"_hint\": \"Formation \\\"cyan_column\\\" is not in a pre-approved zone (min clearance ~2.0 m). Approved zones: ['cafeteria', 'reactor', 'storage']\"}, {\"type\": \"mapf\", \"robot_ids\": [0], \"goals\": [[0.6, -10.9]], \"reason\": \"move cyan column leader to storage (followers track)\", \"spread\": false}, {\"type\": \"disband\", \"formation_id\": \"cyan_column\", \"reason\": \"operator disband after reaching storage\"}]}",
+        "execution_ok": false,
+        "failure_info": "{\"leaf_type\": \"mapf\", \"action_status\": \"ERROR\", \"last_error\": \"partial: robot_0 did not reach the requested goal; the rest arrived\", \"failed_at_phase\": \"phase2\"}",
+        "success": false,
+        "plan_executed": false,
+        "info": "continuation generation failed: LLM error: HTTP LLM 400: {\"error\":{\"message\":\"Provider returned error\",\"code\":400,\"metadata\":{\"raw\":\"{\\\"error\\\":{\\\"message\\\":\\\"6 validation errors for ValidatorIterator\\\\n0.ChatCompletionMessageFunctionToolCallParam.id\\\\n  Field required [type=missing, input_value={'function': {'name': 'fi... 'min_clearance_m': 2}}}, input_type=dict]\\\\n    For further information visit https://errors.pydantic.dev/2.12/v/missing\\\\n0.ChatCompletionMessageFunctionToolCallParam.function.arguments\\\\n  Input should be a valid string [type=str: missing formations: cyan_column; 3 follower(s) out of tolerance; missing state: /formations/status",
+        "final_reply": "Forming cyan column in cafeteria, moving to storage, then disbanding.\n\nVerification: missing formations: cyan_column; 3 follower(s) out of tolerance; missing state: /formations/status"
+      },
+      {
+        "mission_id": "dbdeb75e448b",
+        "record_kind": "final",
+        "user_message": "bring robot_0 to required place",
+        "llm_mode": "http",
+        "llm_model": "qwen/qwen3.5-397b-a17b",
+        "map_name": "amongus_description",
+        "elapsed_sec": 5.302,
+        "llm_calls": 1,
+        "llm_seconds": 5.296,
+        "guard_active_formation_fired": 0,
+        "guard_occupancy_rewrites": 0,
+        "guard_formation_staging_fired": 0,
+        "guard_single_carrier_fired": 0,
+        "guard_shared_dropoff_fired": 0,
+        "remediation_attempts": 0,
+        "verification_repair_attempts": 0,
+        "supervision_steps": 0,
+        "verification_ok": null,
+        "verification_summary": "",
+        "timestamp": "2026-08-19T07:33:12.866151+00:00",
+        "success": true,
+        "plan_executed": false,
+        "info": "needs_help: LLM emitted needs_help on initial reply",
+        "final_reply": "Which location should I bring robot_0 to? Please specify the room or coordinates.",
+        "plan_json": "{\"type\": \"idle\", \"reason\": \"clarify: no destination specified for robot_0\"}",
+        "trigger": "bring robot_0 to required place",
+        "last_failure": {}
+      },
+      {
+        "mission_id": "c16217cb2ab3",
+        "record_kind": "final",
+        "user_message": "Form a column of the four cyan robots (robot_0, robot_1, robot_2, robot_3) led by robot_0 in the cafeteria at (2.7, 10.1), then move the column to storage at (0.6, -10.9), then disband it.",
+        "llm_mode": "http",
+        "llm_model": "qwen/qwen3.5-397b-a17b",
+        "map_name": "amongus_description",
+        "elapsed_sec": 261.322,
+        "llm_calls": 2,
+        "llm_seconds": 208.78199999999998,
+        "guard_active_formation_fired": 0,
+        "guard_occupancy_rewrites": 0,
+        "guard_formation_staging_fired": 0,
+        "guard_single_carrier_fired": 0,
+        "guard_shared_dropoff_fired": 0,
+        "remediation_attempts": 0,
+        "verification_repair_attempts": 0,
+        "supervision_steps": 1,
+        "verification_ok": true,
+        "verification_summary": "cyan_column active; followers within tolerance",
+        "timestamp": "2026-08-19T07:37:54.923208+00:00",
+        "mission_step": 1,
+        "plan_json": "{\"type\": \"sequence\", \"steps\": [{\"type\": \"mapf\", \"robot_ids\": [0, 1, 2, 3], \"goals\": [[2.7, 9.6], [2.7, 11.1], [2.7, 8.1], [2.7, 12.6]], \"reason\": \"cyan to column formation positions in cafeteria\", \"spread\": false}, {\"type\": \"formation\", \"formation_id\": \"cyan_column\", \"leader_ns\": \"robot_0\", \"follower_ns\": [\"robot_1\", \"robot_2\", \"robot_3\"], \"offsets_x\": [0.0, 0.0, 0.0], \"offsets_y\": [1.5, -1.5, 3.0], \"reason\": \"column formation in cafeteria\", \"_hint\": \"Formation \\\"cyan_column\\\" is not in a pre-approved zone (min clearance ~2.0 m). Approved zones: ['cafeteria', 'reactor', 'storage']\"}, {\"type\": \"mapf\", \"robot_ids\": [0], \"goals\": [[0.6, -10.9]], \"reason\": \"move cyan column leader to storage (followers track)\", \"spread\": false}, {\"type\": \"disband\", \"formation_id\": \"cyan_column\", \"reason\": \"disband column after reaching storage\"}]}",
+        "execution_ok": false,
+        "failure_info": "{\"leaf_type\": \"mapf\", \"action_status\": \"ERROR\", \"last_error\": \"no agents planned: No valid agents\", \"failed_at_phase\": \"phase2\"}",
+        "success": false,
+        "plan_executed": false,
+        "info": "continuation generation failed: LLM timeout: cyan_column active; followers within tolerance",
+        "final_reply": "Forming cyan column in cafeteria, moving to storage, then disbanding.\n\nVerification: cyan_column active; followers within tolerance"
+      },
+      {
+        "mission_id": "c4dabb801061",
+        "record_kind": "continuing",
+        "user_message": "go to admin panel instead, then go to cafeteria, disband",
+        "llm_mode": "http",
+        "llm_model": "qwen/qwen3.5-397b-a17b",
+        "map_name": "amongus_description",
+        "elapsed_sec": 123.173,
+        "llm_calls": 3,
+        "llm_seconds": 82.19,
+        "guard_active_formation_fired": 0,
+        "guard_occupancy_rewrites": 0,
+        "guard_formation_staging_fired": 0,
+        "guard_single_carrier_fired": 0,
+        "guard_shared_dropoff_fired": 0,
+        "remediation_attempts": 0,
+        "verification_repair_attempts": 0,
+        "supervision_steps": 3,
+        "verification_ok": false,
+        "verification_summary": "3 robot(s) not at requested MAPF goals",
+        "timestamp": "2026-08-19T07:41:08.786534+00:00",
+        "mission_step": 3,
+        "plan_json": "{\"type\": \"mapf\", \"robot_ids\": [0, 1, 2, 3], \"goals\": [[2.7, 10.1], [1.7, 9.1], [1.7, 11.1], [3.7, 9.1]], \"reason\": \"retry cafeteria placement with recomputed free group goals after partial failure\", \"spread\": false}",
+        "execution_ok": true,
+        "failure_info": "{}"
+      }
+    ]
+  },
+  "tools": {
+    "present": true,
+    "n_calls": 33,
+    "names": {
+      "find_group_placement_in_room": 6,
+      "find_free_group_goals_in_room": 7,
+      "verify_plan_execution_state": 7,
+      "get_robot_position": 9,
+      "mapf": 2,
+      "check_occupancy": 1,
+      "sequence": 1
+    },
+    "iterations": [
+      1,
+      2,
+      1,
+      2,
+      3,
+      1,
+      2,
+      4
+    ],
+    "prose_retries": 1,
+    "schema_retries": 1
+  },
+  "bag": "paper/results/qualitative_cases/m4_formation_interactive_20260819_073009/bag/bag_0.db3",
+  "bag_bytes": 175394816,
+  "wall_duration_s": 720.6,
+  "tasks": {
+    "declared": [
+      "task_med",
+      "task_electrical",
+      "carry_engine_to_reactor",
+      "task_reactor",
+      "carry_security_to_admin",
+      "task_hall",
+      "task_comms",
+      "task_o2",
+      "carry_shields_to_reactor"
+    ],
+    "targets": [],
+    "missing_from_bag": [],
+    "final": {
+      "task_med": {
+        "status": "pending",
+        "type": "point",
+        "assigned": []
+      },
+      "task_electrical": {
+        "status": "pending",
+        "type": "point",
+        "assigned": []
+      },
+      "carry_engine_to_reactor": {
+        "status": "pending",
+        "type": "carry",
+        "assigned": []
+      },
+      "task_reactor": {
+        "status": "pending",
+        "type": "point",
+        "assigned": []
+      },
+      "carry_security_to_admin": {
+        "status": "pending",
+        "type": "carry",
+        "assigned": []
+      },
+      "task_hall": {
+        "status": "pending",
+        "type": "point",
+        "assigned": []
+      },
+      "task_comms": {
+        "status": "pending",
+        "type": "point",
+        "assigned": []
+      },
+      "task_o2": {
+        "status": "pending",
+        "type": "point",
+        "assigned": []
+      },
+      "carry_shields_to_reactor": {
+        "status": "pending",
+        "type": "carry",
+        "assigned": []
+      }
+    },
+    "done": [],
+    "n_done": 0,
+    "n_targets": 0,
+    "done_times_s": {},
+    "makespan_s": null,
+    "carry_picked_up": [],
+    "incidental_done": []
+  },
+  "motion": {
+    "distance_m": {
+      "0": 25.36,
+      "1": 27.04,
+      "2": 31.04,
+      "3": 30.71,
+      "4": 0.0,
+      "5": 0.0,
+      "6": 0.0,
+      "7": 0.0,
+      "8": 0.0,
+      "9": 0.0,
+      "10": 0.0,
+      "11": 0.0,
+      "12": 0.0,
+      "13": 0.0,
+      "14": 0.0,
+      "15": 0.0,
+      "16": 0.0,
+      "17": 0.0,
+      "18": 0.0,
+      "19": 0.0
+    },
+    "end_position": {
+      "0": [
+        2.56,
+        9.8
+      ],
+      "1": [
+        2.36,
+        11.11
+      ],
+      "2": [
+        3.24,
+        9.27
+      ],
+      "3": [
+        2.35,
+        12.62
+      ],
+      "4": [
+        -9.45,
+        -6.65
+      ],
+      "5": [
+        -7.95,
+        -6.65
+      ],
+      "6": [
+        -9.45,
+        -5.15
+      ],
+      "7": [
+        -7.95,
+        -5.15
+      ],
+      "8": [
+        27.75,
+        1.15
+      ],
+      "9": [
+        29.25,
+        1.15
+      ],
+      "10": [
+        27.75,
+        2.65
+      ],
+      "11": [
+        29.25,
+        2.65
+      ],
+      "12": [
+        -0.15,
+        -11.65
+      ],
+      "13": [
+        1.35,
+        -11.65
+      ],
+      "14": [
+        -0.15,
+        -10.15
+      ],
+      "15": [
+        1.35,
+        -10.15
+      ],
+      "16": [
+        16.85,
+        9.95
+      ],
+      "17": [
+        18.35,
+        9.95
+      ],
+      "18": [
+        16.85,
+        11.45
+      ],
+      "19": [
+        18.35,
+        11.45
+      ]
+    },
+    "robots_moved": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "n_robots_moved": 4,
+    "total_distance_m": 114.2
+  },
+  "llm": {
+    "present": true,
+    "n_events": 11,
+    "by_channel": {
+      "user": 7,
+      "observer": 4
+    },
+    "events": [
+      {
+        "channel": "user",
+        "stamp_ms": 1787124691934,
+        "trigger": "Form a column of the four cyan robots (robot_0, robot_1, robot_2, robot_3) led by robot_0 in the cafeteria at (2.7, 10.1), then move the column to storage at (0.6, -10.9), then disband it.",
+        "output": "{\"type\": \"sequence\", \"steps\": [{\"type\": \"mapf\", \"robot_ids\": [0, 1, 2, 3], \"goals\": [[2.7, 10.1], [1.95, 9.35], [1.95, 10.85], [3.45, 9.35]], \"reason\": \"cyan to cafeteria for column formation; occupancy-aware room placement in cafeteria\"}, {\"type\": \"formation\", \"formation_id\": \"cyan_column\", \"leader_ns\": \"robot_0\", \"follower_ns\": [\"robot_1\", \"robot_2\", \"robot_3\"], \"offsets_x\": [-1.5, -3.0, -4.5], \"offsets_y\": [0.0, 0.0, 0.0], \"reason\": \"column formation\", \"_hint\": \"Formation \\\"cyan_column\\\" is not in a pre-approved zone (min clearance ~2.0 m). Approved zones: ['cafeteria', 'reactor', 'storage']\"}, {\"type\": \"mapf\", \"robot_ids\": [0], \"goals\": [[0.6, -10.9]], \"reason\": \"move cyan column leader to storage (followers track)\", \"spread\": false}, {\"type\": \"disband\", \"formation_id\": \"cyan_column\", \"reason\": \"operator disband after reaching storage\"}]}",
+        "reason": "Forming cyan column in cafeteria, moving to storage, then disbanding."
+      },
+      {
+        "channel": "user",
+        "stamp_ms": 1787124792866,
+        "trigger": "bring robot_0 to required place",
+        "output": "{\"type\": \"idle\", \"reason\": \"clarify: no destination specified for robot_0\"}",
+        "reason": "Which location should I bring robot_0 to? Please specify the room or coordinates."
+      },
+      {
+        "channel": "user",
+        "stamp_ms": 1787124792867,
+        "trigger": "bring robot_0 to required place",
+        "output": "needs_help",
+        "reason": "needs_help: LLM emitted needs_help on initial reply"
+      },
+      {
+        "channel": "observer",
+        "stamp_ms": 1787124793059,
+        "trigger": "[BT ERROR] none: partial: robot_0 did not reach the requested goal; the rest arrived",
+        "output": "",
+        "reason": "formation_state=0 failure=0"
+      },
+      {
+        "channel": "user",
+        "stamp_ms": 1787124842346,
+        "trigger": "Form a column of the four cyan robots (robot_0, robot_1, robot_2, robot_3) led by robot_0 in the cafeteria at (2.7, 10.1), then move the column to storage at (0.6, -10.9), then disband it.",
+        "output": "{\"type\": \"sequence\", \"steps\": [{\"type\": \"mapf\", \"robot_ids\": [0, 1, 2, 3], \"goals\": [[2.7, 9.6], [2.7, 11.1], [2.7, 8.1], [2.7, 12.6]], \"reason\": \"cyan to column formation positions in cafeteria\", \"spread\": false}, {\"type\": \"formation\", \"formation_id\": \"cyan_column\", \"leader_ns\": \"robot_0\", \"follower_ns\": [\"robot_1\", \"robot_2\", \"robot_3\"], \"offsets_x\": [0.0, 0.0, 0.0], \"offsets_y\": [1.5, -1.5, 3.0], \"reason\": \"column formation in cafeteria\", \"_hint\": \"Formation \\\"cyan_column\\\" is not in a pre-approved zone (min clearance ~2.0 m). Approved zones: ['cafeteria', 'reactor', 'storage']\"}, {\"type\": \"mapf\", \"robot_ids\": [0], \"goals\": [[0.6, -10.9]], \"reason\": \"move cyan column leader to storage (followers track)\", \"spread\": false}, {\"type\": \"disband\", \"formation_id\": \"cyan_column\", \"reason\": \"disband column after reaching storage\"}]}",
+        "reason": "Forming cyan column in cafeteria, moving to storage, then disbanding."
+      },
+      {
+        "channel": "observer",
+        "stamp_ms": 1787124922702,
+        "trigger": "[BT ERROR] none: no agents planned: No valid agents",
+        "output": "",
+        "reason": "formation_state=0 failure=0"
+      },
+      {
+        "channel": "user",
+        "stamp_ms": 1787125155544,
+        "trigger": "go to admin panel instead, then go to cafeteria, disband",
+        "output": "{\"type\": \"sequence\", \"steps\": [{\"type\": \"mapf\", \"robot_ids\": [0], \"goals\": [[4.0, 0.0]], \"reason\": \"move cyan column leader to admin panel (followers track)\", \"spread\": false}, {\"type\": \"mapf\", \"robot_ids\": [0], \"goals\": [[2.7, 10.1]], \"reason\": \"move cyan column leader to cafeteria (followers track)\", \"spread\": false}, {\"type\": \"disband\", \"formation_id\": \"cyan_column\", \"reason\": \"disband column after reaching cafeteria\"}]}",
+        "reason": "Moving cyan column to admin panel, then to cafeteria, then disbanding."
+      },
+      {
+        "channel": "observer",
+        "stamp_ms": 1787125185034,
+        "trigger": "[BT ERROR] none: no agents planned: No valid agents",
+        "output": "",
+        "reason": "formation_state=0 failure=0"
+      },
+      {
+        "channel": "user",
+        "stamp_ms": 1787125194218,
+        "trigger": "go to admin panel instead, then go to cafeteria, disband",
+        "output": "{\"type\": \"sequence\", \"steps\": [{\"type\": \"disband\", \"formation_id\": \"cyan_column\", \"reason\": \"clear active formation state before independent movement\"}, {\"type\": \"mapf\", \"robot_ids\": [0, 1, 2, 3], \"goals\": [[2.7, 10.1], [1.95, 9.35], [3.45, 9.35], [1.95, 10.85]], \"reason\": \"move all cyan robots to cafeteria using free group placement\", \"spread\": false}]}",
+        "reason": "Disbanding cyan column formation first to clear active state, then moving all cyan robots to cafeteria with computed free placement goals."
+      },
+      {
+        "channel": "user",
+        "stamp_ms": 1787125257658,
+        "trigger": "go to admin panel instead, then go to cafeteria, disband",
+        "output": "{\"type\": \"mapf\", \"robot_ids\": [0, 1, 2, 3], \"goals\": [[2.7, 10.1], [1.7, 9.1], [1.7, 11.1], [3.7, 9.1]], \"reason\": \"retry cafeteria placement with recomputed free group goals after partial failure\", \"spread\": false}",
+        "reason": "Recomputed cafeteria goals and retrying MAPF for cyan group with fresh placement."
+      },
+      {
+        "channel": "observer",
+        "stamp_ms": 1787125278479,
+        "trigger": "[BT ERROR] none: partial: robot_1, robot_3 did not reach the requested goal; the rest arrived",
+        "output": "",
+        "reason": "formation_state=0 failure=0"
+      }
+    ]
+  },
+  "bt": {
+    "present": true,
+    "status_ticks": {
+      "OK": 2154,
+      "ERROR": 4197,
+      "WARN": 634
+    },
+    "n_warn": 634,
+    "n_error": 4197,
+    "mode_sequence": [
+      "idle",
+      "mapf",
+      "formation",
+      "mapf",
+      "disband",
+      "mapf"
+    ],
+    "distinct_errors": [
+      "partial: robot_0 did not reach the requested goal; the rest arrived",
+      "no agents planned: No valid agents",
+      "partial: robot_1, robot_3 did not reach the requested goal; the rest arrived",
+      "partial plan: LNS2 failed to reach collision-free (2 remaining)"
+    ],
+    "thinking_ticks": 0
+  },
+  "mapf": {
+    "n_goals": 6,
+    "goals": {
+      "44049f0c0c94711d02f680a6a00afaac": {
+        "arrived": 2,
+        "stall": 2,
+        "replans": 2,
+        "deviated": 4,
+        "elapsed_ms": 64800,
+        "statuses": [
+          "validating",
+          "planning",
+          "executing",
+          "replanning",
+          "executing",
+          "replanning",
+          "executing",
+          "replanning",
+          "executing",
+          "replanning",
+          "executing",
+          "replanning",
+          "executing",
+          "replanning",
+          "executing",
+          "replanning",
+          "executing",
+          "replanning",
+          "executing",
+          "replanning",
+          "executing",
+          "replanning",
+          "executing",
+          "replanning",
+          "executing",
+          "replanning",
+          "executing",
+          "replanning",
+          "executing",
+          "replanning",
+          "executing"
+        ],
+        "warnings": [],
+        "terminal": "SUCCEEDED"
+      },
+      "f996e4d4acb0a6675995a47b243e14ab": {
+        "arrived": 3,
+        "stall": 0,
+        "replans": 0,
+        "deviated": 4,
+        "elapsed_ms": 48600,
+        "statuses": [
+          "validating",
+          "planning",
+          "executing"
+        ],
+        "warnings": [],
+        "terminal": "SUCCEEDED"
+      },
+      "5da2fdb1b29ccb8dde5ec328d2a5782c": {
+        "arrived": 0,
+        "stall": 0,
+        "replans": 0,
+        "deviated": 0,
+        "elapsed_ms": 0,
+        "statuses": [
+          "validating"
+        ],
+        "warnings": [],
+        "terminal": "SUCCEEDED"
+      },
+      "093dcf484d65fe0dbdb196d88e68ec7c": {
+        "arrived": 0,
+        "stall": 0,
+        "replans": 0,
+        "deviated": 0,
+        "elapsed_ms": 0,
+        "statuses": [
+          "validating"
+        ],
+        "warnings": [],
+        "terminal": "SUCCEEDED"
+      },
+      "c5e383d2047f0b287e0b6fff7b7b32f7": {
+        "arrived": 2,
+        "stall": 2,
+        "replans": 0,
+        "deviated": 4,
+        "elapsed_ms": 26100,
+        "statuses": [
+          "validating",
+          "planning",
+          "executing",
+          "replanning",
+          "executing",
+          "replanning",
+          "executing",
+          "replanning"
+        ],
+        "warnings": [],
+        "terminal": "SUCCEEDED"
+      },
+      "24aff97f9d4ab1f7ba2e2f3bb196c2a2": {
+        "arrived": 0,
+        "stall": 0,
+        "replans": 0,
+        "deviated": 0,
+        "elapsed_ms": 0,
+        "statuses": [
+          "validating",
+          "planning"
+        ],
+        "warnings": [],
+        "terminal": "SUCCEEDED"
+      }
+    },
+    "refused": [
+      "5da2fdb1b29ccb8dde5ec328d2a5782c",
+      "093dcf484d65fe0dbdb196d88e68ec7c",
+      "24aff97f9d4ab1f7ba2e2f3bb196c2a2"
+    ],
+    "total_replans": 2,
+    "total_stall": 4,
+    "terminal": [
+      "SUCCEEDED",
+      "SUCCEEDED",
+      "SUCCEEDED",
+      "SUCCEEDED",
+      "SUCCEEDED",
+      "SUCCEEDED"
+    ],
+    "warnings": []
+  },
+  "formation": {
+    "present": true,
+    "n_samples": 4381,
+    "n_active": 3010,
+    "dropped_frac": 0.3129,
+    "t_stable_s": 6.5,
+    "f_degraded": 0.0216,
+    "f_broken": 0.0,
+    "eps_peak_m": 0.409,
+    "eps_all_median_m": 0.035,
+    "leaders": [
+      "robot_0"
+    ],
+    "eps_ss_wide_m": 0.035,
+    "eps_narrow_m": null,
+    "n_wide": 9030,
+    "n_narrow": 0
+  }
+}

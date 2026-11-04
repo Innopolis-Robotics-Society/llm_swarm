@@ -1,7 +1,7 @@
 """Tests for the one-carrier-per-carry-task guard.
 
 The first test is the plan that actually broke cell B twice, copied out of
-paper/results/sessions/20260818_085836.
+paper/results/e2_mission_series/cell_b/ (the run was withdrawn; see llm_swarm_rejected/).
 """
 
 import pytest
