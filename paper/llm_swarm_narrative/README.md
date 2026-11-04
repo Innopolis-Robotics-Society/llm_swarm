@@ -5,8 +5,8 @@ two-column draft was removed. Editorial revision following review, 12 October
 2026, using the official Springer Nature `sn-jnl` class, single column, numeric
 citations. The submission venue is still open.
 
-`main.tex` is the source, `main.pdf` the built version: 20 pages, 19 cited
-sources (19 entries in `refs.bib`). No new experiments. The numbers of both
+`main.tex` is the source, `main.pdf` the built version: 21 pages, 24 cited
+sources (24 entries in `refs.bib`). No new experiments. The numbers of both
 original experimental tables are preserved.
 
 The central thesis and the title were changed, three RQs were added, along with

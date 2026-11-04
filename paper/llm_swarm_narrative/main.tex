@@ -130,7 +130,10 @@ offer alternative ways to coordinate paths. The resulting paths
 coordinate motion under the specified rules, but do not determine whether
 the supplied assignments and goals express a
 user's request. A language interface must establish that connection before
-path planning can serve the intended task.
+path planning can serve the intended task. Whether a language model can supply
+those assignments at all is a separate question: on planning benchmarks,
+current models perform well below the level their fluent output
+suggests~\citep{planbench}.
 
 Grounding language in executable skills is therefore central to early
 LLM-based robot planners. SayCan~\citep{saycan} combines a language model's
@@ -155,7 +158,10 @@ that is important in our implementation: what does the reported success
 establish, and is that sufficient for the original task?
 
 For a robot team, grounding individual actions must be combined with
-allocation and coordination~\citep{mrssurvey}. SMART-LLM~\citep{smartllm}
+allocation and coordination~\citep{mrssurvey}. Task allocation has its own
+taxonomy, which separates single-task, multi-task and coalition
+problems~\citep{mrta}; the duplicate-carrier defect reported below is an
+assignment error inside that space. SMART-LLM~\citep{smartllm}
 uses prompted task decomposition, coalition formation and allocation to
 construct a team plan. This makes robot selection part of language-level
 planning rather than an input assumed to be correct. RoCo~\citep{roco}
@@ -167,7 +173,7 @@ team behavior and the capabilities of its executor. Our duplicate-carrier
 and shared-destination cases examine that connection in a mobile fleet.
 
 Formal planning provides another way to make those decisions explicit.
-LaMMA-P~\citep{lammap} combines language reasoning with PDDL-based heuristic
+\mbox{LaMMA-P}~\citep{lammap} combines language reasoning with PDDL-based heuristic
 planning for heterogeneous teams, so language interpretation can be followed
 by search over a planning model. HiP-CL~\citep{hipcl} further separates
 translation from problem construction: instructions first become a
@@ -176,7 +182,15 @@ constraints are constructed. This separation clarifies where constraints
 enter the system. Its relevance here is that a planner can reason about
 constraints represented in its model; whether that model includes the
 geometry needed for a requested formation is a separate implementation
-question.
+question. LLM+P takes the same route more directly, translating a problem
+into PDDL and delegating search to a classical planner~\citep{llmp}. The
+LLM-Modulo position argues that this division is the right one: the model
+generates candidates and an external verifier decides~\citep{llmmodulo}. Our
+checks are such a verifier, but a partial one, and
+Table~\ref{tab:coverage} states which properties they do not decide.
+Temporal-logic mission planning goes further and synthesises a controller
+that satisfies a specification by construction~\citep{ltlmission}; our checks
+are not synthesis and do not certify a plan against a specification.
 
 A narrower execution interface can also reject unsupported outputs before
 motion begins. CommandSwarm~\citep{commandswarm} combines language-to-behavior-tree
@@ -393,7 +407,7 @@ when interpreting destination spreading and occupied-goal rewrites.
 \section{Level 3: Per-Robot Execution}
 \label{sec:lvl3}
 
-Each robot runs a Nav2~\citep{nav2} stack with namespace substitution and staggered
+Each robot runs a ROS~2~\citep{ros2} Nav2~\citep{nav2} stack with namespace substitution and staggered
 bring-up. The development record reports discovery and launch difficulties
 when starting twenty stacks simultaneously. Stage 2D was selected after
 Gazebo Harmonic did not provide a usable real-time factor in the development
@@ -596,8 +610,8 @@ plan-schema violation.
 The pattern recurred in several forms. An executor step for a task labelled carry reported all agents
 arrived while one robot had never left its spawn. A robot benched by a guard
 was silently dropped from the requested set and never reassigned. A
-blocked-goal rewrite moved a target by two metres and the robot reported
-arrival somewhere the mission had not asked for. A formation manager refused a
+blocked-goal rewrite moved the target outside the requested zone and the
+robot reported arrival somewhere the mission had not asked for. A formation manager refused a
 request immediately while the executor learned of it only at step-budget
 expiry. These reports did not by themselves establish that every requested
 agent or original goal had satisfied the task conditions. The examples are
@@ -690,7 +704,10 @@ of the model-specific causes is outside this study.
 \subsection{Main-series task-evaluator completion}
 
 Table~\ref{tab:e2} gives E2. Every reported cell satisfies all assigned task-evaluator conditions. The reported series therefore has no task-completion variation with which
-to estimate a language-model or guard effect. Timing differs descriptively,
+to estimate a language-model or guard effect. That saturation is itself an
+observation about the evaluator: it does not separate cells that differ in
+model, provider, allocation and guard version, so its resolution is below the
+differences this design was built to detect. Timing differs descriptively,
 as discussed below.
 
 \begin{table}[!htbp]
@@ -819,7 +836,10 @@ given in the README of that repository. The archive is
 \code{llm\_swarm\_results\_2026-11-04.tar.zst}, a zstd-compressed tar of
 135~MB. Its SHA-256 checksum is
 \code{3866f1fce6254243\hspace{0pt}986b0052e2fc0d60\hspace{0pt}39eadc351e10c460\hspace{0pt}f4ed0feec69f740d}.
-A per-file checksum manifest is distributed alongside it. No new simulation
+A per-file checksum manifest is distributed alongside it. Table~\ref{tab:e2}
+is reproduced from the unpacked archive by
+\code{python3 paper/results/scripts/analyze\_sessions.py}, which reads the
+recorded bags and prints the per-cell means. No new simulation
 runs or offline model calls were performed for this revision; the reported
 values are retained from the existing reporting record.
 
