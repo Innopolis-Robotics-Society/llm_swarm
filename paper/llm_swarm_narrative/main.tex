@@ -327,7 +327,7 @@ used for navigation and task evaluation. Adaptive Monte Carlo localization
 \label{sec:design}
 
 The analysis uses the saved benchmark outputs, plans, logs and derived
-metrics at repository revision \code{cab6312}.
+metrics in the repository, under \code{paper/results}.
 
 \paragraph{E1 --- offline plan validation}
 The benchmark has 44 cases in twelve categories covering navigation,
@@ -369,7 +369,7 @@ execution layers. Model, routing, allocation and software version vary
 across the reported cells.
 
 Selection depended on outcome in B/M2. The
-\href{https://github.com/Innopolis-Robotics-Society/llm_swarm/blob/cab6312716321282b1c600b85abebe789085f654/paper/results/e2_mission_series/README_code_versions.md#L15-L64}{development record}
+\href{https://github.com/Innopolis-Robotics-Society/llm_swarm}{development record} (\code{paper/results/e2\_mission\_series})
 reports
 that three original runs completed all five tasks, while runs
 \code{20260818\_085836} and \code{20260818\_090145} each stalled at 4/5.
@@ -392,8 +392,8 @@ effect.
 \toprule
 Series & Runs & Inclusion and evidence \\
 \midrule
-Selected M2/M3 & 18 & Four cells. Session IDs and base commits are
- recorded. All 18 worktrees were dirty. Thirteen runs have a language
+Selected M2/M3 & 18 & Four cells. Session IDs and code-version
+ labels are recorded. All 18 worktrees were dirty. Thirteen runs have a language
  journal, of which eight have per-phase checkpoints. \\
 Superseded B/M2 & 2 & Two runs at 4/5 tasks replaced after a software change.
  The three original successes remain in the selected cell. \\
@@ -410,7 +410,7 @@ M4 formation & 4 recorded attempts & Two retained qualitative cases
 \end{table}
 
 The archived session files and logs identify the included runs. A recorded
-base commit does not identify the uncommitted changes present in a run. The
+code version does not identify the uncommitted changes present in a run. The
 comparison uses the task evaluator recorded in \code{/tasks/state} and
 the target task list defined for each mission. For completed runs, the
 task-completion interval runs from the first recorded task-state sample to
@@ -461,7 +461,7 @@ document the intervention and outcomes without isolating its effect.
 
 \subsection{Case study: an assembled formation with a rejected route}
 In M4 run
-\href{https://github.com/Innopolis-Robotics-Society/llm_swarm/blob/cab6312716321282b1c600b85abebe789085f654/paper/results/qualitative_cases/m4_formation_interactive_20260819_073009/launch.log#L1681-L1696}{\code{20260819\_073009}},
+\href{https://github.com/Innopolis-Robotics-Society/llm_swarm}{\code{20260819\_073009}},
 the operator asked for a column. The
 model returned \code{offsets\_x=[0,0,0]} and
 \code{offsets\_y=[1.5,-1.5,3.0]}, a line abreast with a nominal span of
@@ -481,7 +481,7 @@ records document different outcomes of plan generation.
 \label{sec:failures}
 
 In M4 run
-\href{https://github.com/Innopolis-Robotics-Society/llm_swarm/blob/cab6312716321282b1c600b85abebe789085f654/paper/results/qualitative_cases/m4_leader_ejection_20260818_140918/launch.log#L994-L1011}{\code{20260818\_140918}},
+\href{https://github.com/Innopolis-Robotics-Society/llm_swarm}{\code{20260818\_140918}},
 MAPF reported \emph{All agents arrived}
 while robot~0, part of the original request, remained at its starting
 position. The development record traces the mismatch to a replan that
@@ -634,8 +634,8 @@ it covers, so it can be compared with the original command.
 The simulation evidence covers one Stage map, two main missions and
 selected runs. The version log documents the B/M2 replacements. The M3
 before/after series differ in software version and provider routing, so
-the comparison cannot isolate the guard's effect. The recorded commits
-do not capture uncommitted changes in the historical runs.
+the comparison cannot isolate the guard's effect. The recorded code
+versions do not capture uncommitted changes in the historical runs.
 
 E1 repeats 44 case designs and provides a comparison of the logged model
 and serving configurations. Exact model revisions and complete serving
@@ -684,7 +684,7 @@ the authors, who take full responsibility for the content.
 \subsection*{Data Availability}
 The benchmark outputs, session metadata, logs, derived metrics, and
 analysis scripts are in the
-\href{https://github.com/Innopolis-Robotics-Society/llm_swarm/tree/cab6312716321282b1c600b85abebe789085f654/paper/results}{results directory at the archived repository revision}.
+\href{https://github.com/Innopolis-Robotics-Society/llm_swarm}{repository}, under \code{paper/results}.
 The recorded bags are available in the
 \href{https://drive.google.com/drive/folders/1fpkuhE1f3ET2YIJLI5sV4jPzE1IJophs?usp=sharing}{public results archive},
 \code{llm\_swarm\_results\_2026-11-04.tar.zst} (135\,MB).
@@ -699,7 +699,7 @@ identifiers are documented in the run history.
 
 \subsection*{Code Availability}
 The ROS~2 stack, benchmark harness, and analysis scripts are available at
-\href{https://github.com/Innopolis-Robotics-Society/llm_swarm/tree/cab6312716321282b1c600b85abebe789085f654}{repository revision \code{cab6312}}.
+\href{https://github.com/Innopolis-Robotics-Society/llm_swarm/}{repository}.
 This revision records the analysis and documentation. It does not
 capture the uncommitted changes in the historical simulation runs.
 Licence declarations, where present, are in the individual packages.
