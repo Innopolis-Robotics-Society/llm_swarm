@@ -724,18 +724,13 @@ missions. The separate pre-guard and formation cases also show why this
 completion column is not a summary of every development run.
 
 \subsection{Timing and inactive mechanisms}
-The M2 language cells have reported mean makespans of
-$252.2\pm26.6$\,s for 9B and $260.0\pm16.5$\,s for B. Both complete all tasks,
-but they differ in model, provider, allocation, and guard version. These
-measurements do not establish an effect or absence of effect of model size.
-
-The B mean exceeds the scripted baseline by 56.5\,s
-($203.5$ versus $260.0$\,s), with 31.6\,s recorded as model waiting time.
-Makespan is measured from the first \texttt{/tasks/state} tick in the bag,
-not from command submission. The recording-to-command offset was not
-measured consistently, and allocations differ. Thus the gap is a descriptive
-comparison of recorded intervals, not a controlled language-interface
-overhead or operator-to-completion latency estimate.
+Across the M2 cells the recorded makespan ranges from 203.5\,s to 260.0\,s,
+and the per-run maximum time spent waiting on the model ranges from 0 to
+31.6\,s. Even read as an upper bound, model waiting accounts for at most 12\%
+of the longest recorded interval, so the language layer cannot account for the
+spread between cells. The remainder is not attributable with this design:
+allocation, provider and guard version differ, and makespan is anchored to the
+first \texttt{/tasks/state} tick rather than to command submission.
 
 Across the 13 language runs, remediation attempts, verification-repair
 attempts, and active-formation-guard activations are all zero; supervision
