@@ -48,8 +48,11 @@ Duplicate-carrier assignments occur in 5 of 13 generated language plans. A separ
 before and 9/9 after destination spreading; its non-randomized design
 precludes pooling it with the main series. A formation failure and qualitative
 development observations expose gaps in geometric checks and completion
-reports. We organize these observations by check coverage and distinguish
-implemented mechanisms from evaluated effects. The evidence supports a
+reports. Every failure we could attribute occurred in a plan that had already
+passed the structural checks, so the risk sat in assignment semantics, group
+geometry and completion reporting rather than in plan shape. We organize these
+observations by check coverage and distinguish implemented mechanisms from
+evaluated effects. The evidence supports a
 bounded architectural case study, not a general reliability gain, a safety
 certificate, or a demonstration of twenty concurrently active robots.}
 
@@ -88,9 +91,14 @@ planning and ask which errors can be handled at their interface.
 
 Hierarchical control, formal intermediate representations, and deterministic
 validation of language outputs are established approaches. Our contribution
-is an empirical characterization of their correctness boundaries in a
-specific ROS~2~\cite{ros2} fleet implementation, rather than a new general hierarchy or
-a claim that guards improve reliability across environments.
+is neither a new hierarchy nor a claim that guards improve reliability. It is
+a claim about where the risk sits: in this implementation every failure we
+could attribute occurred in a plan that had already passed the structural
+checks, and the failures fell into three properties the typed representation
+does not constrain --- which robot is assigned to what, whether a group fits
+through the space it must cross, and whether a component's success report
+means the mission condition was met. We report the check-coverage map that
+follows from that claim, and the cases that produced it.
 
 We ask which structural errors occur in generated fleet plans under the
 tested model and serving configurations, addressing RQ1. To understand
@@ -225,22 +233,24 @@ representation alone. Table~\ref{tab:coverage} describes the implemented
 coverage and its limits; it is not a formal verification of system safety.
 
 \begin{table}[!htbp]
-\caption{Implemented check coverage and the evidence available in this study.
-Implemented does not mean experimentally isolated or generally sufficient.}
+\caption{Two independent axes. \emph{Implemented} is what the code does;
+\emph{Exercised} is what the reported evidence actually touched. A full check
+that never fired is not evidence, and a missing check is not a defect until a
+case needs it.}
 \label{tab:coverage}
 \centering
-\begin{tabular}{p{0.25\textwidth}p{0.16\textwidth}p{0.48\textwidth}}
+\begin{tabular}{p{0.21\textwidth}p{0.14\textwidth}p{0.16\textwidth}p{0.36\textwidth}}
 \toprule
-Condition & Coverage & Evidence or limitation\\
+Condition & Implemented & Exercised & Limit\\
 \midrule
-Plan types and fields & Structural & Schema and recursive validators; E1 measures case-specific validity, not complete task semantics.\\
-Robot assignments & Partial & Active-formation membership and single-carrier rules; general assignment correctness is not established.\\
-Occupied goal cells & Local rewrite & Occupancy-aware goal adjustment does not establish route feasibility or preservation of the requested location.\\
-Shared drop-off & Task-specific & Destination spreading is logged in the reported M3 comparison; no controlled effect estimate.\\
-Formation assembly & Staging & Preparation exists; correct assembly does not establish traversability.\\
-Formation route & Missing & Complete formation-footprint feasibility is not checked by the interface; the reported failure exposes this gap.\\
-Task completion & Pose-based & Ordered zone-presence conditions are scored separately from action flags; physical cargo transfer, collisions and operator intent are not certified.\\
-Repair and supervision & Implemented & Main-series counters do not exercise repeated repair; effectiveness is unmeasured.\\
+Plan types and fields & Full & E1, 1{,}100 calls & Case-specific validity, not task semantics.\\
+Robot assignments & Partial & 2 runs & Single-carrier guard only; general assignment correctness is not established.\\
+Occupied goal cells & Full & Never & The rewrite never fired in the 13 language runs; route feasibility is not established.\\
+Shared drop-off & Full & 3 runs & Destination spreading is logged; no controlled effect estimate.\\
+Formation assembly & Full & 1 run & Correct assembly does not establish traversability.\\
+Formation route & None & 1 failure & Not checked by the interface; the reported failure exposes the gap.\\
+Task completion & Full & 18 runs & One 5\,Hz presence sample; cargo transfer, collisions and intent are not certified.\\
+Repair and supervision & Full & Never & Zero remediation and repair attempts; effectiveness is unmeasured.\\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -254,72 +264,6 @@ of four with a home location each. Twenty is the deployed population, not
 a measured concurrency level. The reported metrics do not provide per-run
 counts of simultaneously moving or jointly planned robots. We therefore
 make no throughput, scaling, or twenty-active-agent claim.
-
-% =========================================================================
-\section{Level 3: Per-Robot Execution}
-\label{sec:lvl3}
-
-Each robot runs a Nav2~\citep{nav2} stack with namespace substitution and staggered
-bring-up. The development record reports discovery and launch difficulties
-when starting twenty stacks simultaneously. Stage 2D was selected after
-Gazebo Harmonic did not provide a usable real-time factor in the development
-setup. These are engineering observations, not controlled simulator or DDS
-comparisons.
-
-Localization uses simulator-derived poses instead of AMCL. During
-development, scans from nearby robots caused difficulties with static-map
-localization; this motivated removing localization uncertainty from the
-case study. The experiments therefore do not test peer-aware localization
-or robustness to pose noise. A tuned CycloneDDS profile and a dynamic-blocker
-costmap plugin are part of the implementation, but their individual effects
-are not measured here.
-
-% =========================================================================
-\section{Level 2: Fleet Coordination}
-
-\paragraph{MAPF as an interchangeable backend}
-MAPF provides joint spatial coordination behind the fleet-action interface. Both PBS~\citep{pbs} and LNS2~\citep{lns2} sit behind one action interface: a
-request carries robot identifiers and one goal point per robot, and the
-solver publishes the resulting conflict-free paths to the robots as ordered
-waypoint sequences with holds rather than returning them.
-Nothing above Level~2 names an algorithm, so replacing the solver is a
-configuration change --- made true by the contract of Sec.~\ref{sec:overview},
-not by a coincidence of our code. All runs use LNS2.
-
-\paragraph{Supporting components}
-Formation management and mission execution use the same separation between fleet actions and per-robot execution. A centralized manager implements
-leader--follower control: a specification names a leader, its followers and
-per-follower offsets in the leader frame; while a formation is active its
-members leave the free pool and the group's extent transfers to an inflated
-leader footprint, so MAPF plans for the group as one body. BehaviorTree.CPP~\citep{btcpp} runs the
-mission tree with parameters supplied from above.
-
-\paragraph{Operational meaning of task completion}
-The task evaluator uses robot positions rather than component success flags.
-A visit task is complete when a robot is observed inside its target zone.
-A carry task is complete when a robot is observed inside its pickup zone and
-later inside its drop-off zone. A drop-off event before the qualifying pickup
-does not complete the task. The zone radius is 1.5\,m. The condition is a
-single presence sample at the 5\,Hz poll rate, not a sustained dwell: the task
-manager marks a task done on the first poll that finds the robot inside the
-radius, so a robot that crosses a zone without stopping still completes it.
-This is weaker than a dwell requirement and is a limitation of the metric.
-
-\Needspace{8\baselineskip}
-Here, pickup and drop-off are logical stages of an ordered spatial task.
-The success criterion does not verify grasping, attaching, transferring, or
-physically transporting a cargo object. We retain the term \emph{carry} as
-the task label and use \emph{evaluator completion} for its measured outcome.
-Completion of a mission means that all its specified task conditions have
-been registered; it is not a separate assertion of physical transport or
-collision safety.
-
-A rewritten goal is still assessed against the original task evaluator.
-Its successful pose-based score therefore establishes satisfaction of that
-evaluator's zone conditions, not equivalence to the operator's full intent.
-For instance, two points inside the same acceptance zone may receive the
-same score while representing different requested placements. This matters
-when interpreting destination spreading and occupied-goal rewrites.
 
 % =========================================================================
 \section{Level 1: Language Orchestration}
@@ -375,8 +319,9 @@ checks do not require an additional model call.
 Rejection and transformation have different semantics. Rejecting an action
 prevents its execution under the checked condition. Transforming it changes
 an assignment or goal and can change the operator's intended behavior. The
-single-carrier rule keeps the carrier also routed to the destination; the
-shared-drop-off rule spreads coincident destinations. Neither is a general
+single-carrier rule drops the extra carrier and keeps the robot that is
+routed to the drop-off; the shared-drop-off rule spreads coincident
+destinations. Neither is a general
 proof that the transformed plan preserves intent. Task completion must still
 be checked independently, and the implemented rules do not cover every
 possible conflict.
@@ -396,6 +341,72 @@ and pose state, and feeds three nested repair loops --- remediation,
 verification repair, mission supervision --- each with a step, time and
 no-progress budget. These mechanisms are described as implemented
 capabilities; the main-series counters do not establish their effectiveness.
+
+% =========================================================================
+\section{Level 2: Fleet Coordination}
+
+\paragraph{MAPF as an interchangeable backend}
+MAPF provides joint spatial coordination behind the fleet-action interface. Both PBS~\citep{pbs} and LNS2~\citep{lns2} sit behind one action interface: a
+request carries robot identifiers and one goal point per robot. The solver
+does not return paths to the caller; it publishes them to the robots as
+ordered waypoint sequences with holds.
+Nothing above Level~2 names an algorithm, so replacing the solver is a
+configuration change --- made true by the contract of Sec.~\ref{sec:overview},
+not by a coincidence of our code. All runs use LNS2.
+
+\paragraph{Supporting components}
+Formation management and mission execution use the same separation between fleet actions and per-robot execution. A centralized manager implements
+leader--follower control: a specification names a leader, its followers and
+per-follower offsets in the leader frame; while a formation is active its
+members leave the free pool and the group's extent transfers to an inflated
+leader footprint, so MAPF plans for the group as one body. BehaviorTree.CPP~\citep{btcpp} runs the
+mission tree with parameters supplied from above.
+
+\paragraph{Operational meaning of task completion}
+The task evaluator uses robot positions rather than component success flags.
+A visit task is complete when a robot is observed inside its target zone.
+A carry task is complete when a robot is observed inside its pickup zone and
+later inside its drop-off zone. A drop-off event before the qualifying pickup
+does not complete the task. The zone radius is 1.5\,m. The condition is a
+single presence sample at the 5\,Hz poll rate, not a sustained dwell: the task
+manager marks a task done on the first poll that finds the robot inside the
+radius, so a robot that crosses a zone without stopping still completes it.
+This is weaker than a dwell requirement and is a limitation of the metric.
+
+\Needspace{8\baselineskip}
+Here, pickup and drop-off are logical stages of an ordered spatial task.
+The success criterion does not verify grasping, attaching, transferring, or
+physically transporting a cargo object. We retain the term \emph{carry} as
+the task label and use \emph{evaluator completion} for its measured outcome.
+Completion of a mission means that all its specified task conditions have
+been registered; it is not a separate assertion of physical transport or
+collision safety.
+
+A rewritten goal is still assessed against the original task evaluator.
+Its successful pose-based score therefore establishes satisfaction of that
+evaluator's zone conditions, not equivalence to the operator's full intent.
+For instance, two points inside the same acceptance zone may receive the
+same score while representing different requested placements. This matters
+when interpreting destination spreading and occupied-goal rewrites.
+
+% =========================================================================
+\section{Level 3: Per-Robot Execution}
+\label{sec:lvl3}
+
+Each robot runs a Nav2~\citep{nav2} stack with namespace substitution and staggered
+bring-up. The development record reports discovery and launch difficulties
+when starting twenty stacks simultaneously. Stage 2D was selected after
+Gazebo Harmonic did not provide a usable real-time factor in the development
+setup. These are engineering observations, not controlled simulator or DDS
+comparisons.
+
+Localization uses simulator-derived poses instead of AMCL. During
+development, scans from nearby robots caused difficulties with static-map
+localization; this motivated removing localization uncertainty from the
+case study. The experiments therefore do not test peer-aware localization
+or robustness to pose noise. A tuned CycloneDDS profile and a dynamic-blocker
+costmap plugin are part of the implementation, but their individual effects
+are not measured here.
 
 % =========================================================================
 \section{Experimental Design}
@@ -566,8 +577,8 @@ implemented checks do not establish traversability of the complete formation
 footprint along the route. This motivates an additional check --- formation feasibility against the occupancy
 grid --- which we do not implement, and which the contract of
 Sec.~\ref{sec:overview} places at Level~2, the lowest level holding both the
-group extent and the map. A separate run with the same column request
-produced appropriate offsets.
+group extent and the map. In a separate run with the same column request the
+same model emitted \code{offsets\_x=[-1.5,-3.0,-4.5]}, which is a column.
 These cases show output variability, but do not estimate a formation failure
 rate or establish systematic behavior.
 
@@ -738,6 +749,13 @@ output configuration from actual use of grounding tools.
 \section{Discussion}
 \label{sec:discussion}
 
+The claim this study supports is narrow and testable: in this implementation
+structural validity did not predict mission outcome, because every failure we
+could attribute occurred in a plan that had passed the structural checks. The
+claim would be refuted by a structurally invalid plan that reached execution,
+or by a structurally valid plan that failed for a reason the coverage table
+lists as covered. Neither occurred in the reported set, which is small.
+
 The results show why structural validity is a useful first check but an
 incomplete account of fleet behavior. For RQ1, the benchmark distinguishes
 tested structural rules from mission execution.
@@ -835,6 +853,12 @@ test physical load handling, and a single sample does not establish that a
 robot stopped or waited. There are no independent collision or intent-preservation metrics.
 These limits preclude fleet-wide reliability, physical transport, and safety
 claims.
+
+Table~\ref{tab:coverage} separates implementation from exercise, and on the
+second axis the record is thin: two of the eight conditions were never
+exercised by any reported run (the occupied-goal rewrite and the repair and
+supervision loops), and three rest on one to three runs. A check that never
+fired is an untested mechanism, not a working one.
 
 The main-series completion metric is saturated. Five runs store a
 single-record journal without per-phase checkpoints, biasing inspection of
