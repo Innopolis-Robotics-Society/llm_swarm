@@ -2,6 +2,11 @@
 % One-column working manuscript; numerical references.
 \documentclass[pdflatex,sn-mathphys-num]{sn-jnl}
 \usepackage{graphicx}
+\usepackage{xcolor}
+% The class ships \orcidlogo as a bare \includegraphics{Orcidlogo.eps}; the
+% logo is not distributed with the class, so a local copy is provided and
+% scaled/raised to sit with the author names.
+\renewcommand{\orcidlogo}{\raisebox{0.7pt}{\includegraphics[height=7.2pt]{Orcidlogo.eps}}}
 \hypersetup{hidelinks,bookmarksdepth=2}
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
@@ -21,9 +26,13 @@
 \raggedbottom
 \begin{document}
 \title[Correctness Boundaries of Typed Fleet Plans]{Correctness Boundaries of Typed Plans for Natural-Language Robot Fleet Control}
-\author{\fnm{Author details pending}\sur{}}
-% Replace the author placeholder with the approved complete author list,
-% affiliations and corresponding-author e-mail before journal submission.
+\author*[1]{\fnm{Artem}\sur{Tuzov}\hspace{2pt}\orcid{https://orcid.org/0009-0007-5252-1886}}\email{a.tuzov@innopolis.university}
+\author[1]{\fnm{Dmitrii}\sur{Vizitei}\hspace{2pt}\orcid{https://orcid.org/0009-0006-6275-0589}}\email{d.vizitei@innopolis.university}
+\author[1]{\fnm{Evgenii}\sur{Shlomov}\hspace{2pt}\orcid{https://orcid.org/0009-0005-8864-5819}}\email{e.shlomov@innopolis.university}
+\author[1]{\fnm{Senya}\sur{Belykh}}
+\author[1]{\fnm{Anastasia}\sur{Malakhova}}\email{a.malakhova@innopolis.university}
+\author[1]{\fnm{Alexander}\sur{Maloletov}\hspace{2pt}\orcid{https://orcid.org/0000-0002-7312-2944}}\email{a.maloletov@innopolis.ru}
+\affil[1]{\orgname{Innopolis University}, \orgaddress{\city{Innopolis}, \country{Russia}}}
 \abstract{Typed plans can separate language-level task interpretation from
 robot execution, but structural validity does not establish semantic
 correctness, geometric feasibility, or mission completion. We examine these
@@ -35,8 +44,8 @@ and execute them. An offline benchmark of 44 cases with five repeats gives
 contains 18 runs completing their task-evaluator conditions on two mission
 specifications and one map. Here, a carry task means satisfying a dwell
 condition at a pickup location and then at a drop-off location, not physically
-transporting an object. Duplicate-carrier assignments occur in 5 of 11
-inspectable plans. A separate, uncontrolled M3 comparison reports 8/9 tasks
+transporting an object. Duplicate-carrier assignments occur in 5 of 13
+language plans. A separate, uncontrolled M3 comparison reports 8/9 tasks
 before and 9/9 after destination spreading; its non-randomized design
 precludes pooling it with the main series. A formation failure and qualitative
 development observations expose gaps in geometric checks and completion
@@ -64,7 +73,7 @@ commands.
 \caption{Illustrative duplicate-carrier correction at the language--coordination
 boundary. The typed plan contains an extra carrier; a task-specific guard
 removes it before execution. Duplicate-carrier assignments occurred in 5 of
-11 inspectable plans. The illustration is not the shared-drop-off
+13 language plans. The illustration is not the shared-drop-off
 before/after experiment.}
 
 \label{fig:hero}
@@ -440,8 +449,8 @@ the reporting record; rows are not disjoint sets that can be summed.}
 Source & Reported count & Use and unresolved provenance\\
 \midrule
 Main mission series & 18 runs & Four cells; three M2 cells and one M3 cell. Session/version inventory is not supplied.\\
-Decision journals & 11 of 13 & Inspectable language plans; a subset of the main series, biased toward later runs.\\
-Bring-up exclusions & 3 sessions & Three M4 sessions excluded as non-valid repeats: pilot stack failure, leader ejection, interactive session; no independent ID audit.\\
+Decision journals & 13 of 13 & Every language run retains a plan and a journal; eight also retain per-phase checkpoints, so execution order is inspectable only for the later cells.\\
+Bring-up exclusions & 3 sessions & Three M4 sessions excluded from the main-series denominator: pilot stack failure, leader ejection, interactive session. Two of the three are reported separately as qualitative cases; no independent ID audit.\\
 M3 guard comparison & 2 before, 3 after & Pre-guard runs are separate from the main series; the three post-guard runs are its B-M3 entries. Provider and software versions differ between series.\\
 Formation cases & One detailed failure & Additional qualitative observations, not a systematic formation benchmark or main-series denominator.\\
 Substrate defects & Not counted & Development observations of misleading local completion reports; no estimated frequency.\\
@@ -481,14 +490,17 @@ RQ1. Each source retains its own provenance and denominator.
 \subsection{Assignment defects and shared-destination conflicts}
 \label{sec:absorb}
 
-The inspectable plans reveal an assignment-level defect relevant to RQ2. Of the 13 language runs,
-11 retain a complete decision journal; the two that do not are the earliest
-recorded, before per-phase checkpointing was added, so the surviving set is
-biased towards later runs rather than random. Among those 11 plans, 5 carry
-the same assignment defect: the plan assigns two robots to carry a single
-item. An extra robot sent to the pickup can occupy space needed by the intended
-carrier. The count describes this inspected subset, not the prevalence of
-defects across unseen missions.
+The inspectable plans reveal an assignment-level defect relevant to RQ2. All
+13 language runs retain a plan and a decision journal, but only eight also
+retain per-phase checkpoints; the five model-9b runs predate checkpointing and
+store a single record, so execution order is inspectable only for the later
+cells. Among the 13 plans, 5 carry the same assignment defect: the plan
+assigns two robots to carry a single item. In three model-9b runs the extra
+carrier is visible in the stored plan; in two cell-B runs the single-carrier
+guard had already removed it, and the defect is recorded only by the guard
+counter. An extra robot sent to the pickup can occupy space needed by the
+intended carrier. The count describes this inspected set, not the prevalence
+of defects across unseen missions.
 
 \paragraph{Duplicate-carrier assignments}
 In the model-9b cell, the defect occurs in three runs, all of which complete
@@ -539,11 +551,11 @@ could not move at all:
 \code{robot\_0: no static path ... (footprint won't fit through)}
 \end{center}
 With a formation active the group's extent transfers to an inflated leader
-footprint, and the reported widest corridor on this map is 2.85\,m.
+footprint, and the passages this map offers are narrower than that extent.
 
 The plan is structurally valid and passes the implemented interface
-checks, yet mismatches the requested column and cannot traverse the reported
-corridors while keeping that formation: the occupancy-aware goal rewrite does consult the environment, but the
+checks, yet mismatches the requested column and cannot traverse the corridors of
+this map while keeping that formation: the occupancy-aware goal rewrite does consult the environment, but the
 implemented checks do not establish traversability of the complete formation
 footprint along the route. This motivates an additional check --- formation feasibility against the occupancy
 grid --- which we do not implement, and which the contract of
@@ -599,8 +611,9 @@ the fraction of cases with at least one valid response among five attempts,
 without model-ranking significance claims or confidence intervals that
 treat repeated cases as independent. For the 4B model, the difference
 between pass@1 and pass@5 is 23.2 points; other models recover less through
-resampling. A malformed formation-offsets array recurs byte-identically
-in 25 of the 24B model's 47 failures. This is a repeated error pattern,
+resampling. The same offsets-arity error accounts for 20 of the 24B model's
+47 failures, and the most frequent response is byte-identical in 8 of them.
+This is a repeated error pattern,
 not evidence that generation is deterministic.
 
 Offline rejection rates cannot be read as mission failure rates. The
@@ -611,7 +624,9 @@ fleet; runtime transformations and execution ordering can change outcomes.
 \centering
 \caption{Structural plan accuracy on the 44-case benchmark, $N{=}5$, 220 calls
 per model per configuration. \emph{tools} is native tool calling, the deployed
-configuration; \emph{schema} is schema-constrained decoding. Two hosted models are mixture-of-experts, reported as
+configuration; \emph{schema} is schema-constrained decoding. pass@1 is
+call-level (passed calls over total calls); pass@5 is case-level (cases with at
+least one valid response in five attempts). Two hosted models are mixture-of-experts, reported as
 total/active parameters; gemini does not disclose its size.}
 \label{tab:e1}
 \setlength{\tabcolsep}{3.2pt}
@@ -656,7 +671,7 @@ of the model-specific causes is outside this study.
 
 \subsection{Main-series task-evaluator completion}
 
-Table~\ref{tab:e3} gives E2. Every reported cell satisfies all assigned task-evaluator conditions. The reported series therefore has no task-completion variation with which
+Table~\ref{tab:e2} gives E2. Every reported cell satisfies all assigned task-evaluator conditions. The reported series therefore has no task-completion variation with which
 to estimate a language-model or guard effect. Timing differs descriptively,
 as discussed below.
 
@@ -664,8 +679,9 @@ as discussed below.
 \centering
 \caption{E2: 18 included runs with twenty deployed robots. Tasks are
 pose-based evaluator outcomes, not physical cargo-transfer measurements. \emph{in model} is
-wall-clock time spent waiting on the language model.}
-\label{tab:e3}
+wall-clock time spent waiting on the language model. Dispersion is the sample
+standard deviation ($n-1$).}
+\label{tab:e2}
 \setlength{\tabcolsep}{3.2pt}
 \begin{tabular}{llcccc}
 \toprule
@@ -741,24 +757,53 @@ component report, and the evaluator outcome separately. This is a lesson
 drawn from the cases, not a demonstrated general reliability improvement.
 
 \Needspace{12\baselineskip}
-\section*{Artifact Availability and AI Assistance}
+% =========================================================================
+\Needspace{12\baselineskip}
+\section*{Statements and Declarations}
 
-The manuscript package includes the article source, bibliography and figures,
-but does not include a versioned simulation repository, rosbag inventory,
-decision journals, raw offline responses, full prompts, or analysis scripts.
-Their availability for independent reproduction is therefore not established
-by this submission package. The quantitative values are retained from the
-existing reporting record; no new simulation runs or offline calls were
-performed for this revision. A code-and-data release requires confirmation
-and packaging of the actual artifacts, rather than a promise treated as
-evidence of reproducibility.
+\subsection*{Competing Interests}
+The authors have no relevant financial or non-financial interests to disclose.
 
-\Needspace{6\baselineskip}
-Generative AI assistance was reported for software development and analysis
-scripts in the original work, and was used for manuscript restructuring and
-language editing in this revision. It did not supply new empirical results.
-The authors remain responsible for validating the final text and the reported
-measurements against their original records.
+\subsection*{Funding}
+\emph{[Funding statement to be confirmed with the project supervisor before
+submission. The work was carried out as part of the authors' employment at the
+Institute of Robotics and Computer Vision, Innopolis University; whether it
+constitutes external funding is for the institution to state.]}
+
+\subsection*{Ethics Approval}
+Not applicable. This study did not involve human participants or animals.
+
+\subsection*{Consent to Participate}
+Not applicable.
+
+\subsection*{Consent for Publication}
+Not applicable.
+
+\subsection*{Data Availability}
+The simulation code, the eighteen included runs with their per-run metadata,
+decision journals, derived metrics and analysis scripts are available in the
+project repository at
+\url{https://github.com/Innopolis-Robotics-Society/llm_swarm} (branch
+\code{paper}). The recorded rosbag payloads (approximately 2~GB) are not
+tracked in the repository; they are available from the corresponding author on
+reasonable request. No new simulation runs or offline model calls were
+performed for this revision; the reported values are retained from the existing
+reporting record.
+
+\subsection*{Code Availability}
+The ROS~2 simulation stack, the MAPF planners, the language-orchestration
+components and the analysis scripts are available in the same repository under
+the terms stated there.
+
+\subsection*{Author Contributions}
+A.T.: Conceptualization, Methodology, Software, Investigation, Data curation,
+Writing---original draft, Writing---review and editing, Project administration.
+D.V.: Software, Investigation, Writing---review and editing.
+E.S.: Conceptualization, Methodology, Software, Investigation, Supervision,
+Project administration, Writing---review and editing.
+S.B.: Software, Investigation, Visualization.
+A.Mal.: Software, Validation.
+A.Malol.: Supervision, Conceptualization, Writing---review and editing.
 
 % =========================================================================
 
@@ -774,8 +819,9 @@ handling. There are no independent collision or intent-preservation metrics.
 These limits preclude fleet-wide reliability, physical transport, and safety
 claims.
 
-The main-series completion metric is saturated. Two decision journals are
-missing, biasing inspection toward later runs. The M3 before/after account is
+The main-series completion metric is saturated. Five runs store a
+single-record journal without per-phase checkpoints, biasing inspection of
+execution order toward the later cells. The M3 before/after account is
 identified by session, but its two series differ in provider and software
 version.
 The absence of a complete ID/version registry limits auditability and cannot
