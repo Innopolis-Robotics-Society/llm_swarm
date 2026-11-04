@@ -438,7 +438,7 @@ per-robot execution levels. There is no scripted M3 baseline, and the cells
 do not isolate model, provider, allocation, or guard-version effects.
 
 The reporting record accounts for 21 sessions, 18 included and three
-excluded as non-valid repeats of the formation mission outside these cells. Its inclusion rules
+excluded formation-mission (M4) sessions outside these cells. Its inclusion rules
 require the start configuration to be reached, one command delivery, and a
 finalized bag with the target topics present. It reports no outcome-based
 exclusion. The archive records a session identifier and a git commit for
@@ -462,7 +462,7 @@ the reporting record; rows are not disjoint sets that can be summed.}
 \toprule
 Source & Reported count & Use and unresolved provenance\\
 \midrule
-Main mission series & 18 runs & Four cells; three M2 cells and one M3 cell. Session/version inventory is not supplied.\\
+Main mission series & 18 runs & Four cells; three M2 cells and one M3 cell. A session identifier and a git commit are recorded for every run, but all eighteen are dirty-tree, so the commit does not identify the code.\\
 Decision journals & 13 of 13 & Every language run retains a plan and a journal; eight also retain per-phase checkpoints, so execution order is inspectable only for the later cells.\\
 Bring-up exclusions & 3 sessions & Three M4 sessions excluded from the main-series denominator: pilot stack failure, leader ejection, interactive session. Two of the three are reported separately as qualitative cases; no independent ID audit.\\
 M3 guard comparison & 2 before, 3 after & Pre-guard runs are separate from the main series; the three post-guard runs are its B-M3 entries. Provider and software versions differ between series.\\
