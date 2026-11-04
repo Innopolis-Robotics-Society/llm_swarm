@@ -103,12 +103,10 @@ fulfilling the mission's task-evaluator conditions. These questions follow
 a plan from generation through validation to its measured outcome.
 
 We distinguish plan representation, intended task meaning, spatial
-executability, and evaluator completion. The contribution combines an
-explicit description of the interface and its check coverage with recorded
-carry and formation cases and qualitative development observations. These
-sources have different denominators and provenance; they are not independent
-replications of one guard-effect experiment. Figure~\ref{fig:hero} illustrates
-a duplicate-carrier correction. The shared-drop-off comparison is a separate
+executability, and evaluator completion. The sources behind these claims have
+different denominators and provenance; they are not independent replications
+of one guard-effect experiment. Figure~\ref{fig:hero} illustrates a
+duplicate-carrier correction, and the shared-drop-off comparison is a separate
 case in Section~\ref{sec:absorb}.
 
 % =========================================================================
@@ -166,36 +164,32 @@ points in the pipeline, but both require a connection between the proposed
 team behavior and the capabilities of its executor. Our duplicate-carrier
 and shared-destination cases examine that connection in a mobile fleet.
 
-Formal planning provides another way to make those decisions explicit.
-\mbox{LaMMA-P}~\citep{lammap} combines language reasoning with PDDL-based heuristic
-planning for heterogeneous teams, so language interpretation can be followed
-by search over a planning model. HiP-CL~\citep{hipcl} further separates
-translation from problem construction: instructions first become a
-controlled language, from which a planning problem and spatial and resource
-constraints are constructed. This separation clarifies where constraints
-enter the system. Its relevance here is that a planner can reason about
-constraints represented in its model; whether that model includes the
-geometry needed for a requested formation is a separate implementation
-question. LLM+P takes the same route more directly, translating a problem
-into PDDL and delegating search to a classical planner~\citep{llmp}. The
-LLM-Modulo position argues that this division is the right one: the model
-generates candidates and an external verifier decides~\citep{llmmodulo}. Our
-checks are such a verifier, but a partial one, and
-Table~\ref{tab:coverage} states which properties they do not decide.
-Temporal-logic mission planning goes further and synthesises a controller
-that satisfies a specification by construction~\citep{ltlmission}; our checks
-are not synthesis and do not certify a plan against a specification.
+Formal planning makes those decisions explicit.
+\mbox{LaMMA-P}~\citep{lammap} combines language reasoning with PDDL-based
+heuristic planning for heterogeneous teams; HiP-CL~\citep{hipcl} first
+translates instructions into a controlled language from which a planning
+problem and its spatial and resource constraints are constructed; LLM+P
+translates a problem into PDDL and delegates search to a classical
+planner~\citep{llmp}. A planner can reason about constraints represented in
+its model, but whether that model includes the geometry a requested formation
+needs is a separate implementation question. The LLM-Modulo position argues
+that this division is the right one: the model generates candidates and an
+external verifier decides~\citep{llmmodulo}. Our checks are such a verifier,
+but a partial one, and Table~\ref{tab:coverage} states which properties they
+do not decide. Temporal-logic mission planning goes further and synthesises a
+controller that satisfies a specification by
+construction~\citep{ltlmission}; our checks are not synthesis and do not
+certify a plan against a specification.
 
 A narrower execution interface can also reject unsupported outputs before
-motion begins. CommandSwarm~\citep{commandswarm} combines language-to-behavior-tree
-generation with command filtering and deterministic parser validation
-against permitted swarm primitives. This directly addresses the boundary
-between generated structure and accepted commands. Sangchai et
-al.~\citep{symbolicwrappers} examine symbolic wrappers using structured tools
-or PDDL, with human review before execution. Their design makes the
-intermediate plan available for inspection and correction. Such mechanisms
-already establish validation and intermediate representations as part of
-language-driven robot systems; neither is a novelty claim of this paper.
+motion begins. CommandSwarm~\citep{commandswarm} combines
+language-to-behavior-tree generation with command filtering and deterministic
+parser validation against permitted swarm primitives; Sangchai et
+al.~\citep{symbolicwrappers} examine symbolic wrappers over structured tools
+or PDDL with human review before execution. Both make the intermediate plan
+available for inspection and correction, which establishes validation and
+intermediate representations as part of language-driven robot systems;
+neither is a novelty claim of this paper.
 
 Our study follows these architectural choices through execution in one
 implemented fleet. We examine which malformed plans are rejected, which
@@ -334,14 +328,12 @@ proof that the transformed plan preserves intent. Task completion must still
 be checked independently, and the implemented rules do not cover every
 possible conflict.
 
-Schema restrictions also need empirical assessment. On the offline benchmark,
-the local 9B model's structural pass rate drops from 87.3\% with native tool
-calling to 19.1\% with schema-constrained decoding. The corresponding hosted
-comparison is 90.5\% versus 51.4\%. These are configuration-specific
-observations, not evidence that schema constraints generally harm planning.
-The simulation campaign uses the native tool-calling response configuration;
-this does not imply that auxiliary state-lookup tools are invoked on every
-mission.
+Schema restrictions also need empirical assessment: on the offline benchmark
+the local 9B model's structural pass rate falls from 87.3\% with native tool
+calling to 19.1\% with schema-constrained decoding, and the hosted comparison
+is 90.5\% versus 51.4\% (Section~\ref{sec:hosted}). The simulation campaign
+uses the native tool-calling configuration; this does not imply that auxiliary
+state-lookup tools are invoked on every mission.
 
 \paragraph{Closed loop}
 Post-execution verification is deterministic, computed from formation status
@@ -777,14 +769,12 @@ per-category error taxonomy; the retained responses are not accompanied by a
 per-category coding that would reconstruct one.
 
 Passing those structural checks leaves the assignment and spatial questions
-of RQ2. The single-carrier cases show targeted assignment correction, with successful
-uncorrected cases preventing a necessity claim. The shared-drop-off account
-shows destination spreading consistent with the intended coordination rule,
-without isolating its causal effect. The formation case reveals both a
-semantic mismatch and a missing footprint-route check. Together these
-observations identify different checks for different properties. A parseable
-plan, a locally admissible goal, and a traversable group route are distinct
-requirements.
+of RQ2. The single-carrier cases show targeted correction, but successful
+uncorrected cases prevent a necessity claim; the shared-drop-off account shows
+spreading consistent with the intended rule without isolating its effect; the
+formation case reveals both a semantic mismatch and a missing footprint-route
+check. A parseable plan, a locally admissible goal and a traversable group
+route are distinct requirements.
 
 The distinction extends to execution feedback, as examined in RQ3. A
 component may report success for an adjusted goal or reduced robot set
@@ -874,23 +864,20 @@ exercised by any reported run (the occupied-goal rewrite and the repair and
 supervision loops), and three rest on one to three runs. A check that never
 fired is an untested mechanism, not a working one.
 
-The main-series completion metric is saturated. Five runs store a
+The main-series completion metric is saturated, and five runs store a
 single-record journal without per-phase checkpoints, biasing inspection of
 execution order toward the later cells. The M3 before/after account is
 identified by session, but its two series differ in provider and software
-version.
-Every run records a git commit, but all eighteen were made from a dirty
-tree, so the version registry does not identify the code; naming the series
-separately does not repair that. The reported 18-run
-result must not be interpreted as an all-campaign success probability.
+version. All eighteen runs were recorded from a dirty tree, so the commit does
+not identify the code. The reported 18-run result is not an all-campaign
+success probability.
 
-E1 repeats 44 case designs and measures selected structural requirements.
-It does not estimate general language competence or end-to-end success.
-The reporting package retains the per-call prompts and responses but omits
-model revisions, quantization settings, serving configurations and seeds
-required for full reproduction. Models and
-serving settings are confounded. Makespan is anchored to the first task-state
-tick, with uncontrolled command offset and allocation, so it does not isolate
+E1 repeats 44 case designs and measures selected structural requirements; it
+does not estimate general language competence or end-to-end success. The
+package retains the per-call prompts and responses but omits model revisions,
+quantization, serving configurations and seeds, and models and serving
+settings are confounded. Makespan is anchored to the first task-state tick
+with uncontrolled command offset and allocation, so it does not isolate
 language overhead or operator latency.
 
 No controlled component-removal ablation was performed. The five-run
