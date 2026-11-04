@@ -99,15 +99,14 @@ tested model and serving configurations, addressing RQ1. To understand
 what happens after generation, RQ2 asks which observed assignment and spatial
 conflicts the implemented guards handle and which they leave unchecked.
 Finally, RQ3 asks why a component can report successful execution without
-fulfilling the mission's task-evaluator conditions. These questions follow
-a plan from generation through validation to its measured outcome.
+fulfilling the mission's task-evaluator conditions.
 
 We distinguish plan representation, intended task meaning, spatial
 executability, and evaluator completion. The sources behind these claims have
 different denominators and provenance; they are not independent replications
-of one guard-effect experiment. Figure~\ref{fig:hero} illustrates a
-duplicate-carrier correction, and the shared-drop-off comparison is a separate
-case in Section~\ref{sec:absorb}.
+of one guard-effect experiment. Figure~\ref{fig:hero} shows a
+duplicate-carrier correction; the shared-drop-off comparison is a separate
+case (Sec.~\ref{sec:absorb}).
 
 % =========================================================================
 \section{Related Work}
@@ -134,9 +133,9 @@ robot can execute it in the current state. This connects task interpretation
 to available behavior without asking the language model to generate motor
 commands. Code as Policies~\citep{codeaspolicies} gives the model a more
 expressive interface: it composes perception and control APIs into programs,
-including control flow and numerical operations. The distinction matters
-for fleet control because choosing an available action and assembling
-several actions into a coherent mission require different checks.
+including control flow and numerical operations. For fleet control the
+distinction matters: choosing an available action and assembling a coherent
+mission require different checks.
 
 Execution can depart from a plan even when its actions are available. Inner
 Monologue~\citep{innermono} feeds observations and success reports back into
@@ -145,9 +144,8 @@ ProgPrompt~\citep{progprompt} incorporates this concern into program-like
 plans through assertions and recovery steps. In its simulated evaluation,
 assertions are assessed by an LLM using environment-state information;
 they are not the same mechanism as deterministic runtime guards. Both
-approaches make feedback part of planning. They also motivate a question
-that is important in our implementation: what does the reported success
-establish, and is that sufficient for the original task?
+approaches make feedback part of planning, and both raise the question our
+implementation turns on: what does a reported success establish?
 
 For a robot team, grounding individual actions must be combined with
 allocation and coordination~\citep{mrssurvey}. Task allocation has its own
@@ -159,10 +157,10 @@ construct a team plan. This makes robot selection part of language-level
 planning rather than an input assumed to be correct. RoCo~\citep{roco}
 instead uses dialogue between robot-specific language agents to develop a
 joint plan, which is checked before a centralized multi-arm planner
-generates motion. These designs place coordination decisions at different
-points in the pipeline, but both require a connection between the proposed
-team behavior and the capabilities of its executor. Our duplicate-carrier
-and shared-destination cases examine that connection in a mobile fleet.
+generates motion. These designs place coordination at different points in the
+pipeline, but both need a connection between the proposed team behavior and
+its executor's capabilities; our duplicate-carrier and shared-destination
+cases examine that connection.
 
 Formal planning makes those decisions explicit.
 \mbox{LaMMA-P}~\citep{lammap} combines language reasoning with PDDL-based
