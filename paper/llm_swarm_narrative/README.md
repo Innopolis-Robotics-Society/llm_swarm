@@ -22,11 +22,24 @@ Everything the main build needs is in this directory. A normal TeX Live with
 the dependencies of the official class is enough.
 
 ```bash
+./build.sh
+```
+
+`build.sh` runs the four passes below and then refuses to leave a broken
+`main.pdf` behind: it fails on TeX errors, on unresolved references or
+citations, on an unreadable PDF, and on a literal `??` in the rendered text.
+
+```bash
 pdflatex -interaction=nonstopmode -halt-on-error main.tex
 bibtex main
 pdflatex -interaction=nonstopmode -halt-on-error main.tex
 pdflatex -interaction=nonstopmode -halt-on-error main.tex
 ```
+
+All four passes are required. A single `pdflatex` run leaves every `\ref` and
+`\cite` as `??`, because the `.aux` is written at the end of a run and read at
+the start of the next one. If you see `??` in the PDF, the build was cut short
+or two builds ran at once over the same directory; rerun `./build.sh`.
 
 The figures are included as finished PDFs. To rebuild them:
 
