@@ -33,28 +33,22 @@
 \author[1]{\fnm{Anastasia}\sur{Malakhova}}\email{a.malakhova@innopolis.university}
 \author[1]{\fnm{Alexander}\sur{Maloletov}\hspace{2pt}\orcid{https://orcid.org/0000-0002-7312-2944}}\email{a.maloletov@innopolis.ru}
 \affil[1]{\orgname{Innopolis University}, \orgaddress{\city{Innopolis}, \country{Russia}}}
-\abstract{Typed plans can separate language-level task interpretation from
-robot execution, but structural validity does not establish semantic
-correctness, geometric feasibility, or mission completion. We examine these
-boundaries through a three-level ROS~2 implementation deployed with twenty
-simulated mobile robots. The model emits recursive fleet plans; deterministic
-checks validate or transform selected actions; classical components coordinate
-and execute them. An offline benchmark of 44 cases with five repeats gives
-70.0--87.3\% call-level structural pass rates for local models. The reported main series
-contains 18 runs completing their task-evaluator conditions on two mission
-specifications and one map. Here, a carry task means being observed inside a pickup zone and then
-inside a drop-off zone, not physically transporting an object.
-Duplicate-carrier assignments occur in 5 of 13 generated language plans. A separate, uncontrolled M3 comparison reports 8/9 tasks
-before and 9/9 after destination spreading; its non-randomized design
-precludes pooling it with the main series. A formation failure and qualitative
-development observations expose gaps in geometric checks and completion
-reports. Every failure we could attribute occurred in a plan that had already
-passed the structural checks, so the risk sat in assignment semantics, group
-geometry and completion reporting rather than in plan shape. We organize these
-observations by check coverage and distinguish implemented mechanisms from
-evaluated effects. The evidence supports a
-bounded architectural case study, not a general reliability gain, a safety
-certificate, or a demonstration of twenty concurrently active robots.}
+\abstract{Typed plans let a language model specify fleet tasks while classical
+components execute them. Structural validity, however, does not establish that
+a plan means what the operator asked, that a formation fits through the
+corridors it must cross, or that a component's success report satisfies the
+mission. We examine these three boundaries in a three-level ROS~2
+implementation with twenty simulated robots. An offline benchmark of 44 cases
+gives 70.0--87.3\% structural pass rates for local models. In 18 simulated
+runs every cell completed its task-evaluator conditions --- where a carry task
+counts as zone presence, not physical transport --- yet 5 of 13 generated
+plans assigned two robots to carry one item, a formation that assembled
+correctly could not move, and components reported success for goals the
+mission had not requested. Every failure we could attribute occurred in a plan
+that had already passed the structural checks. The risk sat in assignment
+semantics, group geometry and completion reporting, not in plan shape. The
+evidence supports a bounded architectural case study, not a reliability gain
+or a safety certificate.}
 
 \keywords{Multi-robot systems, Language models, Fleet coordination, Typed plans, Deterministic guards, ROS 2}
 \maketitle
