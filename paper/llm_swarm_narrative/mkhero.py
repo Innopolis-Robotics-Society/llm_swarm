@@ -20,4 +20,4 @@ for ax,(title,text) in zip(axes.flat,panels):
                               fc='#f0f4f8',ec='#667788',lw=.8,transform=ax.transAxes))
     ax.text(.02,1.0,title,weight='bold',va='bottom',transform=ax.transAxes)
     ax.text(.5,.47,text,ha='center',va='center',linespacing=1.6,transform=ax.transAxes)
-fig.savefig(Path(__file__).with_name('fig_hero.pdf'),bbox_inches='tight')
+fig.savefig(Path(__file__).with_name('Fig1.pdf'),bbox_inches='tight')

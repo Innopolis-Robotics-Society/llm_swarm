@@ -7,7 +7,7 @@
 # .aux) -> bibtex (writes .bbl) -> pdflatex (reads .bbl, writes labels) ->
 # pdflatex (settles page numbers). Do not shorten it.
 #
-# Do not use `latexmk -C`: it deletes architecture.pdf, which is a source
+# Do not use `latexmk -C`: it can delete Fig2.pdf, which is a source
 # figure, not a build product.
 set -euo pipefail
 cd "$(dirname "$0")"

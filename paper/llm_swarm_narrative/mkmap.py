@@ -97,7 +97,7 @@ def main():
               ncol=3, frameon=False, columnspacing=1.1, handletextpad=0.35)
     ax.set(xlim=(x0, x0 + w * step), ylim=(y0, ymax),
            xticks=[], yticks=[], aspect="equal")
-    fig.savefig(Path(__file__).with_name("fig_map.pdf"), bbox_inches="tight", pad_inches=0.035)
+    fig.savefig(Path(__file__).with_name("Fig3.pdf"), bbox_inches="tight", pad_inches=0.035)
 
 
 if __name__ == "__main__":
