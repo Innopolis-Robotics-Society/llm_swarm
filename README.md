@@ -1,4 +1,6 @@
-# IROS LLM Swarm — Simulation
+# IROS LLM Swarm — Simulation 
+
+arxiv preprint - https://arxiv.org/abs/2611.12654
 
 ## ROS bags are availabe via link [link](https://drive.google.com/drive/folders/1fpkuhE1f3ET2YIJLI5sV4jPzE1IJophs?usp=sharing)
 
